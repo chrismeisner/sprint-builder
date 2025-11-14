@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 
 type Props = {
   documentId: string;
+  model?: string;
 };
 
-export default function CreateSprintButton({ documentId }: Props) {
+export default function CreateSprintButton({ documentId, model }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -30,9 +31,16 @@ export default function CreateSprintButton({ documentId }: Props) {
       console.log("[CreateSprint] Sending request", {
         method: "POST",
         url: requestUrl,
+        model,
       });
       const res = await fetch(requestUrl, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(
+          typeof model === "string" && model.length > 0 ? { model } : {}
+        ),
       });
       const endTime = typeof performance !== "undefined" ? performance.now() : Date.now();
       const durationMs = Math.round((endTime - startTime) * 100) * 0.01;
@@ -51,12 +59,14 @@ export default function CreateSprintButton({ documentId }: Props) {
         preview,
       });
       if (!res.ok) {
+        const errorData: { error?: string; details?: unknown } =
+          typeof data === "object" && data !== null ? (data as { error?: string; details?: unknown }) : {};
         console.error("[CreateSprint] Request failed", {
           status: res.status,
-          error: (data as any)?.error,
-          details: (data as any)?.details,
+          error: errorData.error,
+          details: errorData.details,
         });
-        setError(data?.error || "Failed to create sprint draft");
+        setError(errorData.error || "Failed to create sprint draft");
         return;
       }
       // Navigate to the document detail to view the new sprint draft listing

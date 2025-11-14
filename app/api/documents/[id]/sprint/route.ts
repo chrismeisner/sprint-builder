@@ -5,8 +5,14 @@ type Params = {
   params: { id: string };
 };
 
-export async function POST(_request: Request, { params }: Params) {
+export async function POST(request: Request, { params }: Params) {
   try {
+    const startedAt = new Date().toISOString();
+    console.log("[SprintAPI] Start", {
+      startedAt,
+      documentId: params.id,
+      contentType: request.headers.get("content-type"),
+    });
     await ensureSchema();
     const pool = getPool();
 
@@ -16,19 +22,44 @@ export async function POST(_request: Request, { params }: Params) {
       [params.id]
     );
     if (docRes.rowCount === 0) {
+      console.warn("[SprintAPI] Document not found", { documentId: params.id });
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
     const document = docRes.rows[0] as { id: string; content: unknown };
+    const docSize = (() => {
+      try {
+        return JSON.stringify(document.content)?.length ?? 0;
+      } catch {
+        return -1;
+      }
+    })();
+    console.log("[SprintAPI] Loaded document", { documentId: params.id, docSize });
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
+      console.error("[SprintAPI] Missing OPENAI_API_KEY");
       return NextResponse.json(
         { error: "OPENAI_API_KEY is not configured" },
         { status: 500 }
       );
     }
 
-    const model = "gpt-4o-mini";
+    let model = "gpt-4o-mini";
+    try {
+      const body = (await request.json()) as unknown;
+      if (body && typeof body === "object" && "model" in body) {
+        const candidate = (body as { model?: unknown }).model;
+        if (typeof candidate === "string" && candidate.trim().length > 0) {
+          model = candidate.trim();
+        }
+      }
+    } catch {
+      // no body provided; keep default
+    }
+    console.log("[SprintAPI] Using model", {
+      model,
+      hasApiKey: Boolean(apiKey),
+    });
 
     // Compose prompt
     const systemPrompt =
@@ -37,32 +68,45 @@ export async function POST(_request: Request, { params }: Params) {
       "This is an input form from a client that we're going to make a 2 week sprint from. Produce a JSON plan with fields: sprintTitle (string), goals (string[]), backlog (array of {id, title, description, estimatePoints, owner?, acceptanceCriteria?}), timeline (array of {day, focus, items: string[]}), assumptions (string[]), risks (string[]), notes (string[]). Use clear, concise language.";
 
     // Call OpenAI Chat Completions API with response_format json_object
+    const requestBody = {
+      model,
+      temperature: 0.2,
+      response_format: { type: "json_object" as const },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+        {
+          role: "user",
+          content:
+            "Client intake JSON:\n\n```json\n" +
+            JSON.stringify(document.content, null, 2) +
+            "\n```",
+        },
+      ],
+    };
+    console.log("[SprintAPI] Sending OpenAI request", {
+      endpoint: "https://api.openai.com/v1/chat/completions",
+      model,
+      temperature: requestBody.temperature,
+      messagesCount: requestBody.messages.length,
+      docSize,
+    });
     const openAIRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model,
-        temperature: 0.2,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-          {
-            role: "user",
-            content:
-              "Client intake JSON:\n\n```json\n" +
-              JSON.stringify(document.content, null, 2) +
-              "\n```",
-          },
-        ],
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!openAIRes.ok) {
       const errText = await openAIRes.text().catch(() => "");
+      console.error("[SprintAPI] OpenAI request failed", {
+        status: openAIRes.status,
+        statusText: openAIRes.statusText,
+        bodyPreview: errText.slice(0, 2000),
+      });
       return NextResponse.json(
         { error: "OpenAI request failed", details: errText },
         { status: 502 }
@@ -75,6 +119,10 @@ export async function POST(_request: Request, { params }: Params) {
       }>;
     };
     const data = (await openAIRes.json()) as ChatCompletion;
+    console.log("[SprintAPI] OpenAI response ok", {
+      hasChoices: Array.isArray(data?.choices),
+      firstChoiceLen: data?.choices?.[0]?.message?.content?.length ?? 0,
+    });
     const messageContent = data.choices?.[0]?.message?.content ?? "";
 
     let parsedDraft: unknown = null;
@@ -82,10 +130,14 @@ export async function POST(_request: Request, { params }: Params) {
       parsedDraft = JSON.parse(messageContent);
     } catch {
       // If not valid JSON, still store raw text and return error
+      console.warn("[SprintAPI] Response was not valid JSON; storing raw text", {
+        textPreview: messageContent.slice(0, 500),
+      });
     }
 
     const aiResponseId = crypto.randomUUID();
     const sprintDraftId = crypto.randomUUID();
+    console.log("[SprintAPI] Generated ids", { aiResponseId, sprintDraftId });
 
     // Store AI response
     await pool.query(
@@ -103,9 +155,11 @@ export async function POST(_request: Request, { params }: Params) {
         parsedDraft ? JSON.stringify(parsedDraft) : null,
       ]
     );
+    console.log("[SprintAPI] Stored ai_responses row", { aiResponseId });
 
     if (!parsedDraft) {
       // We stored the raw response, but cannot create a sprint draft without JSON
+      console.warn("[SprintAPI] Returning 202 due to non-JSON response", { aiResponseId });
       return NextResponse.json(
         {
           aiResponseId,
@@ -124,12 +178,17 @@ export async function POST(_request: Request, { params }: Params) {
     `,
       [sprintDraftId, params.id, aiResponseId, JSON.stringify(parsedDraft)]
     );
+    console.log("[SprintAPI] Created sprint_drafts row", { sprintDraftId, documentId: params.id });
 
     return NextResponse.json(
       { sprintDraftId, aiResponseId },
       { status: 201 }
     );
   } catch (error: unknown) {
+    console.error("[SprintAPI] Uncaught error", {
+      message: (error as Error)?.message,
+      stack: (error as Error)?.stack?.slice(0, 1500),
+    });
     return NextResponse.json(
       { error: (error as Error).message ?? "Unknown error" },
       { status: 500 }

@@ -15,9 +15,12 @@ Required variables:
 
 Optional variables:
 
-- `OPENAI_MODEL` — defaults to `gpt-4o-mini`
 - `TYPEFORM_WEBHOOK_SECRET` — verify Typeform webhook signatures
 - `ZAPIER_WEBHOOK_SECRET` — simple shared-secret auth for webhooks
+
+Model selection
+
+- The OpenAI model is selected from a dropdown on the `/documents` page. The selected model is sent with the request when creating a sprint draft. Default is `gpt-4o-mini` if none is selected.
 
 ## Getting Started
 

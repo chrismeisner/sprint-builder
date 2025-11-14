@@ -60,7 +60,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
       <section>
         <h2 className="text-lg font-semibold mb-2">Sprint drafts</h2>
         {sprintDrafts.length === 0 ? (
-          <p className="text-sm opacity-70">No sprint drafts yet. Use "Create Sprint" from the documents list.</p>
+          <p className="text-sm opacity-70">No sprint drafts yet. Use &quot;Create Sprint&quot; from the documents list.</p>
         ) : (
           <div className="rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
             <div className="overflow-x-auto">
