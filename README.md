@@ -2,10 +2,14 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Environment
 
-Create a local env file:
+Create a `.env.local` file in the project root and set the variables:
 
 ```bash
-cp env.example .env.local
+# .env.local
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/form_intake
+OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+TYPEFORM_WEBHOOK_SECRET=changeme
+ZAPIER_WEBHOOK_SECRET=changeme
 ```
 
 Required variables:
