@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     await ensureSchema();
     const contentType = request.headers.get("content-type") || "";
     let content: unknown;
-    let filename: string | null = null;
+    const filename: string | null = null;
 
     if (contentType.includes("application/json")) {
       content = await request.json();
