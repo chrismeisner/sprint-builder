@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
+import { verifyTypeformSignature } from "@/lib/typeform";
 
 export async function GET(request: Request) {
   try {
@@ -23,25 +24,33 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    // Optional shared-secret check for webhook sources (e.g., Zapier)
-    const expectedSecret = process.env.ZAPIER_WEBHOOK_SECRET;
-    if (expectedSecret) {
-      const providedSecret = request.headers.get("x-webhook-secret");
-      if (providedSecret !== expectedSecret) {
+    // Read raw body once, to support signature verification
+    const rawBody = await request.text();
+    const contentType = request.headers.get("content-type") || "";
+    const typeformSignature = request.headers.get("typeform-signature");
+    const typeformSecret = process.env.TYPEFORM_WEBHOOK_SECRET;
+    const sharedSecret = process.env.ZAPIER_WEBHOOK_SECRET;
+    const providedShared = request.headers.get("x-webhook-secret");
+
+    // Verify Typeform signature if configured and header present
+    if (typeformSecret && typeformSignature) {
+      const ok = verifyTypeformSignature(rawBody, typeformSignature, typeformSecret);
+      if (!ok) {
+        return NextResponse.json({ error: "Invalid Typeform signature" }, { status: 401 });
+      }
+    } else if (sharedSecret) {
+      // Fallback to simple shared secret if provided
+      if (providedShared !== sharedSecret) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
     }
 
     await ensureSchema();
-    const contentType = request.headers.get("content-type") || "";
     let content: unknown;
     const filename: string | null = null;
 
-    if (contentType.includes("application/json")) {
-      content = await request.json();
-    } else if (contentType.includes("text/json") || contentType.includes("application/octet-stream")) {
-      const text = await request.text();
-      content = JSON.parse(text);
+    if (contentType.includes("application/json") || contentType.includes("text/json") || contentType.includes("application/octet-stream")) {
+      content = JSON.parse(rawBody || "{}");
     } else {
       return NextResponse.json(
         { error: "Unsupported Content-Type. Use application/json." },
