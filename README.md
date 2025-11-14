@@ -1,5 +1,24 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment
+
+Create a local env file:
+
+```bash
+cp env.example .env.local
+```
+
+Required variables:
+
+- `DATABASE_URL` — Postgres connection string
+- `OPENAI_API_KEY` — OpenAI API key
+
+Optional variables:
+
+- `OPENAI_MODEL` — defaults to `gpt-4o-mini`
+- `TYPEFORM_WEBHOOK_SECRET` — verify Typeform webhook signatures
+- `ZAPIER_WEBHOOK_SECRET` — simple shared-secret auth for webhooks
+
 ## Getting Started
 
 First, run the development server:

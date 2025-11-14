@@ -1,5 +1,6 @@
 import { ensureSchema, getPool } from "@/lib/db";
 import Link from "next/link";
+import CreateSprintButton from "./CreateSprintButton";
 
 export const dynamic = "force-dynamic";
 
@@ -44,12 +45,15 @@ export default async function DocumentsPage() {
                     <td className="px-4 py-3">{new Date(row.created_at).toLocaleString()}</td>
                     <td className="px-4 py-3">{row.filename ?? <span className="opacity-50">—</span>}</td>
                     <td className="px-4 py-3">
-                      <Link
-                        className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition"
-                        href={`/documents/${row.id}`}
-                      >
-                        View
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition"
+                          href={`/documents/${row.id}`}
+                        >
+                          View
+                        </Link>
+                        <CreateSprintButton documentId={row.id} />
+                      </div>
                     </td>
                   </tr>
                 ))}

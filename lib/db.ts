@@ -46,6 +46,29 @@ export async function ensureSchema(): Promise<void> {
       created_at timestamptz NOT NULL DEFAULT now()
     )
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ai_responses (
+      id text PRIMARY KEY,
+      document_id text NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+      provider text NOT NULL DEFAULT 'openai',
+      model text,
+      prompt text,
+      response_text text,
+      response_json jsonb,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_responses_document_id ON ai_responses(document_id);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sprint_drafts (
+      id text PRIMARY KEY,
+      document_id text NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+      ai_response_id text REFERENCES ai_responses(id) ON DELETE SET NULL,
+      draft jsonb NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_sprint_drafts_document_id ON sprint_drafts(document_id);
+  `);
   global._schemaInitialized = true;
 }
 
