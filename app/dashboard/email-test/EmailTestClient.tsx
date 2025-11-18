@@ -43,7 +43,7 @@ export default function EmailTestClient() {
       const res = await fetch("/api/admin/email-test");
       const data = await res.json();
       setStatus(data);
-    } catch (error) {
+    } catch {
       setStatus({
         configured: false,
         apiKeyPresent: false,

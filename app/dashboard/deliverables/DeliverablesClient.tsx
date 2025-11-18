@@ -169,7 +169,7 @@ export default function DeliverablesClient({ rows }: Props) {
           </div>
           <div className="sm:col-span-2">
             <label className="block text-xs font-medium mb-1" htmlFor="scope">
-              Scope (what's included)
+              Scope (what&apos;s included)
             </label>
             <textarea
               id="scope"

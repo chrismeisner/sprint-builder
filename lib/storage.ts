@@ -80,7 +80,7 @@ export async function uploadFile(
   // If it fails, we'll use the public URL anyway and the bucket must be public
   try {
     await file.makePublic();
-  } catch (error) {
+  } catch {
     // Uniform bucket-level access is enabled, file can't be made public individually
     // The bucket itself needs to be public, or we return the public URL which will work if bucket is public
     console.warn("[Storage] Could not make file public individually (uniform bucket-level access enabled)");
