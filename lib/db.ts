@@ -108,6 +108,33 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_documents_account_id ON documents(account_id)
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS past_projects (
+      id text PRIMARY KEY,
+      title text NOT NULL,
+      slug text UNIQUE NOT NULL,
+      description text,
+      story text,
+      year integer,
+      involvement_type text,
+      project_scale text,
+      industry text,
+      outcomes jsonb,
+      thumbnail_url text,
+      images jsonb,
+      project_url text,
+      related_deliverable_ids jsonb,
+      published boolean NOT NULL DEFAULT false,
+      featured boolean NOT NULL DEFAULT false,
+      sort_order integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_past_projects_published ON past_projects(published);
+    CREATE INDEX IF NOT EXISTS idx_past_projects_featured ON past_projects(featured);
+    CREATE INDEX IF NOT EXISTS idx_past_projects_involvement ON past_projects(involvement_type);
+    CREATE INDEX IF NOT EXISTS idx_past_projects_sort ON past_projects(sort_order);
+  `);
   global._schemaInitialized = true;
 }
 

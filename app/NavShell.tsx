@@ -3,11 +3,13 @@ import Link from "next/link";
 export default function NavShell({ children }: { children: React.ReactNode }) {
   const nav = [
     { href: "/dashboard", label: "Admin Home" },
+    { href: "/dashboard/projects", label: "Past Projects" },
     { href: "/dashboard/deliverables", label: "Deliverables" },
-    { href: "/how-it-works", label: "How it works" },
-    { href: "/my-sprints", label: "My sprints" },
     { href: "/documents", label: "Documents" },
     { href: "/ai-test", label: "OpenAI Test" },
+    { href: "/how-it-works", label: "How it works" },
+    { href: "/work", label: "View Portfolio" },
+    { href: "/my-sprints", label: "My sprints" },
     { href: "/", label: "Public Home" },
   ];
 

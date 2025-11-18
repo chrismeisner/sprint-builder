@@ -6,6 +6,8 @@ export default function DashboardPage() {
   const links = [
     { href: "/", label: "Home" },
     { href: "/documents", label: "Documents" },
+    { href: "/dashboard/projects", label: "Past Projects" },
+    { href: "/dashboard/deliverables", label: "Deliverables" },
     { href: "/ai-test", label: "OpenAI Test" },
   ];
 

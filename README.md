@@ -13,6 +13,13 @@ TYPEFORM_WEBHOOK_SECRET=changeme
 MAILGUN_API_KEY=your-mailgun-api-key
 MAILGUN_DOMAIN=mg.yourdomain.com
 MAILGUN_FROM_EMAIL=no-reply@mg.yourdomain.com
+
+# Google Cloud Storage (for image uploads)
+GCS_PROJECT_ID=your-gcs-project-id
+GCS_BUCKET_NAME=your-bucket-name
+GCS_CREDENTIALS_JSON={"type":"service_account","project_id":"..."}
+# OR use file path instead:
+# GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 ```
 
 Required variables:
@@ -29,10 +36,79 @@ Optional variables:
 - `MAILGUN_API_KEY` — Mailgun API key for sending magic link emails
 - `MAILGUN_DOMAIN` — Mailgun sending domain (e.g. mg.yourdomain.com)
 - `MAILGUN_FROM_EMAIL` — From address for magic link emails (defaults to no-reply@MAILGUN_DOMAIN)
+- `GCS_PROJECT_ID` — Google Cloud project ID (for image uploads)
+- `GCS_BUCKET_NAME` — Google Cloud Storage bucket name
+- `GCS_CREDENTIALS_JSON` — Service account credentials JSON (inline)
+- `GOOGLE_APPLICATION_CREDENTIALS` — Path to service account key file (alternative to inline JSON)
 
 Model selection
 
 - The OpenAI model is selected from a dropdown on the `/documents` page. The selected model is sent with the request when creating a sprint draft. Default is `gpt-4o-mini` if none is selected.
+
+## Google Cloud Storage Setup (for Image Uploads)
+
+Image uploads for the Past Projects portfolio use Google Cloud Storage. Follow these steps:
+
+### 1. Create a Google Cloud Project
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Note your **Project ID**
+
+### 2. Create a Storage Bucket
+
+1. Navigate to **Cloud Storage** > **Buckets**
+2. Click **Create Bucket**
+3. Choose a unique bucket name (e.g., `sprint-builder-images`)
+4. Select a location (e.g., `us-central1`)
+5. Choose **Standard** storage class
+6. Set access control to **Uniform**
+7. Click **Create**
+
+### 3. Create a Service Account
+
+1. Navigate to **IAM & Admin** > **Service Accounts**
+2. Click **Create Service Account**
+3. Name it (e.g., `image-uploader`)
+4. Click **Create and Continue**
+5. Grant role: **Storage Object Admin**
+6. Click **Done**
+
+### 4. Generate Service Account Key
+
+1. Click on your service account
+2. Go to **Keys** tab
+3. Click **Add Key** > **Create New Key**
+4. Choose **JSON** format
+5. Download the JSON file
+
+### 5. Configure Environment Variables
+
+**Option A: Inline JSON (recommended for Heroku)**
+
+```bash
+# Copy the entire JSON content and minify it to one line
+GCS_PROJECT_ID=your-project-id
+GCS_BUCKET_NAME=sprint-builder-images
+GCS_CREDENTIALS_JSON={"type":"service_account","project_id":"...","private_key":"..."}
+```
+
+**Option B: File Path (local development)**
+
+```bash
+GCS_PROJECT_ID=your-project-id
+GCS_BUCKET_NAME=sprint-builder-images
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+```
+
+### 6. Test Upload
+
+1. Start your dev server
+2. Navigate to `/dashboard/projects/new`
+3. Try uploading an image
+4. Check your GCS bucket for the uploaded file
+
+**Free Tier:** Google Cloud Storage offers 5GB free storage + 1GB network egress per month.
 
 ## Getting Started
 

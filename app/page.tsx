@@ -18,6 +18,12 @@ export default function Home() {
             How it works
           </Link>
           <Link
+            href="/work"
+            className="inline-flex items-center rounded-full border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
+          >
+            View our work
+          </Link>
+          <Link
             href="https://form.typeform.com/to/eEiCy7Xj"
             target="_blank"
             className="inline-flex items-center rounded-full border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
