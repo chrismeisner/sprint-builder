@@ -28,10 +28,105 @@ export default async function SprintDetailPage({ params }: PageProps) {
     created_at: string | Date;
   };
 
+  function isObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+  function asStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+    return value.map((v) => (typeof v === "string" ? v : String(v))).filter((v) => v.trim().length > 0);
+  }
+  type PlanDeliverable = {
+    deliverableId?: string;
+    name?: string;
+    reason?: string;
+  };
+  type BacklogItem = {
+    id?: string;
+    title?: string;
+    description?: string;
+    estimatePoints?: number;
+    owner?: string;
+    acceptanceCriteria?: string[];
+  };
+  type TimelineItem = {
+    day?: string | number;
+    focus?: string;
+    items?: string[];
+  };
+  type DraftPlan = {
+    sprintTitle?: string;
+    goals?: string[];
+    deliverables?: PlanDeliverable[];
+    backlog?: BacklogItem[];
+    timeline?: TimelineItem[];
+    assumptions?: string[];
+    risks?: string[];
+    notes?: string[];
+  };
+
+  const plan: DraftPlan = (() => {
+    if (!isObject(row.draft)) return {};
+    const d = row.draft as Record<string, unknown>;
+    const deliverablesRaw = Array.isArray(d.deliverables) ? (d.deliverables as unknown[]) : [];
+    const backlogRaw = Array.isArray(d.backlog) ? (d.backlog as unknown[]) : [];
+    const timelineRaw = Array.isArray(d.timeline) ? (d.timeline as unknown[]) : [];
+    return {
+      sprintTitle: typeof d.sprintTitle === "string" ? d.sprintTitle : undefined,
+      goals: asStringArray(d.goals),
+      deliverables: deliverablesRaw
+        .map((it): PlanDeliverable => {
+          if (!isObject(it)) return {};
+          const o = it as Record<string, unknown>;
+          return {
+            deliverableId: typeof o.deliverableId === "string" ? o.deliverableId : undefined,
+            name: typeof o.name === "string" ? o.name : undefined,
+            reason: typeof o.reason === "string" ? o.reason : undefined,
+          };
+        })
+        .filter((d) => isObject(d)),
+      backlog: backlogRaw
+        .map((it): BacklogItem => {
+          if (!isObject(it)) return {};
+          const o = it as Record<string, unknown>;
+          const estimate =
+            typeof o.estimatePoints === "number"
+              ? o.estimatePoints
+              : typeof o.estimatePoints === "string" && !isNaN(Number(o.estimatePoints))
+              ? Number(o.estimatePoints)
+              : undefined;
+          return {
+            id: typeof o.id === "string" ? o.id : undefined,
+            title: typeof o.title === "string" ? o.title : undefined,
+            description: typeof o.description === "string" ? o.description : undefined,
+            estimatePoints: estimate,
+            owner: typeof o.owner === "string" ? o.owner : undefined,
+            acceptanceCriteria: asStringArray(o.acceptanceCriteria),
+          };
+        })
+        .filter((x) => isObject(x)),
+      timeline: timelineRaw
+        .map((it): TimelineItem => {
+          if (!isObject(it)) return {};
+          const o = it as Record<string, unknown>;
+          return {
+            day: typeof o.day === "number" || typeof o.day === "string" ? (o.day as number | string) : undefined,
+            focus: typeof o.focus === "string" ? o.focus : undefined,
+            items: asStringArray(o.items),
+          };
+        })
+        .filter((x) => isObject(x)),
+      assumptions: asStringArray(d.assumptions),
+      risks: asStringArray(d.risks),
+      notes: asStringArray(d.notes),
+    };
+  })();
+
   return (
     <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6 font-[family-name:var(--font-geist-sans)]">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl sm:text-3xl font-bold">Sprint draft</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">
+          {plan.sprintTitle?.trim() || "Sprint draft"}
+        </h1>
         <div className="flex items-center gap-2">
           <Link
             href={`/documents/${row.document_id}`}
@@ -64,6 +159,148 @@ export default async function SprintDetailPage({ params }: PageProps) {
           {new Date(row.created_at).toLocaleString()}
         </div>
       </div>
+
+      <section className="space-y-6">
+        {plan.deliverables && plan.deliverables.length > 0 && (
+          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
+            <h2 className="text-lg font-semibold mb-3">Deliverables</h2>
+            <ul className="space-y-3 text-sm">
+              {plan.deliverables.map((d, i) => (
+                <li key={d.deliverableId || d.name || i} className="border border-black/10 dark:border-white/15 rounded-md p-3">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="font-medium">
+                      {d.name || <span className="opacity-50">Unnamed deliverable</span>}
+                    </div>
+                    {d.deliverableId && (
+                      <div className="text-[11px] font-mono opacity-60">
+                        id: {d.deliverableId}
+                      </div>
+                    )}
+                  </div>
+                  {d.reason && (
+                    <p className="text-xs opacity-80 whitespace-pre-wrap">
+                      {d.reason}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {plan.goals && plan.goals.length > 0 && (
+          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
+            <h2 className="text-lg font-semibold mb-3">Goals</h2>
+            <ul className="list-disc pl-5 space-y-1 text-sm">
+              {plan.goals.map((g, i) => (
+                <li key={`${g}-${i}`}>{g}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {plan.backlog && plan.backlog.length > 0 && (
+          <div className="rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
+            <div className="bg-black/5 dark:bg-white/5 px-4 py-3">
+              <h2 className="text-lg font-semibold">Backlog</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="text-left bg-black/5 dark:bg-white/5">
+                  <tr>
+                    <th className="px-4 py-2 font-semibold">ID</th>
+                    <th className="px-4 py-2 font-semibold">Title</th>
+                    <th className="px-4 py-2 font-semibold">Description</th>
+                    <th className="px-4 py-2 font-semibold">Estimate</th>
+                    <th className="px-4 py-2 font-semibold">Owner</th>
+                    <th className="px-4 py-2 font-semibold">Acceptance Criteria</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {plan.backlog.map((b, i) => (
+                    <tr key={`${b.id || i}`} className="border-t border-black/10 dark:border-white/10 align-top">
+                      <td className="px-4 py-2 font-mono">{b.id || <span className="opacity-50">—</span>}</td>
+                      <td className="px-4 py-2">{b.title || <span className="opacity-50">—</span>}</td>
+                      <td className="px-4 py-2 whitespace-pre-wrap">{b.description || <span className="opacity-50">—</span>}</td>
+                      <td className="px-4 py-2">{typeof b.estimatePoints === "number" ? b.estimatePoints : <span className="opacity-50">—</span>}</td>
+                      <td className="px-4 py-2">{b.owner || <span className="opacity-50">—</span>}</td>
+                      <td className="px-4 py-2">
+                        {b.acceptanceCriteria && b.acceptanceCriteria.length > 0 ? (
+                          <ul className="list-disc pl-5 space-y-1">
+                            {b.acceptanceCriteria.map((ac, j) => (
+                              <li key={`${ac}-${j}`}>{ac}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <span className="opacity-50">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {plan.timeline && plan.timeline.length > 0 && (
+          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
+            <h2 className="text-lg font-semibold mb-3">Timeline</h2>
+            <ol className="space-y-3">
+              {plan.timeline.map((t, i) => (
+                <li key={`${t.day || i}`} className="rounded border border-black/10 dark:border-white/15 p-3">
+                  <div className="text-sm">
+                    <div className="font-medium">
+                      Day {typeof t.day === "number" ? t.day : t.day || i + 1}
+                      {t.focus ? <span className="opacity-70"> — {t.focus}</span> : null}
+                    </div>
+                    {t.items && t.items.length > 0 ? (
+                      <ul className="list-disc pl-5 mt-2 space-y-1">
+                        {t.items.map((it, j) => (
+                          <li key={`${it}-${j}`}>{it}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {plan.assumptions && plan.assumptions.length > 0 && (
+          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
+            <h2 className="text-lg font-semibold mb-2">Assumptions</h2>
+            <ul className="list-disc pl-5 space-y-1 text-sm">
+              {plan.assumptions.map((a, i) => (
+                <li key={`${a}-${i}`}>{a}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {plan.risks && plan.risks.length > 0 && (
+          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
+            <h2 className="text-lg font-semibold mb-2">Risks</h2>
+            <ul className="list-disc pl-5 space-y-1 text-sm">
+              {plan.risks.map((r, i) => (
+                <li key={`${r}-${i}`}>{r}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {plan.notes && plan.notes.length > 0 && (
+          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
+            <h2 className="text-lg font-semibold mb-2">Notes</h2>
+            <ul className="list-disc pl-5 space-y-1 text-sm">
+              {plan.notes.map((n, i) => (
+                <li key={`${n}-${i}`}>{n}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
 
       <section>
         <h2 className="text-lg font-semibold mb-2">Draft JSON</h2>

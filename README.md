@@ -8,19 +8,27 @@ Create a `.env.local` file in the project root and set the variables:
 # .env.local
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/form_intake
 OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+SESSION_SECRET=your-random-secret-string-at-least-32-chars
 TYPEFORM_WEBHOOK_SECRET=changeme
-ZAPIER_WEBHOOK_SECRET=changeme
+MAILGUN_API_KEY=your-mailgun-api-key
+MAILGUN_DOMAIN=mg.yourdomain.com
+MAILGUN_FROM_EMAIL=no-reply@mg.yourdomain.com
 ```
 
 Required variables:
 
 - `DATABASE_URL` — Postgres connection string
 - `OPENAI_API_KEY` — OpenAI API key
+- `SESSION_SECRET` — Secret for signing session and login tokens (min 32 chars)
 
 Optional variables:
 
 - `TYPEFORM_WEBHOOK_SECRET` — verify Typeform webhook signatures
-- `ZAPIER_WEBHOOK_SECRET` — simple shared-secret auth for webhooks
+- `OPENAI_PROJECT_ID` — sets `OpenAI-Project` header if using Projects
+- `OPENAI_ORG_ID` — sets `OpenAI-Organization` header for legacy org scoping
+- `MAILGUN_API_KEY` — Mailgun API key for sending magic link emails
+- `MAILGUN_DOMAIN` — Mailgun sending domain (e.g. mg.yourdomain.com)
+- `MAILGUN_FROM_EMAIL` — From address for magic link emails (defaults to no-reply@MAILGUN_DOMAIN)
 
 Model selection
 

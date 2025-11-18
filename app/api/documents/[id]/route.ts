@@ -10,7 +10,7 @@ export async function GET(_request: Request, { params }: Params) {
     await ensureSchema();
     const pool = getPool();
     const result = await pool.query(
-      `SELECT id, content, filename, created_at FROM documents WHERE id = $1`,
+      `SELECT id, content, filename, email, created_at FROM documents WHERE id = $1`,
       [params.id]
     );
     if (result.rowCount === 0) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
+import { DEFAULT_SPRINT_SYSTEM_PROMPT, DEFAULT_SPRINT_USER_PROMPT } from "@/lib/prompts";
 
 type Params = {
   params: { id: string };
@@ -36,6 +37,8 @@ export async function POST(request: Request, { params }: Params) {
     console.log("[SprintAPI] Loaded document", { documentId: params.id, docSize });
 
     const apiKey = process.env.OPENAI_API_KEY;
+    const openaiProject = process.env.OPENAI_PROJECT_ID;
+    const openaiOrg = process.env.OPENAI_ORG_ID;
     if (!apiKey) {
       console.error("[SprintAPI] Missing OPENAI_API_KEY");
       return NextResponse.json(
@@ -56,25 +59,102 @@ export async function POST(request: Request, { params }: Params) {
     } catch {
       // no body provided; keep default
     }
+    // Allowlist models to avoid arbitrary values
+    const ALLOWED_MODELS = new Set(["gpt-4o-mini", "gpt-4o"]);
+    if (!ALLOWED_MODELS.has(model)) {
+      console.warn("[SprintAPI] Model not allowed; falling back", { model });
+      model = "gpt-4o-mini";
+    }
     console.log("[SprintAPI] Using model", {
       model,
       hasApiKey: Boolean(apiKey),
     });
 
-    // Compose prompt
-    const systemPrompt =
-      "You are an experienced software project manager. Create a realistic, actionable 2-week sprint plan from the client's intake JSON. Return a single JSON object only.";
-    const userPrompt =
-      "This is an input form from a client that we're going to make a 2 week sprint from. Produce a JSON plan with fields: sprintTitle (string), goals (string[]), backlog (array of {id, title, description, estimatePoints, owner?, acceptanceCriteria?}), timeline (array of {day, focus, items: string[]}), assumptions (string[]), risks (string[]), notes (string[]). Use clear, concise language.";
+    // Guard extremely large documents to avoid blowing token limits
+    if (docSize > 100_000) {
+      console.warn("[SprintAPI] Document too large for AI request", { documentId: params.id, docSize });
+      return NextResponse.json(
+        {
+          error: "Document too large to send to OpenAI.",
+          details: { docSize, limit: 100000 },
+        },
+        { status: 413 }
+      );
+    }
+
+    // Compose prompt (load from settings, fallback to defaults)
+    let systemPrompt = DEFAULT_SPRINT_SYSTEM_PROMPT;
+    let userPrompt = DEFAULT_SPRINT_USER_PROMPT;
+    try {
+      const settingsRes = await pool.query(
+        `SELECT key, value FROM app_settings WHERE key = ANY($1::text[])`,
+        [["sprint_system_prompt", "sprint_user_prompt"]]
+      );
+      const settings = new Map<string, string | null>(
+        settingsRes.rows.map((r: { key: string; value: string | null }) => [r.key, r.value])
+      );
+      const s = settings.get("sprint_system_prompt");
+      const u = settings.get("sprint_user_prompt");
+      if (typeof s === "string" && s.trim()) systemPrompt = s;
+      if (typeof u === "string" && u.trim()) userPrompt = u;
+    } catch {
+      // Ignore settings errors, keep defaults
+    }
+
+    // Load active deliverables to ground the sprint in 1-3 catalog items
+    const deliverablesRes = await pool.query(
+      `SELECT id, name, description, category, default_estimate_points
+       FROM deliverables
+       WHERE active = true
+       ORDER BY name ASC
+       LIMIT 50`
+    );
+    const deliverablesList: Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      category: string | null;
+      default_estimate_points: number | null;
+    }> = deliverablesRes.rows;
+    const deliverablesText =
+      deliverablesList.length === 0
+        ? "No deliverables are currently defined in the catalog."
+        : deliverablesList
+            .map((d, idx) => {
+              const parts = [
+                `(${idx + 1}) id: ${d.id}`,
+                `name: ${d.name}`,
+                d.category ? `category: ${d.category}` : null,
+                d.default_estimate_points != null ? `default_estimate_points: ${d.default_estimate_points}` : null,
+                d.description ? `description: ${d.description}` : null,
+              ].filter(Boolean);
+              return parts.join(" | ");
+            })
+            .join("\n");
+
+    const deliverablesInstructions =
+      "You also have access to a catalog of predefined deliverables managed by the team.\n" +
+      "From this catalog, choose 1 to 3 deliverables that best match the sprint you design. " +
+      "If none are appropriate, you may return an empty deliverables list.\n\n" +
+      "When you output the JSON, in addition to the existing fields, include a top-level field `deliverables` " +
+      "which is an array of objects with the following fields:\n" +
+      "- deliverableId (string): EXACTLY one of the ids from the catalog below.\n" +
+      "- name (string): the name of the deliverable.\n" +
+      "- reason (string): short explanation why this deliverable is included in this sprint.\n\n" +
+      "Available deliverables catalog:\n" +
+      deliverablesText;
+
+    const combinedUserPrompt = `${userPrompt}\n\n${deliverablesInstructions}`;
 
     // Call OpenAI Chat Completions API with response_format json_object
     const requestBody = {
       model,
       temperature: 0.2,
+      max_tokens: 2000,
       response_format: { type: "json_object" as const },
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        { role: "user", content: combinedUserPrompt },
         {
           role: "user",
           content:
@@ -90,15 +170,45 @@ export async function POST(request: Request, { params }: Params) {
       temperature: requestBody.temperature,
       messagesCount: requestBody.messages.length,
       docSize,
+      hasProjectHeader: Boolean(openaiProject),
     });
-    const openAIRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // Prepare headers with optional org/project and idempotency key
+    const requestId = crypto.randomUUID();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "User-Agent": "form-intake/0.1.0",
+      "Idempotency-Key": requestId,
+    };
+    if (openaiProject) headers["OpenAI-Project"] = openaiProject;
+    if (openaiOrg) headers["OpenAI-Organization"] = openaiOrg;
+
+    // Add timeout to avoid hanging
+    const controller = new AbortController();
+    const timeoutMs = 60_000;
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    let openAIRes: Response;
+    try {
+      openAIRes = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+    } catch (err: unknown) {
+      clearTimeout(timeout);
+      if ((err as { name?: string })?.name === "AbortError") {
+        console.error("[SprintAPI] OpenAI request timed out", { documentId: params.id, timeoutMs });
+        return NextResponse.json(
+          { error: "OpenAI request timed out" },
+          { status: 504 }
+        );
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!openAIRes.ok) {
       const errText = await openAIRes.text().catch(() => "");
@@ -107,6 +217,26 @@ export async function POST(request: Request, { params }: Params) {
         statusText: openAIRes.statusText,
         bodyPreview: errText.slice(0, 2000),
       });
+      // Pass through common statuses with clearer messages
+      if (openAIRes.status === 429) {
+        return NextResponse.json(
+          {
+            error: "OpenAI quota exceeded (429). Check plan/billing.",
+            details: errText,
+            retryAfter: openAIRes.headers.get("retry-after") || null,
+          },
+          { status: 429 }
+        );
+      }
+      if (openAIRes.status === 401 || openAIRes.status === 403) {
+        return NextResponse.json(
+          {
+            error: "OpenAI authentication/authorization failed",
+            details: errText,
+          },
+          { status: openAIRes.status }
+        );
+      }
       return NextResponse.json(
         { error: "OpenAI request failed", details: errText },
         { status: 502 }
@@ -150,7 +280,7 @@ export async function POST(request: Request, { params }: Params) {
         params.id,
         "openai",
         model,
-        `${systemPrompt}\n\n${userPrompt}`,
+        `${systemPrompt}\n\n${combinedUserPrompt}`,
         messageContent || null,
         parsedDraft ? JSON.stringify(parsedDraft) : null,
       ]

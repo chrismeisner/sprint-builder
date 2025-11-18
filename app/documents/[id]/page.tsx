@@ -12,7 +12,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
   await ensureSchema();
   const pool = getPool();
   const result = await pool.query(
-    `SELECT id, content, filename, created_at FROM documents WHERE id = $1`,
+    `SELECT id, content, filename, email, created_at FROM documents WHERE id = $1`,
     [params.id]
   );
   if (result.rowCount === 0) {
@@ -22,6 +22,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
     id: string;
     content: unknown;
     filename: string | null;
+    email: string | null;
     created_at: string | Date;
   };
 
@@ -50,6 +51,10 @@ export default async function DocumentDetailPage({ params }: PageProps) {
         <div>
           <span className="font-mono opacity-70">created:</span>{" "}
           {new Date(row.created_at).toLocaleString()}
+        </div>
+        <div>
+          <span className="font-mono opacity-70">email:</span>{" "}
+          {row.email ?? <span className="opacity-50">—</span>}
         </div>
         <div>
           <span className="font-mono opacity-70">file:</span>{" "}
