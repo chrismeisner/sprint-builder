@@ -125,29 +125,30 @@ export async function POST(request: Request, { params }: Params) {
         : deliverablesList
             .map((d, idx) => {
               const parts = [
-                `(${idx + 1}) id: ${d.id}`,
-                `name: ${d.name}`,
-                d.category ? `category: ${d.category}` : null,
-                d.default_estimate_points != null ? `points: ${d.default_estimate_points}` : null,
-                d.fixed_hours != null ? `fixed_hours: ${d.fixed_hours}` : null,
-                d.fixed_price != null ? `fixed_price: $${d.fixed_price}` : null,
-                d.scope ? `scope: ${d.scope}` : null,
+                `\n[${idx + 1}] ${d.name}`,
+                `    id: ${d.id}`,
+                d.category ? `    category: ${d.category}` : null,
+                d.description ? `    when to use: ${d.description}` : null,
+                d.default_estimate_points != null ? `    points: ${d.default_estimate_points}` : null,
+                d.fixed_hours != null ? `    fixed_hours: ${d.fixed_hours}h` : null,
+                d.fixed_price != null ? `    fixed_price: $${d.fixed_price}` : null,
+                d.scope ? `    scope: ${d.scope.replace(/\n/g, '\n           ')}` : null,
               ].filter(Boolean);
-              return parts.join(" | ");
+              return parts.join("\n");
             })
             .join("\n");
 
     const deliverablesInstructions =
-      "You also have access to a catalog of predefined deliverables managed by the team.\n" +
-      "From this catalog, choose 1 to 3 deliverables that best match the sprint you design. " +
-      "If none are appropriate, you may return an empty deliverables list.\n\n" +
-      "When you output the JSON, in addition to the existing fields, include a top-level field `deliverables` " +
-      "which is an array of objects with the following fields:\n" +
-      "- deliverableId (string): EXACTLY one of the ids from the catalog below.\n" +
-      "- name (string): the name of the deliverable.\n" +
-      "- reason (string): short explanation why this deliverable is included in this sprint.\n\n" +
-      "Available deliverables catalog:\n" +
-      deliverablesText;
+      "\n\n=== PRODUCTIZED SERVICES CATALOG ===\n" +
+      "Below is your catalog of fixed-price deliverables. Each deliverable has:\n" +
+      "- Fixed hours and fixed price (this is NOT an estimate - it's the actual price)\n" +
+      "- Defined scope (what's included)\n" +
+      "- Description explaining when to use it\n\n" +
+      "Your task: Select 1-3 deliverables from this catalog that best fit the client's needs.\n" +
+      "Consider the client's project stage, goals, and budget when selecting.\n" +
+      "Use the EXACT deliverableId from the catalog in your JSON output.\n" +
+      deliverablesText +
+      "\n\n=== END CATALOG ===\n";
 
     const combinedUserPrompt = `${userPrompt}\n\n${deliverablesInstructions}`;
 
