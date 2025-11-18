@@ -174,7 +174,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         {project.outcomes?.testimonial && (
           <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-6">
             <blockquote className="space-y-4">
-              <p className="text-lg italic">"{project.outcomes.testimonial.quote}"</p>
+              <p className="text-lg italic">&ldquo;{project.outcomes.testimonial.quote}&rdquo;</p>
               <footer className="text-sm opacity-80">
                 <strong>{project.outcomes.testimonial.author}</strong>
                 {project.outcomes.testimonial.role && (
