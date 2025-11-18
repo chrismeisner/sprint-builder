@@ -34,6 +34,7 @@ export default async function EditProjectPage({ params }: PageProps) {
   }
 
   const row = result.rows[0];
+  const rawOutcomes = (row.outcomes as Outcomes) || { metrics: [], testimonial: null };
   const project = {
     id: row.id,
     title: row.title,
@@ -44,7 +45,10 @@ export default async function EditProjectPage({ params }: PageProps) {
     involvement_type: row.involvement_type || "",
     project_scale: row.project_scale || "",
     industry: row.industry || "",
-    outcomes: (row.outcomes as Outcomes) || { metrics: [], testimonial: null },
+    outcomes: {
+      metrics: rawOutcomes.metrics || [],
+      testimonial: rawOutcomes.testimonial || null,
+    },
     thumbnail_url: row.thumbnail_url || "",
     images: (row.images as string[]) || [],
     project_url: row.project_url || "",
