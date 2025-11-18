@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
-  // Force HTTPS redirect in production
-  if (
-    process.env.NODE_ENV === "production" &&
-    request.headers.get("x-forwarded-proto") !== "https"
-  ) {
-    const url = request.nextUrl.clone();
-    url.protocol = "https:";
-    return NextResponse.redirect(url, { status: 301 });
-  }
-
   // Continue with the request and add security headers
   const response = NextResponse.next();
 
