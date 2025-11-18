@@ -88,9 +88,8 @@ export async function sendEmail(params: SendEmailParams): Promise<{
 export function generateSprintDraftEmail(params: {
   sprintTitle: string;
   sprintUrl: string;
-  recipientEmail: string;
 }): { subject: string; text: string; html: string } {
-  const { sprintTitle, sprintUrl, recipientEmail } = params;
+  const { sprintTitle, sprintUrl } = params;
 
   const subject = `Your Sprint Plan is Ready: ${sprintTitle}`;
 
