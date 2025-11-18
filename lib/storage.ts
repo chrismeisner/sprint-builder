@@ -138,7 +138,7 @@ export async function listFiles(prefix?: string): Promise<FileMetadata[]> {
   return files.map(file => ({
     name: file.name,
     url: `https://storage.googleapis.com/${bucketName}/${file.name}`,
-    size: parseInt(file.metadata.size || "0"),
+    size: parseInt(String(file.metadata.size || "0")),
     contentType: file.metadata.contentType || "unknown",
     created: file.metadata.timeCreated || "",
     updated: file.metadata.updated || "",
