@@ -344,7 +344,7 @@ export async function POST(request: Request, { params }: Params) {
                  WHERE id = $1`,
                 [deliverableId]
               );
-              if (delRes.rowCount > 0) {
+              if (delRes.rowCount && delRes.rowCount > 0) {
                 const delRow = delRes.rows[0] as {
                   default_estimate_points: number | null;
                   fixed_hours: number | null;
