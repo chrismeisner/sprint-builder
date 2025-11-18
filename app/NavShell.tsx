@@ -6,6 +6,7 @@ export default function NavShell({ children }: { children: React.ReactNode }) {
     { href: "/dashboard/projects", label: "Past Projects" },
     { href: "/dashboard/deliverables", label: "Deliverables" },
     { href: "/documents", label: "Documents" },
+    { href: "/dashboard/storage-test", label: "Storage Test" },
     { href: "/ai-test", label: "OpenAI Test" },
     { href: "/how-it-works", label: "How it works" },
     { href: "/work", label: "View Portfolio" },

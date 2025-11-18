@@ -82,46 +82,16 @@ export default function ProjectsClient({ initialProjects }: Props) {
     }
   }
 
-  async function seedWink() {
-    setLoading("seed");
-    try {
-      const res = await fetch("/api/admin/projects/seed", {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to seed");
-      
-      alert(data.message);
-      // Refresh projects
-      const listRes = await fetch("/api/admin/projects");
-      const listData = await listRes.json();
-      setProjects(listData.projects);
-    } catch (error) {
-      alert(`Error: ${error}`);
-    } finally {
-      setLoading(null);
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Past Projects</h1>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={seedWink}
-            disabled={loading === "seed"}
-            className="rounded-md border border-black/10 dark:border-white/15 px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50"
-          >
-            {loading === "seed" ? "Seeding..." : "Seed Wink Example"}
-          </button>
-          <Link
-            href="/dashboard/projects/new"
-            className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-2 text-sm font-medium hover:opacity-90"
-          >
-            + New Project
-          </Link>
-        </div>
+        <Link
+          href="/dashboard/projects/new"
+          className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-2 text-sm font-medium hover:opacity-90"
+        >
+          + New Project
+        </Link>
       </div>
 
       <div className="text-sm opacity-70 space-y-1">
@@ -135,7 +105,7 @@ export default function ProjectsClient({ initialProjects }: Props) {
 
       {projects.length === 0 ? (
         <div className="rounded-lg border border-black/10 dark:border-white/15 p-8 text-center">
-          <p className="text-sm opacity-70">No projects yet. Create your first one or seed the Wink example.</p>
+          <p className="text-sm opacity-70">No projects yet. Create your first one.</p>
         </div>
       ) : (
         <div className="rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">

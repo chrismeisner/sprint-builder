@@ -1,0 +1,269 @@
+"use client";
+
+import { useState, useEffect } from "react";
+
+type ConnectionStatus = {
+  configPresent: boolean;
+  storageInitialized: boolean;
+  bucketAccessible: boolean;
+  projectId: string | null;
+  bucketName: string | null;
+  credentialsPresent: boolean;
+  error: string | null;
+  success?: boolean;
+  message?: string;
+};
+
+export default function StorageTestClient() {
+  const [status, setStatus] = useState<ConnectionStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [uploadResult, setUploadResult] = useState<{
+    success: boolean;
+    message?: string;
+    url?: string;
+    error?: string;
+  } | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    checkConnection();
+  }, []);
+
+  const checkConnection = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/storage-test");
+      const data = await res.json();
+      setStatus(data);
+    } catch (error) {
+      setStatus({
+        configPresent: false,
+        storageInitialized: false,
+        bucketAccessible: false,
+        projectId: null,
+        bucketName: null,
+        credentialsPresent: false,
+        error: `Failed to check connection: ${error}`,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestUpload = async (file: File) => {
+    setUploading(true);
+    setUploadResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/admin/storage-test", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      setUploadResult(data);
+    } catch (error) {
+      setUploadResult({
+        success: false,
+        error: `Upload failed: ${error}`,
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const StatusIndicator = ({ checked, label }: { checked: boolean; label: string }) => (
+    <div className="flex items-center gap-2">
+      <div className={`w-4 h-4 rounded-full ${checked ? "bg-green-500" : "bg-red-500"}`} />
+      <span className={checked ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"}>
+        {label}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold mb-2">Google Cloud Storage Test</h1>
+        <p className="text-sm opacity-70">
+          Verify your GCS connection and test file uploads before using the project forms.
+        </p>
+      </div>
+
+      {/* Connection Status */}
+      <div className="rounded-lg border border-black/10 dark:border-white/15 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Connection Status</h2>
+          <button
+            onClick={checkConnection}
+            disabled={loading}
+            className="text-sm px-3 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50"
+          >
+            {loading ? "Checking..." : "Refresh"}
+          </button>
+        </div>
+
+        {loading && (
+          <div className="text-sm opacity-70">Checking connection...</div>
+        )}
+
+        {!loading && status && (
+          <div className="space-y-4">
+            {/* Status Indicators */}
+            <div className="space-y-2">
+              <StatusIndicator
+                checked={status.configPresent}
+                label={status.configPresent ? "Environment variables present" : "Missing environment variables"}
+              />
+              <StatusIndicator
+                checked={status.credentialsPresent}
+                label={status.credentialsPresent ? "Credentials configured" : "Missing credentials"}
+              />
+              <StatusIndicator
+                checked={status.storageInitialized}
+                label={status.storageInitialized ? "Storage client initialized" : "Storage client failed"}
+              />
+              <StatusIndicator
+                checked={status.bucketAccessible}
+                label={status.bucketAccessible ? "Bucket accessible" : "Bucket not accessible"}
+              />
+            </div>
+
+            {/* Configuration Details */}
+            <div className="pt-4 border-t border-black/10 dark:border-white/15 space-y-1 text-sm">
+              <div>
+                <span className="opacity-70">Project ID:</span>{" "}
+                <code className="bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
+                  {status.projectId || "Not set"}
+                </code>
+              </div>
+              <div>
+                <span className="opacity-70">Bucket Name:</span>{" "}
+                <code className="bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
+                  {status.bucketName || "Not set"}
+                </code>
+              </div>
+            </div>
+
+            {/* Success/Error Message */}
+            {status.success && (
+              <div className="p-3 rounded-md bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-sm">
+                {status.message}
+              </div>
+            )}
+
+            {status.error && (
+              <div className="p-3 rounded-md bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-sm">
+                <strong>Error:</strong> {status.error}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Upload Test */}
+      {status?.success && (
+        <div className="rounded-lg border border-black/10 dark:border-white/15 p-6">
+          <h2 className="text-lg font-semibold mb-4">Test File Upload</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-2 text-sm font-medium hover:opacity-90 cursor-pointer">
+                {uploading ? "Uploading..." : "Choose Image to Upload"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleTestUpload(file);
+                  }}
+                />
+              </label>
+              <p className="text-xs opacity-60 mt-2">
+                Upload a test image to verify everything works. Max 10MB.
+              </p>
+            </div>
+
+            {uploadResult && (
+              <div
+                className={`p-3 rounded-md text-sm ${
+                  uploadResult.success
+                    ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                    : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
+                }`}
+              >
+                {uploadResult.success ? (
+                  <div className="space-y-2">
+                    <div><strong>{uploadResult.message}</strong></div>
+                    {uploadResult.url && (
+                      <div className="space-y-2">
+                        <div className="break-all">
+                          <strong>URL:</strong>{" "}
+                          <a
+                            href={uploadResult.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline"
+                          >
+                            {uploadResult.url}
+                          </a>
+                        </div>
+                        <img
+                          src={uploadResult.url}
+                          alt="Uploaded test"
+                          className="max-w-xs rounded border border-black/10 dark:border-white/15"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <strong>Upload Failed:</strong> {uploadResult.error}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Help Section */}
+      <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-6">
+        <h2 className="text-lg font-semibold mb-3">Need Help?</h2>
+        <div className="space-y-3 text-sm">
+          <div>
+            <strong className="block mb-1">Missing environment variables?</strong>
+            <p className="opacity-80">
+              Make sure your <code className="bg-black/10 dark:bg-white/10 px-1 rounded">.env.local</code> file has:
+            </p>
+            <ul className="list-disc pl-5 mt-1 opacity-80 space-y-1">
+              <li><code>GCS_PROJECT_ID</code></li>
+              <li><code>GCS_BUCKET_NAME</code></li>
+              <li><code>GCS_CREDENTIALS_JSON</code> (or <code>GOOGLE_APPLICATION_CREDENTIALS</code>)</li>
+            </ul>
+          </div>
+
+          <div>
+            <strong className="block mb-1">Bucket not accessible?</strong>
+            <p className="opacity-80">
+              Check that your service account has the <strong>Storage Object Admin</strong> role.
+            </p>
+          </div>
+
+          <div>
+            <strong className="block mb-1">Need setup instructions?</strong>
+            <p className="opacity-80">
+              See the full guide in <code className="bg-black/10 dark:bg-white/10 px-1 rounded">README.md</code> or{" "}
+              <code className="bg-black/10 dark:bg-white/10 px-1 rounded">ENV_TEMPLATE.md</code>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

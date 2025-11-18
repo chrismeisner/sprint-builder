@@ -8,6 +8,7 @@ export default function DashboardPage() {
     { href: "/documents", label: "Documents" },
     { href: "/dashboard/projects", label: "Past Projects" },
     { href: "/dashboard/deliverables", label: "Deliverables" },
+    { href: "/dashboard/storage-test", label: "Cloud Storage Test" },
     { href: "/ai-test", label: "OpenAI Test" },
   ];
 
