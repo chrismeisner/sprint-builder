@@ -471,7 +471,6 @@ export async function POST(request: Request, { params }: Params) {
         const emailContent = generateSprintDraftEmail({
           sprintTitle: sprintTitle || "Your Sprint Plan",
           sprintUrl,
-          recipientEmail: userEmail,
         });
         
         // Send the email
