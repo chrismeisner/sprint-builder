@@ -40,12 +40,12 @@ export async function POST(request: Request) {
       model = "gpt-4o-mini";
     }
 
-    function redact(value?: string | null): string | null {
+    const redact = (value?: string | null): string | null => {
       if (!value) return null;
       const len = value.length;
       if (len <= 8) return "*".repeat(len);
       return `${value.slice(0, 3)}${"*".repeat(Math.max(0, len - 7))}${value.slice(-4)}`;
-    }
+    };
 
     console.log("[AI Test] Prepared request", {
       requestId,
