@@ -19,10 +19,15 @@ SESSION_SECRET=your-random-secret-string-at-least-32-chars-long
 # Typeform Webhook (Optional - for verifying webhook signatures)
 TYPEFORM_WEBHOOK_SECRET=changeme
 
-# Mailgun Email (Optional - for magic link authentication emails)
+# Mailgun Email (Optional - for sending emails)
 MAILGUN_API_KEY=
 MAILGUN_DOMAIN=mg.yourdomain.com
 MAILGUN_FROM_EMAIL=no-reply@mg.yourdomain.com
+
+# Base URL (Optional - for email links, auto-detected if not set)
+# Production: https://yourdomain.com
+# Local dev: http://localhost:3000
+BASE_URL=
 
 # Google Cloud Storage (Optional - for image uploads)
 GCS_PROJECT_ID=your-gcs-project-id
@@ -69,9 +74,15 @@ openssl rand -base64 32
 2. Get credentials from Google Cloud Console
 3. Add GCS_PROJECT_ID, GCS_BUCKET_NAME, and GCS_CREDENTIALS_JSON
 
-**Mailgun** (for magic link emails):
+**Mailgun** (for sending emails - magic links and sprint notifications):
 - Get credentials from https://mailgun.com
 - Add MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM_EMAIL
+- Sprint draft notifications will be automatically sent when sprint plans are created
+
+**Base URL** (for email links):
+- Set to your production domain in production (e.g., `https://yourdomain.com`)
+- Auto-detected from request headers if not set
+- Used to generate links in notification emails
 
 **Typeform** (for webhook signature verification):
 - Get webhook secret from Typeform webhook settings

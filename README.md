@@ -33,9 +33,10 @@ Optional variables:
 - `TYPEFORM_WEBHOOK_SECRET` — verify Typeform webhook signatures
 - `OPENAI_PROJECT_ID` — sets `OpenAI-Project` header if using Projects
 - `OPENAI_ORG_ID` — sets `OpenAI-Organization` header for legacy org scoping
-- `MAILGUN_API_KEY` — Mailgun API key for sending magic link emails
+- `MAILGUN_API_KEY` — Mailgun API key for sending emails (sprint notifications, magic links)
 - `MAILGUN_DOMAIN` — Mailgun sending domain (e.g. mg.yourdomain.com)
-- `MAILGUN_FROM_EMAIL` — From address for magic link emails (defaults to no-reply@MAILGUN_DOMAIN)
+- `MAILGUN_FROM_EMAIL` — From address for emails (defaults to no-reply@MAILGUN_DOMAIN)
+- `BASE_URL` — Base URL for email links (auto-detected if not set, e.g. https://yourdomain.com)
 - `GCS_PROJECT_ID` — Google Cloud project ID (for image uploads)
 - `GCS_BUCKET_NAME` — Google Cloud Storage bucket name
 - `GCS_CREDENTIALS_JSON` — Service account credentials JSON (inline)

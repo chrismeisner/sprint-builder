@@ -1,10 +1,71 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { DEFAULT_SPRINT_SYSTEM_PROMPT, DEFAULT_SPRINT_USER_PROMPT } from "@/lib/prompts";
+import { sendEmail, generateSprintDraftEmail } from "@/lib/email";
 
 type Params = {
   params: { id: string };
 };
+
+/**
+ * Extract email from Typeform document content
+ */
+function extractEmailFromDocument(content: unknown): string | null {
+  const maybeEmail = (value: unknown): string | null => {
+    if (typeof value === "string" && value.includes("@")) {
+      return value.trim();
+    }
+    return null;
+  };
+
+  if (!content || typeof content !== "object") return null;
+  const root = content as Record<string, unknown>;
+
+  // Prefer Typeform v2-style payload: form_response.answers[]
+  const formResponse = root.form_response as unknown;
+  if (formResponse && typeof formResponse === "object") {
+    const fr = formResponse as { answers?: unknown[]; hidden?: Record<string, unknown> | undefined };
+    if (Array.isArray(fr.answers)) {
+      for (const ans of fr.answers) {
+        if (ans && typeof ans === "object") {
+          const a = ans as { type?: string; email?: unknown; text?: unknown };
+          const emailFromField = maybeEmail(a.email);
+          if (a.type === "email" && emailFromField) return emailFromField;
+          const emailFromText = maybeEmail(a.text);
+          if (a.type === "email" && emailFromText) return emailFromText;
+        }
+      }
+    }
+    if (fr.hidden && typeof fr.hidden === "object") {
+      const hidden = fr.hidden as Record<string, unknown>;
+      const emailFromHidden = maybeEmail(hidden.email ?? hidden.contact_email ?? hidden.user_email);
+      if (emailFromHidden) return emailFromHidden;
+    }
+  }
+
+  // Generic fallback: look for a top-level email-ish field
+  const emailFromRoot = maybeEmail(
+    (root.email as unknown) ?? (root.contact_email as unknown) ?? (root.user_email as unknown)
+  );
+  if (emailFromRoot) return emailFromRoot;
+
+  return null;
+}
+
+/**
+ * Get base URL from request headers
+ */
+function getBaseUrl(request: Request): string {
+  const host = request.headers.get("host");
+  const protocol = request.headers.get("x-forwarded-proto") || "http";
+  
+  if (host) {
+    return `${protocol}://${host}`;
+  }
+  
+  // Fallback to environment variable or localhost
+  return process.env.BASE_URL || "http://localhost:3000";
+}
 
 export async function POST(request: Request, { params }: Params) {
   try {
@@ -394,6 +455,57 @@ export async function POST(request: Request, { params }: Params) {
           deliverablesCount: deliverables.length,
         });
       }
+    }
+
+    // Send email notification to the user who submitted the form
+    try {
+      // Extract email from document content
+      const userEmail = extractEmailFromDocument(document.content);
+      
+      if (userEmail) {
+        // Get the base URL for the sprint link
+        const baseUrl = getBaseUrl(request);
+        const sprintUrl = `${baseUrl}/sprints/${sprintDraftId}`;
+        
+        // Generate email content
+        const emailContent = generateSprintDraftEmail({
+          sprintTitle: sprintTitle || "Your Sprint Plan",
+          sprintUrl,
+          recipientEmail: userEmail,
+        });
+        
+        // Send the email
+        const emailResult = await sendEmail({
+          to: userEmail,
+          subject: emailContent.subject,
+          text: emailContent.text,
+          html: emailContent.html,
+        });
+        
+        if (emailResult.success) {
+          console.log("[SprintAPI] Notification email sent", {
+            sprintDraftId,
+            to: userEmail,
+            messageId: emailResult.messageId,
+          });
+        } else {
+          console.warn("[SprintAPI] Failed to send notification email", {
+            sprintDraftId,
+            to: userEmail,
+            error: emailResult.error,
+          });
+        }
+      } else {
+        console.warn("[SprintAPI] No email found in document, skipping notification", {
+          documentId: params.id,
+        });
+      }
+    } catch (emailError: unknown) {
+      // Don't fail the sprint creation if email fails
+      console.error("[SprintAPI] Error sending notification email", {
+        sprintDraftId,
+        error: (emailError as Error).message,
+      });
     }
 
     return NextResponse.json(

@@ -1,7 +1,35 @@
 import { NextResponse } from "next/server";
-import { getStorage, getBucketName, uploadFile } from "@/lib/storage";
+import { getStorage, getBucketName, uploadFile, listFiles } from "@/lib/storage";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const action = searchParams.get("action");
+
+  // If action is "list", return the list of files
+  if (action === "list") {
+    try {
+      const storage = getStorage();
+      if (!storage) {
+        return NextResponse.json(
+          { error: "Google Cloud Storage is not configured" },
+          { status: 503 }
+        );
+      }
+
+      const files = await listFiles();
+      return NextResponse.json({ success: true, files });
+    } catch (error: unknown) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: (error as Error).message ?? "Failed to list files",
+        },
+        { status: 500 }
+      );
+    }
+  }
+
+  // Default behavior: check connection status
   try {
     const checks = {
       configPresent: false,

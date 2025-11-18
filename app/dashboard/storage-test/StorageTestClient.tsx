@@ -14,6 +14,15 @@ type ConnectionStatus = {
   message?: string;
 };
 
+type FileMetadata = {
+  name: string;
+  url: string;
+  size: number;
+  contentType: string;
+  created: string;
+  updated: string;
+};
+
 export default function StorageTestClient() {
   const [status, setStatus] = useState<ConnectionStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +33,8 @@ export default function StorageTestClient() {
     error?: string;
   } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [files, setFiles] = useState<FileMetadata[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
 
   useEffect(() => {
     checkConnection();
@@ -35,6 +46,11 @@ export default function StorageTestClient() {
       const res = await fetch("/api/admin/storage-test");
       const data = await res.json();
       setStatus(data);
+      
+      // If connection is successful, also fetch the files
+      if (data.success) {
+        fetchFiles();
+      }
     } catch (error) {
       setStatus({
         configPresent: false,
@@ -47,6 +63,22 @@ export default function StorageTestClient() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFiles = async () => {
+    setLoadingFiles(true);
+    try {
+      const res = await fetch("/api/admin/storage-test?action=list");
+      const data = await res.json();
+      
+      if (data.success && data.files) {
+        setFiles(data.files);
+      }
+    } catch (error) {
+      console.error("Failed to fetch files:", error);
+    } finally {
+      setLoadingFiles(false);
     }
   };
 
@@ -64,6 +96,11 @@ export default function StorageTestClient() {
 
       const data = await res.json();
       setUploadResult(data);
+      
+      // Refresh the file list after successful upload
+      if (data.success) {
+        fetchFiles();
+      }
     } catch (error) {
       setUploadResult({
         success: false,
@@ -72,6 +109,20 @@ export default function StorageTestClient() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
   };
 
   const StatusIndicator = ({ checked, label }: { checked: boolean; label: string }) => (
@@ -228,6 +279,94 @@ export default function StorageTestClient() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Uploaded Files Table */}
+      {status?.success && (
+        <div className="rounded-lg border border-black/10 dark:border-white/15 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Uploaded Files</h2>
+            <button
+              onClick={fetchFiles}
+              disabled={loadingFiles}
+              className="text-sm px-3 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50"
+            >
+              {loadingFiles ? "Loading..." : "Refresh"}
+            </button>
+          </div>
+
+          {loadingFiles && (
+            <div className="text-sm opacity-70">Loading files...</div>
+          )}
+
+          {!loadingFiles && files.length === 0 && (
+            <div className="text-sm opacity-70 text-center py-8">
+              No files uploaded yet. Upload a test file to see it here.
+            </div>
+          )}
+
+          {!loadingFiles && files.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-black/10 dark:border-white/15">
+                    <th className="text-left py-3 px-2 font-semibold">Name</th>
+                    <th className="text-left py-3 px-2 font-semibold">Size</th>
+                    <th className="text-left py-3 px-2 font-semibold">Type</th>
+                    <th className="text-left py-3 px-2 font-semibold">Created</th>
+                    <th className="text-left py-3 px-2 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {files.map((file, index) => (
+                    <tr
+                      key={file.name}
+                      className={`border-b border-black/10 dark:border-white/15 ${
+                        index % 2 === 0 ? "bg-black/5 dark:bg-white/5" : ""
+                      }`}
+                    >
+                      <td className="py-3 px-2">
+                        <div className="flex items-center gap-2">
+                          {file.contentType.startsWith("image/") && (
+                            <img
+                              src={file.url}
+                              alt={file.name}
+                              className="w-10 h-10 object-cover rounded border border-black/10 dark:border-white/15"
+                            />
+                          )}
+                          <span className="font-mono text-xs break-all">
+                            {file.name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-2 whitespace-nowrap">
+                        {formatFileSize(file.size)}
+                      </td>
+                      <td className="py-3 px-2">
+                        <code className="text-xs bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded">
+                          {file.contentType}
+                        </code>
+                      </td>
+                      <td className="py-3 px-2 text-xs whitespace-nowrap opacity-70">
+                        {formatDate(file.created)}
+                      </td>
+                      <td className="py-3 px-2">
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 inline-block"
+                        >
+                          View
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

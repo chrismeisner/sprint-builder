@@ -113,3 +113,35 @@ export async function deleteFile(url: string): Promise<void> {
   await file.delete();
 }
 
+export interface FileMetadata {
+  name: string;
+  url: string;
+  size: number;
+  contentType: string;
+  created: string;
+  updated: string;
+}
+
+export async function listFiles(prefix?: string): Promise<FileMetadata[]> {
+  const storage = getStorage();
+  if (!storage) {
+    throw new Error("Google Cloud Storage is not configured");
+  }
+
+  const bucketName = getBucketName();
+  const bucket = storage.bucket(bucketName);
+  
+  const [files] = await bucket.getFiles({
+    prefix: prefix || undefined,
+  });
+
+  return files.map(file => ({
+    name: file.name,
+    url: `https://storage.googleapis.com/${bucketName}/${file.name}`,
+    size: parseInt(file.metadata.size || "0"),
+    contentType: file.metadata.contentType || "unknown",
+    created: file.metadata.timeCreated || "",
+    updated: file.metadata.updated || "",
+  }));
+}
+
