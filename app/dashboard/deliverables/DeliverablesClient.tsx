@@ -9,6 +9,9 @@ type Row = {
   description: string | null;
   category: string | null;
   default_estimate_points: number | null;
+  fixed_hours: number | null;
+  fixed_price: number | null;
+  scope: string | null;
   active: boolean;
   created_at: string | Date;
   updated_at: string | Date;
@@ -23,7 +26,10 @@ export default function DeliverablesClient({ rows }: Props) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [scope, setScope] = useState("");
   const [estimate, setEstimate] = useState("");
+  const [hours, setHours] = useState("");
+  const [price, setPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +42,10 @@ export default function DeliverablesClient({ rows }: Props) {
         name,
         description: description || null,
         category: category || null,
+        scope: scope || null,
         defaultEstimatePoints: estimate || null,
+        fixedHours: hours || null,
+        fixedPrice: price || null,
       };
       const res = await fetch("/api/deliverables", {
         method: "POST",
@@ -54,7 +63,10 @@ export default function DeliverablesClient({ rows }: Props) {
         name,
         description: description || null,
         category: category || null,
+        scope: scope || null,
         default_estimate_points: estimate ? Number(estimate) : null,
+        fixed_hours: hours ? Number(hours) : null,
+        fixed_price: price ? Number(price) : null,
         active: true,
         created_at: now,
         updated_at: now,
@@ -63,7 +75,10 @@ export default function DeliverablesClient({ rows }: Props) {
       setName("");
       setCategory("");
       setDescription("");
+      setScope("");
       setEstimate("");
+      setHours("");
+      setPrice("");
     } catch (e) {
       setError((e as Error).message || "Failed to create deliverable");
     } finally {
@@ -142,14 +157,26 @@ export default function DeliverablesClient({ rows }: Props) {
           </div>
           <div className="sm:col-span-2">
             <label className="block text-xs font-medium mb-1" htmlFor="description">
-              Description
+              Description (when to use this)
             </label>
             <textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm min-h-[60px] bg-white text-black"
+              placeholder="When to use this deliverable..."
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium mb-1" htmlFor="scope">
+              Scope (what's included)
+            </label>
+            <textarea
+              id="scope"
+              value={scope}
+              onChange={(e) => setScope(e.target.value)}
               className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm min-h-[80px] bg-white text-black"
-              placeholder="Short description of this deliverable and when to use it."
+              placeholder="• Item 1&#10;• Item 2&#10;• Item 3"
             />
           </div>
           <div className="sm:col-span-1">
@@ -158,10 +185,39 @@ export default function DeliverablesClient({ rows }: Props) {
             </label>
             <input
               id="estimate"
+              type="number"
               value={estimate}
               onChange={(e) => setEstimate(e.target.value)}
               className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
               placeholder="e.g. 3"
+            />
+          </div>
+          <div className="sm:col-span-1">
+            <label className="block text-xs font-medium mb-1" htmlFor="hours">
+              Fixed hours
+            </label>
+            <input
+              id="hours"
+              type="number"
+              step="0.5"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+              className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
+              placeholder="e.g. 40"
+            />
+          </div>
+          <div className="sm:col-span-1">
+            <label className="block text-xs font-medium mb-1" htmlFor="price">
+              Fixed price ($)
+            </label>
+            <input
+              id="price"
+              type="number"
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
+              placeholder="e.g. 5000"
             />
           </div>
           <div className="sm:col-span-2 flex items-center gap-3">
@@ -188,9 +244,11 @@ export default function DeliverablesClient({ rows }: Props) {
                   <tr>
                     <th className="px-4 py-2 font-semibold">Name</th>
                     <th className="px-4 py-2 font-semibold">Category</th>
-                    <th className="px-4 py-2 font-semibold">Estimate</th>
+                    <th className="px-4 py-2 font-semibold">Points</th>
+                    <th className="px-4 py-2 font-semibold">Hours</th>
+                    <th className="px-4 py-2 font-semibold">Price</th>
                     <th className="px-4 py-2 font-semibold">Active</th>
-                    <th className="px-4 py-2 font-semibold">Description</th>
+                    <th className="px-4 py-2 font-semibold">Scope</th>
                     <th className="px-4 py-2 font-semibold">Actions</th>
                   </tr>
                 </thead>
@@ -209,6 +267,20 @@ export default function DeliverablesClient({ rows }: Props) {
                         )}
                       </td>
                       <td className="px-4 py-2">
+                        {item.fixed_hours != null ? (
+                          `${item.fixed_hours}h`
+                        ) : (
+                          <span className="opacity-50">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
+                        {item.fixed_price != null ? (
+                          `$${item.fixed_price.toLocaleString()}`
+                        ) : (
+                          <span className="opacity-50">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
                         <span
                           className={
                             item.active
@@ -219,8 +291,8 @@ export default function DeliverablesClient({ rows }: Props) {
                           {item.active ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td className="px-4 py-2 whitespace-pre-wrap max-w-xs">
-                        {item.description || <span className="opacity-50">—</span>}
+                      <td className="px-4 py-2 whitespace-pre-wrap max-w-xs text-xs">
+                        {item.scope || <span className="opacity-50">—</span>}
                       </td>
                       <td className="px-4 py-2">
                         <div className="flex flex-wrap gap-2">

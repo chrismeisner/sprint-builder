@@ -76,10 +76,17 @@ export async function uploadFile(
     },
   });
 
-  // Make file publicly readable
-  await file.makePublic();
+  // Try to make file publicly readable (works if uniform bucket-level access is disabled)
+  // If it fails, we'll use the public URL anyway and the bucket must be public
+  try {
+    await file.makePublic();
+  } catch (error) {
+    // Uniform bucket-level access is enabled, file can't be made public individually
+    // The bucket itself needs to be public, or we return the public URL which will work if bucket is public
+    console.warn("[Storage] Could not make file public individually (uniform bucket-level access enabled)");
+  }
 
-  // Return public URL
+  // Return public URL (will work if bucket is public)
   return `https://storage.googleapis.com/${bucketName}/${uniqueFilename}`;
 }
 

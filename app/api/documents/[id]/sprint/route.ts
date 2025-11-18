@@ -103,7 +103,7 @@ export async function POST(request: Request, { params }: Params) {
 
     // Load active deliverables to ground the sprint in 1-3 catalog items
     const deliverablesRes = await pool.query(
-      `SELECT id, name, description, category, default_estimate_points
+      `SELECT id, name, description, category, scope, default_estimate_points, fixed_hours, fixed_price
        FROM deliverables
        WHERE active = true
        ORDER BY name ASC
@@ -114,7 +114,10 @@ export async function POST(request: Request, { params }: Params) {
       name: string;
       description: string | null;
       category: string | null;
+      scope: string | null;
       default_estimate_points: number | null;
+      fixed_hours: number | null;
+      fixed_price: number | null;
     }> = deliverablesRes.rows;
     const deliverablesText =
       deliverablesList.length === 0
@@ -125,8 +128,10 @@ export async function POST(request: Request, { params }: Params) {
                 `(${idx + 1}) id: ${d.id}`,
                 `name: ${d.name}`,
                 d.category ? `category: ${d.category}` : null,
-                d.default_estimate_points != null ? `default_estimate_points: ${d.default_estimate_points}` : null,
-                d.description ? `description: ${d.description}` : null,
+                d.default_estimate_points != null ? `points: ${d.default_estimate_points}` : null,
+                d.fixed_hours != null ? `fixed_hours: ${d.fixed_hours}` : null,
+                d.fixed_price != null ? `fixed_price: $${d.fixed_price}` : null,
+                d.scope ? `scope: ${d.scope}` : null,
               ].filter(Boolean);
               return parts.join(" | ");
             })
@@ -300,15 +305,95 @@ export async function POST(request: Request, { params }: Params) {
       );
     }
 
+    // Extract sprint title from parsed draft
+    let sprintTitle: string | null = null;
+    if (parsedDraft && typeof parsedDraft === "object" && "sprintTitle" in parsedDraft) {
+      const titleValue = (parsedDraft as { sprintTitle?: unknown }).sprintTitle;
+      if (typeof titleValue === "string") {
+        sprintTitle = titleValue;
+      }
+    }
+
     // Store sprint draft
     await pool.query(
       `
-      INSERT INTO sprint_drafts (id, document_id, ai_response_id, draft)
-      VALUES ($1, $2, $3, $4::jsonb)
+      INSERT INTO sprint_drafts (id, document_id, ai_response_id, draft, status, title, updated_at)
+      VALUES ($1, $2, $3, $4::jsonb, 'draft', $5, now())
     `,
-      [sprintDraftId, params.id, aiResponseId, JSON.stringify(parsedDraft)]
+      [sprintDraftId, params.id, aiResponseId, JSON.stringify(parsedDraft), sprintTitle]
     );
-    console.log("[SprintAPI] Created sprint_drafts row", { sprintDraftId, documentId: params.id });
+    console.log("[SprintAPI] Created sprint_drafts row", { sprintDraftId, documentId: params.id, title: sprintTitle });
+
+    // Extract deliverables from parsed draft and link them
+    if (parsedDraft && typeof parsedDraft === "object" && "deliverables" in parsedDraft) {
+      const deliverables = (parsedDraft as { deliverables?: unknown }).deliverables;
+      if (Array.isArray(deliverables)) {
+        let totalPoints = 0;
+        let totalHours = 0;
+        let totalBudget = 0;
+
+        for (const d of deliverables) {
+          if (d && typeof d === "object" && "deliverableId" in d) {
+            const deliverableId = (d as { deliverableId?: unknown }).deliverableId;
+            if (typeof deliverableId === "string" && deliverableId.trim()) {
+              // Fetch the deliverable from catalog to get default values
+              const delRes = await pool.query(
+                `SELECT default_estimate_points, fixed_hours, fixed_price
+                 FROM deliverables
+                 WHERE id = $1`,
+                [deliverableId]
+              );
+              if (delRes.rowCount > 0) {
+                const delRow = delRes.rows[0] as {
+                  default_estimate_points: number | null;
+                  fixed_hours: number | null;
+                  fixed_price: number | null;
+                };
+                const points = delRow.default_estimate_points ?? 0;
+                const hours = delRow.fixed_hours ?? 0;
+                const price = delRow.fixed_price ?? 0;
+
+                totalPoints += points;
+                totalHours += hours;
+                totalBudget += price;
+
+                // Insert into sprint_deliverables junction table
+                const junctionId = crypto.randomUUID();
+                await pool.query(
+                  `
+                  INSERT INTO sprint_deliverables (id, sprint_draft_id, deliverable_id, quantity)
+                  VALUES ($1, $2, $3, 1)
+                  ON CONFLICT (sprint_draft_id, deliverable_id) DO NOTHING
+                `,
+                  [junctionId, sprintDraftId, deliverableId]
+                );
+              }
+            }
+          }
+        }
+
+        // Update sprint_drafts with calculated totals
+        await pool.query(
+          `
+          UPDATE sprint_drafts
+          SET total_estimate_points = $1,
+              total_fixed_hours = $2,
+              total_fixed_price = $3,
+              deliverable_count = $4,
+              updated_at = now()
+          WHERE id = $5
+        `,
+          [totalPoints, totalHours, totalBudget, deliverables.length, sprintDraftId]
+        );
+        console.log("[SprintAPI] Linked deliverables and updated totals", {
+          sprintDraftId,
+          totalPoints,
+          totalHours,
+          totalBudget,
+          deliverablesCount: deliverables.length,
+        });
+      }
+    }
 
     return NextResponse.json(
       { sprintDraftId, aiResponseId },

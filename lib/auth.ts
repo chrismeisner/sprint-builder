@@ -1,4 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { cookies } from "next/headers";
+import { getPool } from "./db";
 
 const SESSION_SECRET = process.env.SESSION_SECRET || "dev-secret-change-me";
 
@@ -89,6 +91,33 @@ export function verifySessionToken(
   const decoded = verifyToken(token, "session", maxAgeSeconds);
   if (!decoded) return null;
   return { accountId: decoded.accountId };
+}
+
+// Helper to get current user from cookies (for use in server components)
+export async function getCurrentUser(): Promise<{ accountId: string; email: string } | null> {
+  try {
+    const cookieStore = cookies();
+    const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    if (!token) return null;
+
+    const session = verifySessionToken(token);
+    if (!session) return null;
+
+    // Fetch email from database
+    const pool = getPool();
+    const result = await pool.query(
+      `SELECT id, email FROM accounts WHERE id = $1`,
+      [session.accountId]
+    );
+
+    if (result.rowCount === 0) return null;
+    
+    const account = result.rows[0] as { id: string; email: string };
+    return { accountId: account.id, email: account.email };
+  } catch (error) {
+    console.error("Error getting current user:", error);
+    return null;
+  }
 }
 
 

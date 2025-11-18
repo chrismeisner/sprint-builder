@@ -1,6 +1,7 @@
 import { ensureSchema, getPool } from "@/lib/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +12,18 @@ type PageProps = {
 export default async function SprintDetailPage({ params }: PageProps) {
   await ensureSchema();
   const pool = getPool();
+  
+  // Get current user if logged in
+  const currentUser = await getCurrentUser();
+  
+  // Fetch sprint with document info including account_id and email
   const result = await pool.query(
-    `SELECT sd.id, sd.document_id, sd.ai_response_id, sd.draft, sd.created_at
+    `SELECT sd.id, sd.document_id, sd.ai_response_id, sd.draft, sd.status, sd.title,
+            sd.deliverable_count, sd.total_estimate_points, sd.total_fixed_hours, sd.total_fixed_price, 
+            sd.created_at, sd.updated_at,
+            d.email, d.account_id
      FROM sprint_drafts sd
+     JOIN documents d ON sd.document_id = d.id
      WHERE sd.id = $1`,
     [params.id]
   );
@@ -25,8 +35,20 @@ export default async function SprintDetailPage({ params }: PageProps) {
     document_id: string;
     ai_response_id: string | null;
     draft: unknown;
+    status: string | null;
+    title: string | null;
+    deliverable_count: number | null;
+    total_estimate_points: number | null;
+    total_fixed_hours: number | null;
+    total_fixed_price: number | null;
     created_at: string | Date;
+    updated_at: string | Date | null;
+    email: string | null;
+    account_id: string | null;
   };
+  
+  // Check if current user owns this sprint
+  const isOwner = currentUser && row.account_id === currentUser.accountId;
 
   function isObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -124,9 +146,19 @@ export default async function SprintDetailPage({ params }: PageProps) {
   return (
     <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6 font-[family-name:var(--font-geist-sans)]">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl sm:text-3xl font-bold">
-          {plan.sprintTitle?.trim() || "Sprint draft"}
-        </h1>
+        <div className="flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold">
+            {row.title || plan.sprintTitle?.trim() || "Sprint draft"}
+          </h1>
+          {isOwner && (
+            <div className="mt-2 inline-flex items-center gap-2 text-xs text-green-700 dark:text-green-300">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>Your sprint</span>
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <Link
             href={`/documents/${row.document_id}`}
@@ -148,6 +180,22 @@ export default async function SprintDetailPage({ params }: PageProps) {
           <span className="font-mono opacity-70">id:</span> {row.id}
         </div>
         <div>
+          <span className="font-mono opacity-70">status:</span>{" "}
+          <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-0.5 text-xs">
+            {row.status || "draft"}
+          </span>
+        </div>
+        {row.email && (
+          <div>
+            <span className="font-mono opacity-70">email:</span> {row.email}
+          </div>
+        )}
+        {row.deliverable_count != null && row.deliverable_count > 0 && (
+          <div>
+            <span className="font-mono opacity-70">deliverables:</span> {row.deliverable_count}
+          </div>
+        )}
+        <div>
           <span className="font-mono opacity-70">document:</span> {row.document_id}
         </div>
         <div>
@@ -158,7 +206,35 @@ export default async function SprintDetailPage({ params }: PageProps) {
           <span className="font-mono opacity-70">created:</span>{" "}
           {new Date(row.created_at).toLocaleString()}
         </div>
+        {row.updated_at && (
+          <div>
+            <span className="font-mono opacity-70">updated:</span>{" "}
+            {new Date(row.updated_at).toLocaleString()}
+          </div>
+        )}
       </div>
+
+      {(row.total_estimate_points != null || row.total_fixed_hours != null || row.total_fixed_price != null) && (
+        <div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 p-4">
+          <h2 className="text-lg font-semibold mb-3">Sprint Totals (Fixed Pricing)</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div className="opacity-70 text-xs mb-1">Total Points</div>
+              <div className="text-2xl font-bold">{row.total_estimate_points ?? 0}</div>
+            </div>
+            <div>
+              <div className="opacity-70 text-xs mb-1">Fixed Hours</div>
+              <div className="text-2xl font-bold">{row.total_fixed_hours ?? 0}h</div>
+            </div>
+            <div>
+              <div className="opacity-70 text-xs mb-1">Fixed Price</div>
+              <div className="text-2xl font-bold">
+                ${(row.total_fixed_price ?? 0).toLocaleString()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="space-y-6">
         {plan.deliverables && plan.deliverables.length > 0 && (

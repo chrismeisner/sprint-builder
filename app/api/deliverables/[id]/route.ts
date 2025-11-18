@@ -13,11 +13,14 @@ export async function PATCH(request: Request, { params }: Params) {
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
-    const { name, description, category, defaultEstimatePoints, active } = body as {
+    const { name, description, category, defaultEstimatePoints, fixedHours, fixedPrice, scope, active } = body as {
       name?: unknown;
       description?: unknown;
       category?: unknown;
       defaultEstimatePoints?: unknown;
+      fixedHours?: unknown;
+      fixedPrice?: unknown;
+      scope?: unknown;
       active?: unknown;
     };
 
@@ -36,6 +39,10 @@ export async function PATCH(request: Request, { params }: Params) {
       fields.push(`category = $${fields.length + 1}`);
       values.push(category);
     }
+    if (typeof scope === "string" || scope === null) {
+      fields.push(`scope = $${fields.length + 1}`);
+      values.push(scope);
+    }
     if (typeof active === "boolean") {
       fields.push(`active = $${fields.length + 1}`);
       values.push(active);
@@ -50,6 +57,28 @@ export async function PATCH(request: Request, { params }: Params) {
       }
       fields.push(`default_estimate_points = $${fields.length + 1}`);
       values.push(estimate);
+    }
+    if (fixedHours !== undefined) {
+      let hours: number | null = null;
+      if (typeof fixedHours === "number") {
+        hours = fixedHours;
+      } else if (typeof fixedHours === "string" && fixedHours.trim()) {
+        const parsed = Number(fixedHours);
+        if (!Number.isNaN(parsed)) hours = parsed;
+      }
+      fields.push(`fixed_hours = $${fields.length + 1}`);
+      values.push(hours);
+    }
+    if (fixedPrice !== undefined) {
+      let price: number | null = null;
+      if (typeof fixedPrice === "number") {
+        price = fixedPrice;
+      } else if (typeof fixedPrice === "string" && fixedPrice.trim()) {
+        const parsed = Number(fixedPrice);
+        if (!Number.isNaN(parsed)) price = parsed;
+      }
+      fields.push(`fixed_price = $${fields.length + 1}`);
+      values.push(price);
     }
 
     if (fields.length === 0) {

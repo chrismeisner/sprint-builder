@@ -13,15 +13,13 @@ function createPool(): Pool {
     throw new Error("DATABASE_URL is not set");
   }
 
-  const isProduction = process.env.NODE_ENV === "production";
-
+  // Enable SSL for all environments since most cloud databases require it
+  // Set rejectUnauthorized to false to allow self-signed certificates
   return new Pool({
     connectionString,
-    ssl: isProduction
-      ? {
-          rejectUnauthorized: false,
-        }
-      : undefined,
+    ssl: {
+      rejectUnauthorized: false,
+    },
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
@@ -73,6 +71,58 @@ export async function ensureSchema(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS idx_sprint_drafts_document_id ON sprint_drafts(document_id);
   `);
+  
+  // Add summary fields to sprint_drafts for easy querying
+  await pool.query(`
+    ALTER TABLE sprint_drafts
+    ADD COLUMN IF NOT EXISTS status text DEFAULT 'draft',
+    ADD COLUMN IF NOT EXISTS title text,
+    ADD COLUMN IF NOT EXISTS deliverable_count integer DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS total_estimate_points integer,
+    ADD COLUMN IF NOT EXISTS total_estimated_hours numeric(10,2),
+    ADD COLUMN IF NOT EXISTS total_estimated_budget numeric(10,2),
+    ADD COLUMN IF NOT EXISTS total_fixed_hours numeric(10,2),
+    ADD COLUMN IF NOT EXISTS total_fixed_price numeric(10,2),
+    ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+  `);
+  
+  // Add indexes for common queries
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_sprint_drafts_status ON sprint_drafts(status);
+    CREATE INDEX IF NOT EXISTS idx_sprint_drafts_created ON sprint_drafts(created_at DESC);
+  `);
+  
+  // Add constraint to validate status values
+  await pool.query(`
+    DO $$ 
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'sprint_drafts_status_check'
+      ) THEN
+        ALTER TABLE sprint_drafts 
+        ADD CONSTRAINT sprint_drafts_status_check 
+        CHECK (status IN ('draft', 'in_progress', 'completed', 'cancelled'));
+      END IF;
+    END $$;
+  `);
+  
+  // Create junction table for sprint → deliverables relationship
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sprint_deliverables (
+      id text PRIMARY KEY,
+      sprint_draft_id text NOT NULL REFERENCES sprint_drafts(id) ON DELETE CASCADE,
+      deliverable_id text NOT NULL REFERENCES deliverables(id) ON DELETE CASCADE,
+      quantity integer NOT NULL DEFAULT 1,
+      custom_estimate_points integer,
+      custom_hours numeric(10,2),
+      custom_price numeric(10,2),
+      notes text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE(sprint_draft_id, deliverable_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_sprint_deliverables_sprint ON sprint_deliverables(sprint_draft_id);
+    CREATE INDEX IF NOT EXISTS idx_sprint_deliverables_deliverable ON sprint_deliverables(deliverable_id);
+  `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_settings (
       key text PRIMARY KEY,
@@ -94,6 +144,27 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_deliverables_active ON deliverables(active);
     CREATE INDEX IF NOT EXISTS idx_deliverables_category ON deliverables(category);
   `);
+  
+  // Add fixed pricing and scope fields to deliverables
+  await pool.query(`
+    ALTER TABLE deliverables
+    ADD COLUMN IF NOT EXISTS estimated_hours numeric(10,2),
+    ADD COLUMN IF NOT EXISTS estimated_budget numeric(10,2),
+    ADD COLUMN IF NOT EXISTS fixed_hours numeric(10,2),
+    ADD COLUMN IF NOT EXISTS fixed_price numeric(10,2),
+    ADD COLUMN IF NOT EXISTS scope text;
+  `);
+  
+  // Migrate existing data from estimated_* to fixed_* fields
+  await pool.query(`
+    UPDATE deliverables
+    SET fixed_hours = estimated_hours,
+        fixed_price = estimated_budget
+    WHERE fixed_hours IS NULL AND estimated_hours IS NOT NULL;
+  `);
+  
+  // Drop old columns (we'll keep them for now to avoid data loss, can remove later)
+  // await pool.query(`ALTER TABLE deliverables DROP COLUMN IF EXISTS estimated_hours, DROP COLUMN IF EXISTS estimated_budget;`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS accounts (
       id text PRIMARY KEY,

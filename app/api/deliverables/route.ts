@@ -9,10 +9,10 @@ export async function GET(request: Request) {
     const includeInactive = searchParams.get("includeInactive") === "true";
     const rows = await pool.query(
       includeInactive
-        ? `SELECT id, name, description, category, default_estimate_points, active, created_at, updated_at
+        ? `SELECT id, name, description, category, default_estimate_points, fixed_hours, fixed_price, scope, active, created_at, updated_at
            FROM deliverables
            ORDER BY active DESC, name ASC`
-        : `SELECT id, name, description, category, default_estimate_points, active, created_at, updated_at
+        : `SELECT id, name, description, category, default_estimate_points, fixed_hours, fixed_price, scope, active, created_at, updated_at
            FROM deliverables
            WHERE active = true
            ORDER BY name ASC`
@@ -34,11 +34,14 @@ export async function POST(request: Request) {
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
-    const { name, description, category, defaultEstimatePoints, active } = body as {
+    const { name, description, category, defaultEstimatePoints, fixedHours, fixedPrice, scope, active } = body as {
       name?: unknown;
       description?: unknown;
       category?: unknown;
       defaultEstimatePoints?: unknown;
+      fixedHours?: unknown;
+      fixedPrice?: unknown;
+      scope?: unknown;
       active?: unknown;
     };
 
@@ -54,13 +57,29 @@ export async function POST(request: Request) {
       if (!Number.isNaN(parsed)) estimate = parsed;
     }
 
+    let hours: number | null = null;
+    if (typeof fixedHours === "number") {
+      hours = fixedHours;
+    } else if (typeof fixedHours === "string" && fixedHours.trim()) {
+      const parsed = Number(fixedHours);
+      if (!Number.isNaN(parsed)) hours = parsed;
+    }
+
+    let price: number | null = null;
+    if (typeof fixedPrice === "number") {
+      price = fixedPrice;
+    } else if (typeof fixedPrice === "string" && fixedPrice.trim()) {
+      const parsed = Number(fixedPrice);
+      if (!Number.isNaN(parsed)) price = parsed;
+    }
+
     const id = crypto.randomUUID();
     const activeValue = typeof active === "boolean" ? active : true;
 
     await pool.query(
       `
-        INSERT INTO deliverables (id, name, description, category, default_estimate_points, active)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO deliverables (id, name, description, category, default_estimate_points, fixed_hours, fixed_price, scope, active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       `,
       [
         id,
@@ -68,6 +87,9 @@ export async function POST(request: Request) {
         typeof description === "string" ? description : null,
         typeof category === "string" ? category : null,
         estimate,
+        hours,
+        price,
+        typeof scope === "string" ? scope : null,
         activeValue,
       ]
     );
