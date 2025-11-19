@@ -172,6 +172,23 @@ export async function ensureSchema(): Promise<void> {
       created_at timestamptz NOT NULL DEFAULT now()
     );
   `);
+  
+  // Add is_admin flag to accounts table
+  await pool.query(`
+    ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS is_admin boolean NOT NULL DEFAULT false;
+  `);
+  
+  // Add name field to accounts table
+  await pool.query(`
+    ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS name text;
+  `);
+  
+  // Create index for admin queries
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_accounts_is_admin ON accounts(is_admin);
+  `);
   await pool.query(`
     ALTER TABLE documents
     ADD COLUMN IF NOT EXISTS account_id text REFERENCES accounts(id)
@@ -206,6 +223,56 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_past_projects_involvement ON past_projects(involvement_type);
     CREATE INDEX IF NOT EXISTS idx_past_projects_sort ON past_projects(sort_order);
   `);
+  
+  // Sprint Packages: Pre-defined bundles of deliverables that clients can select
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sprint_packages (
+      id text PRIMARY KEY,
+      name text NOT NULL,
+      slug text UNIQUE NOT NULL,
+      description text,
+      category text,
+      tagline text,
+      flat_fee numeric(10,2),
+      flat_hours numeric(10,2),
+      discount_percentage numeric(5,2),
+      active boolean NOT NULL DEFAULT true,
+      featured boolean NOT NULL DEFAULT false,
+      sort_order integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_sprint_packages_active ON sprint_packages(active);
+    CREATE INDEX IF NOT EXISTS idx_sprint_packages_featured ON sprint_packages(featured);
+    CREATE INDEX IF NOT EXISTS idx_sprint_packages_category ON sprint_packages(category);
+    CREATE INDEX IF NOT EXISTS idx_sprint_packages_sort ON sprint_packages(sort_order);
+  `);
+  
+  // Sprint Package Deliverables: Junction table linking packages to deliverables
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sprint_package_deliverables (
+      id text PRIMARY KEY,
+      sprint_package_id text NOT NULL REFERENCES sprint_packages(id) ON DELETE CASCADE,
+      deliverable_id text NOT NULL REFERENCES deliverables(id) ON DELETE CASCADE,
+      quantity integer NOT NULL DEFAULT 1,
+      notes text,
+      sort_order integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE(sprint_package_id, deliverable_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_sprint_package_deliverables_package ON sprint_package_deliverables(sprint_package_id);
+    CREATE INDEX IF NOT EXISTS idx_sprint_package_deliverables_deliverable ON sprint_package_deliverables(deliverable_id);
+  `);
+  
+  // Add sprint_package_id to sprint_drafts to track which package was used (if any)
+  await pool.query(`
+    ALTER TABLE sprint_drafts
+    ADD COLUMN IF NOT EXISTS sprint_package_id text REFERENCES sprint_packages(id) ON DELETE SET NULL;
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_sprint_drafts_package ON sprint_drafts(sprint_package_id);
+  `);
+  
   global._schemaInitialized = true;
 }
 

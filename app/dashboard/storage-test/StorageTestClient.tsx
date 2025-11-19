@@ -35,6 +35,9 @@ export default function StorageTestClient() {
   const [uploading, setUploading] = useState(false);
   const [files, setFiles] = useState<FileMetadata[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<FileMetadata | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     checkConnection();
@@ -80,6 +83,45 @@ export default function StorageTestClient() {
     } finally {
       setLoadingFiles(false);
     }
+  };
+
+  const handleDeleteClick = (file: FileMetadata) => {
+    setFileToDelete(file);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!fileToDelete) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(
+        `/api/admin/storage-test?url=${encodeURIComponent(fileToDelete.url)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.success) {
+        // Remove file from local state
+        setFiles((prev) => prev.filter((f) => f.url !== fileToDelete.url));
+        setDeleteModalOpen(false);
+        setFileToDelete(null);
+      } else {
+        alert(`Delete failed: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`Delete failed: ${error}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false);
+    setFileToDelete(null);
   };
 
   const handleTestUpload = async (file: File) => {
@@ -352,14 +394,22 @@ export default function StorageTestClient() {
                         {formatDate(file.created)}
                       </td>
                       <td className="py-3 px-2">
-                        <a
-                          href={file.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 inline-block"
-                        >
-                          View
-                        </a>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 inline-block"
+                          >
+                            View
+                          </a>
+                          <button
+                            onClick={() => handleDeleteClick(file)}
+                            className="text-xs px-2 py-1 rounded-md border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 inline-block"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -402,6 +452,51 @@ export default function StorageTestClient() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold mb-3">Confirm Delete</h3>
+            <p className="text-sm opacity-80 mb-4">
+              Are you sure you want to delete this file?
+            </p>
+            {fileToDelete && (
+              <div className="mb-6 p-3 rounded-md bg-black/5 dark:bg-white/5">
+                <div className="flex items-center gap-2">
+                  {fileToDelete.contentType.startsWith("image/") && (
+                    <img
+                      src={fileToDelete.url}
+                      alt={fileToDelete.name}
+                      className="w-12 h-12 object-cover rounded border border-black/10 dark:border-white/15"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{fileToDelete.name}</p>
+                    <p className="text-xs opacity-60">{formatFileSize(fileToDelete.size)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleDeleteCancel}
+                disabled={deleting}
+                className="px-4 py-2 text-sm rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

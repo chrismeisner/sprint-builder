@@ -111,6 +111,38 @@ GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 
 **Free Tier:** Google Cloud Storage offers 5GB free storage + 1GB network egress per month.
 
+## Admin User Setup
+
+The application includes an admin system for managing users. See [ADMIN_SETUP.md](ADMIN_SETUP.md) for detailed instructions.
+
+### Quick Setup
+
+1. Ensure the database schema is up to date:
+```bash
+curl -X POST http://localhost:3000/api/admin/db/ensure
+```
+
+2. Make your first user an admin by connecting to your database:
+```sql
+UPDATE accounts SET is_admin = true WHERE email = 'your-email@example.com';
+```
+
+3. Log in and visit `/dashboard/users` to manage other users.
+
+See [DATABASE_UPDATE_SUMMARY.md](DATABASE_UPDATE_SUMMARY.md) for verification that all tables are updated.
+
+## User Profile System
+
+Users can view and manage their profile at `/profile`. See [PROFILE_SYSTEM.md](PROFILE_SYSTEM.md) for details.
+
+**Features:**
+- View and edit profile information (name, email)
+- See all your intake forms
+- Browse all your sprint drafts
+- Account statistics
+
+Access the profile page through the user menu (click your email in the top-right when logged in).
+
 ## Getting Started
 
 First, run the development server:

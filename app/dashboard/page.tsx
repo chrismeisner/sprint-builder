@@ -1,16 +1,27 @@
 import Link from "next/link";
 import PromptSettingsClient from "./PromptSettingsClient";
 import DatabaseToolsClient from "./DatabaseToolsClient";
+import { getCurrentUser } from "@/lib/auth";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
+  const isAdmin = user?.isAdmin || false;
+
   const links = [
     { href: "/", label: "Home" },
     { href: "/documents", label: "Documents" },
+    { href: "/dashboard/sprint-builder", label: "Sprint Builder" },
     { href: "/dashboard/projects", label: "Past Projects" },
     { href: "/dashboard/deliverables", label: "Deliverables" },
+    { href: "/dashboard/sprint-packages", label: "Sprint Packages" },
     { href: "/dashboard/storage-test", label: "Cloud Storage Test" },
     { href: "/ai-test", label: "OpenAI Test" },
   ];
+
+  // Add admin-only links
+  if (isAdmin) {
+    links.push({ href: "/dashboard/users", label: "User Management" });
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">

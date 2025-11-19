@@ -199,19 +199,102 @@ export async function POST(request: Request, { params }: Params) {
             })
             .join("\n");
 
-    const deliverablesInstructions =
-      "\n\n=== PRODUCTIZED SERVICES CATALOG ===\n" +
-      "Below is your catalog of fixed-price deliverables. Each deliverable has:\n" +
-      "- Fixed hours and fixed price (this is NOT an estimate - it's the actual price)\n" +
-      "- Defined scope (what's included)\n" +
-      "- Description explaining when to use it\n\n" +
-      "Your task: Select 1-3 deliverables from this catalog that best fit the client's needs.\n" +
-      "Consider the client's project stage, goals, and budget when selecting.\n" +
-      "Use the EXACT deliverableId from the catalog in your JSON output.\n" +
-      deliverablesText +
-      "\n\n=== END CATALOG ===\n";
+    // Load active sprint packages
+    const packagesRes = await pool.query(
+      `SELECT 
+        sp.id,
+        sp.name,
+        sp.slug,
+        sp.description,
+        sp.category,
+        sp.tagline,
+        sp.flat_fee,
+        sp.flat_hours,
+        sp.discount_percentage,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'deliverableId', d.id,
+              'name', d.name,
+              'quantity', spd.quantity
+            ) ORDER BY spd.sort_order ASC
+          ) FILTER (WHERE d.id IS NOT NULL),
+          '[]'
+        ) as deliverables
+      FROM sprint_packages sp
+      LEFT JOIN sprint_package_deliverables spd ON sp.id = spd.sprint_package_id
+      LEFT JOIN deliverables d ON spd.deliverable_id = d.id AND d.active = true
+      WHERE sp.active = true
+      GROUP BY sp.id
+      ORDER BY sp.featured DESC, sp.sort_order ASC
+      LIMIT 20`
+    );
+    
+    type PackageRow = {
+      id: string;
+      name: string;
+      slug: string;
+      description: string | null;
+      category: string | null;
+      tagline: string | null;
+      flat_fee: number | null;
+      flat_hours: number | null;
+      discount_percentage: number | null;
+      deliverables: Array<{
+        deliverableId: string;
+        name: string;
+        quantity: number;
+      }>;
+    };
+    
+    const packagesList: PackageRow[] = packagesRes.rows;
+    const packagesText =
+      packagesList.length === 0
+        ? "No sprint packages are currently available."
+        : packagesList
+            .map((p, idx) => {
+              const deliverableList = p.deliverables
+                .map((d) => `${d.name}${d.quantity > 1 ? ` (×${d.quantity})` : ""}`)
+                .join(", ");
+              const parts = [
+                `\n[${idx + 1}] ${p.name}`,
+                `    id: ${p.id}`,
+                p.category ? `    category: ${p.category}` : null,
+                p.tagline ? `    tagline: ${p.tagline}` : null,
+                p.description ? `    description: ${p.description}` : null,
+                p.flat_fee != null ? `    flat_fee: $${p.flat_fee}` : null,
+                p.flat_hours != null ? `    flat_hours: ${p.flat_hours}h` : null,
+                p.discount_percentage != null ? `    discount: ${p.discount_percentage}%` : null,
+                `    includes: ${deliverableList}`,
+              ].filter(Boolean);
+              return parts.join("\n");
+            })
+            .join("\n");
 
-    const combinedUserPrompt = `${userPrompt}\n\n${deliverablesInstructions}`;
+    const catalogInstructions =
+      "\n\n=== SPRINT PACKAGES & DELIVERABLES ===\n\n" +
+      "You have TWO OPTIONS for recommending work to the client:\n\n" +
+      "OPTION 1: Recommend a SPRINT PACKAGE (preferred when a good fit exists)\n" +
+      "Sprint packages are pre-bundled collections of deliverables with fixed pricing.\n" +
+      "They offer better value and are easier for clients to understand.\n" +
+      "If you recommend a package, include 'sprintPackageId' in your JSON response.\n" +
+      packagesText +
+      "\n\n" +
+      "OPTION 2: Recommend INDIVIDUAL DELIVERABLES (when no package fits)\n" +
+      "Select 1-3 individual deliverables from the catalog below.\n" +
+      "Each deliverable has fixed hours and fixed price (NOT estimates).\n" +
+      "If you recommend individual deliverables, include them in 'deliverables' array.\n" +
+      deliverablesText +
+      "\n\n" +
+      "INSTRUCTIONS:\n" +
+      "- First check if any sprint package is a good fit for the client's needs\n" +
+      "- If a package matches well, use 'sprintPackageId' in your response\n" +
+      "- If no package fits, select 1-3 individual deliverables\n" +
+      "- NEVER recommend both a package AND individual deliverables together\n" +
+      "- Use EXACT IDs from the catalogs above\n" +
+      "\n=== END CATALOG ===\n";
+
+    const combinedUserPrompt = `${userPrompt}\n\n${catalogInstructions}`;
 
     // Call OpenAI Chat Completions API with response_format json_object
     const requestBody = {
@@ -367,33 +450,103 @@ export async function POST(request: Request, { params }: Params) {
       );
     }
 
-    // Extract sprint title from parsed draft
+    // Extract sprint title and package ID from parsed draft
     let sprintTitle: string | null = null;
-    if (parsedDraft && typeof parsedDraft === "object" && "sprintTitle" in parsedDraft) {
-      const titleValue = (parsedDraft as { sprintTitle?: unknown }).sprintTitle;
-      if (typeof titleValue === "string") {
-        sprintTitle = titleValue;
+    let sprintPackageId: string | null = null;
+    
+    if (parsedDraft && typeof parsedDraft === "object") {
+      if ("sprintTitle" in parsedDraft) {
+        const titleValue = (parsedDraft as { sprintTitle?: unknown }).sprintTitle;
+        if (typeof titleValue === "string") {
+          sprintTitle = titleValue;
+        }
+      }
+      if ("sprintPackageId" in parsedDraft) {
+        const packageIdValue = (parsedDraft as { sprintPackageId?: unknown }).sprintPackageId;
+        if (typeof packageIdValue === "string" && packageIdValue.trim()) {
+          sprintPackageId = packageIdValue.trim();
+        }
       }
     }
 
-    // Store sprint draft
+    // Store sprint draft with optional package reference
     await pool.query(
       `
-      INSERT INTO sprint_drafts (id, document_id, ai_response_id, draft, status, title, updated_at)
-      VALUES ($1, $2, $3, $4::jsonb, 'draft', $5, now())
+      INSERT INTO sprint_drafts (id, document_id, ai_response_id, draft, status, title, sprint_package_id, updated_at)
+      VALUES ($1, $2, $3, $4::jsonb, 'draft', $5, $6, now())
     `,
-      [sprintDraftId, params.id, aiResponseId, JSON.stringify(parsedDraft), sprintTitle]
+      [sprintDraftId, params.id, aiResponseId, JSON.stringify(parsedDraft), sprintTitle, sprintPackageId]
     );
-    console.log("[SprintAPI] Created sprint_drafts row", { sprintDraftId, documentId: params.id, title: sprintTitle });
+    console.log("[SprintAPI] Created sprint_drafts row", { 
+      sprintDraftId, 
+      documentId: params.id, 
+      title: sprintTitle,
+      sprintPackageId 
+    });
 
-    // Extract deliverables from parsed draft and link them
-    if (parsedDraft && typeof parsedDraft === "object" && "deliverables" in parsedDraft) {
+    let totalPoints = 0;
+    let totalHours = 0;
+    let totalBudget = 0;
+    let deliverablesCount = 0;
+
+    // If a sprint package is specified, use its deliverables
+    if (sprintPackageId) {
+      console.log("[SprintAPI] Using sprint package", { sprintPackageId });
+      
+      // Fetch package deliverables
+      const pkgDelResult = await pool.query(
+        `
+        SELECT 
+          spd.deliverable_id,
+          spd.quantity,
+          d.default_estimate_points,
+          d.fixed_hours,
+          d.fixed_price
+        FROM sprint_package_deliverables spd
+        JOIN deliverables d ON spd.deliverable_id = d.id
+        WHERE spd.sprint_package_id = $1
+        ORDER BY spd.sort_order ASC
+      `,
+        [sprintPackageId]
+      );
+
+      for (const row of pkgDelResult.rows) {
+        const deliverableId = row.deliverable_id;
+        const quantity = row.quantity ?? 1;
+        const points = (row.default_estimate_points ?? 0) * quantity;
+        const hours = (row.fixed_hours ?? 0) * quantity;
+        const price = (row.fixed_price ?? 0) * quantity;
+
+        totalPoints += points;
+        totalHours += hours;
+        totalBudget += price;
+        deliverablesCount += quantity;
+
+        // Link deliverable to sprint
+        const junctionId = crypto.randomUUID();
+        await pool.query(
+          `
+          INSERT INTO sprint_deliverables (id, sprint_draft_id, deliverable_id, quantity)
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (sprint_draft_id, deliverable_id) DO NOTHING
+        `,
+          [junctionId, sprintDraftId, deliverableId, quantity]
+        );
+      }
+
+      console.log("[SprintAPI] Linked package deliverables", {
+        sprintDraftId,
+        sprintPackageId,
+        deliverablesCount,
+        totalPoints,
+        totalHours,
+        totalBudget,
+      });
+    }
+    // Otherwise, extract deliverables from parsed draft and link them
+    else if (parsedDraft && typeof parsedDraft === "object" && "deliverables" in parsedDraft) {
       const deliverables = (parsedDraft as { deliverables?: unknown }).deliverables;
       if (Array.isArray(deliverables)) {
-        let totalPoints = 0;
-        let totalHours = 0;
-        let totalBudget = 0;
-
         for (const d of deliverables) {
           if (d && typeof d === "object" && "deliverableId" in d) {
             const deliverableId = (d as { deliverableId?: unknown }).deliverableId;
@@ -418,6 +571,7 @@ export async function POST(request: Request, { params }: Params) {
                 totalPoints += points;
                 totalHours += hours;
                 totalBudget += price;
+                deliverablesCount++;
 
                 // Insert into sprint_deliverables junction table
                 const junctionId = crypto.randomUUID();
@@ -434,27 +588,30 @@ export async function POST(request: Request, { params }: Params) {
           }
         }
 
-        // Update sprint_drafts with calculated totals
-        await pool.query(
-          `
-          UPDATE sprint_drafts
-          SET total_estimate_points = $1,
-              total_fixed_hours = $2,
-              total_fixed_price = $3,
-              deliverable_count = $4,
-              updated_at = now()
-          WHERE id = $5
-        `,
-          [totalPoints, totalHours, totalBudget, deliverables.length, sprintDraftId]
-        );
-        console.log("[SprintAPI] Linked deliverables and updated totals", {
+        console.log("[SprintAPI] Linked individual deliverables and calculated totals", {
           sprintDraftId,
           totalPoints,
           totalHours,
           totalBudget,
-          deliverablesCount: deliverables.length,
+          deliverablesCount,
         });
       }
+    }
+
+    // Update sprint_drafts with calculated totals (for both package and individual deliverables)
+    if (deliverablesCount > 0) {
+      await pool.query(
+        `
+        UPDATE sprint_drafts
+        SET total_estimate_points = $1,
+            total_fixed_hours = $2,
+            total_fixed_price = $3,
+            deliverable_count = $4,
+            updated_at = now()
+        WHERE id = $5
+      `,
+        [totalPoints, totalHours, totalBudget, deliverablesCount, sprintDraftId]
+      );
     }
 
     // Send email notification to the user who submitted the form

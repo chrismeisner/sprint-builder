@@ -75,10 +75,19 @@ export default async function SprintDetailPage({ params }: PageProps) {
     focus?: string;
     items?: string[];
   };
+  type WeekPlan = {
+    overview?: string;
+    goals?: string[];
+    deliverables?: string[];
+    milestones?: string[];
+  };
   type DraftPlan = {
     sprintTitle?: string;
     goals?: string[];
     deliverables?: PlanDeliverable[];
+    week1?: WeekPlan;
+    week2?: WeekPlan;
+    approach?: string;
     backlog?: BacklogItem[];
     timeline?: TimelineItem[];
     assumptions?: string[];
@@ -92,9 +101,31 @@ export default async function SprintDetailPage({ params }: PageProps) {
     const deliverablesRaw = Array.isArray(d.deliverables) ? (d.deliverables as unknown[]) : [];
     const backlogRaw = Array.isArray(d.backlog) ? (d.backlog as unknown[]) : [];
     const timelineRaw = Array.isArray(d.timeline) ? (d.timeline as unknown[]) : [];
+    
+    // Parse week1
+    const week1 = isObject(d.week1) ? (d.week1 as Record<string, unknown>) : null;
+    const week1Plan: WeekPlan | undefined = week1 ? {
+      overview: typeof week1.overview === "string" ? week1.overview : undefined,
+      goals: asStringArray(week1.goals),
+      deliverables: asStringArray(week1.deliverables),
+      milestones: asStringArray(week1.milestones),
+    } : undefined;
+    
+    // Parse week2
+    const week2 = isObject(d.week2) ? (d.week2 as Record<string, unknown>) : null;
+    const week2Plan: WeekPlan | undefined = week2 ? {
+      overview: typeof week2.overview === "string" ? week2.overview : undefined,
+      goals: asStringArray(week2.goals),
+      deliverables: asStringArray(week2.deliverables),
+      milestones: asStringArray(week2.milestones),
+    } : undefined;
+    
     return {
       sprintTitle: typeof d.sprintTitle === "string" ? d.sprintTitle : undefined,
       goals: asStringArray(d.goals),
+      approach: typeof d.approach === "string" ? d.approach : undefined,
+      week1: week1Plan,
+      week2: week2Plan,
       deliverables: deliverablesRaw
         .map((it): PlanDeliverable => {
           if (!isObject(it)) return {};
@@ -233,6 +264,135 @@ export default async function SprintDetailPage({ params }: PageProps) {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Sprint Approach */}
+      {plan.approach && (
+        <div className="rounded-lg border border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950 p-4">
+          <h2 className="text-lg font-semibold mb-3">Sprint Approach</h2>
+          <p className="text-sm whitespace-pre-wrap leading-relaxed">{plan.approach}</p>
+        </div>
+      )}
+
+      {/* Week 1 & Week 2 Breakdown */}
+      {(plan.week1 || plan.week2) && (
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Week 1 */}
+          {plan.week1 && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950 p-4">
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold">
+                  1
+                </span>
+                Week 1
+              </h2>
+              
+              {plan.week1.overview && (
+                <div className="mb-4">
+                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Overview</h3>
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{plan.week1.overview}</p>
+                </div>
+              )}
+              
+              {plan.week1.goals && plan.week1.goals.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Goals</h3>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    {plan.week1.goals.map((g, i) => (
+                      <li key={`w1-goal-${i}`}>{g}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {plan.week1.deliverables && plan.week1.deliverables.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Deliverables</h3>
+                  <ul className="space-y-1 text-sm">
+                    {plan.week1.deliverables.map((d, i) => (
+                      <li key={`w1-del-${i}`} className="flex items-start gap-2">
+                        <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                        <span>{d}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {plan.week1.milestones && plan.week1.milestones.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Milestones</h3>
+                  <ul className="space-y-1 text-sm">
+                    {plan.week1.milestones.map((m, i) => (
+                      <li key={`w1-ms-${i}`} className="flex items-start gap-2">
+                        <span className="text-blue-600 dark:text-blue-400 mt-0.5">🎯</span>
+                        <span>{m}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Week 2 */}
+          {plan.week2 && (
+            <div className="rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950 p-4">
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-600 text-white text-xs font-bold">
+                  2
+                </span>
+                Week 2
+              </h2>
+              
+              {plan.week2.overview && (
+                <div className="mb-4">
+                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Overview</h3>
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{plan.week2.overview}</p>
+                </div>
+              )}
+              
+              {plan.week2.goals && plan.week2.goals.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Goals</h3>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    {plan.week2.goals.map((g, i) => (
+                      <li key={`w2-goal-${i}`}>{g}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {plan.week2.deliverables && plan.week2.deliverables.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Deliverables</h3>
+                  <ul className="space-y-1 text-sm">
+                    {plan.week2.deliverables.map((d, i) => (
+                      <li key={`w2-del-${i}`} className="flex items-start gap-2">
+                        <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                        <span>{d}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {plan.week2.milestones && plan.week2.milestones.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Milestones</h3>
+                  <ul className="space-y-1 text-sm">
+                    {plan.week2.milestones.map((m, i) => (
+                      <li key={`w2-ms-${i}`} className="flex items-start gap-2">
+                        <span className="text-orange-600 dark:text-orange-400 mt-0.5">🎯</span>
+                        <span>{m}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

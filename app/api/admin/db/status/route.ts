@@ -22,7 +22,7 @@ export async function GET() {
   try {
     await ensureSchema();
     const pool = getPool();
-    const [docs, ai, sprints, settings, deliverables] = await Promise.all([
+    const [docs, ai, sprints, settings, deliverables, accounts] = await Promise.all([
       pool.query(`SELECT COUNT(*)::int AS c FROM documents`),
       pool.query(`SELECT COUNT(*)::int AS c FROM ai_responses`),
       pool.query(`SELECT COUNT(*)::int AS c FROM sprint_drafts`),
@@ -35,6 +35,11 @@ export async function GET() {
         `SELECT COUNT(*)::int AS total,
                 COUNT(*) FILTER (WHERE active = true)::int AS active
          FROM deliverables`
+      ),
+      pool.query(
+        `SELECT COUNT(*)::int AS total,
+                COUNT(*) FILTER (WHERE is_admin = true)::int AS admins
+         FROM accounts`
       ),
     ]);
     return NextResponse.json({
@@ -51,6 +56,8 @@ export async function GET() {
         settings_prompts: settings.rows[0]?.prompts ?? 0,
         deliverables_total: deliverables.rows[0]?.total ?? 0,
         deliverables_active: deliverables.rows[0]?.active ?? 0,
+        accounts_total: accounts.rows[0]?.total ?? 0,
+        accounts_admins: accounts.rows[0]?.admins ?? 0,
       },
     });
   } catch (error: unknown) {

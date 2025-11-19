@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getStorage, getBucketName, uploadFile, listFiles } from "@/lib/storage";
+import { getStorage, getBucketName, uploadFile, listFiles, deleteFile } from "@/lib/storage";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -137,6 +137,41 @@ export async function POST(request: Request) {
       {
         success: false,
         error: (error as Error).message ?? "Upload test failed",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const storage = getStorage();
+    if (!storage) {
+      return NextResponse.json(
+        { error: "Google Cloud Storage is not configured" },
+        { status: 503 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const fileUrl = searchParams.get("url");
+
+    if (!fileUrl) {
+      return NextResponse.json({ error: "No file URL provided" }, { status: 400 });
+    }
+
+    // Delete the file
+    await deleteFile(fileUrl);
+
+    return NextResponse.json({
+      success: true,
+      message: "✅ File deleted successfully!",
+    });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: (error as Error).message ?? "Delete failed",
       },
       { status: 500 }
     );

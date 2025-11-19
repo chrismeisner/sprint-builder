@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type UserMenuProps = {
   email: string;
@@ -51,10 +52,26 @@ export default function UserMenu({ email }: UserMenuProps) {
                 <div className="text-xs opacity-70 truncate">{email}</div>
               </div>
               
+              <Link
+                href="/profile"
+                onClick={() => setIsOpen(false)}
+                className="block w-full text-left px-3 py-2 text-sm rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition"
+              >
+                My Profile
+              </Link>
+              
+              <Link
+                href="/my-sprints"
+                onClick={() => setIsOpen(false)}
+                className="block w-full text-left px-3 py-2 text-sm rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition"
+              >
+                My Sprints
+              </Link>
+              
               <button
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition disabled:opacity-50"
+                className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition disabled:opacity-50 border-t border-black/10 dark:border-white/15 mt-1 pt-2"
               >
                 {isLoggingOut ? "Logging out..." : "Log out"}
               </button>

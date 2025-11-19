@@ -1,18 +1,28 @@
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
 
-export default function NavShell({ children }: { children: React.ReactNode }) {
+export default async function NavShell({ children }: { children: React.ReactNode }) {
+  // Check if user is logged in and is an admin
+  const user = await getCurrentUser();
+  const isAdmin = user?.isAdmin || false;
+
+  // If not an admin, just render children without any nav
+  if (!isAdmin) {
+    return <>{children}</>;
+  }
+
+  // Admin users get the side navigation
   const nav = [
     { href: "/dashboard", label: "Admin Home" },
     { href: "/dashboard/projects", label: "Past Projects" },
     { href: "/dashboard/deliverables", label: "Deliverables" },
+    { href: "/dashboard/sprint-packages", label: "Sprint Packages" },
+    { href: "/dashboard/sprint-builder", label: "Sprint Builder" },
+    { href: "/dashboard/users", label: "User Management" },
     { href: "/documents", label: "Documents" },
     { href: "/dashboard/storage-test", label: "Storage Test" },
     { href: "/dashboard/email-test", label: "Email Test" },
     { href: "/ai-test", label: "OpenAI Test" },
-    { href: "/how-it-works", label: "How it works" },
-    { href: "/work", label: "View Portfolio" },
-    { href: "/my-sprints", label: "My sprints" },
-    { href: "/", label: "Public Home" },
   ];
 
   return (

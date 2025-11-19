@@ -35,6 +35,38 @@ export const DEFAULT_SPRINT_USER_PROMPT = `Based on the client's intake form, cr
     "Additional goals as needed (2-4 total)"
   ],
   
+  "week1": {
+    "overview": "2-3 paragraph narrative describing Week 1's focus, approach, and how it aligns with client needs. Explain the strategy, key activities, and expected outcomes for the first week.",
+    "goals": [
+      "Specific goal for week 1",
+      "Another week 1 goal"
+    ],
+    "deliverables": [
+      "Deliverable names being worked on in week 1"
+    ],
+    "milestones": [
+      "Key checkpoint or review point",
+      "Important milestone to hit by end of week 1"
+    ]
+  },
+  
+  "week2": {
+    "overview": "2-3 paragraph narrative describing Week 2's focus, approach, and how it builds on Week 1. Explain the execution strategy, completion activities, and final deliverables.",
+    "goals": [
+      "Specific goal for week 2",
+      "Another week 2 goal"
+    ],
+    "deliverables": [
+      "Deliverable names being completed in week 2"
+    ],
+    "milestones": [
+      "Key checkpoint or review point",
+      "Final sprint demo or delivery milestone"
+    ]
+  },
+  
+  "approach": "1-2 paragraph explanation of the overall approach and methodology for this sprint, customized based on the client's specific situation, constraints, and goals from their intake form.",
+  
   "backlog": [
     {
       "id": "SPRINT-001",
@@ -94,6 +126,21 @@ BACKLOG GUIDANCE:
 - Total sprint points should be realistic (typically 20-40 points for a small team)
 - Ensure items are sequenced logically (dependencies considered)
 - Include mix of development, design, testing, and documentation tasks
+
+WEEK 1/WEEK 2 GUIDANCE:
+- Write narrative overviews that tell the story of each week's focus and strategy
+- Customize based on the client's specific needs, constraints, and goals from their intake form
+- Week 1 typically focuses on: discovery, foundation, setup, research, and initial builds
+- Week 2 typically focuses on: execution, completion, testing, refinement, and delivery
+- Deliverables list should map to which deliverables are actively worked on each week
+- Milestones should be specific checkpoints (not tasks, but outcomes/reviews)
+- Goals should be weekly-specific, not just restatements of overall goals
+
+APPROACH GUIDANCE:
+- The "approach" field should explain the methodology and strategy for THIS specific sprint
+- Reference specific details from the client's intake form (their goals, constraints, context)
+- Explain why the selected deliverables and timeline make sense for their situation
+- This is NOT generic advice - it should feel custom and thoughtful
 
 TIMELINE GUIDANCE:
 - Create day-by-day breakdown for all 10 working days (2 weeks)

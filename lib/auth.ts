@@ -94,7 +94,7 @@ export function verifySessionToken(
 }
 
 // Helper to get current user from cookies (for use in server components)
-export async function getCurrentUser(): Promise<{ accountId: string; email: string } | null> {
+export async function getCurrentUser(): Promise<{ accountId: string; email: string; isAdmin: boolean } | null> {
   try {
     const cookieStore = cookies();
     const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
@@ -103,21 +103,37 @@ export async function getCurrentUser(): Promise<{ accountId: string; email: stri
     const session = verifySessionToken(token);
     if (!session) return null;
 
-    // Fetch email from database
+    // Fetch user data from database
     const pool = getPool();
     const result = await pool.query(
-      `SELECT id, email FROM accounts WHERE id = $1`,
+      `SELECT id, email, is_admin FROM accounts WHERE id = $1`,
       [session.accountId]
     );
 
     if (result.rowCount === 0) return null;
     
-    const account = result.rows[0] as { id: string; email: string };
-    return { accountId: account.id, email: account.email };
+    const account = result.rows[0] as { id: string; email: string; is_admin: boolean };
+    return { 
+      accountId: account.id, 
+      email: account.email, 
+      isAdmin: account.is_admin 
+    };
   } catch (error) {
     console.error("Error getting current user:", error);
     return null;
   }
+}
+
+// Helper to check if current user is an admin
+export async function requireAdmin(): Promise<{ accountId: string; email: string; isAdmin: true }> {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("Authentication required");
+  }
+  if (!user.isAdmin) {
+    throw new Error("Admin access required");
+  }
+  return { ...user, isAdmin: true as const };
 }
 
 

@@ -25,46 +25,18 @@ export default async function Header() {
             >
               How It Works
             </Link>
-            <Link
-              href="/work"
-              className="transition-colors hover:text-black/80 dark:hover:text-white/80"
-            >
-              Portfolio
-            </Link>
-            <Link
-              href="/my-sprints"
-              className="transition-colors hover:text-black/80 dark:hover:text-white/80"
-            >
-              My Sprints
-            </Link>
           </nav>
           
           <div className="flex items-center gap-2">
             {user ? (
-              <>
-                <UserMenu email={user.email} />
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-black text-white dark:bg-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 h-9 px-4"
-                >
-                  Dashboard
-                </Link>
-              </>
+              <UserMenu email={user.email} />
             ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 border border-black/10 dark:border-white/15 bg-transparent hover:bg-black/5 dark:hover:bg-white/10 h-9 px-4"
-                >
-                  Log in
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-black text-white dark:bg-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 h-9 px-4"
-                >
-                  Dashboard
-                </Link>
-              </>
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 border border-black/10 dark:border-white/15 bg-transparent hover:bg-black/5 dark:hover:bg-white/10 h-9 px-4"
+              >
+                Log in
+              </Link>
             )}
           </div>
         </div>

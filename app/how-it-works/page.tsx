@@ -12,7 +12,7 @@ export default function HowItWorksPage() {
             From idea to execution in 2 weeks
           </h1>
           <p className="text-lg sm:text-xl opacity-80 max-w-2xl mx-auto">
-            Get an instant AI-powered sprint plan, then we execute M/W/F over 2 weeks—no endless meetings, no scope creep, just results.
+            Design your sprint, confirm your deliverables, then we execute—no endless meetings, no scope creep, just results.
           </p>
         </div>
       </section>
@@ -22,7 +22,7 @@ export default function HowItWorksPage() {
         <div className="text-center space-y-2">
           <h2 className="text-3xl font-bold">How it works</h2>
           <p className="text-lg opacity-70">
-            Six simple steps from intake to delivery
+            Six clear steps from sprint design to final delivery
           </p>
         </div>
 
@@ -32,20 +32,41 @@ export default function HowItWorksPage() {
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
               1
             </div>
-            <h3 className="text-2xl font-semibold">Fill out the intake form</h3>
+            <h3 className="text-2xl font-semibold">Design your sprint blueprint</h3>
           </div>
           <div className="pl-16 space-y-2">
             <p className="text-base opacity-80">
-              Tell us about your project, goals, and constraints in a quick 5-minute form. No sales calls, no back-and-forth emails.
+              Start by telling us what you need. Choose from pre-packaged sprint templates or build a custom sprint by selecting specific deliverables. Fill out our quick intake form, and AI will generate a tailored 2-week sprint proposal.
             </p>
-            <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 text-sm space-y-1">
-              <p className="font-medium">What we ask:</p>
-              <ul className="list-disc pl-5 space-y-1 opacity-80">
-                <li>What are you building and why?</li>
-                <li>Who is it for?</li>
-                <li>What&apos;s your timeline and budget?</li>
-                <li>What deliverables do you need? (branding, web design, MVP, etc.)</li>
-              </ul>
+            <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 text-sm space-y-3">
+              <div>
+                <p className="font-medium mb-1">Three ways to start:</p>
+                <ul className="list-disc pl-5 space-y-1 opacity-80">
+                  <li>
+                    <Link href="/packages" className="font-medium underline hover:opacity-80 transition">
+                      Browse sprint packages
+                    </Link> — Pre-built bundles (MVP Launch, Brand Identity, etc.)
+                  </li>
+                  <li>
+                    <Link href="/dashboard/sprint-builder" className="font-medium underline hover:opacity-80 transition">
+                      Custom sprint builder
+                    </Link> — Pick individual deliverables from our menu
+                  </li>
+                  <li>
+                    <Link href="https://form.typeform.com/to/eEiCy7Xj" target="_blank" className="font-medium underline hover:opacity-80 transition">
+                      AI-powered intake
+                    </Link> — Answer 5 questions, get instant recommendation
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium mb-1">You&apos;ll see upfront:</p>
+                <ul className="list-disc pl-5 space-y-1 opacity-80">
+                  <li>Fixed price (no surprises)</li>
+                  <li>1-3 specific deliverables with clear scope</li>
+                  <li>Total hours and complexity estimate</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -56,21 +77,20 @@ export default function HowItWorksPage() {
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
               2
             </div>
-            <h3 className="text-2xl font-semibold">Receive your draft sprint plan instantly</h3>
+            <h3 className="text-2xl font-semibold">Confirm sprint + Book your kickoff Monday</h3>
           </div>
           <div className="pl-16 space-y-2">
             <p className="text-base opacity-80">
-              As soon as you submit the intake form, our AI generates a complete sprint plan and sends it to your email. We review and refine it within 24 hours.
+              Review your sprint proposal, select your kickoff Monday from available dates, and pay a 50% deposit to lock in your spot. This anchors your commitment and gives us time to prepare.
             </p>
             <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 text-sm space-y-1">
-              <p className="font-medium">Your sprint plan includes:</p>
+              <p className="font-medium">What happens here:</p>
               <ul className="list-disc pl-5 space-y-1 opacity-80">
-                <li><span className="font-medium">Clear goals</span> — what we&apos;ll accomplish</li>
-                <li><span className="font-medium">1-3 specific deliverables</span> — exactly what you&apos;ll receive</li>
-                <li><span className="font-medium">Detailed backlog</span> — every task broken down</li>
-                <li><span className="font-medium">6-day working timeline</span> — Monday, Wednesday, Friday over 2 weeks</li>
-                <li><span className="font-medium">Assumptions & risks</span> — what could go wrong and how we&apos;ll handle it</li>
-                <li><span className="font-medium">Fixed price</span> — no surprises</li>
+                <li>Review deliverable scope and fixed pricing</li>
+                <li>See available kickoff dates (real-time calendar)</li>
+                <li>Optional pre-sprint discovery call (15-30 min)</li>
+                <li>Pay 50% deposit to reserve your 2-week sprint slot</li>
+                <li>Receive automated onboarding email with timeline, expectations, and file upload link</li>
               </ul>
             </div>
           </div>
@@ -82,21 +102,29 @@ export default function HowItWorksPage() {
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
               3
             </div>
-            <h3 className="text-2xl font-semibold">Confirm and schedule</h3>
+            <h3 className="text-2xl font-semibold">Monday kickoff workshop</h3>
           </div>
           <div className="pl-16 space-y-2">
             <p className="text-base opacity-80">
-              Review the sprint plan, ask questions, and lock in your start date. If we need to clarify anything, we&apos;ll hop on a quick discovery call.
+              Sprint Week 1, Day 1 — We start with alignment. Depending on your sprint type (brand or product), we run a focused workshop to capture your vision, review intake insights, and finalize direction before exploration begins.
             </p>
-            <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 text-sm space-y-1">
-              <p className="font-medium">What happens here:</p>
-              <ul className="list-disc pl-5 space-y-1 opacity-80">
-                <li>Review deliverables and timeline</li>
-                <li>Request changes if needed (we&apos;ll revise)</li>
-                <li>Optional discovery call (15-30 min) to align on details</li>
-                <li>Accept terms and pay to lock in your spot</li>
-                <li>Choose your start date</li>
-              </ul>
+            <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 text-sm space-y-3">
+              <div>
+                <p className="font-medium mb-1">Kickoff goals:</p>
+                <ul className="list-disc pl-5 space-y-1 opacity-80">
+                  <li>Align on the core problem and desired outcomes</li>
+                  <li>Review your intake form and any uploaded assets</li>
+                  <li>Capture founder preferences and brand instincts</li>
+                  <li>Set the direction before we start exploration</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium mb-1">Workshop format varies by sprint type:</p>
+                <ul className="list-disc pl-5 space-y-1 opacity-80">
+                  <li><span className="font-medium">Brand Sprint:</span> Brand Calibration Workshop</li>
+                  <li><span className="font-medium">Product Sprint:</span> User & Value Mapping Workshop</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -107,20 +135,26 @@ export default function HowItWorksPage() {
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
               4
             </div>
-            <h3 className="text-2xl font-semibold">Kick off your sprint</h3>
+            <h3 className="text-2xl font-semibold">Week 1: Up the hill — Direction setting</h3>
           </div>
-          <div className="pl-16 space-y-2">
+          <div className="pl-16 space-y-4">
             <p className="text-base opacity-80">
-              Day 1 arrives, and we hit the ground running. You&apos;ll get access to your client portal to track progress in real-time.
+              The first half of the sprint is <span className="font-semibold">divergence + alignment</span>. We explore concepts, share work-in-progress, and iterate with your feedback. By the end of Week 1, we lock in one clear direction to execute.
             </p>
-            <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 text-sm space-y-1">
-              <p className="font-medium">What you get:</p>
-              <ul className="list-disc pl-5 space-y-1 opacity-80">
-                <li>Welcome email with portal access</li>
-                <li>Live progress dashboard (see what&apos;s happening today)</li>
-                <li>Async messaging (ask questions anytime, no meetings required)</li>
-                <li>Your dedicated designer starts executing</li>
+            
+            <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">⛰️</span>
+                <h4 className="font-semibold">Week 1 Arc (M/W/F)</h4>
+              </div>
+              <ul className="text-sm space-y-1 opacity-80">
+                <li>• <span className="font-medium">Monday:</span> Kickoff workshop + initial exploration begins</li>
+                <li>• <span className="font-medium">Wednesday:</span> First concepts shared, gather feedback</li>
+                <li>• <span className="font-medium">Friday:</span> Mid-week feedback incorporated, direction locked in</li>
               </ul>
+              <p className="text-sm opacity-70 pt-2 border-t border-black/10 dark:border-white/15">
+                This "uphill" phase is about figuring things out—exploring options, testing ideas, and aligning on the best path forward before we commit.
+              </p>
             </div>
           </div>
         </div>
@@ -131,55 +165,35 @@ export default function HowItWorksPage() {
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
               5
             </div>
-            <h3 className="text-2xl font-semibold">The 2-week sprint process</h3>
+            <h3 className="text-2xl font-semibold">Week 2: Down the hill — Execution</h3>
           </div>
           <div className="pl-16 space-y-4">
             <p className="text-base opacity-80">
-              We work <span className="font-semibold">Monday, Wednesday, Friday</span> over 2 weeks (6 working days total). 
-              We follow the Shape Up methodology: <span className="font-semibold">uphill</span> (exploration & iteration) 
-              then <span className="font-semibold">downhill</span> (refinement & delivery).
+              The second half is <span className="font-semibold">convergence + build</span>. We implement the chosen direction, design final assets, build prototypes or visuals, and iterate tightly with your feedback. No re-scoping—just focused execution.
             </p>
             
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">⛰️</span>
-                  <h4 className="font-semibold">Week 1: Uphill (M/W/F)</h4>
-                </div>
-                <p className="text-sm opacity-80">
-                  Exploration and figuring things out. We iterate quickly, share work-in-progress, and incorporate your feedback.
-                </p>
-                <ul className="text-sm space-y-1 opacity-80">
-                  <li>• <span className="font-medium">Monday:</span> Kickoff, initial exploration</li>
-                  <li>• <span className="font-medium">Wednesday:</span> First concepts shared</li>
-                  <li>• <span className="font-medium">Friday:</span> Feedback incorporated, direction locked in</li>
-                </ul>
+            <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🏁</span>
+                <h4 className="font-semibold">Week 2 Arc (M/W/F)</h4>
               </div>
-
-              <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">🏁</span>
-                  <h4 className="font-semibold">Week 2: Downhill (M/W/F)</h4>
-                </div>
-                <p className="text-sm opacity-80">
-                  Refinement and finishing. We know exactly what we&apos;re building and polish everything to completion.
-                </p>
-                <ul className="text-sm space-y-1 opacity-80">
-                  <li>• <span className="font-medium">Monday:</span> Refinement and polish</li>
-                  <li>• <span className="font-medium">Wednesday:</span> Final revisions, near complete</li>
-                  <li>• <span className="font-medium">Friday:</span> Delivery ready, all files finalized</li>
-                </ul>
-              </div>
+              <ul className="text-sm space-y-1 opacity-80">
+                <li>• <span className="font-medium">Monday:</span> Implement chosen direction, refinement begins</li>
+                <li>• <span className="font-medium">Wednesday:</span> Final revisions, on-track checks</li>
+                <li>• <span className="font-medium">Friday:</span> Delivery ready—all files finalized and packaged</li>
+              </ul>
+              <p className="text-sm opacity-70 pt-2 border-t border-black/10 dark:border-white/15">
+                This "downhill" phase is about building, not re-thinking. We know what we&apos;re making and we execute with speed and polish.
+              </p>
             </div>
 
             <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 text-sm space-y-1">
               <p className="font-medium">Throughout the sprint:</p>
               <ul className="list-disc pl-5 space-y-1 opacity-80">
                 <li>Progress updates after each working day (M/W/F)</li>
-                <li>See exactly what&apos;s being worked on in real-time</li>
-                <li>Access to work-in-progress files</li>
+                <li>Real-time access to work-in-progress via your client portal</li>
                 <li>Async Q&A (we respond within 24 hours)</li>
-                <li>No meetings required—everything happens in your portal</li>
+                <li>No daily standups or Slack babysitting required</li>
               </ul>
             </div>
           </div>
@@ -191,34 +205,31 @@ export default function HowItWorksPage() {
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
               6
             </div>
-            <h3 className="text-2xl font-semibold">Delivery + 2 weeks free support</h3>
+            <h3 className="text-2xl font-semibold">Final delivery + Handoff</h3>
           </div>
           <div className="pl-16 space-y-2">
             <p className="text-base opacity-80">
-              At the end of Week 2 Friday, you receive all final deliverables with source files. Plus, you get 2 weeks of free support for fixes and small iterations.
+              Week 2 Friday — Sprint complete. You receive all final deliverables with source files, a Loom walkthrough explaining everything, and an optional live demo session. Pay the remaining 50% and you&apos;re done.
             </p>
             <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 text-sm space-y-3">
               <div>
-                <p className="font-medium mb-1">What&apos;s included:</p>
+                <p className="font-medium mb-1">What you receive:</p>
                 <ul className="list-disc pl-5 space-y-1 opacity-80">
-                  <li>All final files (Figma, code repos, design assets, etc.)</li>
-                  <li>Source files and exports</li>
-                  <li>Documentation and handoff notes</li>
-                  <li>Lifetime access to download your files</li>
+                  <li>All final deliverables (Figma files, code repos, design assets, documentation)</li>
+                  <li>Loom walkthrough video for asynchronous clarity</li>
+                  <li>Optional live review session (if you prefer real-time Q&A)</li>
+                  <li>Source files, exports, and handoff notes</li>
+                  <li>Lifetime access to download your files via client dashboard</li>
                 </ul>
               </div>
               <div>
-                <p className="font-medium mb-1">2-week support package (free):</p>
+                <p className="font-medium mb-1">Post-delivery:</p>
                 <ul className="list-disc pl-5 space-y-1 opacity-80">
-                  <li>Up to 5 support requests</li>
-                  <li>Bug fixes and small corrections</li>
-                  <li>Minor iterations on delivered work</li>
-                  <li>No new deliverables (those need a new sprint)</li>
+                  <li>Pay remaining 50% final payment</li>
+                  <li>Keep access to your client portal</li>
+                  <li>Optional: Extended support packages available</li>
                 </ul>
               </div>
-              <p className="text-xs opacity-60 pt-2 border-t border-black/10 dark:border-white/15">
-                Need more support? Extended support packages available for $1,500 (10 additional requests, 2 more weeks).
-              </p>
             </div>
           </div>
         </div>
@@ -232,25 +243,25 @@ export default function HowItWorksPage() {
           <div className="grid sm:grid-cols-3 gap-6">
             <div className="space-y-2">
               <div className="text-3xl">⚡</div>
-              <h3 className="font-semibold text-lg">Fast</h3>
+              <h3 className="font-semibold text-lg">Fast & Predictable</h3>
               <p className="text-sm opacity-80">
-                Draft plan generated instantly. Sprint starts within a week. Results delivered after 6 working days (M/W/F over 2 weeks).
+                Pick your deliverables, book your kickoff Monday, and you&apos;re done in 2 weeks. 6 working days (M/W/F), fixed timeline, no delays.
               </p>
             </div>
 
             <div className="space-y-2">
               <div className="text-3xl">🎯</div>
-              <h3 className="font-semibold text-lg">Fixed scope</h3>
+              <h3 className="font-semibold text-lg">Fixed Scope & Price</h3>
               <p className="text-sm opacity-80">
-                1-3 specific deliverables, clear timeline, fixed price. No scope creep, no surprise bills.
+                Menu-based deliverables with clear scope. You know exactly what you&apos;re getting and what it costs—no estimates, no surprises.
               </p>
             </div>
 
             <div className="space-y-2">
               <div className="text-3xl">🧘</div>
-              <h3 className="font-semibold text-lg">Low effort</h3>
+              <h3 className="font-semibold text-lg">Low Effort for You</h3>
               <p className="text-sm opacity-80">
-                No daily standups or Slack babysitting. Check your portal when convenient. We handle the rest.
+                One kickoff workshop, async updates M/W/F. No daily standups, no Slack babysitting. Check your portal when convenient.
               </p>
             </div>
           </div>
@@ -259,17 +270,23 @@ export default function HowItWorksPage() {
 
       {/* CTA */}
       <section className="max-w-4xl mx-auto px-6 py-16 text-center space-y-6">
-        <h2 className="text-3xl font-bold">Ready to start your sprint?</h2>
+        <h2 className="text-3xl font-bold">Ready to design your sprint?</h2>
         <p className="text-lg opacity-80 max-w-2xl mx-auto">
-          Fill out the intake form and get your custom sprint plan instantly. No commitment required until you approve the plan.
+          Browse pre-packaged sprint bundles, build a custom sprint, or fill out our AI-powered intake form. No commitment required until you book your kickoff Monday.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
-            href="https://form.typeform.com/to/eEiCy7Xj"
-            target="_blank"
+            href="/packages"
             className="inline-flex items-center rounded-full bg-black dark:bg-white text-white dark:text-black px-6 py-3 font-semibold hover:opacity-90 transition"
           >
-            Start your intake form →
+            Browse sprint packages →
+          </Link>
+          <Link
+            href="https://form.typeform.com/to/eEiCy7Xj"
+            target="_blank"
+            className="inline-flex items-center rounded-full border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
+          >
+            AI intake form
           </Link>
           <Link
             href="/login"
