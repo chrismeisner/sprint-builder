@@ -167,7 +167,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
       {/* What's Included */}
       <section className="py-12 px-6">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold mb-8">What's Included</h2>
+          <h2 className="text-3xl font-bold mb-8">What&apos;s Included</h2>
           <div className="space-y-6">
             {pkg.deliverables.map((d, i) => (
               <div
@@ -276,7 +276,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
         <div className="max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold mb-4">Ready to start your sprint?</h2>
           <p className="text-lg opacity-80 mb-8">
-            Tell us about your project and we'll get you set up with this package.
+            Tell us about your project and we&apos;ll get you set up with this package.
           </p>
           <Link
             href="/"

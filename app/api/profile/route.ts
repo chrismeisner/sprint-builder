@@ -3,7 +3,7 @@ import { getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
 // GET /api/profile - Get current user's profile with their documents and sprints
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const user = await getCurrentUser();
     

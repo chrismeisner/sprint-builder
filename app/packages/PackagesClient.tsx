@@ -246,7 +246,7 @@ export default function PackagesClient({ packages }: Props) {
 
         {/* Deliverables */}
         <div className="mb-6 flex-1">
-          <div className="text-xs font-semibold uppercase opacity-70 mb-2">What's Included</div>
+          <div className="text-xs font-semibold uppercase opacity-70 mb-2">What&apos;s Included</div>
           <ul className="space-y-2">
             {pkg.deliverables.map((d, i) => (
               <li key={`${d.deliverableId}-${i}`} className="flex items-start gap-2 text-sm">

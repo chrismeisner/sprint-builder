@@ -153,7 +153,7 @@ export default function HowItWorksPage() {
                 <li>• <span className="font-medium">Friday:</span> Mid-week feedback incorporated, direction locked in</li>
               </ul>
               <p className="text-sm opacity-70 pt-2 border-t border-black/10 dark:border-white/15">
-                This "uphill" phase is about figuring things out—exploring options, testing ideas, and aligning on the best path forward before we commit.
+                This &quot;uphill&quot; phase is about figuring things out—exploring options, testing ideas, and aligning on the best path forward before we commit.
               </p>
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function HowItWorksPage() {
                 <li>• <span className="font-medium">Friday:</span> Delivery ready—all files finalized and packaged</li>
               </ul>
               <p className="text-sm opacity-70 pt-2 border-t border-black/10 dark:border-white/15">
-                This "downhill" phase is about building, not re-thinking. We know what we&apos;re making and we execute with speed and polish.
+                This &quot;downhill&quot; phase is about building, not re-thinking. We know what we&apos;re making and we execute with speed and polish.
               </p>
             </div>
 
