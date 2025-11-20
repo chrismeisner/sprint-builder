@@ -22,6 +22,7 @@ type Package = {
     fixedHours: number | null;
     fixedPrice: number | null;
     quantity: number;
+    complexityScore: number;
   }>;
 };
 
@@ -51,7 +52,8 @@ export default async function PackagesPage() {
             'scope', d.scope,
             'fixedHours', d.fixed_hours,
             'fixedPrice', d.fixed_price,
-            'quantity', spd.quantity
+            'quantity', spd.quantity,
+            'complexityScore', COALESCE(spd.complexity_score, 2.5)
           ) ORDER BY spd.sort_order ASC, d.name ASC
         ) FILTER (WHERE d.id IS NOT NULL),
         '[]'

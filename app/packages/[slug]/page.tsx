@@ -28,6 +28,7 @@ type Package = {
     fixedPrice: number | null;
     defaultEstimatePoints: number | null;
     quantity: number;
+    complexityScore: number;
   }>;
 };
 
@@ -58,7 +59,8 @@ export default async function PackageDetailPage({ params }: PageProps) {
             'fixedHours', d.fixed_hours,
             'fixedPrice', d.fixed_price,
             'defaultEstimatePoints', d.default_estimate_points,
-            'quantity', spd.quantity
+            'quantity', spd.quantity,
+            'complexityScore', COALESCE(spd.complexity_score, 2.5)
           ) ORDER BY spd.sort_order ASC, d.name ASC
         ) FILTER (WHERE d.id IS NOT NULL),
         '[]'
@@ -78,18 +80,22 @@ export default async function PackageDetailPage({ params }: PageProps) {
 
   const pkg: Package = result.rows[0];
 
-  // Calculate totals
+  // Calculate totals with complexity adjustments
+  // Complexity multiplier: (complexity_score / 2.5) where 2.5 is standard
   let totalHours = 0;
   let totalPrice = 0;
   let totalPoints = 0;
 
   pkg.deliverables.forEach((d) => {
-    const hours = d.fixedHours ?? 0;
-    const price = d.fixedPrice ?? 0;
+    const baseHours = d.fixedHours ?? 0;
+    const basePrice = d.fixedPrice ?? 0;
     const points = d.defaultEstimatePoints ?? 0;
     const qty = d.quantity ?? 1;
-    totalHours += hours * qty;
-    totalPrice += price * qty;
+    const complexityMultiplier = (d.complexityScore ?? 2.5) / 2.5;
+    
+    // Apply complexity adjustment to hours and price
+    totalHours += baseHours * complexityMultiplier * qty;
+    totalPrice += basePrice * complexityMultiplier * qty;
     totalPoints += points * qty;
   });
 
@@ -192,11 +198,33 @@ export default async function PackageDetailPage({ params }: PageProps) {
                       </div>
                     )}
                     <div className="flex items-center gap-4 mt-3 text-xs opacity-70">
-                      {d.fixedHours != null && <span>{d.fixedHours}h per deliverable</span>}
+                      {d.fixedHours != null && (
+                        <span>
+                          {(d.fixedHours * ((d.complexityScore ?? 2.5) / 2.5)).toFixed(1)}h
+                          {d.complexityScore !== 2.5 && (
+                            <span className="opacity-60"> (base: {d.fixedHours}h)</span>
+                          )}
+                        </span>
+                      )}
                       {d.fixedPrice != null && (
                         <>
                           <span>•</span>
-                          <span>${d.fixedPrice.toLocaleString()} value</span>
+                          <span>
+                            ${(d.fixedPrice * ((d.complexityScore ?? 2.5) / 2.5)).toLocaleString()}
+                            {d.complexityScore !== 2.5 && (
+                              <span className="opacity-60"> (base: ${d.fixedPrice.toLocaleString()})</span>
+                            )}
+                          </span>
+                        </>
+                      )}
+                      {d.complexityScore !== 2.5 && (
+                        <>
+                          <span>•</span>
+                          <span className="font-medium">
+                            Complexity: {d.complexityScore}
+                            {d.complexityScore < 2.5 && " (simpler)"}
+                            {d.complexityScore > 2.5 && " (more complex)"}
+                          </span>
                         </>
                       )}
                       {d.defaultEstimatePoints != null && (
@@ -229,18 +257,31 @@ export default async function PackageDetailPage({ params }: PageProps) {
                 </tr>
               </thead>
               <tbody>
-                {pkg.deliverables.map((d, i) => (
-                  <tr key={`${d.deliverableId}-${i}`} className="border-t border-black/10 dark:border-white/10">
-                    <td className="px-4 py-3">{d.name}</td>
-                    <td className="px-4 py-3 text-center">{d.quantity}</td>
-                    <td className="px-4 py-3 text-right">
-                      {((d.fixedHours ?? 0) * d.quantity).toFixed(1)}h
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      ${((d.fixedPrice ?? 0) * d.quantity).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
+                {pkg.deliverables.map((d, i) => {
+                  const complexityMultiplier = (d.complexityScore ?? 2.5) / 2.5;
+                  const adjustedHours = (d.fixedHours ?? 0) * complexityMultiplier * d.quantity;
+                  const adjustedPrice = (d.fixedPrice ?? 0) * complexityMultiplier * d.quantity;
+                  
+                  return (
+                    <tr key={`${d.deliverableId}-${i}`} className="border-t border-black/10 dark:border-white/10">
+                      <td className="px-4 py-3">
+                        {d.name}
+                        {d.complexityScore !== 2.5 && (
+                          <span className="ml-2 text-xs opacity-60">
+                            (complexity: {d.complexityScore})
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">{d.quantity}</td>
+                      <td className="px-4 py-3 text-right">
+                        {adjustedHours.toFixed(1)}h
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        ${adjustedPrice.toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
                 <tr className="border-t-2 border-black/20 dark:border-white/20 font-semibold">
                   <td className="px-4 py-3">Subtotal</td>
                   <td className="px-4 py-3"></td>

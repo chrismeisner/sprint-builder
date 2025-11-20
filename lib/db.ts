@@ -264,6 +264,14 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sprint_package_deliverables_deliverable ON sprint_package_deliverables(deliverable_id);
   `);
   
+  // Add complexity_score column for per-sprint complexity adjustment
+  // Range: 1.0 (very simple) to 5.0 (very complex), default: 2.5 (standard)
+  // Multiplier calculation: (complexity_score / 2.5) * base_value
+  await pool.query(`
+    ALTER TABLE sprint_package_deliverables
+    ADD COLUMN IF NOT EXISTS complexity_score numeric(3,1) DEFAULT 2.5 CHECK (complexity_score >= 1.0 AND complexity_score <= 5.0);
+  `);
+  
   // Add sprint_package_id to sprint_drafts to track which package was used (if any)
   await pool.query(`
     ALTER TABLE sprint_drafts

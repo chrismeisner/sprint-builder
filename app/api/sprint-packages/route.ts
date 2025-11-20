@@ -52,7 +52,8 @@ export async function GET(request: Request) {
               'defaultEstimatePoints', d.default_estimate_points,
               'quantity', spd.quantity,
               'notes', spd.notes,
-              'sortOrder', spd.sort_order
+              'sortOrder', spd.sort_order,
+              'complexityScore', COALESCE(spd.complexity_score, 2.5)
             ) ORDER BY spd.sort_order ASC, d.name ASC
           ) FILTER (WHERE d.id IS NOT NULL),
           '[]'
@@ -90,7 +91,7 @@ export async function GET(request: Request) {
  *   active?: boolean,
  *   featured?: boolean,
  *   sortOrder?: number,
- *   deliverables?: Array<{ deliverableId: string, quantity?: number, notes?: string, sortOrder?: number }>
+ *   deliverables?: Array<{ deliverableId: string, quantity?: number, notes?: string, sortOrder?: number, complexityScore?: number }>
  * }
  */
 export async function POST(request: Request) {
@@ -211,18 +212,30 @@ export async function POST(request: Request) {
           const qty = (d as { quantity?: unknown }).quantity;
           const notes = (d as { notes?: unknown }).notes;
           const delSortOrder = (d as { sortOrder?: unknown }).sortOrder;
+          const complexityScore = (d as { complexityScore?: unknown }).complexityScore;
 
           if (typeof delId === "string" && delId.trim()) {
             const quantity = typeof qty === "number" ? qty : 1;
             const delOrder = typeof delSortOrder === "number" ? delSortOrder : i;
             
+            // Parse complexity score (1-5, default 2.5)
+            let complexity = 2.5;
+            if (typeof complexityScore === "number") {
+              complexity = Math.max(1.0, Math.min(5.0, complexityScore));
+            } else if (typeof complexityScore === "string") {
+              const parsed = parseFloat(complexityScore);
+              if (!isNaN(parsed)) {
+                complexity = Math.max(1.0, Math.min(5.0, parsed));
+              }
+            }
+            
             const junctionId = crypto.randomUUID();
             await pool.query(
               `
               INSERT INTO sprint_package_deliverables (
-                id, sprint_package_id, deliverable_id, quantity, notes, sort_order
+                id, sprint_package_id, deliverable_id, quantity, notes, sort_order, complexity_score
               )
-              VALUES ($1, $2, $3, $4, $5, $6)
+              VALUES ($1, $2, $3, $4, $5, $6, $7)
               ON CONFLICT (sprint_package_id, deliverable_id) DO NOTHING
             `,
               [
@@ -232,6 +245,7 @@ export async function POST(request: Request) {
                 quantity,
                 typeof notes === "string" ? notes : null,
                 delOrder,
+                complexity,
               ]
             );
           }

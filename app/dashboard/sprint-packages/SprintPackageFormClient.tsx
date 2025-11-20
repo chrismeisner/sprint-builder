@@ -19,6 +19,7 @@ type SelectedDeliverable = {
   deliverableId: string;
   quantity: number;
   sortOrder: number;
+  complexityScore: number;
 };
 
 type Package = {
@@ -38,6 +39,7 @@ type Package = {
     deliverableId: string;
     quantity: number;
     sortOrder: number;
+    complexityScore: number;
   }>;
 };
 
@@ -95,6 +97,7 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
         deliverableId,
         quantity: 1,
         sortOrder: selectedDeliverables.length,
+        complexityScore: 2.5, // Default: standard complexity
       },
     ]);
   }
@@ -109,6 +112,14 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
     setSelectedDeliverables(
       selectedDeliverables.map((d) =>
         d.deliverableId === deliverableId ? { ...d, quantity } : d
+      )
+    );
+  }
+
+  function updateComplexityScore(deliverableId: string, complexityScore: number) {
+    setSelectedDeliverables(
+      selectedDeliverables.map((d) =>
+        d.deliverableId === deliverableId ? { ...d, complexityScore } : d
       )
     );
   }
@@ -138,8 +149,9 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
     selectedDeliverables.forEach((sd) => {
       const d = deliverables.find((del) => del.id === sd.deliverableId);
       if (d) {
-        totalHours += (d.fixed_hours ?? 0) * sd.quantity;
-        totalPrice += (d.fixed_price ?? 0) * sd.quantity;
+        const complexityMultiplier = (sd.complexityScore ?? 2.5) / 2.5;
+        totalHours += (d.fixed_hours ?? 0) * complexityMultiplier * sd.quantity;
+        totalPrice += (d.fixed_price ?? 0) * complexityMultiplier * sd.quantity;
       }
     });
 
@@ -351,7 +363,13 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
                     <div className="flex-1">
                       <div className="font-medium text-sm">{d.name}</div>
                       <div className="text-xs opacity-70">
-                        {d.fixed_hours}h • ${d.fixed_price?.toLocaleString()}
+                        Base: {d.fixed_hours}h • ${d.fixed_price?.toLocaleString()}
+                        {sd.complexityScore !== 2.5 && (
+                          <span className="ml-1 text-blue-600 dark:text-blue-400 font-medium">
+                            → Adjusted: {((d.fixed_hours ?? 0) * (sd.complexityScore / 2.5)).toFixed(1)}h • 
+                            ${((d.fixed_price ?? 0) * (sd.complexityScore / 2.5)).toLocaleString()}
+                          </span>
+                        )}
                       </div>
                     </div>
                     
@@ -365,6 +383,24 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
                           updateQuantity(sd.deliverableId, parseInt(e.target.value) || 1)
                         }
                         className="w-16 rounded border border-black/15 px-2 py-1 text-sm bg-white text-black"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs whitespace-nowrap" title="1=Very Simple, 2.5=Standard, 5=Very Complex">
+                        Complexity:
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="5"
+                        step="0.5"
+                        value={sd.complexityScore}
+                        onChange={(e) =>
+                          updateComplexityScore(sd.deliverableId, parseFloat(e.target.value) || 2.5)
+                        }
+                        className="w-16 rounded border border-black/15 px-2 py-1 text-sm bg-white text-black"
+                        title="1=Very Simple, 2.5=Standard, 5=Very Complex"
                       />
                     </div>
                     

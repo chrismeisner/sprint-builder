@@ -22,6 +22,7 @@ type Package = {
     fixedHours: number | null;
     fixedPrice: number | null;
     quantity: number;
+    complexityScore: number;
   }>;
 };
 
@@ -37,11 +38,14 @@ export default function PackagesClient({ packages }: Props) {
     let totalPrice = 0;
 
     pkg.deliverables.forEach((d) => {
-      const hours = d.fixedHours ?? 0;
-      const price = d.fixedPrice ?? 0;
+      const baseHours = d.fixedHours ?? 0;
+      const basePrice = d.fixedPrice ?? 0;
       const qty = d.quantity ?? 1;
-      totalHours += hours * qty;
-      totalPrice += price * qty;
+      const complexityMultiplier = (d.complexityScore ?? 2.5) / 2.5;
+      
+      // Apply complexity adjustment
+      totalHours += baseHours * complexityMultiplier * qty;
+      totalPrice += basePrice * complexityMultiplier * qty;
     });
 
     return { hours: totalHours, price: totalPrice };
