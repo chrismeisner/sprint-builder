@@ -35,4 +35,10 @@ samp {
   .text-balance {
     text-wrap: balance;
   }
+
+  .text-huge {
+    font-size: clamp(4rem, 15vw, 12rem);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+  }
 }
