@@ -15,7 +15,17 @@ export async function GET(request: Request) {
     }
 
     const sessionToken = createSessionToken(verified.accountId);
-    const redirectUrl = new URL("/my-sprints", request.url);
+    
+    // Use BASE_URL from env if set, otherwise fall back to request origin
+    let origin: string;
+    if (process.env.BASE_URL) {
+      origin = process.env.BASE_URL.replace(/\/$/, ''); // Remove trailing slash if present
+    } else {
+      const url = new URL(request.url);
+      origin = `${url.protocol}//${url.host}`;
+    }
+    
+    const redirectUrl = new URL("/my-sprints", origin);
     const res = NextResponse.redirect(redirectUrl);
     res.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
       httpOnly: true,
