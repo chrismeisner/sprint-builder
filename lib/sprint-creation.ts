@@ -177,14 +177,6 @@ function extractClientDataFromTypeform(content: unknown): ClientData {
 }
 
 /**
- * Extract email from Typeform document content (legacy helper)
- */
-function extractEmailFromDocument(content: unknown): string | null {
-  const clientData = extractClientDataFromTypeform(content);
-  return clientData.email;
-}
-
-/**
  * Get base URL - prioritizes BASE_URL env variable for production reliability
  */
 function getBaseUrl(): string {
