@@ -53,9 +53,15 @@ function extractEmailFromDocument(content: unknown): string | null {
 }
 
 /**
- * Get base URL from request headers
+ * Get base URL - prioritizes BASE_URL env variable for production reliability
  */
 function getBaseUrl(request: Request): string {
+  // Prioritize BASE_URL environment variable (most reliable in production)
+  if (process.env.BASE_URL) {
+    return process.env.BASE_URL.replace(/\/$/, ''); // Remove trailing slash if present
+  }
+  
+  // Fallback to request headers (useful in development)
   const host = request.headers.get("host");
   const protocol = request.headers.get("x-forwarded-proto") || "http";
   
@@ -63,8 +69,8 @@ function getBaseUrl(request: Request): string {
     return `${protocol}://${host}`;
   }
   
-  // Fallback to environment variable or localhost
-  return process.env.BASE_URL || "http://localhost:3000";
+  // Final fallback
+  return "http://localhost:3000";
 }
 
 export async function POST(request: Request, { params }: Params) {

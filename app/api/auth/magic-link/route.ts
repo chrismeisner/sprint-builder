@@ -29,8 +29,16 @@ export async function POST(request: Request) {
     const accountId = (accountRes.rows[0] as { id: string }).id;
 
     const token = createLoginToken(accountId);
-    const url = new URL(request.url);
-    const origin = `${url.protocol}//${url.host}`;
+    
+    // Use BASE_URL from env if set, otherwise fall back to request origin
+    let origin: string;
+    if (process.env.BASE_URL) {
+      origin = process.env.BASE_URL.replace(/\/$/, ''); // Remove trailing slash if present
+    } else {
+      const url = new URL(request.url);
+      origin = `${url.protocol}//${url.host}`;
+    }
+    
     const magicLink = `${origin}/api/auth/callback?token=${encodeURIComponent(token)}`;
 
     // Send magic link via Mailgun

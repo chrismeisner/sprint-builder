@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { verifyTypeformSignature } from "@/lib/typeform";
+import { sendEmail, generateIntakeConfirmationEmail } from "@/lib/email";
 
 function extractEmailFromPayload(content: unknown): string | null {
   const maybeEmail = (value: unknown): string | null => {
@@ -117,6 +118,21 @@ export async function POST(request: Request) {
       `INSERT INTO documents (id, content, filename, email, account_id) VALUES ($1, $2::jsonb, $3, $4, $5)`,
       [id, JSON.stringify(content), filename, email, accountId]
     );
+
+    // Send confirmation email to the submitter (non-blocking)
+    if (email) {
+      const emailContent = generateIntakeConfirmationEmail();
+      sendEmail({
+        to: email,
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html,
+      }).catch((error) => {
+        console.error("[Documents] Failed to send intake confirmation email:", error);
+        // Don't throw - we don't want email failures to break document submission
+      });
+    }
+
     return NextResponse.json({ id }, { status: 201 });
   } catch (error: unknown) {
     return NextResponse.json(

@@ -238,3 +238,138 @@ The Sprint Planning Team
   return { subject, text, html };
 }
 
+/**
+ * Generate intake form confirmation email
+ */
+export function generateIntakeConfirmationEmail(): { subject: string; text: string; html: string } {
+  const subject = "We Received Your Intake Form";
+
+  const text = `Hi there!
+
+Thank you for submitting your project intake form. We've successfully received your information and our team is reviewing your requirements.
+
+What happens next:
+• Our team will analyze your project details
+• We'll create a custom sprint plan tailored to your needs
+• You'll receive a follow-up email with your personalized sprint plan within 1-2 business days
+
+In the meantime, if you have any questions or need to provide additional information, feel free to reply to this email.
+
+We're excited to work with you!
+
+Best regards,
+The Sprint Planning Team
+`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      padding: 40px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #000;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .success-badge {
+      background-color: #dcfce7;
+      color: #166534;
+      padding: 12px 20px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: 600;
+      margin: 24px 0;
+    }
+    .next-steps {
+      background-color: #f8f9fa;
+      padding: 24px;
+      border-radius: 6px;
+      border-left: 4px solid #000;
+      margin: 24px 0;
+    }
+    .next-steps h2 {
+      margin-top: 0;
+      font-size: 18px;
+      color: #000;
+    }
+    .steps-list {
+      list-style: none;
+      padding: 0;
+      margin: 16px 0 0 0;
+    }
+    .steps-list li {
+      padding: 8px 0;
+      padding-left: 32px;
+      position: relative;
+    }
+    .steps-list li:before {
+      content: "→";
+      position: absolute;
+      left: 8px;
+      color: #000;
+      font-weight: bold;
+    }
+    .footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 14px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✓ Intake Form Received</h1>
+    
+    <div class="success-badge">
+      ✓ Your submission has been received
+    </div>
+    
+    <p>Hi there,</p>
+    
+    <p>Thank you for submitting your project intake form! We've successfully received your information and our team is reviewing your requirements.</p>
+    
+    <div class="next-steps">
+      <h2>What happens next:</h2>
+      <ul class="steps-list">
+        <li>Our team will analyze your project details</li>
+        <li>We'll create a custom sprint plan tailored to your needs</li>
+        <li>You'll receive a follow-up email with your personalized sprint plan within 1-2 business days</li>
+      </ul>
+    </div>
+    
+    <p>In the meantime, if you have any questions or need to provide additional information, feel free to reply to this email.</p>
+    
+    <p>We're excited to work with you!</p>
+    
+    <div class="footer">
+      <p><strong>The Sprint Planning Team</strong></p>
+      <p>You're receiving this email because you submitted a project request through our intake form.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  return { subject, text, html };
+}
+
