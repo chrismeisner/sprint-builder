@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { verifyTypeformSignature } from "@/lib/typeform";
 import { sendEmail, generateIntakeConfirmationEmail } from "@/lib/email";
+import { createSprintForDocument } from "@/lib/sprint-creation";
 
 function extractEmailFromPayload(content: unknown): string | null {
   const maybeEmail = (value: unknown): string | null => {
@@ -132,6 +133,14 @@ export async function POST(request: Request) {
         // Don't throw - we don't want email failures to break document submission
       });
     }
+
+    // Automatically create sprint draft (non-blocking)
+    // This replaces the manual "Create Sprint" button click
+    console.log("[Documents] Triggering automatic sprint creation", { documentId: id });
+    createSprintForDocument(id, "gpt-4o-mini").catch((error) => {
+      console.error("[Documents] Failed to auto-create sprint draft:", error);
+      // Don't throw - we don't want sprint creation failures to break document submission
+    });
 
     return NextResponse.json({ id }, { status: 201 });
   } catch (error: unknown) {
