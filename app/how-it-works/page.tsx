@@ -4,9 +4,9 @@ export const dynamic = "force-static";
 
 export default function HowItWorksPage() {
   return (
-    <main className="min-h-screen font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-black/5 to-transparent dark:from-white/5 py-16 px-6">
+      <section className="bg-black/[0.02] dark:bg-white/[0.02] py-16 px-6">
         <div className="max-w-3xl mx-auto text-center space-y-4">
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
             From idea to execution in 2 weeks
@@ -277,20 +277,20 @@ export default function HowItWorksPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/packages"
-            className="inline-flex items-center rounded-full bg-black dark:bg-white text-white dark:text-black px-6 py-3 font-semibold hover:opacity-90 transition"
+            className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-6 py-3 font-semibold hover:opacity-90 transition"
           >
             Browse sprint packages →
           </Link>
           <Link
             href="https://form.typeform.com/to/eEiCy7Xj"
             target="_blank"
-            className="inline-flex items-center rounded-full border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
+            className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
           >
             AI intake form
           </Link>
           <Link
             href="/login"
-            className="inline-flex items-center rounded-full border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
+            className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
           >
             Client login
           </Link>

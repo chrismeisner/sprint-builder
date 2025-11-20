@@ -81,7 +81,7 @@ export default function UsersClient() {
   if (loading && !data) {
     return (
       <div className="p-6">
-        <p className="text-gray-600">Loading users...</p>
+        <p className="opacity-70">Loading users...</p>
       </div>
     );
   }
@@ -89,9 +89,9 @@ export default function UsersClient() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800 font-semibold">Error</p>
-          <p className="text-red-600">{error}</p>
+        <div className="bg-red-600/10 dark:bg-red-400/10 border border-red-600/20 dark:border-red-400/20 rounded-lg p-4">
+          <p className="text-red-700 dark:text-red-300 font-semibold">Error</p>
+          <p className="text-red-600 dark:text-red-400">{error}</p>
         </div>
       </div>
     );
@@ -104,59 +104,59 @@ export default function UsersClient() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">User Management</h1>
-          <p className="text-gray-600 mt-1">
+          <p className="opacity-70 mt-1">
             Total users: {data.pagination.total}
           </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
                   Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
                   Admin
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
                   Documents
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
                   Joined
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-black divide-y divide-black/10 dark:divide-white/15">
               {data.users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
+                <tr key={user.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium">
                         {user.email}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {user.is_admin ? (
-                      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-600/10 dark:bg-green-400/10 text-green-700 dark:text-green-300">
                         Admin
                       </span>
                     ) : (
-                      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-black/10 dark:bg-white/10">
                         User
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm opacity-70">
                     {user.document_count}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm opacity-70">
                     {new Date(user.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -165,9 +165,9 @@ export default function UsersClient() {
                       disabled={updatingUserId === user.id}
                       className={`${
                         user.is_admin
-                          ? "text-red-600 hover:text-red-900"
-                          : "text-blue-600 hover:text-blue-900"
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          ? "text-red-700 dark:text-red-300 hover:underline"
+                          : "hover:underline"
+                      } disabled:opacity-50 disabled:cursor-not-allowed transition`}
                     >
                       {updatingUserId === user.id
                         ? "Updating..."
@@ -184,36 +184,36 @@ export default function UsersClient() {
       </div>
 
       {data.pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg">
+        <div className="flex items-center justify-between border-t border-black/10 dark:border-white/15 bg-white dark:bg-black px-4 py-3 sm:px-6 rounded-lg">
           <div className="flex flex-1 justify-between sm:hidden">
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1}
-              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black px-4 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Previous
             </button>
             <button
               onClick={() => setPage(Math.min(data.pagination.totalPages, page + 1))}
               disabled={page === data.pagination.totalPages}
-              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative ml-3 inline-flex items-center rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black px-4 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Next
             </button>
           </div>
           <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm opacity-70">
                 Showing page <span className="font-medium">{page}</span> of{" "}
                 <span className="font-medium">{data.pagination.totalPages}</span>
               </p>
             </div>
             <div>
-              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+              <nav className="isolate inline-flex -space-x-px rounded-md" aria-label="Pagination">
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center rounded-l-md px-2 py-2 opacity-70 border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   <span className="sr-only">Previous</span>
                   ←
@@ -221,7 +221,7 @@ export default function UsersClient() {
                 <button
                   onClick={() => setPage(Math.min(data.pagination.totalPages, page + 1))}
                   disabled={page === data.pagination.totalPages}
-                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center rounded-r-md px-2 py-2 opacity-70 border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   <span className="sr-only">Next</span>
                   →

@@ -24,7 +24,7 @@ export default function DocumentsClient({ rows }: Props) {
   const [model, setModel] = useState<string>(MODEL_OPTIONS[0].value);
 
   return (
-    <main className="min-h-screen max-w-5xl mx-auto p-6 space-y-6 font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen max-w-5xl mx-auto p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl sm:text-3xl font-bold">Stored Typeform submissions</h1>
         <div className="flex items-center gap-2">

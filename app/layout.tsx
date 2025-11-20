@@ -1,19 +1,71 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import NavShell from "./NavShell";
 import Header from "./Header";
 import GoogleAnalytics from "./GoogleAnalytics";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
 });
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+
+const gtAmerica = localFont({
+  src: "./fonts/GT-America-Condensed-Black.otf",
+  variable: "--font-gt-america",
+  display: "swap",
+});
+
+const akkuratLight = localFont({
+  src: [
+    {
+      path: "./fonts/AkkuratLightPro-Regular.otf",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "./fonts/AkkuratLightPro-Italic.otf",
+      weight: "300",
+      style: "italic",
+    },
+  ],
+  variable: "--font-akkurat-light",
+  display: "swap",
+});
+
+const akkurat = localFont({
+  src: [
+    {
+      path: "./fonts/AkkuratPro-Regular.otf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/AkkuratPro-Italic.otf",
+      weight: "400",
+      style: "italic",
+    },
+    {
+      path: "./fonts/AkkuratPro-Bold.otf",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "./fonts/AkkuratPro-BoldItalic.otf",
+      weight: "700",
+      style: "italic",
+    },
+  ],
+  variable: "--font-akkurat",
+  display: "swap",
+});
+
+const akkuratMono = localFont({
+  src: "./fonts/Akkurat-Mono.otf",
+  variable: "--font-akkurat-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -27,10 +79,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" className={`${inter.variable} ${gtAmerica.variable} ${akkuratLight.variable} ${akkurat.variable} ${akkuratMono.variable}`}>
+      <body className="antialiased">
         <GoogleAnalytics />
         <Header />
         <NavShell>{children}</NavShell>

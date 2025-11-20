@@ -75,9 +75,9 @@ export default function PackagesClient({ packages }: Props) {
   const regularPackages = filteredPackages.filter((p) => !p.featured);
 
   return (
-    <main className="min-h-screen font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-black to-gray-900 text-white py-20 px-6">
+      <section className="bg-black dark:bg-white text-white dark:text-black py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">Sprint Packages</h1>
           <p className="text-xl opacity-90 mb-8">
@@ -86,7 +86,7 @@ export default function PackagesClient({ packages }: Props) {
           </p>
           <Link
             href="/"
-            className="inline-flex items-center rounded-md bg-white text-black px-6 py-3 text-sm font-medium hover:bg-gray-100 transition"
+            className="inline-flex items-center rounded-md bg-white dark:bg-black text-black dark:text-white px-6 py-3 text-sm font-medium hover:opacity-90 transition"
           >
             Start Your Project
           </Link>
@@ -95,15 +95,15 @@ export default function PackagesClient({ packages }: Props) {
 
       {/* Category Filter */}
       {categories.length > 0 && (
-        <section className="border-b border-black/10 dark:border-white/10 py-4 px-6">
+        <section className="border-b border-black/10 dark:border-white/15 py-4 px-6">
           <div className="max-w-6xl mx-auto flex items-center gap-3 flex-wrap">
             <span className="text-sm font-medium">Filter:</span>
             <button
               onClick={() => setSelectedCategory(null)}
               className={
                 selectedCategory === null
-                  ? "inline-flex items-center rounded-full bg-black text-white px-3 py-1 text-sm"
-                  : "inline-flex items-center rounded-full border border-black/20 px-3 py-1 text-sm hover:bg-black/5"
+                  ? "inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-3 py-1 text-sm transition"
+                  : "inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
               }
             >
               All
@@ -114,8 +114,8 @@ export default function PackagesClient({ packages }: Props) {
                 onClick={() => setSelectedCategory(cat)}
                 className={
                   selectedCategory === cat
-                    ? "inline-flex items-center rounded-full bg-black text-white px-3 py-1 text-sm"
-                    : "inline-flex items-center rounded-full border border-black/20 px-3 py-1 text-sm hover:bg-black/5"
+                    ? "inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-3 py-1 text-sm transition"
+                    : "inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
                 }
               >
                 {cat}
@@ -127,7 +127,7 @@ export default function PackagesClient({ packages }: Props) {
 
       {/* Featured Packages */}
       {featuredPackages.length > 0 && (
-        <section className="py-12 px-6 bg-gradient-to-b from-yellow-50 to-white dark:from-yellow-950/20 dark:to-gray-950">
+        <section className="py-12 px-6 bg-black/[0.02] dark:bg-white/[0.02]">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
               <span>⭐</span> Featured Packages
@@ -152,7 +152,7 @@ export default function PackagesClient({ packages }: Props) {
               <p className="text-lg opacity-70 mb-4">No packages available yet.</p>
               <Link
                 href="/"
-                className="inline-flex items-center rounded-md border border-black/20 px-4 py-2 text-sm hover:bg-black/5"
+                className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
               >
                 Contact us for a custom sprint
               </Link>
@@ -168,7 +168,7 @@ export default function PackagesClient({ packages }: Props) {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-black text-white py-16 px-6">
+      <section className="bg-black dark:bg-white text-white dark:text-black py-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to get started?</h2>
           <p className="text-lg opacity-90 mb-8">
@@ -177,13 +177,13 @@ export default function PackagesClient({ packages }: Props) {
           <div className="flex items-center justify-center gap-4">
             <Link
               href="/"
-              className="inline-flex items-center rounded-md bg-white text-black px-6 py-3 text-sm font-medium hover:bg-gray-100 transition"
+              className="inline-flex items-center rounded-md bg-white dark:bg-black text-black dark:text-white px-6 py-3 text-sm font-medium hover:opacity-90 transition"
             >
               Start Your Project
             </Link>
             <Link
               href="/how-it-works"
-              className="inline-flex items-center rounded-md border border-white/20 text-white px-6 py-3 text-sm font-medium hover:bg-white/10 transition"
+              className="inline-flex items-center rounded-md border border-white/15 dark:border-black/15 text-white dark:text-black px-6 py-3 text-sm font-medium hover:bg-white/10 dark:hover:bg-black/10 transition"
             >
               Learn More
             </Link>
@@ -208,8 +208,8 @@ export default function PackagesClient({ packages }: Props) {
       <div
         className={
           featured
-            ? "rounded-xl border-2 border-yellow-400 bg-white dark:bg-gray-900 p-6 shadow-lg hover:shadow-xl transition flex flex-col"
-            : "rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-gray-900 p-6 hover:border-black/20 dark:hover:border-white/20 hover:shadow-lg transition flex flex-col"
+            ? "rounded-xl border-2 border-yellow-500 dark:border-yellow-400 bg-white dark:bg-black p-6 shadow-lg hover:shadow-xl transition flex flex-col"
+            : "rounded-xl border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 hover:border-black/20 dark:hover:border-white/20 hover:shadow-lg transition flex flex-col"
         }
       >
         {/* Header */}
@@ -220,7 +220,7 @@ export default function PackagesClient({ packages }: Props) {
             </div>
           )}
           {pkg.category && (
-            <div className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-0.5 text-xs font-medium mb-2 ml-2">
+            <div className="inline-flex items-center rounded-full bg-blue-600/10 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300 px-2 py-0.5 text-xs font-medium mb-2 ml-2">
               {pkg.category}
             </div>
           )}
@@ -235,7 +235,7 @@ export default function PackagesClient({ packages }: Props) {
             <span className="text-sm opacity-70">/ {finalHours}h</span>
           </div>
           {savings > 0 && (
-            <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
               Save ${savings.toLocaleString()} vs. individual deliverables
             </p>
           )}
@@ -272,8 +272,8 @@ export default function PackagesClient({ packages }: Props) {
           href={`/packages/${pkg.slug}`}
           className={
             featured
-              ? "inline-flex items-center justify-center rounded-lg bg-black text-white px-4 py-3 text-sm font-medium hover:bg-gray-800 transition w-full"
-              : "inline-flex items-center justify-center rounded-lg border border-black/20 dark:border-white/20 px-4 py-3 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 transition w-full"
+              ? "inline-flex items-center justify-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-3 text-sm font-medium hover:opacity-90 transition w-full"
+              : "inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-3 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 transition w-full"
           }
         >
           Learn More →

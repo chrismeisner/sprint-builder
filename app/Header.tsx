@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import UserMenu from "./UserMenu";
 
 export default async function Header() {
   const user = await getCurrentUser();
@@ -29,7 +28,12 @@ export default async function Header() {
           
           <div className="flex items-center gap-2">
             {user ? (
-              <UserMenu email={user.email} />
+              <Link
+                href="/profile"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 border border-black/10 dark:border-white/15 bg-transparent hover:bg-black/5 dark:hover:bg-white/10 h-9 px-4"
+              >
+                {user.email}
+              </Link>
             ) : (
               <Link
                 href="/login"

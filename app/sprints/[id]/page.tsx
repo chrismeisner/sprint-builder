@@ -401,25 +401,47 @@ export default async function SprintDetailPage({ params }: PageProps) {
           <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
             <h2 className="text-lg font-semibold mb-3">Deliverables</h2>
             <ul className="space-y-3 text-sm">
-              {plan.deliverables.map((d, i) => (
-                <li key={d.deliverableId || d.name || i} className="border border-black/10 dark:border-white/15 rounded-md p-3">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <div className="font-medium">
-                      {d.name || <span className="opacity-50">Unnamed deliverable</span>}
-                    </div>
-                    {d.deliverableId && (
-                      <div className="text-[11px] font-mono opacity-60">
-                        id: {d.deliverableId}
+              {plan.deliverables.map((d, i) => {
+                const isWorkshop = d.name?.toLowerCase().includes('workshop');
+                return (
+                  <li 
+                    key={d.deliverableId || d.name || i} 
+                    className={`border rounded-md p-3 ${
+                      isWorkshop 
+                        ? 'border-purple-300 bg-purple-50 dark:border-purple-700 dark:bg-purple-950/30' 
+                        : 'border-black/10 dark:border-white/15'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-2">
+                        {isWorkshop && (
+                          <span className="inline-flex items-center rounded-full bg-purple-600 text-white px-2 py-0.5 text-[10px] font-semibold">
+                            📋 WORKSHOP
+                          </span>
+                        )}
+                        <div className="font-medium">
+                          {d.name || <span className="opacity-50">Unnamed deliverable</span>}
+                        </div>
                       </div>
+                      {d.deliverableId && (
+                        <div className="text-[11px] font-mono opacity-60">
+                          id: {d.deliverableId}
+                        </div>
+                      )}
+                    </div>
+                    {isWorkshop && (
+                      <p className="text-xs text-purple-700 dark:text-purple-300 mb-2 font-medium">
+                        📅 Monday 9:00 AM - Sprint kickoff and alignment session
+                      </p>
                     )}
-                  </div>
-                  {d.reason && (
-                    <p className="text-xs opacity-80 whitespace-pre-wrap">
-                      {d.reason}
-                    </p>
-                  )}
-                </li>
-              ))}
+                    {d.reason && (
+                      <p className="text-xs opacity-80 whitespace-pre-wrap">
+                        {d.reason}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

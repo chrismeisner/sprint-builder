@@ -65,11 +65,11 @@ export default function PromptSettingsClient() {
   return (
     <section className="mt-10">
       <h2 className="text-lg font-semibold mb-3">Sprint Prompt Settings</h2>
-      <p className="text-sm text-gray-600 mb-4">
+      <p className="text-sm opacity-70 mb-4">
         Configure the prompts used when generating sprint drafts.
       </p>
       {loading ? (
-        <div className="text-sm text-gray-600">Loading…</div>
+        <div className="text-sm opacity-70">Loading…</div>
       ) : (
         <div className="space-y-6">
           <div>
@@ -78,7 +78,7 @@ export default function PromptSettingsClient() {
             </label>
             <textarea
               id="sprintSystemPrompt"
-              className="w-full rounded-md border border-gray-300 p-2 text-sm min-h-[120px] bg-white text-black"
+              className="w-full rounded-md border border-black/10 dark:border-white/15 p-2 text-sm min-h-[120px] bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent"
               value={sprintSystemPrompt}
               onChange={(e) => setSprintSystemPrompt(e.target.value)}
               placeholder="Default system instruction..."
@@ -90,7 +90,7 @@ export default function PromptSettingsClient() {
             </label>
             <textarea
               id="sprintUserPrompt"
-              className="w-full rounded-md border border-gray-300 p-2 text-sm min-h-[160px] bg-white text-black"
+              className="w-full rounded-md border border-black/10 dark:border-white/15 p-2 text-sm min-h-[160px] bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent"
               value={sprintUserPrompt}
               onChange={(e) => setSprintUserPrompt(e.target.value)}
               placeholder="Default user instruction..."
@@ -101,12 +101,12 @@ export default function PromptSettingsClient() {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
+              className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-2 text-sm hover:opacity-90 disabled:opacity-60 transition"
             >
               {saving ? "Saving…" : "Save"}
             </button>
-            {success && <span className="text-green-700 text-sm">{success}</span>}
-            {error && <span className="text-red-700 text-sm">{error}</span>}
+            {success && <span className="text-green-600 dark:text-green-400 text-sm">{success}</span>}
+            {error && <span className="text-red-600 dark:text-red-400 text-sm">{error}</span>}
           </div>
         </div>
       )}

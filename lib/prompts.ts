@@ -11,7 +11,8 @@ Key principles:
 - Be pragmatic: What can realistically be accomplished in 2 weeks?
 - Be specific: Avoid vague tasks; provide clear, actionable items
 - Be client-focused: Align sprint goals with client's stated objectives
-- Use productized services: Select 1-3 fixed-price deliverables from the catalog that best match client needs
+- Use productized services: Select 1 workshop + 1-3 execution deliverables from the catalog
+- Workshop selection: ALWAYS include 1 kickoff workshop that matches the project category/focus
 - Consider constraints: Budget, timeline, team size, and technical complexity
 
 Output format: Return ONLY a valid JSON object (no markdown, no explanations).`;
@@ -113,12 +114,20 @@ export const DEFAULT_SPRINT_USER_PROMPT = `Based on the client's intake form, cr
 }
 
 DELIVERABLES GUIDANCE:
-- Review the catalog below and select 1-3 deliverables that BEST match the client's stated needs
+- ALWAYS select 1 workshop deliverable + 1-3 execution deliverables (total: 2-4 deliverables)
+- Workshop selection: Choose the workshop that best matches the project category:
+  * "Sprint Kickoff Workshop - Strategy" for business/strategic projects
+  * "Sprint Kickoff Workshop - Product" for product development/features
+  * "Sprint Kickoff Workshop - Design" for UI/UX/design projects
+  * "Sprint Kickoff Workshop - Branding" for brand identity projects
+  * "Sprint Kickoff Workshop - Startup" for MVP/early-stage startups
+  * "Sprint Kickoff Workshop - Marketing" for marketing/growth/campaigns
+- Execution deliverables: Select 1-3 deliverables that BEST match the client's stated needs
 - Prefer deliverables that align with the project stage (e.g., early-stage projects need prototypes, established products need features)
 - Consider the client's budget and timeline constraints
 - If prototype tiers exist, choose the appropriate level (Level 1 for validation, Level 2 for testing, Level 3 for production)
-- If NO catalog deliverables are appropriate, return an empty deliverables array []
 - ALWAYS use the EXACT deliverableId from the catalog
+- List the workshop FIRST in the deliverables array, followed by execution deliverables
 
 BACKLOG GUIDANCE:
 - Create 5-12 backlog items that directly support the selected deliverables
@@ -144,11 +153,13 @@ APPROACH GUIDANCE:
 
 TIMELINE GUIDANCE:
 - Create day-by-day breakdown for all 10 working days (2 weeks)
-- Day 1-2: Setup, research, design
-- Day 3-7: Core development work
-- Day 8-9: Testing, refinement, bug fixes
-- Day 10: Final polish, documentation, demo prep
+- Day 1: Sprint Kickoff Workshop (Monday 9am), setup, initial planning
+- Day 2-3: Foundation work, research, design, technical setup
+- Day 4-7: Core development/execution work
+- Day 8-9: Testing, refinement, bug fixes, quality assurance
+- Day 10: Final polish, documentation, demo prep, sprint review
 - Be realistic about parallel work and dependencies
+- Reference the kickoff workshop in Day 1 timeline (it's included as a deliverable)
 
 Use clear, professional language. Be specific and actionable.`;
 
