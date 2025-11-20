@@ -18,6 +18,23 @@ const gtAmerica = localFont({
   display: "swap",
 });
 
+const gtAmericaCompressed = localFont({
+  src: [
+    {
+      path: "./fonts/GT-America-Compressed-Bold.otf",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "./fonts/GT-America-Compressed-Black.otf",
+      weight: "900",
+      style: "normal",
+    },
+  ],
+  variable: "--font-gt-america-compressed",
+  display: "swap",
+});
+
 const akkuratLight = localFont({
   src: [
     {
@@ -79,7 +96,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${gtAmerica.variable} ${akkuratLight.variable} ${akkurat.variable} ${akkuratMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${gtAmerica.variable} ${gtAmericaCompressed.variable} ${akkuratLight.variable} ${akkurat.variable} ${akkuratMono.variable}`}>
       <body className="antialiased">
         <GoogleAnalytics />
         <Header />

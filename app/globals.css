@@ -41,4 +41,18 @@ samp {
     line-height: 0.9;
     letter-spacing: -0.02em;
   }
+
+  .font-gt-compressed {
+    font-family: var(--font-gt-america-compressed), var(--font-gt-america), system-ui, sans-serif;
+  }
+
+  .font-gt-compressed-bold {
+    font-family: var(--font-gt-america-compressed), var(--font-gt-america), system-ui, sans-serif;
+    font-weight: 700;
+  }
+
+  .font-gt-compressed-black {
+    font-family: var(--font-gt-america-compressed), var(--font-gt-america), system-ui, sans-serif;
+    font-weight: 900;
+  }
 }

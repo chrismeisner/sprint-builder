@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <main className="min-h-screen grid place-items-center p-6">
       <div className="text-center space-y-6 max-w-2xl mx-auto">
-        <h1 className="text-huge font-bold">
+        <h1 className="text-huge font-gt-compressed-black">
           LET&apos;S BUILD
         </h1>
         <p className="text-lg sm:text-xl opacity-80">
