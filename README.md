@@ -20,6 +20,9 @@ GCS_BUCKET_NAME=your-bucket-name
 GCS_CREDENTIALS_JSON={"type":"service_account","project_id":"..."}
 # OR use file path instead:
 # GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+
+# Google Analytics (optional)
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
 Required variables:
@@ -41,6 +44,7 @@ Optional variables:
 - `GCS_BUCKET_NAME` — Google Cloud Storage bucket name
 - `GCS_CREDENTIALS_JSON` — Service account credentials JSON (inline)
 - `GOOGLE_APPLICATION_CREDENTIALS` — Path to service account key file (alternative to inline JSON)
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID` — Google Analytics 4 Measurement ID (e.g., G-XXXXXXXXXX)
 
 Model selection
 
@@ -110,6 +114,22 @@ GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 4. Check your GCS bucket for the uploaded file
 
 **Free Tier:** Google Cloud Storage offers 5GB free storage + 1GB network egress per month.
+
+## Google Analytics Setup (Optional)
+
+Track user analytics and page views with Google Analytics 4. See [GOOGLE_ANALYTICS_SETUP.md](GOOGLE_ANALYTICS_SETUP.md) for detailed instructions.
+
+### Quick Setup
+
+1. Create a GA4 property at [Google Analytics](https://analytics.google.com/)
+2. Get your Measurement ID (format: `G-XXXXXXXXXX`)
+3. Add to `.env.local`:
+```bash
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+4. Restart your dev server
+
+The analytics will automatically track page views. See the setup guide for advanced tracking options.
 
 ## Admin User Setup
 

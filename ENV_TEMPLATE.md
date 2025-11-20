@@ -40,6 +40,9 @@ GCS_CREDENTIALS_JSON={"type":"service_account","project_id":"...","private_key":
 # Option B: File path (alternative for local dev)
 # If using this, comment out GCS_CREDENTIALS_JSON above
 # GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+
+# Google Analytics (Optional - for tracking user analytics)
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
 ## How to Set Up Your .env.local
@@ -87,6 +90,11 @@ openssl rand -base64 32
 **Typeform** (for webhook signature verification):
 - Get webhook secret from Typeform webhook settings
 - Add TYPEFORM_WEBHOOK_SECRET
+
+**Google Analytics** (for tracking user analytics):
+- Get Measurement ID from https://analytics.google.com
+- Create a GA4 property and get your Measurement ID (format: G-XXXXXXXXXX)
+- Add NEXT_PUBLIC_GA_MEASUREMENT_ID
 
 ## Testing Your Setup
 
