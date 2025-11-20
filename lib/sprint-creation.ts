@@ -406,7 +406,7 @@ export async function createSprintForDocument(
               `SELECT id FROM deliverables WHERE id = $1 AND active = true`,
               [deliverableId]
             );
-            if (delCheck.rowCount > 0) {
+            if (delCheck.rowCount && delCheck.rowCount > 0) {
               validDeliverables.push(d);
             } else {
               console.warn("[AutoSprint] AI returned invalid deliverableId", { deliverableId });
