@@ -3,48 +3,185 @@ import { DEFAULT_SPRINT_SYSTEM_PROMPT, DEFAULT_SPRINT_USER_PROMPT } from "@/lib/
 import { sendEmail, generateSprintDraftEmail } from "@/lib/email";
 
 /**
- * Extract email from Typeform document content
+ * Structured client data extracted from Typeform
  */
-function extractEmailFromDocument(content: unknown): string | null {
-  const maybeEmail = (value: unknown): string | null => {
-    if (typeof value === "string" && value.includes("@")) {
-      return value.trim();
-    }
-    return null;
+type ClientData = {
+  projectName: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string | null;
+  email: string | null;
+  projectDescription: string | null;
+  currentStage: string | null;
+  roles: string[];
+  teamSize: string | null;
+  helpNeeded: string | null;
+  existingDesigns: string | null;
+  deliverablesPriority: string[];
+  mainUseCase: string[];
+  timeline: string | null;
+};
+
+/**
+ * Extract structured client data from Typeform document
+ * Uses field titles from the definition to identify the right answers
+ */
+function extractClientDataFromTypeform(content: unknown): ClientData {
+  const result: ClientData = {
+    projectName: null,
+    firstName: null,
+    lastName: null,
+    fullName: null,
+    email: null,
+    projectDescription: null,
+    currentStage: null,
+    roles: [],
+    teamSize: null,
+    helpNeeded: null,
+    existingDesigns: null,
+    deliverablesPriority: [],
+    mainUseCase: [],
+    timeline: null,
   };
 
-  if (!content || typeof content !== "object") return null;
+  if (!content || typeof content !== "object") return result;
   const root = content as Record<string, unknown>;
 
-  // Prefer Typeform v2-style payload: form_response.answers[]
   const formResponse = root.form_response as unknown;
-  if (formResponse && typeof formResponse === "object") {
-    const fr = formResponse as { answers?: unknown[]; hidden?: Record<string, unknown> | undefined };
-    if (Array.isArray(fr.answers)) {
-      for (const ans of fr.answers) {
-        if (ans && typeof ans === "object") {
-          const a = ans as { type?: string; email?: unknown; text?: unknown };
-          const emailFromField = maybeEmail(a.email);
-          if (a.type === "email" && emailFromField) return emailFromField;
-          const emailFromText = maybeEmail(a.text);
-          if (a.type === "email" && emailFromText) return emailFromText;
+  if (!formResponse || typeof formResponse !== "object") return result;
+
+  const fr = formResponse as {
+    answers?: unknown[];
+    definition?: { fields?: unknown[] };
+  };
+
+  if (!Array.isArray(fr.answers)) return result;
+
+  // Build a map of field IDs to titles for easy lookup
+  const fieldTitles = new Map<string, string>();
+  if (fr.definition && typeof fr.definition === "object") {
+    const def = fr.definition as { fields?: unknown[] };
+    if (Array.isArray(def.fields)) {
+      for (const field of def.fields) {
+        if (field && typeof field === "object") {
+          const f = field as { id?: string; title?: string };
+          if (f.id && f.title) {
+            fieldTitles.set(f.id, f.title.toLowerCase());
+          }
         }
       }
     }
-    if (fr.hidden && typeof fr.hidden === "object") {
-      const hidden = fr.hidden as Record<string, unknown>;
-      const emailFromHidden = maybeEmail(hidden.email ?? hidden.contact_email ?? hidden.user_email);
-      if (emailFromHidden) return emailFromHidden;
+  }
+
+  // Extract answers
+  for (const ans of fr.answers) {
+    if (!ans || typeof ans !== "object") continue;
+
+    const answer = ans as {
+      type?: string;
+      text?: string;
+      email?: string;
+      choice?: { label?: string };
+      choices?: { labels?: string[] };
+      boolean?: boolean;
+      field?: { id?: string };
+    };
+
+    const fieldId = answer.field?.id;
+    const fieldTitle = fieldId ? fieldTitles.get(fieldId) : null;
+
+    // Project name
+    if (fieldTitle?.includes("name of your startup") || fieldTitle?.includes("name of your project")) {
+      result.projectName = answer.text || null;
+    }
+
+    // First name
+    else if (fieldTitle?.includes("first name")) {
+      result.firstName = answer.text || null;
+    }
+
+    // Last name
+    else if (fieldTitle?.includes("last name")) {
+      result.lastName = answer.text || null;
+    }
+
+    // Email
+    else if (answer.type === "email" && answer.email) {
+      result.email = answer.email;
+    }
+
+    // Project description
+    else if (fieldTitle?.includes("what are you building")) {
+      result.projectDescription = answer.text || null;
+    }
+
+    // Current stage
+    else if (fieldTitle?.includes("current stage")) {
+      result.currentStage = answer.choice?.label || null;
+    }
+
+    // Role(s)
+    else if (fieldTitle?.includes("role")) {
+      if (answer.choices?.labels) {
+        result.roles = answer.choices.labels;
+      } else if (answer.choice?.label) {
+        result.roles = [answer.choice.label];
+      }
+    }
+
+    // Team size
+    else if (fieldTitle?.includes("how big is your team")) {
+      result.teamSize = answer.choice?.label || null;
+    }
+
+    // What help is needed
+    else if (fieldTitle?.includes("need help with")) {
+      result.helpNeeded = answer.choice?.label || null;
+    }
+
+    // Existing designs
+    else if (fieldTitle?.includes("interface") || fieldTitle?.includes("ux designs")) {
+      result.existingDesigns = answer.choice?.label || null;
+    }
+
+    // Deliverables priority
+    else if (fieldTitle?.includes("deliverables matter most") || fieldTitle?.includes("*p2*")) {
+      if (answer.choices?.labels) {
+        result.deliverablesPriority = answer.choices.labels;
+      }
+    }
+
+    // Main use case
+    else if (fieldTitle?.includes("main use case") || fieldTitle?.includes("*p3")) {
+      if (answer.choices?.labels) {
+        result.mainUseCase = answer.choices.labels;
+      }
+    }
+
+    // Timeline
+    else if (fieldTitle?.includes("how soon")) {
+      result.timeline = answer.choice?.label || null;
     }
   }
 
-  // Generic fallback: look for a top-level email-ish field
-  const emailFromRoot = maybeEmail(
-    (root.email as unknown) ?? (root.contact_email as unknown) ?? (root.user_email as unknown)
-  );
-  if (emailFromRoot) return emailFromRoot;
+  // Construct full name
+  if (result.firstName && result.lastName) {
+    result.fullName = `${result.firstName} ${result.lastName}`;
+  } else if (result.firstName) {
+    result.fullName = result.firstName;
+  } else if (result.lastName) {
+    result.fullName = result.lastName;
+  }
 
-  return null;
+  return result;
+}
+
+/**
+ * Extract email from Typeform document content (legacy helper)
+ */
+function extractEmailFromDocument(content: unknown): string | null {
+  const clientData = extractClientDataFromTypeform(content);
+  return clientData.email;
 }
 
 /**
@@ -284,7 +421,67 @@ export async function createSprintForDocument(
       "- Use EXACT IDs from the catalogs above\n" +
       "\n=== END CATALOG ===\n";
 
-    const combinedUserPrompt = `${userPrompt}\n\n${catalogInstructions}`;
+    // Extract structured client data from Typeform submission
+    const clientData = extractClientDataFromTypeform(document.content);
+    console.log("[AutoSprint] Extracted client data", {
+      projectName: clientData.projectName,
+      fullName: clientData.fullName,
+      email: clientData.email,
+      hasDescription: !!clientData.projectDescription,
+    });
+
+    // Build a personalized context summary for the AI
+    const contextParts: string[] = [];
+    
+    if (clientData.projectName) {
+      contextParts.push(`PROJECT NAME: ${clientData.projectName}`);
+    }
+    
+    if (clientData.fullName) {
+      contextParts.push(`CLIENT: ${clientData.fullName}`);
+    }
+    
+    if (clientData.projectDescription) {
+      contextParts.push(`WHAT THEY'RE BUILDING: ${clientData.projectDescription}`);
+    }
+    
+    if (clientData.currentStage) {
+      contextParts.push(`CURRENT STAGE: ${clientData.currentStage}`);
+    }
+    
+    if (clientData.roles.length > 0) {
+      contextParts.push(`CLIENT'S ROLE(S): ${clientData.roles.join(", ")}`);
+    }
+    
+    if (clientData.teamSize) {
+      contextParts.push(`TEAM SIZE: ${clientData.teamSize}`);
+    }
+    
+    if (clientData.helpNeeded) {
+      contextParts.push(`PRIMARY NEED: ${clientData.helpNeeded}`);
+    }
+    
+    if (clientData.existingDesigns) {
+      contextParts.push(`EXISTING DESIGNS: ${clientData.existingDesigns}`);
+    }
+    
+    if (clientData.deliverablesPriority.length > 0) {
+      contextParts.push(`PRIORITY DELIVERABLES: ${clientData.deliverablesPriority.join(", ")}`);
+    }
+    
+    if (clientData.mainUseCase.length > 0) {
+      contextParts.push(`MAIN USE CASE: ${clientData.mainUseCase.join(", ")}`);
+    }
+    
+    if (clientData.timeline) {
+      contextParts.push(`TIMELINE: ${clientData.timeline}`);
+    }
+
+    const personalizedContext = contextParts.length > 0
+      ? "\n\n=== CLIENT CONTEXT ===\n\n" + contextParts.join("\n") + "\n\n=== END CONTEXT ===\n"
+      : "";
+
+    const combinedUserPrompt = `${userPrompt}\n\n${catalogInstructions}${personalizedContext}`;
 
     // Call OpenAI Chat Completions API with response_format json_object
     const requestBody = {
@@ -298,7 +495,7 @@ export async function createSprintForDocument(
         {
           role: "user",
           content:
-            "Client intake JSON:\n\n```json\n" +
+            "Full client intake data (Typeform JSON):\n\n```json\n" +
             JSON.stringify(document.content, null, 2) +
             "\n```",
         },
@@ -417,11 +614,20 @@ export async function createSprintForDocument(
       maybeObj.deliverables = validDeliverables;
     }
 
-    // Extract title for the sprint draft
-    const title =
-      typeof maybeObj.title === "string" && maybeObj.title.length > 0
-        ? maybeObj.title.slice(0, 255)
-        : "Sprint Draft";
+    // Extract title for the sprint draft, with personalized fallback
+    let title: string;
+    if (typeof maybeObj.title === "string" && maybeObj.title.length > 0) {
+      title = maybeObj.title.slice(0, 255);
+    } else {
+      // Generate a personalized default title using client data
+      if (clientData.projectName) {
+        title = `Sprint Plan for ${clientData.projectName}`;
+      } else if (clientData.fullName) {
+        title = `Sprint Plan for ${clientData.fullName}`;
+      } else {
+        title = "Sprint Draft";
+      }
+    }
 
     // Store AI response
     const responseId = crypto.randomUUID();
@@ -457,11 +663,16 @@ export async function createSprintForDocument(
     });
 
     // Send email notification (non-blocking)
-    const recipientEmail = extractEmailFromDocument(document.content);
+    const recipientEmail = clientData.email;
     if (recipientEmail) {
       const baseUrl = getBaseUrl();
       const sprintUrl = `${baseUrl}/sprints/${draftId}`;
-      const emailContent = generateSprintDraftEmail(recipientEmail, title, sprintUrl);
+      const emailContent = generateSprintDraftEmail({
+        sprintTitle: title,
+        sprintUrl,
+        clientName: clientData.firstName || undefined,
+        projectName: clientData.projectName || undefined,
+      });
       
       sendEmail({
         to: recipientEmail,
@@ -476,6 +687,8 @@ export async function createSprintForDocument(
       console.log("[AutoSprint] Email notification queued", {
         to: recipientEmail,
         sprintUrl,
+        clientName: clientData.firstName,
+        projectName: clientData.projectName,
       });
     } else {
       console.warn("[AutoSprint] No recipient email found in document");

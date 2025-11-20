@@ -88,14 +88,19 @@ export async function sendEmail(params: SendEmailParams): Promise<{
 export function generateSprintDraftEmail(params: {
   sprintTitle: string;
   sprintUrl: string;
+  clientName?: string;
+  projectName?: string;
 }): { subject: string; text: string; html: string } {
-  const { sprintTitle, sprintUrl } = params;
+  const { sprintTitle, sprintUrl, clientName, projectName } = params;
 
+  const greeting = clientName ? `Hi ${clientName}!` : "Hi there!";
+  const projectContext = projectName ? ` for ${projectName}` : "";
+  
   const subject = `Your Sprint Plan is Ready: ${sprintTitle}`;
 
-  const text = `Hi there!
+  const text = `${greeting}
 
-Great news - we've analyzed your project requirements and created a custom 2-week sprint plan just for you.
+Great news - we've analyzed your project requirements and created a custom 2-week sprint plan just for you${projectContext}.
 
 Sprint Title: ${sprintTitle}
 
@@ -199,9 +204,9 @@ The Sprint Planning Team
   <div class="container">
     <h1>🎉 Your Sprint Plan is Ready!</h1>
     
-    <p>Hi there,</p>
+    <p>${greeting}</p>
     
-    <p>Great news - we've analyzed your project requirements and created a custom 2-week sprint plan tailored specifically to your needs.</p>
+    <p>Great news - we've analyzed your project requirements and created a custom 2-week sprint plan tailored specifically to your needs${projectContext}.</p>
     
     <div class="sprint-title">
       ${sprintTitle}
