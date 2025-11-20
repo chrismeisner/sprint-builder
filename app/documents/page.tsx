@@ -1,4 +1,5 @@
 import { ensureSchema, getPool } from "@/lib/db";
+import { extractTypeformResponseUrl } from "@/lib/typeform";
 import DocumentsClient from "./DocumentsClient";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,13 @@ export default async function DocumentsPage() {
     filename: string | null;
     created_at: string | Date;
   };
-  const rows = result.rows as DocumentRow[];
+  const dbRows = result.rows as DocumentRow[];
+  
+  // Extract Typeform URLs for each document
+  const rows = dbRows.map((row) => ({
+    ...row,
+    typeformUrl: extractTypeformResponseUrl(row.content),
+  }));
 
   return (
     <DocumentsClient rows={rows} />

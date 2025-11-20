@@ -1,4 +1,5 @@
 import { ensureSchema, getPool } from "@/lib/db";
+import { extractTypeformResponseUrl } from "@/lib/typeform";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -32,6 +33,8 @@ export default async function DocumentDetailPage({ params }: PageProps) {
   );
   const sprintDrafts = sprintsRes.rows as Array<{ id: string; created_at: string | Date }>;
 
+  const typeformUrl = extractTypeformResponseUrl(row.content);
+
   return (
     <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6 font-[family-name:var(--font-geist-sans)]">
       <div className="flex items-center justify-between">
@@ -60,6 +63,22 @@ export default async function DocumentDetailPage({ params }: PageProps) {
           <span className="font-mono opacity-70">file:</span>{" "}
           {row.filename ?? <span className="opacity-50">—</span>}
         </div>
+        {typeformUrl && (
+          <div>
+            <span className="font-mono opacity-70">typeform:</span>{" "}
+            <Link
+              href={typeformUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+            >
+              View response in Typeform
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </Link>
+          </div>
+        )}
       </div>
 
       <section>
