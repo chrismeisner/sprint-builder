@@ -100,8 +100,9 @@ export default function DeliverablesEditor({
       interface WindowWithTotals extends Window {
         __updateSprintTotals?: (totals: { hours: number; price: number; points: number }) => void;
       }
-      if ((window as WindowWithTotals).__updateSprintTotals && data.updatedTotals) {
-        (window as WindowWithTotals).__updateSprintTotals({
+      const windowWithTotals = window as WindowWithTotals;
+      if (windowWithTotals.__updateSprintTotals && data.updatedTotals) {
+        windowWithTotals.__updateSprintTotals({
           hours: data.updatedTotals.totalHours,
           price: data.updatedTotals.totalPrice,
           points: data.updatedTotals.totalPoints,
@@ -143,8 +144,9 @@ export default function DeliverablesEditor({
       interface WindowWithTotals extends Window {
         __updateSprintTotals?: (totals: { hours: number; price: number; points: number }) => void;
       }
-      if ((window as WindowWithTotals).__updateSprintTotals && data.updatedTotals) {
-        (window as WindowWithTotals).__updateSprintTotals({
+      const windowWithTotals = window as WindowWithTotals;
+      if (windowWithTotals.__updateSprintTotals && data.updatedTotals) {
+        windowWithTotals.__updateSprintTotals({
           hours: data.updatedTotals.totalHours,
           price: data.updatedTotals.totalPrice,
           points: data.updatedTotals.totalPoints,
@@ -183,8 +185,9 @@ export default function DeliverablesEditor({
       interface WindowWithTotals extends Window {
         __updateSprintTotals?: (totals: { hours: number; price: number; points: number }) => void;
       }
-      if ((window as WindowWithTotals).__updateSprintTotals && data.updatedTotals) {
-        (window as WindowWithTotals).__updateSprintTotals({
+      const windowWithTotals = window as WindowWithTotals;
+      if (windowWithTotals.__updateSprintTotals && data.updatedTotals) {
+        windowWithTotals.__updateSprintTotals({
           hours: data.updatedTotals.totalHours,
           price: data.updatedTotals.totalPrice,
           points: data.updatedTotals.totalPoints,

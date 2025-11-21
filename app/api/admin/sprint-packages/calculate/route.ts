@@ -58,10 +58,10 @@ export async function GET() {
         calculatedPrice: totalPrice,
         calculatedHours: totalHours,
         calculatedPoints: totalPoints,
-        storedFlatFee: parseFloat(pkg.flat_fee || 0),
-        storedFlatHours: parseFloat(pkg.flat_hours || 0),
-        priceMatch: Math.abs(totalPrice - parseFloat(pkg.flat_fee || 0)) < 0.01,
-        hoursMatch: Math.abs(totalHours - parseFloat(pkg.flat_hours || 0)) < 0.01,
+        storedFlatFee: parseFloat(pkg.flat_fee || "0"),
+        storedFlatHours: parseFloat(pkg.flat_hours || "0"),
+        priceMatch: Math.abs(totalPrice - parseFloat(pkg.flat_fee || "0")) < 0.01,
+        hoursMatch: Math.abs(totalHours - parseFloat(pkg.flat_hours || "0")) < 0.01,
         deliverables: pkg.deliverables,
       };
     });
