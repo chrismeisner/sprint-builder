@@ -329,7 +329,6 @@ export async function createSprintForDocument(
         sp.tagline,
         sp.flat_fee,
         sp.flat_hours,
-        sp.discount_percentage,
         COALESCE(
           json_agg(
             json_build_object(
@@ -358,7 +357,6 @@ export async function createSprintForDocument(
       tagline: string | null;
       flat_fee: number | null;
       flat_hours: number | null;
-      discount_percentage: number | null;
       deliverables: Array<{
         deliverableId: string;
         name: string;
@@ -383,7 +381,6 @@ export async function createSprintForDocument(
                 p.description ? `    description: ${p.description}` : null,
                 p.flat_fee != null ? `    flat_fee: $${p.flat_fee}` : null,
                 p.flat_hours != null ? `    flat_hours: ${p.flat_hours}h` : null,
-                p.discount_percentage != null ? `    discount: ${p.discount_percentage}%` : null,
                 `    includes: ${deliverableList}`,
               ].filter(Boolean);
               return parts.join("\n");

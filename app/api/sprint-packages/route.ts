@@ -86,7 +86,6 @@ export async function GET(request: Request) {
  *   tagline?: string,
  *   flatFee?: number,
  *   flatHours?: number,
- *   discountPercentage?: number,
  *   active?: boolean,
  *   featured?: boolean,
  *   sortOrder?: number,
@@ -111,7 +110,6 @@ export async function POST(request: Request) {
       tagline,
       flatFee,
       flatHours,
-      discountPercentage,
       active,
       featured,
       sortOrder,
@@ -124,7 +122,6 @@ export async function POST(request: Request) {
       tagline?: unknown;
       flatFee?: unknown;
       flatHours?: unknown;
-      discountPercentage?: unknown;
       active?: unknown;
       featured?: unknown;
       sortOrder?: unknown;

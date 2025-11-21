@@ -12,7 +12,6 @@ type Package = {
   tagline: string | null;
   flat_fee: number | null;
   flat_hours: number | null;
-  discount_percentage: number | null;
   featured: boolean;
   deliverables: Array<{
     deliverableId: string;

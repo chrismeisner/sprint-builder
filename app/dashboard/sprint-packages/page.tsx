@@ -12,7 +12,6 @@ type Row = {
   tagline: string | null;
   flat_fee: number | null;
   flat_hours: number | null;
-  discount_percentage: number | null;
   active: boolean;
   featured: boolean;
   sort_order: number;
@@ -41,7 +40,6 @@ export default async function SprintPackagesPage() {
       sp.tagline,
       sp.flat_fee,
       sp.flat_hours,
-      sp.discount_percentage,
       sp.active,
       sp.featured,
       sp.sort_order,

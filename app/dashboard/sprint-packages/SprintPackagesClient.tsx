@@ -12,7 +12,6 @@ type Row = {
   tagline: string | null;
   flat_fee: number | null;
   flat_hours: number | null;
-  discount_percentage: number | null;
   active: boolean;
   featured: boolean;
   sort_order: number;
@@ -118,12 +117,6 @@ export default function SprintPackagesClient({ rows }: Props) {
     
     // Otherwise calculate from deliverables
     const { price } = calculatePackageTotal(pkg);
-    
-    // Apply discount if set
-    if (pkg.discount_percentage != null) {
-      return price * (1 - pkg.discount_percentage / 100);
-    }
-    
     return price;
   }
 
@@ -226,11 +219,6 @@ export default function SprintPackagesClient({ rows }: Props) {
                       {item.flat_fee != null && calculatedPrice !== item.flat_fee && (
                         <div className="text-xs opacity-60">
                           (from ${calculatedPrice.toLocaleString()})
-                        </div>
-                      )}
-                      {item.discount_percentage != null && item.flat_fee == null && (
-                        <div className="text-xs text-green-700 dark:text-green-400">
-                          {item.discount_percentage}% off
                         </div>
                       )}
                     </div>

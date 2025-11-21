@@ -96,7 +96,6 @@ export async function PATCH(request: Request, { params }: Params) {
       tagline,
       flatFee,
       flatHours,
-      discountPercentage,
       active,
       featured,
       sortOrder,
@@ -109,7 +108,6 @@ export async function PATCH(request: Request, { params }: Params) {
       tagline?: unknown;
       flatFee?: unknown;
       flatHours?: unknown;
-      discountPercentage?: unknown;
       active?: unknown;
       featured?: unknown;
       sortOrder?: unknown;
