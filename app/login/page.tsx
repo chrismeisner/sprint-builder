@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -154,6 +154,25 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen flex items-center justify-center p-6 bg-black/[0.02] dark:bg-white/[0.02]">
+        <div className="w-full max-w-md">
+          <div className="bg-white dark:bg-black border border-black/10 dark:border-white/15 rounded-lg p-8 shadow-sm">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-black/10 dark:bg-white/10 rounded w-3/4"></div>
+              <div className="h-4 bg-black/10 dark:bg-white/10 rounded w-1/2"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
 
