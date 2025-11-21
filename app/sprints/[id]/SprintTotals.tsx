@@ -24,11 +24,17 @@ export default function SprintTotals({
   // Expose update function globally for DeliverablesEditor to call
   useEffect(() => {
     if (isEditable) {
-      (window as any).__updateSprintTotals = setTotals;
+      interface WindowWithTotals extends Window {
+        __updateSprintTotals?: (totals: { hours: number; price: number; points: number }) => void;
+      }
+      (window as WindowWithTotals).__updateSprintTotals = setTotals;
     }
     return () => {
       if (isEditable) {
-        delete (window as any).__updateSprintTotals;
+        interface WindowWithTotals extends Window {
+          __updateSprintTotals?: (totals: { hours: number; price: number; points: number }) => void;
+        }
+        delete (window as WindowWithTotals).__updateSprintTotals;
       }
     };
   }, [isEditable]);

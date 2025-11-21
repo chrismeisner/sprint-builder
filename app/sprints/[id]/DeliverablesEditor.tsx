@@ -46,9 +46,6 @@ function getComplexityLabel(score: number): string {
 export default function DeliverablesEditor({
   sprintId,
   currentDeliverables,
-  totalHours,
-  totalPrice,
-  totalPoints,
 }: Props) {
   const router = useRouter();
   const [availableDeliverables, setAvailableDeliverables] = useState<Deliverable[]>([]);
@@ -100,8 +97,11 @@ export default function DeliverablesEditor({
       }
 
       // Update global totals with absolute values from server
-      if ((window as any).__updateSprintTotals && data.updatedTotals) {
-        (window as any).__updateSprintTotals({
+      interface WindowWithTotals extends Window {
+        __updateSprintTotals?: (totals: { hours: number; price: number; points: number }) => void;
+      }
+      if ((window as WindowWithTotals).__updateSprintTotals && data.updatedTotals) {
+        (window as WindowWithTotals).__updateSprintTotals({
           hours: data.updatedTotals.totalHours,
           price: data.updatedTotals.totalPrice,
           points: data.updatedTotals.totalPoints,
@@ -140,8 +140,11 @@ export default function DeliverablesEditor({
       }
 
       // Update global totals with absolute values from server
-      if ((window as any).__updateSprintTotals && data.updatedTotals) {
-        (window as any).__updateSprintTotals({
+      interface WindowWithTotals extends Window {
+        __updateSprintTotals?: (totals: { hours: number; price: number; points: number }) => void;
+      }
+      if ((window as WindowWithTotals).__updateSprintTotals && data.updatedTotals) {
+        (window as WindowWithTotals).__updateSprintTotals({
           hours: data.updatedTotals.totalHours,
           price: data.updatedTotals.totalPrice,
           points: data.updatedTotals.totalPoints,
@@ -177,8 +180,11 @@ export default function DeliverablesEditor({
       }
 
       // Update global totals
-      if ((window as any).__updateSprintTotals && data.updatedTotals) {
-        (window as any).__updateSprintTotals({
+      interface WindowWithTotals extends Window {
+        __updateSprintTotals?: (totals: { hours: number; price: number; points: number }) => void;
+      }
+      if ((window as WindowWithTotals).__updateSprintTotals && data.updatedTotals) {
+        (window as WindowWithTotals).__updateSprintTotals({
           hours: data.updatedTotals.totalHours,
           price: data.updatedTotals.totalPrice,
           points: data.updatedTotals.totalPoints,
@@ -352,7 +358,7 @@ export default function DeliverablesEditor({
                     {/* Deliverable Output/Scope */}
                     <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/10">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs font-semibold uppercase opacity-70">What You'll Get</h4>
+                        <h4 className="text-xs font-semibold uppercase opacity-70">What You&apos;ll Get</h4>
                         {editingScope !== d.deliverableId && (
                           <button
                             onClick={() => {
@@ -431,7 +437,7 @@ export default function DeliverablesEditor({
 
           {currentDeliverables.length === 0 && (
             <li className="text-center py-8 opacity-50 text-sm">
-              No deliverables yet. Click "Add Deliverable" to get started.
+              No deliverables yet. Click &quot;Add Deliverable&quot; to get started.
             </li>
           )}
         </ul>

@@ -110,11 +110,11 @@ export default function OurApproachPage() {
               <ul className="space-y-2 text-sm opacity-80">
                 <li className="flex items-start gap-2">
                   <span className="text-red-500 mt-0.5">✗</span>
-                  <span>Slow ramp-up ("discovery phase" drags for weeks)</span>
+                  <span>Slow ramp-up (&quot;discovery phase&quot; drags for weeks)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-500 mt-0.5">✗</span>
-                  <span>Unclear timeline ("we&apos;ll get back to you")</span>
+                  <span>Unclear timeline (&quot;we&apos;ll get back to you&quot;)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-500 mt-0.5">✗</span>
@@ -267,7 +267,7 @@ export default function OurApproachPage() {
           </div>
           <div className="pl-16 space-y-2">
             <p className="text-base opacity-80">
-              Now we execute. Fast, focused, polished. No re-scoping. No swirl. No frantic "big agency energy."
+              Now we execute. Fast, focused, polished. No re-scoping. No swirl. No frantic &quot;big agency energy.&quot;
             </p>
             <div className="bg-black/5 dark:bg-white/5 rounded-lg p-4 text-sm space-y-1">
               <p className="font-medium">Week 2 is convergence + execution:</p>

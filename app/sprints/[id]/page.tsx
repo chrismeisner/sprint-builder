@@ -414,7 +414,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
       <WorkshopSection
         sprintId={row.id}
         sprintStatus={row.status || "draft"}
-        workshopAgenda={row.workshop_agenda as any}
+        workshopAgenda={row.workshop_agenda as Record<string, unknown> | null}
         workshopGeneratedAt={row.workshop_generated_at ? new Date(row.workshop_generated_at).toISOString() : null}
         isAdmin={currentUser?.isAdmin === true}
       />

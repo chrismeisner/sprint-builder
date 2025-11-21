@@ -35,17 +35,17 @@ export async function GET() {
       ORDER BY sp.sort_order ASC
     `);
 
-    const calculations = result.rows.map((pkg: any) => {
+    const calculations = result.rows.map((pkg: { name: string; slug: string; flat_fee: string | null; flat_hours: string | null; deliverables: Array<{ fixedHours: string | null; fixedPrice: string | null; points: string | null; quantity: string | null; complexityScore: string | null }> }) => {
       let totalHours = 0;
       let totalPrice = 0;
       let totalPoints = 0;
 
-      pkg.deliverables.forEach((d: any) => {
-        const hours = parseFloat(d.fixedHours || 0);
-        const price = parseFloat(d.fixedPrice || 0);
-        const points = parseInt(d.points || 0);
-        const qty = parseInt(d.quantity || 1);
-        const complexity = parseFloat(d.complexityScore || 1.0);
+      pkg.deliverables.forEach((d: { fixedHours: string | null; fixedPrice: string | null; points: string | null; quantity: string | null; complexityScore: string | null }) => {
+        const hours = parseFloat(d.fixedHours || "0");
+        const price = parseFloat(d.fixedPrice || "0");
+        const points = parseInt(d.points || "0");
+        const qty = parseInt(d.quantity || "1");
+        const complexity = parseFloat(d.complexityScore || "1.0");
 
         totalHours += hours * complexity * qty;
         totalPrice += price * complexity * qty;

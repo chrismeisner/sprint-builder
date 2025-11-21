@@ -1,6 +1,106 @@
 import Link from "next/link";
+import { ensureSchema, getPool } from "@/lib/db";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+type Package = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  tagline: string | null;
+  flat_fee: number | null;
+  flat_hours: number | null;
+  deliverables: Array<{
+    deliverableId: string;
+    name: string;
+    description: string | null;
+    scope: string | null;
+    fixedHours: number | null;
+    fixedPrice: number | null;
+    quantity: number;
+    complexityScore: number;
+  }>;
+};
+
+// Emoji map for deliverable types
+const deliverableEmojis: Record<string, string> = {
+  'Sprint Kickoff Workshop': '🎯',
+  'Wordmark Logo': '✏️',
+  'Brand Style Guide': '📋',
+  'Landing Page': '🚀',
+  'Working Prototype': '💻',
+  'Social Media Kit': '📱',
+  'Pitch Deck': '📊',
+};
+
+function getDeliverableEmoji(name: string): string {
+  return deliverableEmojis[name] || '✓';
+}
+
+export default async function Home() {
+  await ensureSchema();
+  const pool = getPool();
+
+  // Fetch the three featured packages for the homepage
+  const result = await pool.query(`
+    SELECT 
+      sp.id,
+      sp.name,
+      sp.slug,
+      sp.description,
+      sp.tagline,
+      sp.flat_fee,
+      sp.flat_hours,
+      COALESCE(
+        json_agg(
+          json_build_object(
+            'deliverableId', d.id,
+            'name', d.name,
+            'description', d.description,
+            'scope', d.scope,
+            'fixedHours', d.fixed_hours,
+            'fixedPrice', d.fixed_price,
+            'quantity', spd.quantity,
+            'complexityScore', COALESCE(spd.complexity_score, 1.0)
+          ) ORDER BY spd.sort_order ASC, d.name ASC
+        ) FILTER (WHERE d.id IS NOT NULL),
+        '[]'
+      ) as deliverables
+    FROM sprint_packages sp
+    LEFT JOIN sprint_package_deliverables spd ON sp.id = spd.sprint_package_id
+    LEFT JOIN deliverables d ON spd.deliverable_id = d.id AND d.active = true
+    WHERE sp.active = true 
+      AND sp.slug IN ('brand-identity-sprint', 'mvp-launch-sprint', 'startup-branding-sprint')
+    GROUP BY sp.id
+    ORDER BY 
+      CASE sp.slug 
+        WHEN 'brand-identity-sprint' THEN 1
+        WHEN 'mvp-launch-sprint' THEN 2
+        WHEN 'startup-branding-sprint' THEN 3
+      END
+  `);
+
+  const packages: Package[] = result.rows;
+
+  // Calculate package totals from deliverables
+  function calculatePackageTotal(pkg: Package): { hours: number; price: number } {
+    let totalHours = 0;
+    let totalPrice = 0;
+
+    pkg.deliverables.forEach((d) => {
+      const baseHours = d.fixedHours ?? 0;
+      const basePrice = d.fixedPrice ?? 0;
+      const qty = d.quantity ?? 1;
+      const complexityMultiplier = d.complexityScore ?? 1.0;
+      
+      totalHours += baseHours * complexityMultiplier * qty;
+      totalPrice += basePrice * complexityMultiplier * qty;
+    });
+
+    return { hours: totalHours, price: totalPrice };
+  }
+
   return (
     <main className="min-h-screen">
       {/* Hero Section */}
@@ -121,126 +221,52 @@ export default function Home() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          {/* Sprint 1: Brand Identity */}
-          <Link 
-            href="/packages/brand-identity-sprint"
-            className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 space-y-4 hover:border-black/20 dark:hover:border-white/25 hover:shadow-lg transition"
-          >
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold">Brand Identity Sprint</h3>
-              <p className="text-sm opacity-70">
-                Complete brand foundation for new ventures
-              </p>
-            </div>
+          {packages.map((pkg) => {
+            const { price, hours } = calculatePackageTotal(pkg);
             
-            <div className="space-y-2 text-sm">
-              <div className="font-medium opacity-90">Includes:</div>
-              <div className="space-y-1 opacity-80">
-                <div className="flex items-start gap-2">
-                  <span className="text-xs mt-0.5">🎯</span>
-                  <span>Sprint Kickoff Workshop</span>
+            return (
+              <Link 
+                key={pkg.id}
+                href={`/packages/${pkg.slug}`}
+                className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 space-y-4 hover:border-black/20 dark:hover:border-white/25 hover:shadow-lg transition"
+              >
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold">{pkg.name}</h3>
+                  <p className="text-sm opacity-70">
+                    {pkg.tagline || pkg.description}
+                  </p>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-xs mt-0.5">✏️</span>
-                  <span>Wordmark Logo</span>
+                
+                <div className="space-y-2 text-sm">
+                  <div className="font-medium opacity-90">Includes:</div>
+                  <div className="space-y-1 opacity-80">
+                    {pkg.deliverables.slice(0, 4).map((deliverable, idx) => (
+                      <div key={`${deliverable.deliverableId}-${idx}`} className="flex items-start gap-2">
+                        <span className="text-xs mt-0.5">{getDeliverableEmoji(deliverable.name)}</span>
+                        <span>
+                          {deliverable.name}
+                          {deliverable.quantity > 1 && ` (×${deliverable.quantity})`}
+                        </span>
+                      </div>
+                    ))}
+                    {pkg.deliverables.length > 4 && (
+                      <div className="text-xs opacity-60 pl-5">
+                        + {pkg.deliverables.length - 4} more
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-xs mt-0.5">📋</span>
-                  <span>Brand Style Guide</span>
-                </div>
-              </div>
-            </div>
 
-            <div className="pt-4 border-t border-black/10 dark:border-white/15">
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold">$3,500</span>
-                <span className="text-xs opacity-60">fixed</span>
-              </div>
-              <div className="text-xs opacity-60 mt-1">22 hours · 2 weeks</div>
-            </div>
-          </Link>
-
-          {/* Sprint 2: MVP Launch */}
-          <Link 
-            href="/packages/mvp-launch-sprint"
-            className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 space-y-4 hover:border-black/20 dark:hover:border-white/25 hover:shadow-lg transition"
-          >
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold">MVP Launch Sprint</h3>
-              <p className="text-sm opacity-70">
-                Validate your idea with a landing page & prototype
-              </p>
-            </div>
-            
-            <div className="space-y-2 text-sm">
-              <div className="font-medium opacity-90">Includes:</div>
-              <div className="space-y-1 opacity-80">
-                <div className="flex items-start gap-2">
-                  <span className="text-xs mt-0.5">🎯</span>
-                  <span>Sprint Kickoff Workshop</span>
+                <div className="pt-4 border-t border-black/10 dark:border-white/15">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold">${price.toLocaleString()}</span>
+                    <span className="text-xs opacity-60">fixed</span>
+                  </div>
+                  <div className="text-xs opacity-60 mt-1">{Math.round(hours)} hours · 2 weeks</div>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-xs mt-0.5">🚀</span>
-                  <span>Landing Page</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-xs mt-0.5">💻</span>
-                  <span>Working Prototype</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-black/10 dark:border-white/15">
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold">$5,800</span>
-                <span className="text-xs opacity-60">fixed</span>
-              </div>
-              <div className="text-xs opacity-60 mt-1">36 hours · 2 weeks</div>
-            </div>
-          </Link>
-
-          {/* Sprint 3: Startup Branding */}
-          <Link 
-            href="/packages/startup-branding-sprint"
-            className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 space-y-4 hover:border-black/20 dark:hover:border-white/25 hover:shadow-lg transition"
-          >
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold">Startup Branding Sprint</h3>
-              <p className="text-sm opacity-70">
-                Launch-ready brand + pitch materials
-              </p>
-            </div>
-            
-            <div className="space-y-2 text-sm">
-              <div className="font-medium opacity-90">Includes:</div>
-              <div className="space-y-1 opacity-80">
-                <div className="flex items-start gap-2">
-                  <span className="text-xs mt-0.5">🎯</span>
-                  <span>Sprint Kickoff Workshop</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-xs mt-0.5">✏️</span>
-                  <span>Wordmark Logo</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-xs mt-0.5">📱</span>
-                  <span>Social Media Kit</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-xs mt-0.5">📊</span>
-                  <span>Pitch Deck</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-black/10 dark:border-white/15">
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold">$4,100</span>
-                <span className="text-xs opacity-60">fixed</span>
-              </div>
-              <div className="text-xs opacity-60 mt-1">26 hours · 2 weeks</div>
-            </div>
-          </Link>
+              </Link>
+            );
+          })}
         </div>
 
         <div className="mt-8 text-center">

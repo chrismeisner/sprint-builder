@@ -69,7 +69,7 @@ export async function POST() {
   }
 }
 
-async function recalculateTotals(pool: any, sprintId: string) {
+async function recalculateTotals(pool: ReturnType<typeof getPool>, sprintId: string) {
   const result = await pool.query(
     `SELECT 
        COUNT(*)::int as deliverable_count,

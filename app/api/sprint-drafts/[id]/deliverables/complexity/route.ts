@@ -143,7 +143,7 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 }
 
-async function recalculateTotals(pool: any, sprintId: string) {
+async function recalculateTotals(pool: ReturnType<typeof getPool>, sprintId: string) {
   const result = await pool.query(
     `SELECT 
        COUNT(*)::int as deliverable_count,

@@ -106,7 +106,6 @@ export default async function PackageDetailPage({ params }: PageProps) {
   // Always use calculated values (no stored flat_fee)
   const finalPrice = totalPrice;
   const finalHours = totalHours;
-  const savings = 0; // No package discounts - accurate deliverable pricing
 
   return (
     <main className="min-h-screen font-[family-name:var(--font-geist-sans)]">

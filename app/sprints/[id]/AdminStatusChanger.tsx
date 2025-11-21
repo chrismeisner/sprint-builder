@@ -58,8 +58,6 @@ export default function AdminStatusChanger({ sprintId, currentStatus }: Props) {
     }
   };
 
-  const currentOption = STATUS_OPTIONS.find((opt) => opt.value === status);
-
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
