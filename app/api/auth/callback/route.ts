@@ -21,11 +21,12 @@ export async function GET(request: Request) {
     if (process.env.BASE_URL) {
       origin = process.env.BASE_URL.replace(/\/$/, ''); // Remove trailing slash if present
     } else {
-      const url = new URL(request.url);
       origin = `${url.protocol}//${url.host}`;
     }
     
-    const redirectUrl = new URL("/my-sprints", origin);
+    // Check for redirect parameter, default to /my-sprints
+    const redirectPath = url.searchParams.get("redirect") || "/my-sprints";
+    const redirectUrl = new URL(redirectPath, origin);
     const res = NextResponse.redirect(redirectUrl);
     res.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
       httpOnly: true,

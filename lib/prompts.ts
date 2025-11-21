@@ -11,9 +11,25 @@ Key principles:
 - Be pragmatic: What can realistically be accomplished in 2 weeks?
 - Be specific: Avoid vague tasks; provide clear, actionable items
 - Be client-focused: Align sprint goals with client's stated objectives
-- Use productized services: Select 1 workshop + 1-3 execution deliverables from the catalog
-- Workshop selection: ALWAYS include 1 kickoff workshop that matches the project category/focus
+- Use productized services: Select 1-3 execution deliverables from the catalog (NO workshops - those are generated separately)
 - Consider constraints: Budget, timeline, team size, and technical complexity
+
+Output format: Return ONLY a valid JSON object (no markdown, no explanations).`;
+
+export const WORKSHOP_GENERATION_SYSTEM_PROMPT = `You are an expert workshop facilitator and strategic consultant specializing in designing highly effective kickoff workshops for 2-week design and development sprints.
+
+Your role:
+- Analyze sprint details (deliverables, client goals, project context) to design a custom workshop
+- Select proven workshop exercises from a library of real-world tested methods
+- Create detailed workshop agendas with timing, activities, and expected outcomes
+- Provide client preparation checklists to ensure productive sessions
+
+Key principles:
+- Be practical: Workshops should be 90-150 minutes (not too long, not too short)
+- Be strategic: Each exercise must serve a clear purpose aligned with sprint deliverables
+- Be specific: Provide exact timing, clear instructions, and expected outputs for each activity
+- Be client-ready: Give clients a clear checklist of what to prepare/bring
+- Use proven methods: Draw from established workshop frameworks (Design Sprint, Lean UX, Jobs-to-be-Done, etc.)
 
 Output format: Return ONLY a valid JSON object (no markdown, no explanations).`;
 
@@ -86,10 +102,11 @@ export const DEFAULT_SPRINT_USER_PROMPT = `Based on the client's intake form, cr
   "timeline": [
     {
       "day": 1,
-      "focus": "Sprint setup and foundation",
+      "dayOfWeek": "Monday",
+      "focus": "Kickoff & Alignment",
       "items": [
-        "Specific task or milestone for day 1",
-        "Another task for day 1"
+        "Workshop with client for discovery and alignment",
+        "Capture vision and requirements"
       ]
     }
   ],
@@ -114,20 +131,13 @@ export const DEFAULT_SPRINT_USER_PROMPT = `Based on the client's intake form, cr
 }
 
 DELIVERABLES GUIDANCE:
-- ALWAYS select 1 workshop deliverable + 1-3 execution deliverables (total: 2-4 deliverables)
-- Workshop selection: Choose the workshop that best matches the project category:
-  * "Sprint Kickoff Workshop - Strategy" for business/strategic projects
-  * "Sprint Kickoff Workshop - Product" for product development/features
-  * "Sprint Kickoff Workshop - Design" for UI/UX/design projects
-  * "Sprint Kickoff Workshop - Branding" for brand identity projects
-  * "Sprint Kickoff Workshop - Startup" for MVP/early-stage startups
-  * "Sprint Kickoff Workshop - Marketing" for marketing/growth/campaigns
-- Execution deliverables: Select 1-3 deliverables that BEST match the client's stated needs
+- Select 1-3 execution deliverables that BEST match the client's stated needs
+- DO NOT include workshop deliverables - those are generated separately by the studio after reviewing the sprint
 - Prefer deliverables that align with the project stage (e.g., early-stage projects need prototypes, established products need features)
 - Consider the client's budget and timeline constraints
 - If prototype tiers exist, choose the appropriate level (Level 1 for validation, Level 2 for testing, Level 3 for production)
 - ALWAYS use the EXACT deliverableId from the catalog
-- List the workshop FIRST in the deliverables array, followed by execution deliverables
+- Focus on tangible execution deliverables (design, development, content, etc.)
 
 BACKLOG GUIDANCE:
 - Create 5-12 backlog items that directly support the selected deliverables
@@ -152,16 +162,148 @@ APPROACH GUIDANCE:
 - This is NOT generic advice - it should feel custom and thoughtful
 
 TIMELINE GUIDANCE:
-- Create day-by-day breakdown for all 10 working days (2 weeks)
-- Day 1: Sprint Kickoff Workshop (Monday 9am), setup, initial planning
-- Day 2-3: Foundation work, research, design, technical setup
-- Day 4-7: Core development/execution work
-- Day 8-9: Testing, refinement, bug fixes, quality assurance
-- Day 10: Final polish, documentation, demo prep, sprint review
-- Be realistic about parallel work and dependencies
-- Reference the kickoff workshop in Day 1 timeline (it's included as a deliverable)
+- Create day-by-day breakdown for all 10 working days (2 weeks, Monday-Friday each week)
+- Day 1 (Monday): Kickoff & Alignment workshop with client for discovery
+- Day 2 (Tuesday): Studio exploration - create direction options to choose from
+- Day 3 (Wednesday): First Review - studio presents direction solutions
+- Day 4 (Thursday): Feedback & Refinement - collect client feedback, refine directions
+- Day 5 (Friday): Direction Lock - finalize and share locked direction with client
+- Day 6 (Monday): Deliverables Alignment - revisit deliverables from Day 1 with locked solution direction, map deliverables to solution, align on execution path
+- Day 7 (Tuesday): Build & Execution - studio heads down crafting solution
+- Day 8 (Wednesday): Progress Review - studio shares progress, all deliverables outlined, Q&A
+- Day 9 (Thursday): Final Execution - heads down refining assets and deliverables
+- Day 10 (Friday): Delivery - solution delivered, demo to client, handoff completed
+- Include day of week for each day to help client plan their schedule
+- Specify whether activity is client-facing or studio internal work
 
 Use clear, professional language. Be specific and actionable.`;
+
+export const WORKSHOP_GENERATION_USER_PROMPT = `Based on the sprint draft details below, design a custom kickoff workshop as a JSON object with the following structure:
+
+{
+  "title": "Clear, descriptive title for this workshop (e.g., 'MVP Product Strategy Workshop')",
+  
+  "duration": 120,  // Total duration in minutes (typically 90-150 minutes)
+  
+  "objectives": [
+    "Primary objective for this workshop",
+    "Secondary objective aligned with sprint deliverables",
+    "2-4 objectives total"
+  ],
+  
+  "agenda": [
+    {
+      "section": "Welcome & Context Setting",
+      "duration": 10,  // minutes
+      "activities": [
+        "Team introductions and roles",
+        "Review sprint deliverables and timeline",
+        "Set expectations for workshop outcomes"
+      ],
+      "facilitator": "Studio lead",
+      "output": "Aligned understanding of sprint scope and goals"
+    },
+    {
+      "section": "Exercise Name (e.g., 'Lightning Decision Jam')",
+      "duration": 30,
+      "description": "Brief explanation of what this exercise accomplishes and why it's valuable for this sprint",
+      "activities": [
+        "Step-by-step activity instructions",
+        "Each step should be clear and actionable"
+      ],
+      "materials": ["Miro board", "Sticky notes", "Timer"],
+      "facilitator": "Studio facilitator",
+      "participants": "Client + design team",
+      "output": "Specific, tangible outcome from this exercise (e.g., 'Prioritized list of 5 core features')"
+    }
+    // Include 3-5 total agenda sections with varied exercise types
+  ],
+  
+  "exercises": [
+    {
+      "name": "Name of the proven exercise (e.g., 'How Might We', 'Rose/Thorn/Bud', '5 Whys')",
+      "source": "Origin/framework (e.g., 'Design Sprint by Google Ventures', 'Lean UX', 'Agile Retrospectives')",
+      "purpose": "What problem this exercise solves or what insight it reveals",
+      "bestFor": "Type of situation where this exercise excels",
+      "timing": "15-20 minutes",
+      "howToRun": [
+        "Step 1: Clear instruction",
+        "Step 2: Clear instruction",
+        "Step 3: Clear instruction"
+      ]
+    }
+    // List 1-2 key exercises used in the agenda with full details
+  ],
+  
+  "clientPreparation": {
+    "beforeWorkshop": [
+      "Specific thing client should prepare (e.g., 'List of 3-5 competitors with links')",
+      "Another preparation item with clear why (e.g., 'Brand adjectives or mood board if available - helps us understand your vision')",
+      "Technical requirements (e.g., 'Access to Figma/Miro - we'll send invite 24h before')"
+    ],
+    "toBring": [
+      "What client should have ready during workshop",
+      "Examples: 'Product requirements doc', 'User research insights', 'Brand guidelines if they exist'"
+    ],
+    "attendees": [
+      "Decision maker who can approve directions (critical)",
+      "Product owner or project lead",
+      "Optional: Key stakeholder or subject matter expert"
+    ],
+    "timeCommitment": "2 hours + 15 min post-workshop recap"
+  },
+  
+  "expectedOutcomes": [
+    "Concrete deliverable from the workshop (e.g., 'Prioritized feature list with effort estimates')",
+    "Another key outcome (e.g., 'Visual direction board with 3 design concepts')",
+    "Alignment outcome (e.g., 'Shared understanding of target user and their needs')"
+  ],
+  
+  "nextSteps": [
+    "What happens immediately after workshop",
+    "How workshop outcomes inform sprint execution",
+    "Communication plan for rest of sprint"
+  ],
+  
+  "notes": [
+    "Important context or recommendations for running this workshop",
+    "Potential challenges to watch for",
+    "Suggestions for making workshop more effective"
+  ]
+}
+
+EXERCISE SELECTION GUIDANCE:
+- Choose 1-2 proven workshop exercises that map directly to the sprint deliverables
+- For BRANDING sprints: Brand personality exercises, mood boarding, competitor analysis
+- For PRODUCT sprints: User story mapping, feature prioritization (MoSCoW, Kano), journey mapping
+- For PROTOTYPE sprints: Sketch sessions, rapid ideation, assumption mapping
+- For MARKETING sprints: Persona definition, messaging hierarchy, channel strategy
+- For WEBSITE sprints: Content prioritization, IA card sorting, wireframe co-creation
+- Mix strategic exercises (understanding) with tactical exercises (decision-making)
+- Prefer interactive, collaborative exercises over passive presentations
+
+TIMING GUIDANCE:
+- Start with 5-10 min context setting (not too long)
+- Each exercise should be 15-30 minutes (time-boxed)
+- Include 5-min buffers between major sections
+- End with 10-15 min recap and next steps
+- Total: 90-150 minutes (no longer - respect client time)
+
+CLIENT PREPARATION GUIDANCE:
+- Be specific about what to prepare and WHY it's needed
+- Request only essential items (don't overwhelm)
+- Provide examples for abstract requests
+- Include technical setup (Zoom, Miro, Figma access)
+- Emphasize that decision-maker attendance is critical
+- Set realistic time expectations
+
+OUTPUT GUIDANCE:
+- Each agenda item must have a clear, measurable output
+- Outputs should feed directly into sprint execution
+- Avoid vague outcomes like "better understanding" - be specific
+- Workshop should produce artifacts the team can reference throughout sprint
+
+Use clear, professional language. Be specific and actionable. Base workshop design on the actual sprint deliverables and client context provided.`;
 
 
 

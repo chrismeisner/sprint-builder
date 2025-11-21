@@ -33,7 +33,6 @@ export async function GET(request: Request) {
         sp.tagline,
         sp.flat_fee,
         sp.flat_hours,
-        sp.discount_percentage,
         sp.active,
         sp.featured,
         sp.sort_order,
@@ -157,14 +156,6 @@ export async function POST(request: Request) {
       if (!Number.isNaN(parsed)) hours = parsed;
     }
 
-    let discount: number | null = null;
-    if (typeof discountPercentage === "number") {
-      discount = discountPercentage;
-    } else if (typeof discountPercentage === "string" && discountPercentage.trim()) {
-      const parsed = Number(discountPercentage);
-      if (!Number.isNaN(parsed)) discount = parsed;
-    }
-
     let order: number = 0;
     if (typeof sortOrder === "number") {
       order = sortOrder;
@@ -182,10 +173,10 @@ export async function POST(request: Request) {
       `
       INSERT INTO sprint_packages (
         id, name, slug, description, category, tagline, 
-        flat_fee, flat_hours, discount_percentage, 
+        flat_fee, flat_hours,
         active, featured, sort_order
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     `,
       [
         id,
@@ -194,9 +185,8 @@ export async function POST(request: Request) {
         typeof description === "string" ? description : null,
         typeof category === "string" ? category : null,
         typeof tagline === "string" ? tagline : null,
-        fee,
-        hours,
-        discount,
+        fee,     // NULL = dynamic pricing
+        hours,   // NULL = dynamic hours
         activeValue,
         featuredValue,
         order,

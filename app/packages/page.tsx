@@ -41,7 +41,6 @@ export default async function PackagesPage() {
       sp.tagline,
       sp.flat_fee,
       sp.flat_hours,
-      sp.discount_percentage,
       sp.featured,
       COALESCE(
         json_agg(
@@ -53,7 +52,7 @@ export default async function PackagesPage() {
             'fixedHours', d.fixed_hours,
             'fixedPrice', d.fixed_price,
             'quantity', spd.quantity,
-            'complexityScore', COALESCE(spd.complexity_score, 2.5)
+            'complexityScore', COALESCE(spd.complexity_score, 1.0)
           ) ORDER BY spd.sort_order ASC, d.name ASC
         ) FILTER (WHERE d.id IS NOT NULL),
         '[]'

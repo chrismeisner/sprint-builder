@@ -10,9 +10,8 @@ type Package = {
   description: string | null;
   category: string | null;
   tagline: string | null;
-  flat_fee: number | null;
-  flat_hours: number | null;
-  discount_percentage: number | null;
+  flat_fee: number | null;      // NULL = dynamic (calculate from deliverables)
+  flat_hours: number | null;    // NULL = dynamic (calculate from deliverables)
   featured: boolean;
   deliverables: Array<{
     deliverableId: string;
@@ -33,6 +32,7 @@ type Props = {
 export default function PackagesClient({ packages }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
+  // Calculate package totals dynamically from deliverables (base complexity 1.0)
   function calculatePackageTotal(pkg: Package): { hours: number; price: number } {
     let totalHours = 0;
     let totalPrice = 0;
@@ -41,7 +41,7 @@ export default function PackagesClient({ packages }: Props) {
       const baseHours = d.fixedHours ?? 0;
       const basePrice = d.fixedPrice ?? 0;
       const qty = d.quantity ?? 1;
-      const complexityMultiplier = (d.complexityScore ?? 2.5) / 2.5;
+      const complexityMultiplier = d.complexityScore ?? 1.0; // Base complexity is 1.0
       
       // Apply complexity adjustment
       totalHours += baseHours * complexityMultiplier * qty;
@@ -49,21 +49,6 @@ export default function PackagesClient({ packages }: Props) {
     });
 
     return { hours: totalHours, price: totalPrice };
-  }
-
-  function getFinalPrice(pkg: Package): number {
-    if (pkg.flat_fee != null) return pkg.flat_fee;
-    const { price } = calculatePackageTotal(pkg);
-    if (pkg.discount_percentage != null) {
-      return price * (1 - pkg.discount_percentage / 100);
-    }
-    return price;
-  }
-
-  function getFinalHours(pkg: Package): number {
-    if (pkg.flat_hours != null) return pkg.flat_hours;
-    const { hours } = calculatePackageTotal(pkg);
-    return hours;
   }
 
   // Get unique categories
@@ -85,7 +70,7 @@ export default function PackagesClient({ packages }: Props) {
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">Sprint Packages</h1>
           <p className="text-xl opacity-90 mb-8">
-            Pre-packaged 2-week sprints with fixed pricing. Get started fast with clarity and
+            Pre-packaged 2-week sprints with accurate, transparent pricing. Get started fast with clarity and
             confidence.
           </p>
           <Link
@@ -175,8 +160,11 @@ export default function PackagesClient({ packages }: Props) {
       <section className="bg-black dark:bg-white text-white dark:text-black py-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to get started?</h2>
-          <p className="text-lg opacity-90 mb-8">
+          <p className="text-lg opacity-90 mb-2">
             Choose a package or tell us about your project for a custom sprint plan.
+          </p>
+          <p className="text-sm opacity-75 mb-8">
+            After selecting, you&apos;ll complete a 5-step checklist to activate your sprint (takes ~10 minutes).
           </p>
           <div className="flex items-center justify-center gap-4">
             <Link
@@ -198,15 +186,7 @@ export default function PackagesClient({ packages }: Props) {
   );
 
   function PackageCard({ pkg, featured }: { pkg: Package; featured: boolean }) {
-    const finalPrice = getFinalPrice(pkg);
-    const finalHours = getFinalHours(pkg);
-    const { price: calculatedPrice } = calculatePackageTotal(pkg);
-    const savings =
-      pkg.discount_percentage != null && pkg.flat_fee == null
-        ? calculatedPrice - finalPrice
-        : pkg.flat_fee != null && calculatedPrice > pkg.flat_fee
-        ? calculatedPrice - pkg.flat_fee
-        : 0;
+    const { price: finalPrice, hours: finalHours } = calculatePackageTotal(pkg);
 
     return (
       <div
@@ -236,13 +216,11 @@ export default function PackagesClient({ packages }: Props) {
         <div className="mb-4">
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-bold">${finalPrice.toLocaleString()}</span>
-            <span className="text-sm opacity-70">/ {finalHours}h</span>
+            <span className="text-sm opacity-70">/ {finalHours.toFixed(1)}h</span>
           </div>
-          {savings > 0 && (
-            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-              Save ${savings.toLocaleString()} vs. individual deliverables
-            </p>
-          )}
+          <p className="text-xs opacity-60 mt-1">
+            Dynamically calculated from deliverables
+          </p>
         </div>
 
         {/* Description */}

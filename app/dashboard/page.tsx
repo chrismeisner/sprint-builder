@@ -20,7 +20,9 @@ export default async function DashboardPage() {
 
   // Add admin-only links
   if (isAdmin) {
+    links.push({ href: "/dashboard/sprint-drafts", label: "Sprint Drafts (Admin)" });
     links.push({ href: "/dashboard/users", label: "User Management" });
+    links.push({ href: "/dashboard/workshop-cleanup", label: "Workshop Cleanup (Admin)" });
   }
 
   return (

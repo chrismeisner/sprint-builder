@@ -11,10 +11,11 @@ export async function POST(request: Request) {
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
-    const { email } = body as { email?: unknown };
+    const { email, redirectUrl } = body as { email?: unknown; redirectUrl?: unknown };
     if (typeof email !== "string" || !email.includes("@")) {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
     }
+    const redirect = typeof redirectUrl === "string" && redirectUrl.trim() ? redirectUrl.trim() : null;
     const normalizedEmail = email.trim().toLowerCase();
     const accountRes = await pool.query(
       `
@@ -39,7 +40,9 @@ export async function POST(request: Request) {
       origin = `${url.protocol}//${url.host}`;
     }
     
-    const magicLink = `${origin}/api/auth/callback?token=${encodeURIComponent(token)}`;
+    const magicLink = redirect 
+      ? `${origin}/api/auth/callback?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(redirect)}`
+      : `${origin}/api/auth/callback?token=${encodeURIComponent(token)}`;
 
     // Send magic link via Mailgun
     const mailgunApiKey = process.env.MAILGUN_API_KEY;

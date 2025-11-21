@@ -29,9 +29,8 @@ type Package = {
   description: string | null;
   category: string | null;
   tagline: string | null;
-  flat_fee: number | null;
-  flat_hours: number | null;
-  discount_percentage: number | null;
+  flat_fee: number | null;       // NULL = dynamic pricing
+  flat_hours: number | null;     // NULL = dynamic hours
   active: boolean;
   featured: boolean;
   sort_order: number;
@@ -60,9 +59,6 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
   const [category, setCategory] = useState(existingPackage?.category || "");
   const [flatFee, setFlatFee] = useState(existingPackage?.flat_fee?.toString() || "");
   const [flatHours, setFlatHours] = useState(existingPackage?.flat_hours?.toString() || "");
-  const [discountPercentage, setDiscountPercentage] = useState(
-    existingPackage?.discount_percentage?.toString() || ""
-  );
   const [active, setActive] = useState(existingPackage?.active ?? true);
   const [featured, setFeatured] = useState(existingPackage?.featured ?? false);
   const [sortOrder, setSortOrder] = useState(existingPackage?.sort_order?.toString() || "0");
@@ -159,13 +155,12 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
   }
 
   function getFinalPrice(): number {
+    // If flat_fee is set, use it as override (rare)
+    // Otherwise, calculate dynamically from deliverables
     if (flatFee) {
       return Number(flatFee);
     }
     const { totalPrice } = calculateTotals();
-    if (discountPercentage) {
-      return totalPrice * (1 - Number(discountPercentage) / 100);
-    }
     return totalPrice;
   }
 
@@ -189,9 +184,8 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
         tagline: tagline || null,
         description: description || null,
         category: category || null,
-        flatFee: flatFee ? Number(flatFee) : null,
-        flatHours: flatHours ? Number(flatHours) : null,
-        discountPercentage: discountPercentage ? Number(discountPercentage) : null,
+        flatFee: flatFee ? Number(flatFee) : null,  // NULL = dynamic pricing
+        flatHours: flatHours ? Number(flatHours) : null,  // NULL = dynamic hours
         active,
         featured,
         sortOrder: sortOrder ? Number(sortOrder) : 0,
@@ -495,20 +489,11 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
                 placeholder={`Auto: ${totalHours}h`}
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" htmlFor="discountPercentage">
-                Discount (%)
-              </label>
-              <input
-                id="discountPercentage"
-                type="number"
-                step="0.1"
-                value={discountPercentage}
-                onChange={(e) => setDiscountPercentage(e.target.value)}
-                className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
-                placeholder="e.g. 15"
-              />
-            </div>
+          </div>
+          
+          <div className="rounded bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 text-xs">
+            <strong>💡 Pricing Strategy:</strong> Leave Flat Fee & Hours <strong>empty</strong> for <strong>dynamic pricing</strong> (recommended).
+            Prices will calculate automatically from deliverables at base complexity (1.0x). Only set manual values for special cases.
           </div>
 
           {/* Final pricing preview */}

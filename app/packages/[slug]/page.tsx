@@ -1,6 +1,8 @@
 import { ensureSchema, getPool } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import PurchaseButton from "./PurchaseButton";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +17,8 @@ type Package = {
   description: string | null;
   category: string | null;
   tagline: string | null;
-  flat_fee: number | null;
-  flat_hours: number | null;
-  discount_percentage: number | null;
+  flat_fee: number | null;      // NULL = dynamic pricing (most packages)
+  flat_hours: number | null;    // NULL = dynamic hours (most packages)
   featured: boolean;
   deliverables: Array<{
     deliverableId: string;
@@ -35,6 +36,9 @@ type Package = {
 export default async function PackageDetailPage({ params }: PageProps) {
   await ensureSchema();
   const pool = getPool();
+  
+  // Check if user is logged in
+  const user = await getCurrentUser();
 
   const result = await pool.query(
     `
@@ -47,7 +51,6 @@ export default async function PackageDetailPage({ params }: PageProps) {
       sp.tagline,
       sp.flat_fee,
       sp.flat_hours,
-      sp.discount_percentage,
       sp.featured,
       COALESCE(
         json_agg(
@@ -60,7 +63,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
             'fixedPrice', d.fixed_price,
             'defaultEstimatePoints', d.default_estimate_points,
             'quantity', spd.quantity,
-            'complexityScore', COALESCE(spd.complexity_score, 2.5)
+            'complexityScore', COALESCE(spd.complexity_score, 1.0)
           ) ORDER BY spd.sort_order ASC, d.name ASC
         ) FILTER (WHERE d.id IS NOT NULL),
         '[]'
@@ -80,8 +83,8 @@ export default async function PackageDetailPage({ params }: PageProps) {
 
   const pkg: Package = result.rows[0];
 
-  // Calculate totals with complexity adjustments
-  // Complexity multiplier: (complexity_score / 2.5) where 2.5 is standard
+  // Calculate totals dynamically from deliverables (base complexity 1.0)
+  // Packages NEVER have stored flat_fee - always calculated from deliverables
   let totalHours = 0;
   let totalPrice = 0;
   let totalPoints = 0;
@@ -91,7 +94,8 @@ export default async function PackageDetailPage({ params }: PageProps) {
     const basePrice = d.fixedPrice ?? 0;
     const points = d.defaultEstimatePoints ?? 0;
     const qty = d.quantity ?? 1;
-    const complexityMultiplier = (d.complexityScore ?? 2.5) / 2.5;
+    // Base complexity is 1.0 (no adjustment)
+    const complexityMultiplier = d.complexityScore ?? 1.0;
     
     // Apply complexity adjustment to hours and price
     totalHours += baseHours * complexityMultiplier * qty;
@@ -99,15 +103,10 @@ export default async function PackageDetailPage({ params }: PageProps) {
     totalPoints += points * qty;
   });
 
-  const finalPrice = pkg.flat_fee ?? (pkg.discount_percentage != null
-    ? totalPrice * (1 - pkg.discount_percentage / 100)
-    : totalPrice);
-  const finalHours = pkg.flat_hours ?? totalHours;
-  const savings = pkg.flat_fee != null && totalPrice > pkg.flat_fee
-    ? totalPrice - pkg.flat_fee
-    : pkg.discount_percentage != null
-    ? totalPrice - finalPrice
-    : 0;
+  // Always use calculated values (no stored flat_fee)
+  const finalPrice = totalPrice;
+  const finalHours = totalHours;
+  const savings = 0; // No package discounts - accurate deliverable pricing
 
   return (
     <main className="min-h-screen font-[family-name:var(--font-geist-sans)]">
@@ -155,18 +154,12 @@ export default async function PackageDetailPage({ params }: PageProps) {
                 </>
               )}
             </div>
-            {savings > 0 && (
-              <p className="text-sm text-green-700 dark:text-green-400 mt-2">
-                💰 Save ${savings.toLocaleString()} vs. purchasing deliverables separately
-              </p>
-            )}
           </div>
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-lg bg-black text-white dark:bg-white dark:text-black px-8 py-4 text-lg font-medium hover:scale-105 transition-transform"
-          >
-            Get Started →
-          </Link>
+          <PurchaseButton 
+            packageSlug={pkg.slug} 
+            packageName={pkg.name}
+            isLoggedIn={!!user}
+          />
         </div>
       </section>
 
@@ -200,8 +193,8 @@ export default async function PackageDetailPage({ params }: PageProps) {
                     <div className="flex items-center gap-4 mt-3 text-xs opacity-70">
                       {d.fixedHours != null && (
                         <span>
-                          {(d.fixedHours * ((d.complexityScore ?? 2.5) / 2.5)).toFixed(1)}h
-                          {d.complexityScore !== 2.5 && (
+                          {(d.fixedHours * (d.complexityScore ?? 1.0)).toFixed(1)}h
+                          {d.complexityScore !== 1.0 && (
                             <span className="opacity-60"> (base: {d.fixedHours}h)</span>
                           )}
                         </span>
@@ -210,20 +203,20 @@ export default async function PackageDetailPage({ params }: PageProps) {
                         <>
                           <span>•</span>
                           <span>
-                            ${(d.fixedPrice * ((d.complexityScore ?? 2.5) / 2.5)).toLocaleString()}
-                            {d.complexityScore !== 2.5 && (
+                            ${(d.fixedPrice * (d.complexityScore ?? 1.0)).toLocaleString()}
+                            {d.complexityScore !== 1.0 && (
                               <span className="opacity-60"> (base: ${d.fixedPrice.toLocaleString()})</span>
                             )}
                           </span>
                         </>
                       )}
-                      {d.complexityScore !== 2.5 && (
+                      {d.complexityScore !== 1.0 && (
                         <>
                           <span>•</span>
                           <span className="font-medium">
-                            Complexity: {d.complexityScore}
-                            {d.complexityScore < 2.5 && " (simpler)"}
-                            {d.complexityScore > 2.5 && " (more complex)"}
+                            Complexity: {d.complexityScore}x
+                            {d.complexityScore < 1.0 && " (simpler)"}
+                            {d.complexityScore > 1.0 && " (more complex)"}
                           </span>
                         </>
                       )}
@@ -258,7 +251,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
               </thead>
               <tbody>
                 {pkg.deliverables.map((d, i) => {
-                  const complexityMultiplier = (d.complexityScore ?? 2.5) / 2.5;
+                  const complexityMultiplier = d.complexityScore ?? 1.0;
                   const adjustedHours = (d.fixedHours ?? 0) * complexityMultiplier * d.quantity;
                   const adjustedPrice = (d.fixedPrice ?? 0) * complexityMultiplier * d.quantity;
                   
@@ -266,9 +259,9 @@ export default async function PackageDetailPage({ params }: PageProps) {
                     <tr key={`${d.deliverableId}-${i}`} className="border-t border-black/10 dark:border-white/10">
                       <td className="px-4 py-3">
                         {d.name}
-                        {d.complexityScore !== 2.5 && (
+                        {d.complexityScore !== 1.0 && (
                           <span className="ml-2 text-xs opacity-60">
-                            (complexity: {d.complexityScore})
+                            ({d.complexityScore}x complexity)
                           </span>
                         )}
                       </td>
@@ -282,32 +275,126 @@ export default async function PackageDetailPage({ params }: PageProps) {
                     </tr>
                   );
                 })}
-                <tr className="border-t-2 border-black/20 dark:border-white/20 font-semibold">
-                  <td className="px-4 py-3">Subtotal</td>
-                  <td className="px-4 py-3"></td>
-                  <td className="px-4 py-3 text-right">{totalHours}h</td>
-                  <td className="px-4 py-3 text-right">${totalPrice.toLocaleString()}</td>
-                </tr>
-                {savings > 0 && (
-                  <tr className="text-green-700 dark:text-green-400">
-                    <td className="px-4 py-3">
-                      {pkg.discount_percentage != null
-                        ? `Package Discount (${pkg.discount_percentage}%)`
-                        : "Package Savings"}
-                    </td>
-                    <td className="px-4 py-3"></td>
-                    <td className="px-4 py-3"></td>
-                    <td className="px-4 py-3 text-right">-${savings.toLocaleString()}</td>
-                  </tr>
-                )}
                 <tr className="border-t-2 border-black/20 dark:border-white/20 font-bold text-lg">
                   <td className="px-4 py-3">Package Total</td>
                   <td className="px-4 py-3"></td>
-                  <td className="px-4 py-3 text-right">{finalHours}h</td>
+                  <td className="px-4 py-3 text-right">{finalHours.toFixed(1)}h</td>
                   <td className="px-4 py-3 text-right">${finalPrice.toLocaleString()}</td>
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      {/* What Happens Next */}
+      <section className="py-12 px-6 bg-gray-50 dark:bg-gray-900/30 border-y border-gray-200 dark:border-gray-800">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-2">What happens after you purchase?</h2>
+            <p className="text-sm opacity-70">5 simple steps to activate your sprint</p>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 text-sm">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold">
+                1
+              </div>
+              <div>
+                <h3 className="font-semibold">Review Draft Sprint Deliverables</h3>
+                <p className="text-xs opacity-70 mt-0.5">Check scope, prices, and timeline match your needs.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 text-sm">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold">
+                2
+              </div>
+              <div>
+                <h3 className="font-semibold">Confirm Deliverables with Studio</h3>
+                <p className="text-xs opacity-70 mt-0.5">Approve the draft sprint or request an optional 15-min discovery call.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 text-sm">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold">
+                3
+              </div>
+              <div>
+                <h3 className="font-semibold">Choose Your Kickoff Monday</h3>
+                <p className="text-xs opacity-70 mt-0.5">Select your preferred start date from available Mondays.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 text-sm">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold">
+                4
+              </div>
+              <div>
+                <h3 className="font-semibold">Sign Sprint Agreement</h3>
+                <p className="text-xs opacity-70 mt-0.5">Auto-generated with your deliverables, pricing, and schedule.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 text-sm">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold">
+                5
+              </div>
+              <div>
+                <h3 className="font-semibold">Pay 50% Deposit</h3>
+                <p className="text-xs opacity-70 mt-0.5">Secure your sprint slot (Stripe link provided).</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-gray-300 dark:border-gray-700 text-center">
+            <p className="text-sm font-semibold">
+              ✅ Once complete → Your Sprint Is Locked In
+            </p>
+            <p className="text-xs opacity-70 mt-1">
+              Kickoff starts on your scheduled Monday.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Week 1 Alignment Guarantee */}
+      <section className="py-12 px-6 bg-blue-50 dark:bg-blue-950/20 border-y border-blue-200 dark:border-blue-800">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 text-3xl">⭐</div>
+            <div className="space-y-3">
+              <h3 className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                Week 1 Alignment Guarantee
+              </h3>
+              <p className="text-sm sm:text-base text-blue-800 dark:text-blue-200 leading-relaxed">
+                We believe the most important part of any sprint is nailing the direction before execution. If at the end of Week 1 you feel we haven&apos;t aligned on a clear, confident solution direction — for any reason — you may choose to end the sprint.
+              </p>
+              <div className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+                <div className="flex items-start gap-2">
+                  <span className="flex-shrink-0">🔹</span>
+                  <span>No additional payment required</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="flex-shrink-0">🔹</span>
+                  <span>We retain the 50% deposit to cover Week 1 strategy, exploration, and direction work</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="flex-shrink-0">🔹</span>
+                  <span>You keep all Week 1 insights and artifacts</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="flex-shrink-0">🔹</span>
+                  <span>The sprint ends with no obligation to continue</span>
+                </div>
+              </div>
+              <p className="text-xs text-blue-700 dark:text-blue-300 opacity-80 italic pt-2">
+                This ensures you never feel &quot;locked in&quot; to a direction that isn&apos;t working — and it gives us strong incentives to nail Week 1 alignment.
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 opacity-80 pt-3">
+                Feel free to pick up where we left off by booking another sprint in the future with more insights or revised direction.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -319,12 +406,11 @@ export default async function PackageDetailPage({ params }: PageProps) {
           <p className="text-lg opacity-80 mb-8">
             Tell us about your project and we&apos;ll get you set up with this package.
           </p>
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-lg bg-black text-white dark:bg-white dark:text-black px-8 py-4 text-lg font-medium hover:scale-105 transition-transform"
-          >
-            Get Started with {pkg.name} →
-          </Link>
+          <PurchaseButton 
+            packageSlug={pkg.slug} 
+            packageName={pkg.name}
+            isLoggedIn={!!user}
+          />
         </div>
       </section>
     </main>

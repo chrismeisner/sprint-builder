@@ -51,7 +51,7 @@ export default function HowItWorksPage() {
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
               2
             </div>
-            <h3 className="text-2xl font-semibold">Review your draft sprint + Book kickoff</h3>
+            <h3 className="text-2xl font-semibold">Review your draft sprint & Book kickoff</h3>
           </div>
           <div className="pl-16 space-y-2">
             <p className="text-base opacity-80">
@@ -128,15 +128,26 @@ export default function HowItWorksPage() {
             <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">⛰️</span>
-                <h4 className="font-semibold">Week 1 Arc (M/W/F)</h4>
+                <h4 className="font-semibold">Week 1 Arc: Direction & Alignment</h4>
               </div>
-              <ul className="text-sm space-y-1 opacity-80">
-                <li>• <span className="font-medium">Monday:</span> Kickoff workshop + initial exploration begins</li>
-                <li>• <span className="font-medium">Wednesday:</span> First concepts shared, gather feedback</li>
-                <li>• <span className="font-medium">Friday:</span> Mid-week feedback incorporated, direction locked in</li>
+              <ul className="text-sm space-y-1.5 opacity-80">
+                <li>• <span className="font-medium">Day 1 (Monday):</span> Workshop with you for discovery and alignment</li>
+                <li>• <span className="font-medium">Day 2 (Tuesday):</span> Studio creates direction options for you to choose from</li>
+                <li>• <span className="font-medium">Day 3 (Wednesday):</span> Studio presents direction solutions for your review</li>
+                <li>• <span className="font-medium">Day 4 (Thursday):</span> Collect your feedback, refine directions based on input</li>
+                <li>• <span className="font-medium">Day 5 (Friday):</span> Direction locked and shared with you for weekend review</li>
               </ul>
               <p className="text-sm opacity-70 pt-2 border-t border-black/10 dark:border-white/15">
-                This &quot;uphill&quot; phase is about figuring things out—exploring options, testing ideas, and aligning on the best path forward before we commit.
+                This &quot;uphill&quot; phase is about figuring things out—exploring options, testing ideas, and aligning on the best path forward before we commit to building.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-4 text-sm space-y-2">
+              <p className="font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                <span>⭐</span> Week 1 Alignment Guarantee
+              </p>
+              <p className="text-blue-800 dark:text-blue-200 opacity-90">
+                If after Week 1 you feel we haven&apos;t aligned on a clear direction, you can stop the sprint with no additional payments. We keep the 50% deposit to cover the completed Week 1 work, and we both walk away — no hard feelings.
               </p>
             </div>
           </div>
@@ -148,34 +159,43 @@ export default function HowItWorksPage() {
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
               5
             </div>
-            <h3 className="text-2xl font-semibold">Week 2: Down the hill — Execution</h3>
+            <h3 className="text-2xl font-semibold">Week 2: Down the hill — Execution & Delivery</h3>
           </div>
           <div className="pl-16 space-y-4">
             <p className="text-base opacity-80">
-              The second half is <span className="font-semibold">convergence + build</span>. We implement the chosen direction, design final assets, build prototypes or visuals, and iterate tightly with your feedback. No re-scoping—just focused execution.
+              The second half is <span className="font-semibold">convergence + build</span>. We implement the chosen direction, design final assets, build prototypes or visuals, and refine based on your feedback. No re-scoping—just focused execution and delivery.
             </p>
             
             <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">🏁</span>
-                <h4 className="font-semibold">Week 2 Arc (M/W/F)</h4>
+                <h4 className="font-semibold">Week 2 Arc: Build & Delivery</h4>
               </div>
-              <ul className="text-sm space-y-1 opacity-80">
-                <li>• <span className="font-medium">Monday:</span> Implement chosen direction, refinement begins</li>
-                <li>• <span className="font-medium">Wednesday:</span> Final revisions, on-track checks</li>
-                <li>• <span className="font-medium">Friday:</span> Delivery ready—all files finalized and packaged</li>
+              <ul className="text-sm space-y-1.5 opacity-80">
+                <li>• <span className="font-medium">Day 6 (Monday):</span> Revisit deliverables from Day 1, map agreed solution to deliverables, align on execution path</li>
+                <li>• <span className="font-medium">Day 7 (Tuesday):</span> Studio heads down crafting the solution</li>
+                <li>• <span className="font-medium">Day 8 (Wednesday):</span> Progress review with you, all deliverables outlined, Q&A</li>
+                <li>• <span className="font-medium">Day 9 (Thursday):</span> Heads down refining assets and deliverables</li>
+                <li>• <span className="font-medium">Day 10 (Friday):</span> Final delivery, demo walkthrough, handoff complete</li>
               </ul>
               <p className="text-sm opacity-70 pt-2 border-t border-black/10 dark:border-white/15">
                 This &quot;downhill&quot; phase is about building, not re-thinking. We know what we&apos;re making and we execute with speed and polish.
               </p>
             </div>
 
+            <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-4 text-sm space-y-2">
+              <p className="font-medium text-blue-900 dark:text-blue-100">💡 Why Day 6 matters:</p>
+              <p className="text-blue-800 dark:text-blue-200 opacity-90">
+                After the weekend, we reconnect the abstract solution direction (locked on Day 5) back to the concrete deliverables we scoped on Day 1. This ensures the path forward is crystal clear—no ambiguity, just focused execution.
+              </p>
+            </div>
+
             <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 text-sm space-y-1">
               <p className="font-medium">Throughout the sprint:</p>
               <ul className="list-disc pl-5 space-y-1 opacity-80">
-                <li>Progress updates after each working day (M/W/F)</li>
+                <li>Regular progress check-ins (Days 3, 4, 5, 6, 8, 10)</li>
                 <li>Real-time access to work-in-progress via your client portal</li>
-                <li>Async Q&A (we respond within 24 hours)</li>
+                <li>Async communication—we respond within 24 hours</li>
                 <li>No daily standups or Slack babysitting required</li>
               </ul>
             </div>
@@ -188,7 +208,7 @@ export default function HowItWorksPage() {
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
               6
             </div>
-            <h3 className="text-2xl font-semibold">Final delivery + Handoff</h3>
+            <h3 className="text-2xl font-semibold">Final delivery & Handoff</h3>
           </div>
           <div className="pl-16 space-y-2">
             <p className="text-base opacity-80">
@@ -228,7 +248,7 @@ export default function HowItWorksPage() {
               <div className="text-3xl">⚡</div>
               <h3 className="font-semibold text-lg">Fast & Predictable</h3>
               <p className="text-sm opacity-80">
-                Pick your deliverables, book your kickoff Monday, and you&apos;re done in 2 weeks. 6 working days (M/W/F), fixed timeline, no delays.
+                Pick your deliverables, book your kickoff Monday, and you&apos;re done in 2 weeks. 10 working days, fixed timeline, no delays.
               </p>
             </div>
 
@@ -244,7 +264,7 @@ export default function HowItWorksPage() {
               <div className="text-3xl">🧘</div>
               <h3 className="font-semibold text-lg">Low Effort for You</h3>
               <p className="text-sm opacity-80">
-                One kickoff workshop, async updates M/W/F. No daily standups, no Slack babysitting. Check your portal when convenient.
+                One kickoff workshop, async collaboration with regular check-ins. No daily standups, no Slack babysitting. Check your portal when convenient.
               </p>
             </div>
           </div>

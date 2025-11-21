@@ -9,13 +9,13 @@ export async function GET(request: Request) {
     const includeInactive = searchParams.get("includeInactive") === "true";
     const rows = await pool.query(
       includeInactive
-        ? `SELECT id, name, description, category, default_estimate_points, fixed_hours, fixed_price, scope, active, created_at, updated_at
+        ? `SELECT id, name, description, category, deliverable_type, default_estimate_points, fixed_hours, fixed_price, scope, active, created_at, updated_at
            FROM deliverables
-           ORDER BY active DESC, name ASC`
-        : `SELECT id, name, description, category, default_estimate_points, fixed_hours, fixed_price, scope, active, created_at, updated_at
+           ORDER BY active DESC, deliverable_type ASC, name ASC`
+        : `SELECT id, name, description, category, deliverable_type, default_estimate_points, fixed_hours, fixed_price, scope, active, created_at, updated_at
            FROM deliverables
            WHERE active = true
-           ORDER BY name ASC`
+           ORDER BY deliverable_type ASC, name ASC`
     );
     return NextResponse.json({ deliverables: rows.rows });
   } catch (error: unknown) {

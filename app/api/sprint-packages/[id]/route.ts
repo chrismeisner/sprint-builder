@@ -26,7 +26,6 @@ export async function GET(request: Request, { params }: Params) {
         sp.tagline,
         sp.flat_fee,
         sp.flat_hours,
-        sp.discount_percentage,
         sp.active,
         sp.featured,
         sp.sort_order,
@@ -163,17 +162,6 @@ export async function PATCH(request: Request, { params }: Params) {
       }
       updates.push(`flat_hours = $${paramIndex++}`);
       values.push(hours);
-    }
-    if (discountPercentage !== undefined) {
-      let discount: number | null = null;
-      if (typeof discountPercentage === "number") {
-        discount = discountPercentage;
-      } else if (typeof discountPercentage === "string" && discountPercentage.trim()) {
-        const parsed = Number(discountPercentage);
-        if (!Number.isNaN(parsed)) discount = parsed;
-      }
-      updates.push(`discount_percentage = $${paramIndex++}`);
-      values.push(discount);
     }
     if (typeof active === "boolean") {
       updates.push(`active = $${paramIndex++}`);

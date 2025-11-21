@@ -5,7 +5,9 @@ import { randomBytes } from "crypto";
 /**
  * POST /api/admin/sprint-packages/seed
  * Seeds the database with 3 example sprint packages
- * Each package includes 1 workshop + 1-3 deliverables with fixed pricing
+ * Each package includes 2-3 execution deliverables (NO workshops)
+ * Workshops are generated separately by AI after sprint creation
+ * Pricing is ALWAYS calculated dynamically from deliverables (base complexity 1.0)
  */
 export async function POST() {
   try {
@@ -61,7 +63,6 @@ export async function POST() {
         featured: true,
         sort_order: 1,
         deliverables: [
-          "Sprint Kickoff Workshop - Branding",
           "Typography Scale + Wordmark Logo",
           "Brand Style Guide",
         ],
@@ -77,7 +78,6 @@ export async function POST() {
         featured: true,
         sort_order: 2,
         deliverables: [
-          "Sprint Kickoff Workshop - Product",
           "Landing Page (Marketing)",
           "Prototype - Level 1 (Basic)",
         ],
@@ -93,7 +93,6 @@ export async function POST() {
         featured: true,
         sort_order: 3,
         deliverables: [
-          "Sprint Kickoff Workshop - Startup",
           "Typography Scale + Wordmark Logo",
           "Social Media Template Kit",
           "Pitch Deck Template (Branded)",
@@ -105,28 +104,18 @@ export async function POST() {
 
     // Create each package
     for (const pkg of packages) {
-      // Calculate total price and hours from deliverables
-      let totalPrice = 0;
-      let totalHours = 0;
+      // Collect deliverables for linking (NO price/hours storage - always dynamic!)
       const packageDeliverables: Array<{
         id: string;
         name: string;
-        price: number;
-        hours: number;
       }> = [];
 
       for (const deliverableName of pkg.deliverables) {
         try {
           const del = findDeliverable(deliverableName);
-          const price = del.fixed_price || 0;
-          const hours = del.fixed_hours || 0;
-          totalPrice += price;
-          totalHours += hours;
           packageDeliverables.push({
             id: del.id,
             name: del.name,
-            price,
-            hours,
           });
         } catch (error) {
           console.error(
@@ -135,7 +124,7 @@ export async function POST() {
         }
       }
 
-      // Insert package
+      // Insert package with NULL flat_fee and flat_hours (always calculate dynamically)
       await pool.query(
         `INSERT INTO sprint_packages 
          (id, name, slug, description, tagline, category, flat_fee, flat_hours, active, featured, sort_order, created_at, updated_at)
@@ -147,15 +136,15 @@ export async function POST() {
           pkg.description,
           pkg.tagline,
           pkg.category,
-          totalPrice,
-          totalHours,
+          null, // flat_fee = NULL (always calculate)
+          null, // flat_hours = NULL (always calculate)
           pkg.active,
           pkg.featured,
           pkg.sort_order,
         ]
       );
 
-      // Link deliverables to package (with default complexity 2.5)
+      // Link deliverables to package (with base complexity 1.0)
       for (let i = 0; i < packageDeliverables.length; i++) {
         const del = packageDeliverables[i];
         const junctionId = `pkgdel-${randomBytes(8).toString("hex")}`;
@@ -163,7 +152,7 @@ export async function POST() {
           `INSERT INTO sprint_package_deliverables 
            (id, sprint_package_id, deliverable_id, quantity, sort_order, notes, complexity_score)
            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [junctionId, pkg.id, del.id, 1, i, null, 2.5]
+          [junctionId, pkg.id, del.id, 1, i, null, 1.0]
         );
       }
 

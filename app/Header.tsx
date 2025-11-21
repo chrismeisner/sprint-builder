@@ -19,10 +19,22 @@ export default async function Header() {
         <div className="flex items-center gap-4">
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <Link
+              href="/our-approach"
+              className="transition-colors hover:text-black/80 dark:hover:text-white/80"
+            >
+              Our Approach
+            </Link>
+            <Link
               href="/how-it-works"
               className="transition-colors hover:text-black/80 dark:hover:text-white/80"
             >
               How It Works
+            </Link>
+            <Link
+              href="/packages"
+              className="transition-colors hover:text-black/80 dark:hover:text-white/80"
+            >
+              Packages
             </Link>
           </nav>
           
