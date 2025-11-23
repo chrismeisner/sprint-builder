@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
-      "User-Agent": "form-intake/0.1.0",
+      "User-Agent": "form-intake/0.1.1",
       "Idempotency-Key": requestId,
     };
     if (openaiProject) headers["OpenAI-Project"] = openaiProject;
