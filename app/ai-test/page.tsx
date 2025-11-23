@@ -66,8 +66,9 @@ export default function AiTestPage() {
         type="button"
         onClick={handleSend}
         disabled={loading}
-        className="rounded-md bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-md bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
       >
+        <span className="text-xs font-bold">AI</span>
         {loading ? "Sending..." : "Send test"}
       </button>
 

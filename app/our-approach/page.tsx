@@ -1,4 +1,5 @@
 import Link from "next/link";
+import FoundationPackagesPreview from "@/app/components/FoundationPackagesPreview";
 
 export const dynamic = "force-static";
 
@@ -12,10 +13,13 @@ export default function OurApproachPage() {
             The Switchback Method
           </div>
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight">
-            Build your big idea in sustainable, strategic 2-week climbs
+            Foundation first. Then extend &amp; iterate with purpose.
           </h1>
           <p className="text-xl sm:text-2xl opacity-80 max-w-3xl mx-auto">
             Big agencies try to take you straight up the mountain: slow at the beginning, frantic at the end, and exhausting for everyone. We take a different approach—one that matches how great products actually get built.
+          </p>
+          <p className="text-base sm:text-lg opacity-70 max-w-3xl mx-auto">
+            Every client starts with a 2-week Brand or Product Foundation Sprint. That sprint gives us the strategic workshop, core deliverables, and shared source of truth we need to move fast. Once it’s locked, you can book Extend &amp; Iterate sprints (also 2 weeks) whenever you need new momentum—no repeat discovery.
           </p>
         </div>
       </section>
@@ -35,8 +39,53 @@ export default function OurApproachPage() {
             Each switchback is a focused, 2-week sprint with a clear destination, real deliverables, and zero chaos.
           </p>
           <p className="text-base opacity-70">
-            Instead of trying to scale straight up (exhausting, risky, unsustainable), we take the proven path: strategic switchbacks that let you make real progress, catch your breath, and choose your next move.
+            Instead of trying to scale straight up (exhausting, risky, unsustainable), we start with a Foundation Sprint to set direction, then take strategic switchbacks that let you make real progress, catch your breath, and choose your next move.
           </p>
+        </div>
+      </section>
+
+      {/* Foundation First Explanation */}
+      <section className="bg-black/5 dark:bg-white/5 py-16 px-6 border-y border-black/10 dark:border-white/15">
+        <div className="max-w-5xl mx-auto space-y-10">
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center rounded-full bg-white dark:bg-black px-4 py-1 text-xs font-semibold uppercase tracking-wide">
+              2-phase engagement model
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold">Foundation → Extend &amp; Iterate</h2>
+            <p className="text-base sm:text-lg opacity-70 max-w-3xl mx-auto">
+              The Foundation Sprint is your entry ticket. It captures strategy, brand/product direction, and source-of-truth documentation that every future sprint references. After that, you can stack Extend &amp; Iterate sprints as often as you need without repeating discovery.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 space-y-3">
+              <p className="text-sm font-semibold text-black/70 dark:text-white/70 uppercase tracking-wide">
+                Phase 1
+              </p>
+              <h3 className="text-2xl font-bold">Brand or Product Foundation</h3>
+              <p className="text-sm opacity-80">
+                2-week sprint with a strategic workshop, core deliverables, and alignment artifacts. Required for every new client so we never guess in the dark again.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 space-y-3">
+              <p className="text-sm font-semibold text-black/70 dark:text-white/70 uppercase tracking-wide">
+                Phase 1 Output
+              </p>
+              <h3 className="text-2xl font-bold">Reusable Source of Truth</h3>
+              <p className="text-sm opacity-80">
+                Workshop recordings, decision logs, brand/product guidelines, and prioritized backlog. These sit inside your client portal for every future sprint.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 space-y-3">
+              <p className="text-sm font-semibold text-black/70 dark:text-white/70 uppercase tracking-wide">
+                Phase 2 (repeatable)
+              </p>
+              <h3 className="text-2xl font-bold">Extend &amp; Iterate Sprints</h3>
+              <p className="text-sm opacity-80">
+                Additional 2-week sprints you can book on-demand for launches, features, and refreshes. Kick off with a 1-hour Mini Foundation session, then we execute.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -59,7 +108,7 @@ export default function OurApproachPage() {
                 Instead of a huge 12-week agency engagement with hidden timelines and surprise pivots, you get 2 focused weeks, a clear deliverable, a rest point to reflect, and the option to climb again when ready.
               </p>
               <p className="text-sm opacity-70 pt-2 border-t border-black/10 dark:border-white/15">
-                This keeps momentum high without burning your team out.
+                Foundation first keeps the plan grounded, then Extend &amp; Iterate sprints add momentum without burning your team out.
               </p>
             </div>
 
@@ -183,7 +232,7 @@ export default function OurApproachPage() {
         <div className="text-center space-y-2">
           <h2 className="text-3xl font-bold">How a switchback sprint works</h2>
           <p className="text-lg opacity-70">
-            Six steps from planning to summit (delivery)
+            Six steps from Foundation Sprint kickoff to Extend &amp; Iterate momentum
           </p>
         </div>
 
@@ -193,11 +242,11 @@ export default function OurApproachPage() {
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
               1
             </div>
-            <h3 className="text-2xl font-semibold">Map your mountain</h3>
+            <h3 className="text-2xl font-semibold">Design your Foundation Sprint</h3>
           </div>
           <div className="pl-16 space-y-2">
             <p className="text-base opacity-80">
-              Start with our quick intake. Tell us your goals, your current stage, and what you&apos;re trying to build. We turn that into a tailored 2-week sprint plan—scope, deliverables, pricing, everything.
+              Start with our quick intake. Tell us your goals, your current stage, and what you&apos;re trying to build. We turn that into a tailored 2-week sprint plan—scope, deliverables, pricing, everything—aligned to either Brand or Product Foundations.
             </p>
             <p className="text-sm opacity-60 italic">
               This is like studying the mountain before you climb. Where do you want to go? What&apos;s the best route?
@@ -211,14 +260,14 @@ export default function OurApproachPage() {
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
               2
             </div>
-            <h3 className="text-2xl font-semibold">Choose your next switchback</h3>
+            <h3 className="text-2xl font-semibold">Book your Foundation Sprint kickoff</h3>
           </div>
           <div className="pl-16 space-y-2">
             <p className="text-base opacity-80">
-              Review your proposed sprint and pick your kickoff Monday. This becomes the next ledge in your climb—a clear, achievable 2-week ascent.
+              Review your proposed foundation sprint, select your kickoff Monday, and lock in with a 50% deposit. This becomes the first ledge in your climb—a clear, achievable 2-week ascent.
             </p>
             <p className="text-sm opacity-60 italic">
-              Book your start date, pay 50% deposit, and you&apos;re locked in. Your path is set.
+              Once the Foundation Sprint is booked, every future Extend &amp; Iterate sprint references the same plan.
             </p>
           </div>
         </div>
@@ -316,19 +365,19 @@ export default function OurApproachPage() {
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
               6
             </div>
-            <h3 className="text-2xl font-semibold">Rest, reflect, or climb again</h3>
+            <h3 className="text-2xl font-semibold">Rest, then Extend &amp; Iterate</h3>
           </div>
           <div className="pl-16 space-y-2">
             <p className="text-base opacity-80">
               Take as long as you need. Test your deliverables with users. Get team feedback. Secure funding. Plan your next move.
             </p>
             <p className="text-base opacity-80 font-medium">
-              When you&apos;re ready for the next part of the mountain, book your next switchback sprint.
+              When you&apos;re ready for the next part of the mountain, book an Extend &amp; Iterate sprint. We kick off with a 1-hour Mini Foundation session, reference your original strategy, and ship another 2-week climb.
             </p>
             <div className="rounded-lg border-2 border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 text-sm space-y-2">
               <p className="font-medium">This is the strategic advantage:</p>
               <p className="opacity-80">
-                Instead of locking into a 3-month agency contract, you climb in 2-week increments. Sprint → digest feedback → sprint → test with users → sprint → fundraise → sprint.
+                Instead of locking into a 3-month agency contract, you climb in 2-week increments. Foundation → sprint → digest feedback → sprint → test with users → sprint → fundraise → sprint.
               </p>
               <p className="opacity-70 italic">
                 You control the pace. We make each climb count.
@@ -357,6 +406,11 @@ export default function OurApproachPage() {
               <h3 className="font-semibold text-lg">Example journey:</h3>
               <div className="space-y-3 pl-4 border-l-2 border-black/20 dark:border-white/20">
                 <div className="space-y-1">
+                  <p className="font-medium">Foundation Sprint (Required)</p>
+                  <p className="text-sm opacity-70">Brand or Product workshop + core deliverables + source-of-truth documentation</p>
+                  <p className="text-xs opacity-60 italic">→ Sets direction once. Every Extend &amp; Iterate sprint references this groundwork.</p>
+                </div>
+                <div className="space-y-1">
                   <p className="font-medium">Sprint 1: Brand Identity</p>
                   <p className="text-sm opacity-70">Logo, colors, typography, brand guidelines</p>
                   <p className="text-xs opacity-60 italic">→ Rest: 2 weeks. Test brand with early users, finalize messaging.</p>
@@ -381,7 +435,7 @@ export default function OurApproachPage() {
 
             <div className="pt-4 border-t border-black/10 dark:border-white/15">
               <p className="text-sm opacity-70">
-                <span className="font-medium">This is how great products get built:</span> in focused bursts with time to breathe, test, and learn. Not endless agency cycles. Not rushed freelancer chaos. Strategic switchbacks.
+                <span className="font-medium">This is how great products get built:</span> in focused bursts with time to breathe, test, and learn. Not endless agency cycles. Not rushed freelancer chaos. Start with a Foundation Sprint, then use Extend &amp; Iterate switchbacks whenever you need another leap.
               </p>
             </div>
           </div>
@@ -432,32 +486,38 @@ export default function OurApproachPage() {
         </div>
       </section>
 
+      <FoundationPackagesPreview
+        heading="Foundation sprint previews"
+        description="See the two foundation sprint options we use to kick off every engagement before stacking follow-on sprints."
+        ctaLabel="view all foundation packages"
+        limit={2}
+      />
+
       {/* CTA */}
       <section className="bg-black/5 dark:bg-white/5 py-16 px-6">
         <div className="max-w-4xl mx-auto text-center space-y-6">
           <h2 className="text-3xl font-bold">Ready to start your climb?</h2>
           <p className="text-lg opacity-80 max-w-2xl mx-auto">
-            Design your first switchback sprint. Pick your kickoff Monday. Start building.
+            Kick off with a Brand or Product Foundation Sprint, then plug in deliverables and Extend &amp; Iterate sprints whenever you need more momentum.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/packages"
               className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-6 py-3 font-semibold hover:opacity-90 transition"
             >
-              Browse sprint packages →
+              View Foundation Packages →
             </Link>
             <Link
-              href="https://form.typeform.com/to/eEiCy7Xj"
-              target="_blank"
+              href="/deliverables"
               className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
             >
-              Start custom intake
+              Browse deliverables
             </Link>
             <Link
-              href="/how-it-works"
-              className="inline-flex items-center text-sm underline hover:opacity-80 transition"
+              href="/intake"
+              className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
             >
-              See detailed process →
+              Plan Extend &amp; Iterate sprint
             </Link>
           </div>
           <p className="text-sm opacity-60 pt-4">

@@ -31,6 +31,12 @@ export default async function Header() {
               How It Works
             </Link>
             <Link
+              href="/deliverables"
+              className="transition-colors hover:text-black/80 dark:hover:text-white/80"
+            >
+              Deliverables
+            </Link>
+            <Link
               href="/packages"
               className="transition-colors hover:text-black/80 dark:hover:text-white/80"
             >

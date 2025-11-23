@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import DeliverablesEditor from "./DeliverablesEditor";
 import SprintTotals from "./SprintTotals";
-import WorkshopSection from "./WorkshopSection";
 import AdminStatusChanger from "./AdminStatusChanger";
+import { SPRINT_WEEKS, ENGAGEMENT_BADGES } from "@/lib/sprintProcess";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +20,11 @@ export default async function SprintDetailPage({ params }: PageProps) {
   // Get current user if logged in
   const currentUser = await getCurrentUser();
   
-  // Fetch sprint with document info including account_id, email, and workshop data
+  // Fetch sprint with document info including account_id and email
   const result = await pool.query(
     `SELECT sd.id, sd.document_id, sd.ai_response_id, sd.draft, sd.status, sd.title,
             sd.deliverable_count, sd.total_estimate_points, sd.total_fixed_hours, sd.total_fixed_price, 
             sd.created_at, sd.updated_at,
-            sd.workshop_agenda, sd.workshop_generated_at, sd.workshop_ai_response_id,
             d.email, d.account_id
      FROM sprint_drafts sd
      JOIN documents d ON sd.document_id = d.id
@@ -50,9 +49,6 @@ export default async function SprintDetailPage({ params }: PageProps) {
     updated_at: string | Date | null;
     email: string | null;
     account_id: string | null;
-    workshop_agenda: unknown;
-    workshop_generated_at: string | Date | null;
-    workshop_ai_response_id: string | null;
   };
   
   // Check if current user owns this sprint
@@ -177,11 +173,13 @@ export default async function SprintDetailPage({ params }: PageProps) {
         .map((it): TimelineItem => {
           if (!isObject(it)) return {};
           const o = it as Record<string, unknown>;
+          const items = asStringArray(o.items);
+          const tasks = asStringArray((o as Record<string, unknown>).tasks);
           return {
             day: typeof o.day === "number" || typeof o.day === "string" ? (o.day as number | string) : undefined,
             dayOfWeek: typeof o.dayOfWeek === "string" ? o.dayOfWeek : undefined,
             focus: typeof o.focus === "string" ? o.focus : undefined,
-            items: asStringArray(o.items),
+            items: items.length > 0 ? items : tasks,
           };
         })
         .filter((x) => isObject(x)),
@@ -402,143 +400,66 @@ export default async function SprintDetailPage({ params }: PageProps) {
         />
       )}
 
-      {/* Sprint Approach */}
-      {plan.approach && (
-        <div className="rounded-lg border border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950 p-4">
-          <h2 className="text-lg font-semibold mb-3">Sprint Approach</h2>
-          <p className="text-sm whitespace-pre-wrap leading-relaxed">{plan.approach}</p>
+      <section className="rounded-lg border border-black/10 dark:border-white/15 p-5 space-y-8 bg-black/5 dark:bg-white/5">
+        <div className="space-y-2">
+          <div className="inline-flex items-center rounded-full bg-black/10 dark:bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-black/70 dark:text-white/60">
+            Same 10-day sprint playbook
+          </div>
+          <h2 className="text-xl font-bold">Uphill → Downhill cadence</h2>
+          <p className="text-sm opacity-80">
+            Every sprint we run follows this exact cadence so you always know when we need you live, when feedback is optional, and when the studio
+            is heads down making progress.
+          </p>
         </div>
-      )}
 
-      {/* Workshop Section */}
-      <WorkshopSection
-        sprintId={row.id}
-        sprintStatus={row.status || "draft"}
-        workshopAgenda={row.workshop_agenda as Record<string, unknown> | null}
-        workshopGeneratedAt={row.workshop_generated_at ? new Date(row.workshop_generated_at).toISOString() : null}
-        isAdmin={currentUser?.isAdmin === true}
-      />
+        <div className="space-y-10">
+          {SPRINT_WEEKS.map((week) => (
+            <div key={week.id} className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl">{week.icon}</div>
+                  <div>
+                    <h3 className="text-lg font-semibold">{week.title}</h3>
+                    <p className="text-sm opacity-70 mt-0.5">{week.summary}</p>
+                  </div>
+                </div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 rounded-full px-3 py-1 self-start">
+                  {week.highlight}
+                </div>
+              </div>
 
-      {/* Week 1 & Week 2 Breakdown */}
-      {(plan.week1 || plan.week2) && (
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Week 1 */}
-          {plan.week1 && (
-            <div className="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950 p-4">
-              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold">
-                  1
-                </span>
-                Week 1
-              </h2>
-              
-              {plan.week1.overview && (
-                <div className="mb-4">
-                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Overview</h3>
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{plan.week1.overview}</p>
-                </div>
-              )}
-              
-              {plan.week1.goals && plan.week1.goals.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Goals</h3>
-                  <ul className="list-disc pl-5 space-y-1 text-sm">
-                    {plan.week1.goals.map((g, i) => (
-                      <li key={`w1-goal-${i}`}>{g}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-              {plan.week1.deliverables && plan.week1.deliverables.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Deliverables</h3>
-                  <ul className="space-y-1 text-sm">
-                    {plan.week1.deliverables.map((d, i) => (
-                      <li key={`w1-del-${i}`} className="flex items-start gap-2">
-                        <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-                        <span>{d}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-              {plan.week1.milestones && plan.week1.milestones.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Milestones</h3>
-                  <ul className="space-y-1 text-sm">
-                    {plan.week1.milestones.map((m, i) => (
-                      <li key={`w1-ms-${i}`} className="flex items-start gap-2">
-                        <span className="text-blue-600 dark:text-blue-400 mt-0.5">🎯</span>
-                        <span>{m}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <div className="grid md:grid-cols-2 gap-3">
+                {week.days.map((day) => {
+                  const badge = day.engagement ? ENGAGEMENT_BADGES[day.engagement.variant] : null;
+                  return (
+                    <div
+                      key={day.day}
+                      className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-gray-950 p-4 space-y-2 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-black/60 dark:text-white/60">
+                          {day.day}
+                        </p>
+                        {badge && (
+                          <span
+                            className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wide rounded-full px-3 py-1 border ${badge.classes}`}
+                          >
+                            <span className="mr-1">{badge.icon}</span>
+                            {day.engagement!.label}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-base font-semibold">{day.title}</h4>
+                      <p className="text-sm opacity-80">{day.detail}</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          )}
-          
-          {/* Week 2 */}
-          {plan.week2 && (
-            <div className="rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950 p-4">
-              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-600 text-white text-xs font-bold">
-                  2
-                </span>
-                Week 2
-              </h2>
-              
-              {plan.week2.overview && (
-                <div className="mb-4">
-                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Overview</h3>
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{plan.week2.overview}</p>
-                </div>
-              )}
-              
-              {plan.week2.goals && plan.week2.goals.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Goals</h3>
-                  <ul className="list-disc pl-5 space-y-1 text-sm">
-                    {plan.week2.goals.map((g, i) => (
-                      <li key={`w2-goal-${i}`}>{g}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-              {plan.week2.deliverables && plan.week2.deliverables.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Deliverables</h3>
-                  <ul className="space-y-1 text-sm">
-                    {plan.week2.deliverables.map((d, i) => (
-                      <li key={`w2-del-${i}`} className="flex items-start gap-2">
-                        <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-                        <span>{d}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-              {plan.week2.milestones && plan.week2.milestones.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold uppercase opacity-70 mb-2">Milestones</h3>
-                  <ul className="space-y-1 text-sm">
-                    {plan.week2.milestones.map((m, i) => (
-                      <li key={`w2-ms-${i}`} className="flex items-start gap-2">
-                        <span className="text-orange-600 dark:text-orange-400 mt-0.5">🎯</span>
-                        <span>{m}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
+          ))}
         </div>
-      )}
+      </section>
+
 
       <section className="space-y-6">
         {/* Show editable deliverables if draft and owned by user */}

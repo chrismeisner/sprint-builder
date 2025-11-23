@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 
 type Package = {
@@ -30,8 +29,6 @@ type Props = {
 };
 
 export default function PackagesClient({ packages }: Props) {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
   // Calculate package totals dynamically from deliverables (base complexity 1.0)
   function calculatePackageTotal(pkg: Package): { hours: number; price: number } {
     let totalHours = 0;
@@ -51,105 +48,47 @@ export default function PackagesClient({ packages }: Props) {
     return { hours: totalHours, price: totalPrice };
   }
 
-  // Get unique categories
-  const categories = Array.from(new Set(packages.map((p) => p.category).filter(Boolean)));
-
-  // Filter packages by category
-  const filteredPackages =
-    selectedCategory === null
-      ? packages
-      : packages.filter((p) => p.category === selectedCategory);
-
-  const featuredPackages = filteredPackages.filter((p) => p.featured);
-  const regularPackages = filteredPackages.filter((p) => !p.featured);
-
   return (
     <main className="min-h-screen">
       {/* Hero Section */}
       <section className="bg-black dark:bg-white text-white dark:text-black py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Sprint Packages</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Foundation Packages</h1>
           <p className="text-xl opacity-90 mb-8">
-            Pre-packaged 2-week sprints with accurate, transparent pricing. Get started fast with clarity and
-            confidence.
+            Two clear entry points for new clients. Both start with our 3-hour Foundation Workshop, then diverge into Brand or Product execution.
           </p>
           <Link
             href="/"
             className="inline-flex items-center rounded-md bg-white dark:bg-black text-black dark:text-white px-6 py-3 text-sm font-medium hover:opacity-90 transition"
           >
-            Start Your Project
+            Back to Home
           </Link>
         </div>
       </section>
 
-      {/* Category Filter */}
-      {categories.length > 0 && (
-        <section className="border-b border-black/10 dark:border-white/15 py-4 px-6">
-          <div className="max-w-6xl mx-auto flex items-center gap-3 flex-wrap">
-            <span className="text-sm font-medium">Filter:</span>
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={
-                selectedCategory === null
-                  ? "inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-3 py-1 text-sm transition"
-                  : "inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
-              }
-            >
-              All
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={
-                  selectedCategory === cat
-                    ? "inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-3 py-1 text-sm transition"
-                    : "inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
-                }
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Featured Packages */}
-      {featuredPackages.length > 0 && (
-        <section className="py-12 px-6 bg-black/[0.02] dark:bg-white/[0.02]">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <span>⭐</span> Featured Packages
-            </h2>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {featuredPackages.map((pkg) => (
-                <PackageCard key={pkg.id} pkg={pkg} featured />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* All Packages */}
+      {/* Foundation Packages */}
       <section className="py-12 px-6">
         <div className="max-w-6xl mx-auto">
-          {featuredPackages.length > 0 && (
-            <h2 className="text-2xl font-bold mb-6">All Packages</h2>
-          )}
-          {filteredPackages.length === 0 ? (
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Choose Your Foundation</h2>
+            <p className="text-base sm:text-lg opacity-70 max-w-2xl mx-auto">
+              Every new client begins with the same Foundation Workshop (3 hours) to align on goals and strategy. Then we diverge into your chosen track.
+            </p>
+          </div>
+          {packages.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-lg opacity-70 mb-4">No packages available yet.</p>
               <Link
                 href="/"
                 className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
               >
-                Contact us for a custom sprint
+                Back to home
               </Link>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {regularPackages.map((pkg) => (
-                <PackageCard key={pkg.id} pkg={pkg} featured={false} />
+            <div className="grid gap-8 md:grid-cols-2 max-w-5xl mx-auto">
+              {packages.map((pkg) => (
+                <PackageCard key={pkg.id} pkg={pkg} featured={pkg.featured} />
               ))}
             </div>
           )}
@@ -157,29 +96,29 @@ export default function PackagesClient({ packages }: Props) {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-black dark:bg-white text-white dark:text-black py-16 px-6">
+      <section className="bg-black/[0.02] dark:bg-white/[0.02] py-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to get started?</h2>
-          <p className="text-lg opacity-90 mb-2">
-            Choose a package or tell us about your project for a custom sprint plan.
+          <h2 className="text-3xl font-bold mb-4">Already a client?</h2>
+          <p className="text-base sm:text-lg opacity-80 mb-8">
+            Looking for iteration or expansion sprints? Request specific deliverables for your follow-on project.
           </p>
-          <p className="text-sm opacity-75 mb-8">
-            After selecting, you&apos;ll complete a 5-step checklist to activate your sprint (takes ~10 minutes).
-          </p>
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/"
-              className="inline-flex items-center rounded-md bg-white dark:bg-black text-black dark:text-white px-6 py-3 text-sm font-medium hover:opacity-90 transition"
+              href="/intake"
+              className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-6 py-3 text-sm font-medium hover:opacity-90 transition"
             >
-              Start Your Project
+              Submit intake form →
             </Link>
             <Link
               href="/how-it-works"
-              className="inline-flex items-center rounded-md border border-white/15 dark:border-black/15 text-white dark:text-black px-6 py-3 text-sm font-medium hover:bg-white/10 dark:hover:bg-black/10 transition"
+              className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 transition"
             >
-              Learn More
+              How it works
             </Link>
           </div>
+          <p className="text-xs sm:text-sm opacity-60 mt-6 max-w-lg mx-auto">
+            All follow-on sprints begin with a Mini Foundation Workshop (1 hour) to quickly realign and confirm deliverables.
+          </p>
         </div>
       </section>
     </main>

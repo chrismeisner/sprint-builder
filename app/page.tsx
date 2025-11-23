@@ -25,13 +25,21 @@ type Package = {
 
 // Emoji map for deliverable types
 const deliverableEmojis: Record<string, string> = {
+  'Foundation Workshop': '🎯',
+  'Mini Foundation Workshop': '⚡',
   'Sprint Kickoff Workshop': '🎯',
   'Wordmark Logo': '✏️',
+  'Typography Scale + Wordmark Logo': '✏️',
   'Brand Style Guide': '📋',
   'Landing Page': '🚀',
+  'Landing Page (Marketing)': '🚀',
   'Working Prototype': '💻',
+  'Prototype - Level 1 (Basic)': '💻',
   'Social Media Kit': '📱',
+  'Social Media Template Kit': '📱',
   'Pitch Deck': '📊',
+  'Pitch Deck Template (Branded)': '📊',
+  'UX Audit + Recommendations': '🔍',
 };
 
 function getDeliverableEmoji(name: string): string {
@@ -42,7 +50,7 @@ export default async function Home() {
   await ensureSchema();
   const pool = getPool();
 
-  // Fetch the three featured packages for the homepage
+  // Fetch the two featured foundation packages for the homepage
   const result = await pool.query(`
     SELECT 
       sp.id,
@@ -71,14 +79,10 @@ export default async function Home() {
     LEFT JOIN sprint_package_deliverables spd ON sp.id = spd.sprint_package_id
     LEFT JOIN deliverables d ON spd.deliverable_id = d.id AND d.active = true
     WHERE sp.active = true 
-      AND sp.slug IN ('brand-identity-sprint', 'mvp-launch-sprint', 'startup-branding-sprint')
+      AND sp.featured = true
+      AND sp.slug IN ('branding-foundations-sprint', 'product-foundations-sprint')
     GROUP BY sp.id
-    ORDER BY 
-      CASE sp.slug 
-        WHEN 'brand-identity-sprint' THEN 1
-        WHEN 'mvp-launch-sprint' THEN 2
-        WHEN 'startup-branding-sprint' THEN 3
-      END
+    ORDER BY sp.sort_order ASC
   `);
 
   const packages: Package[] = result.rows;
@@ -106,25 +110,39 @@ export default async function Home() {
       {/* Hero Section */}
       <section className="min-h-[60vh] grid place-items-center p-6">
         <div className="text-center space-y-6 max-w-2xl mx-auto">
+          <div className="inline-flex items-center rounded-full bg-black/5 dark:bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-black/70 dark:text-white/70">
+            Foundation Sprint → Extend &amp; Iterate Sprints
+          </div>
           <h1 className="text-huge font-gt-compressed-black">
             LET&apos;S BUILD
           </h1>
           <p className="text-lg sm:text-xl opacity-80">
             Turn your vision into a structured 2-week sprint—no endless meetings, no scope creep, just results.
           </p>
+          <p className="text-base opacity-70 max-w-xl mx-auto">
+            Start with a Brand or Product Foundation Sprint. We run a strategic workshop, ship your core deliverables in 10 working days, and create the source of truth for every build that follows.
+          </p>
+          <p className="text-sm sm:text-base opacity-70 max-w-xl mx-auto">
+            Once your foundation is locked, you can book Extend &amp; Iterate sprints (also 2 weeks) whenever you need a launch, feature, or refresh—no repeat discovery.
+          </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
-              href="/how-it-works"
+              href="#foundation-packages"
               className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-6 py-3 font-semibold hover:opacity-90 transition"
+            >
+              View Foundation Packages
+            </Link>
+            <Link
+              href="/how-it-works"
+              className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
             >
               How it works
             </Link>
             <Link
-              href="https://form.typeform.com/to/eEiCy7Xj"
-              target="_blank"
+              href="#extend-iterate"
               className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
             >
-              Start your sprint →
+              Extend &amp; Iterate
             </Link>
           </div>
         </div>
@@ -206,21 +224,21 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Sample Sprints */}
-      <section className="max-w-6xl mx-auto px-6 py-16">
+      {/* Foundation Packages - Primary CTAs */}
+      <section id="foundation-packages" className="max-w-6xl mx-auto px-6 py-16">
         <div className="text-center space-y-3 mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Sample sprints
+            Start with a Foundation Sprint
           </h2>
           <p className="text-base sm:text-lg opacity-70 max-w-2xl mx-auto">
-            Ready-to-go packages with fixed pricing, or{" "}
-            <Link href="https://form.typeform.com/to/eEiCy7Xj" target="_blank" className="font-medium underline hover:opacity-90 transition">
-              customize your own
-            </Link>
+            Every new client begins with our Foundation Workshop—strategic alignment that sets the direction for your entire sprint.
+          </p>
+          <p className="text-sm sm:text-base opacity-60 max-w-2xl mx-auto">
+            Complete Brand or Product Foundations in 2 weeks, then unlock Extend &amp; Iterate sprints so you can keep building without redoing discovery.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 gap-8 mb-12">
           {packages.map((pkg) => {
             const { price, hours } = calculatePackageTotal(pkg);
             
@@ -228,54 +246,93 @@ export default async function Home() {
               <Link 
                 key={pkg.id}
                 href={`/packages/${pkg.slug}`}
-                className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 space-y-4 hover:border-black/20 dark:hover:border-white/25 hover:shadow-lg transition"
+                className="rounded-lg border-2 border-black/10 dark:border-white/15 bg-white dark:bg-black p-8 space-y-6 hover:border-black/30 dark:hover:border-white/30 hover:shadow-xl transition"
               >
-                <div className="space-y-2">
-                  <h3 className="text-xl font-semibold">{pkg.name}</h3>
-                  <p className="text-sm opacity-70">
-                    {pkg.tagline || pkg.description}
+                <div className="space-y-3">
+                  <h3 className="text-2xl font-bold">{pkg.name}</h3>
+                  <p className="text-base opacity-80 leading-relaxed">
+                    {pkg.description}
                   </p>
                 </div>
                 
-                <div className="space-y-2 text-sm">
-                  <div className="font-medium opacity-90">Includes:</div>
-                  <div className="space-y-1 opacity-80">
-                    {pkg.deliverables.slice(0, 4).map((deliverable, idx) => (
+                <div className="space-y-3 text-sm">
+                  <div className="font-semibold opacity-90">What you get:</div>
+                  <div className="space-y-2 opacity-80">
+                    {pkg.deliverables.map((deliverable, idx) => (
                       <div key={`${deliverable.deliverableId}-${idx}`} className="flex items-start gap-2">
-                        <span className="text-xs mt-0.5">{getDeliverableEmoji(deliverable.name)}</span>
+                        <span className="text-base mt-0.5">{getDeliverableEmoji(deliverable.name)}</span>
                         <span>
                           {deliverable.name}
                           {deliverable.quantity > 1 && ` (×${deliverable.quantity})`}
                         </span>
                       </div>
                     ))}
-                    {pkg.deliverables.length > 4 && (
-                      <div className="text-xs opacity-60 pl-5">
-                        + {pkg.deliverables.length - 4} more
-                      </div>
-                    )}
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-black/10 dark:border-white/15">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold">${price.toLocaleString()}</span>
-                    <span className="text-xs opacity-60">fixed</span>
+                <div className="pt-6 border-t border-black/10 dark:border-white/15">
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-3xl font-bold">${price.toLocaleString()}</span>
+                    <span className="text-sm opacity-60">fixed price</span>
                   </div>
-                  <div className="text-xs opacity-60 mt-1">{Math.round(hours)} hours · 2 weeks</div>
+                  <div className="text-sm opacity-60">{Math.round(hours)} hours · 2 weeks · 50% deposit to start</div>
+                </div>
+
+                <div className="pt-4">
+                  <span className="inline-flex items-center text-sm font-semibold">
+                    Learn more & get started →
+                  </span>
                 </div>
               </Link>
             );
           })}
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="text-center">
           <Link
             href="/packages"
             className="inline-flex items-center text-sm font-medium opacity-70 hover:opacity-100 transition underline"
           >
-            View all packages →
+            View all sprint packages →
           </Link>
+        </div>
+      </section>
+
+      {/* Returning Clients Section */}
+      <section
+        id="extend-iterate"
+        className="bg-black/[0.02] dark:bg-white/[0.02] py-16 px-6"
+      >
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Extend &amp; Iterate Sprints
+          </h2>
+          <p className="text-base sm:text-lg opacity-80 max-w-2xl mx-auto">
+            After your foundation sprint, stack additional 2-week sprints whenever you need to ship a landing page, prototype, feature release, or brand refresh. We reuse your original workshop insights—no re-onboarding, just execution.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Link
+              href="/intake"
+              className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-6 py-3 font-semibold hover:opacity-90 transition"
+            >
+              Request your next sprint
+            </Link>
+            <Link
+              href="/packages"
+              className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
+            >
+              Browse deliverables
+            </Link>
+            <Link
+              href="/how-it-works"
+              className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
+            >
+              Review the process
+            </Link>
+          </div>
+          <p className="text-xs sm:text-sm opacity-60 max-w-lg mx-auto pt-2">
+            Unlocked after Brand or Product Foundations. Each Extend &amp; Iterate sprint starts with a 1-hour Mini Foundation session to realign, then we execute for 10 working days.
+          </p>
         </div>
       </section>
     </main>

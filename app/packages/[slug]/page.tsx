@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import PurchaseButton from "./PurchaseButton";
+import { SPRINT_WEEKS, ENGAGEMENT_BADGES } from "@/lib/sprintProcess";
 
 export const dynamic = "force-dynamic";
 
@@ -282,6 +283,80 @@ export default async function PackageDetailPage({ params }: PageProps) {
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Uphill → Downhill Process */}
+      <section className="py-12 px-6 bg-black/[0.02] dark:bg-white/[0.02] border-y border-black/10 dark:border-white/10">
+        <div className="max-w-5xl mx-auto space-y-10">
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-black/70 dark:text-white/70">
+              Same 10-day sprint for every package
+            </div>
+            <h2 className="text-3xl font-bold">Our uphill → downhill playbook</h2>
+            <p className="text-base sm:text-lg opacity-80">
+              Every package follows the identical cadence: Week 1 we climb the hill to explore options and pick a direction. Week 2 we run down
+              the hill to build, review, and deliver. Here&apos;s what that looks like day to day.
+            </p>
+          </div>
+
+          <div className="space-y-14">
+            {SPRINT_WEEKS.map((week) => (
+              <div key={week.id} className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="text-3xl">{week.icon}</div>
+                    <div>
+                      <h3 className="text-2xl font-semibold">{week.title}</h3>
+                      <p className="text-sm sm:text-base opacity-80 mt-1">{week.summary}</p>
+                    </div>
+                  </div>
+                  <div className="text-xs sm:text-sm font-medium uppercase tracking-wide text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 rounded-full px-4 py-1 self-start">
+                    {week.highlight}
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  {week.days.map((day) => {
+                    const badge = day.engagement
+                      ? ENGAGEMENT_BADGES[day.engagement.variant]
+                      : null;
+
+                    return (
+                      <div
+                        key={day.day}
+                        className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-gray-950 p-5 space-y-2 shadow-sm"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-black/60 dark:text-white/60">
+                            {day.day}
+                          </p>
+                          {badge && (
+                            <span
+                              className={`inline-flex items-center text-[11px] font-semibold uppercase tracking-wide rounded-full px-3 py-1 border ${badge.classes}`}
+                            >
+                              <span className="mr-1">{badge.icon}</span>
+                              {day.engagement!.label}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-lg font-semibold">{day.title}</h4>
+                        <p className="text-sm opacity-80">{day.detail}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-gray-950 p-6 text-center space-y-2">
+            <p className="text-base font-semibold">Only four live moments across two weeks</p>
+            <p className="text-sm opacity-80">
+              Kickoff Monday, Decision Day Thursday, Work-in-Progress Wednesday, and final delivery on Day 10. Everything else happens async inside
+              your sprint portal so you can focus on running the business.
+            </p>
           </div>
         </div>
       </section>

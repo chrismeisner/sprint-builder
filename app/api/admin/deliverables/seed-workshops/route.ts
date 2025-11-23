@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
-import { randomBytes } from "crypto";
 
 /**
- * POST /api/admin/deliverables/seed-workshops
- * Seeds the database with workshop deliverables
+ * Seed workshop deliverables
+ * Workshops are now "off the shelf" catalog items with fixed pricing
  */
 export async function POST() {
   try {
@@ -13,160 +12,178 @@ export async function POST() {
 
     const workshops = [
       {
-        id: `workshop-${randomBytes(8).toString("hex")}`,
-        name: "Sprint Kickoff Workshop - Strategy",
-        description: "Best for strategic planning sprints focused on business goals, roadmaps, and go-to-market strategies",
-        scope: `• 90-minute virtual workshop (Monday 9am kickoff)
-• Goals alignment session with stakeholders
-• Strategic objectives prioritization
-• Success metrics definition
-• Risk assessment and mitigation planning
-• Sprint backlog review and prioritization
-• Q&A and next steps alignment`,
+        id: crypto.randomUUID(),
+        name: "Foundation Workshop (3 hours)",
+        description: "Essential kickoff workshop for all new client engagements. Establishes strategic groundwork, aligns on goals, and sets direction for the sprint—whether brand or product focused.",
+        scope: `• Align on goals and define the core problem
+• Clarify target audience and key use cases
+• Define constraints (timeline, budget, resources)
+• Establish sprint direction and priorities
+• Set clear expectations and success criteria
+• Provide strategic groundwork for execution phase`,
         category: "Workshop",
-        default_estimate_points: 3,
-        fixed_hours: 4,
-        fixed_price: 800,
+        deliverable_type: "workshop",
+        default_estimate_points: 5,
+        fixed_hours: 3.0,
+        fixed_price: 600, // $200/hour
         active: true,
       },
       {
-        id: `workshop-${randomBytes(8).toString("hex")}`,
-        name: "Sprint Kickoff Workshop - Product",
-        description: "Best for product development sprints focused on features, user experience, and technical planning",
-        scope: `• 90-minute virtual workshop (Monday 9am kickoff)
-• Product vision and goals alignment
-• User stories and acceptance criteria review
-• Feature prioritization exercise
-• Technical requirements discussion
-• Sprint backlog refinement
-• Team capacity and timeline confirmation`,
+        id: crypto.randomUUID(),
+        name: "Mini Foundation Workshop (1 hour)",
+        description: "Streamlined workshop for returning clients starting iteration or expansion sprints. Quickly realigns on goals and confirms deliverables without full discovery.",
+        scope: `• Confirm the current problem or opportunity
+• Lock in deliverables and complexity points
+• Define sprint success criteria
+• Update sprint brief with latest context
+• Quick alignment for recurring clients`,
         category: "Workshop",
-        default_estimate_points: 3,
-        fixed_hours: 4,
-        fixed_price: 800,
+        deliverable_type: "workshop",
+        default_estimate_points: 2,
+        fixed_hours: 1.0,
+        fixed_price: 200,
         active: true,
       },
       {
-        id: `workshop-${randomBytes(8).toString("hex")}`,
-        name: "Sprint Kickoff Workshop - Design",
-        description: "Best for design-focused sprints including UI/UX, branding, and visual design work",
-        scope: `• 90-minute virtual workshop (Monday 9am kickoff)
-• Design vision and brand alignment
-• Style direction and aesthetic goals
-• Design principles workshop
-• User experience objectives review
-• Design critique guidelines establishment
-• Design backlog prioritization`,
-        category: "Workshop",
-        default_estimate_points: 3,
-        fixed_hours: 4,
-        fixed_price: 800,
-        active: true,
-      },
-      {
-        id: `workshop-${randomBytes(8).toString("hex")}`,
-        name: "Sprint Kickoff Workshop - Branding",
-        description: "Best for branding sprints focused on brand identity, messaging, and positioning",
-        scope: `• 90-minute virtual workshop (Monday 9am kickoff)
-• Brand positioning and messaging alignment
-• Target audience and persona review
-• Brand personality and values definition
-• Visual identity direction discussion
+        id: crypto.randomUUID(),
+        name: "Branding Workshop (3 hours)",
+        description: "Strategic kickoff workshop for branding projects to align on vision, positioning, and visual direction",
+        scope: `• Brand positioning and target audience definition
+• Visual direction exploration and inspiration gathering
+• Key brand attributes and personality exercises
 • Competitive landscape review
-• Brand deliverables prioritization`,
+• Mood boarding and aesthetic alignment
+• Success criteria and deliverable review`,
         category: "Workshop",
-        default_estimate_points: 3,
-        fixed_hours: 4,
-        fixed_price: 800,
+        deliverable_type: "workshop",
+        default_estimate_points: 5,
+        fixed_hours: 3.0,
+        fixed_price: 600,
         active: true,
       },
       {
-        id: `workshop-${randomBytes(8).toString("hex")}`,
-        name: "Sprint Kickoff Workshop - Startup",
-        description: "Best for startup-focused sprints covering MVP development, launch planning, and early-stage needs",
-        scope: `• 90-minute virtual workshop (Monday 9am kickoff)
-• MVP scope and goals alignment
-• Market validation approach
-• Launch strategy and timeline
-• Resource and budget planning
-• Success metrics for MVP
-• Startup sprint backlog review`,
+        id: crypto.randomUUID(),
+        name: "Product Strategy Workshop (3 hours)",
+        description: "Deep-dive workshop for product development to validate user needs, prioritize features, and align on MVP scope",
+        scope: `• User personas and pain points analysis
+• Core value proposition definition
+• Feature prioritization (Must-have vs Nice-to-have)
+• User journey mapping and flow validation
+• Technical feasibility discussion
+• Success metrics and KPI definition`,
         category: "Workshop",
-        default_estimate_points: 3,
-        fixed_hours: 4,
-        fixed_price: 800,
+        deliverable_type: "workshop",
+        default_estimate_points: 5,
+        fixed_hours: 3.0,
+        fixed_price: 600,
         active: true,
       },
       {
-        id: `workshop-${randomBytes(8).toString("hex")}`,
-        name: "Sprint Kickoff Workshop - Marketing",
-        description: "Best for marketing-focused sprints including campaigns, content strategy, and growth initiatives",
-        scope: `• 90-minute virtual workshop (Monday 9am kickoff)
-• Marketing goals and KPIs alignment
-• Campaign strategy and messaging
-• Channel selection and prioritization
-• Content calendar planning
-• Budget allocation review
-• Marketing sprint deliverables prioritization`,
+        id: crypto.randomUUID(),
+        name: "Design Sprint Kickoff (2 hours)",
+        description: "Focused kickoff session for design-intensive projects to establish creative direction and design principles",
+        scope: `• Design goals and constraints review
+• Visual inspiration and reference gathering
+• Design principles definition
+• Component and pattern strategy
+• Interaction model alignment
+• Design system discussion (if applicable)`,
         category: "Workshop",
+        deliverable_type: "workshop",
         default_estimate_points: 3,
-        fixed_hours: 4,
-        fixed_price: 800,
+        fixed_hours: 2.0,
+        fixed_price: 400,
+        active: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "Content Strategy Workshop (2.5 hours)",
+        description: "Workshop for content-heavy projects to align on messaging, tone, and content architecture",
+        scope: `• Content audit and gap analysis
+• Voice and tone definition
+• Messaging hierarchy and key messages
+• Content types and formats planning
+• Content governance and workflow
+• SEO and distribution strategy`,
+        category: "Workshop",
+        deliverable_type: "workshop",
+        default_estimate_points: 4,
+        fixed_hours: 2.5,
+        fixed_price: 500,
+        active: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "Technical Architecture Workshop (3 hours)",
+        description: "Technical planning workshop for development projects to align on architecture, stack, and implementation approach",
+        scope: `• Technical requirements review
+• Architecture and stack selection
+• Data model and API design discussion
+• Integration points and dependencies
+• Performance and scalability considerations
+• Security and compliance requirements`,
+        category: "Workshop",
+        deliverable_type: "workshop",
+        default_estimate_points: 5,
+        fixed_hours: 3.0,
+        fixed_price: 600,
         active: true,
       },
     ];
 
-    // Check if workshops already exist
-    const existingCheck = await pool.query(
-      `SELECT COUNT(*) as count FROM deliverables WHERE category = 'Workshop'`
-    );
-    const existingCount = parseInt(existingCheck.rows[0].count);
-
-    if (existingCount > 0) {
-      return NextResponse.json({
-        success: true,
-        message: `${existingCount} workshop deliverables already exist. Skipping seed.`,
-        existingCount,
-      });
-    }
-
-    // Insert all workshops
-    const insertPromises = workshops.map((workshop) =>
-      pool.query(
-        `INSERT INTO deliverables 
-         (id, name, description, scope, category, default_estimate_points, fixed_hours, fixed_price, active, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), now())`,
+    // Insert workshops
+    for (const workshop of workshops) {
+      await pool.query(
+        `INSERT INTO deliverables (
+          id, name, description, scope, category, deliverable_type,
+          default_estimate_points, fixed_hours, fixed_price, active,
+          created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now(), now())
+        ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          description = EXCLUDED.description,
+          scope = EXCLUDED.scope,
+          category = EXCLUDED.category,
+          deliverable_type = EXCLUDED.deliverable_type,
+          default_estimate_points = EXCLUDED.default_estimate_points,
+          fixed_hours = EXCLUDED.fixed_hours,
+          fixed_price = EXCLUDED.fixed_price,
+          active = EXCLUDED.active,
+          updated_at = now()`,
         [
           workshop.id,
           workshop.name,
           workshop.description,
           workshop.scope,
           workshop.category,
+          workshop.deliverable_type,
           workshop.default_estimate_points,
           workshop.fixed_hours,
           workshop.fixed_price,
           workshop.active,
         ]
-      )
-    );
-
-    await Promise.all(insertPromises);
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      message: `Successfully created ${workshops.length} workshop deliverables`,
+      message: "Workshop deliverables seeded successfully",
       count: workshops.length,
-      workshops: workshops.map((w) => ({ id: w.id, name: w.name })),
+      workshops: workshops.map((w) => ({
+        name: w.name,
+        hours: w.fixed_hours,
+        price: w.fixed_price,
+        points: w.default_estimate_points,
+      })),
     });
-  } catch (error) {
-    console.error("[SeedWorkshops] Error:", error);
+  } catch (error: unknown) {
+    console.error("Error seeding workshop deliverables:", error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: (error as Error).message ?? "Unknown error",
       },
       { status: 500 }
     );
   }
 }
-

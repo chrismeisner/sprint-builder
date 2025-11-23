@@ -4,9 +4,8 @@ import { randomBytes } from "crypto";
 
 /**
  * POST /api/admin/sprint-packages/seed
- * Seeds the database with 3 example sprint packages
- * Each package includes 2-3 execution deliverables (NO workshops)
- * Workshops are generated separately by AI after sprint creation
+ * Seeds the database with the 2 Foundation Packages
+ * Both include the Foundation Workshop (3 hours) + unique execution deliverables
  * Pricing is ALWAYS calculated dynamically from deliverables (base complexity 1.0)
  */
 export async function POST() {
@@ -50,52 +49,38 @@ export async function POST() {
       return found;
     };
 
-    // Define the 3 sprint packages
+    // Define the 2 Foundation Packages (only packages we offer)
     const packages = [
       {
         id: `pkg-${randomBytes(8).toString("hex")}`,
-        name: "Brand Identity Sprint",
-        slug: "brand-identity-sprint",
-        description: "Perfect for startups and new ventures needing a complete brand foundation. Get a professional logo, typography system, and comprehensive style guide to build your brand consistently across all touchpoints.",
-        tagline: "Complete brand foundation in 2 weeks",
+        name: "Branding Foundations Sprint",
+        slug: "branding-foundations-sprint",
+        description: "Perfect for new clients starting their brand journey. Begin with our Foundation Workshop to align on goals and strategy, then we'll deliver a complete brand identity system including logo, typography, colors, and comprehensive guidelines.",
+        tagline: "Your brand foundation in 2 weeks",
         category: "Branding",
         active: true,
         featured: true,
         sort_order: 1,
         deliverables: [
+          "Foundation Workshop (3 hours)",
           "Typography Scale + Wordmark Logo",
           "Brand Style Guide",
         ],
       },
       {
         id: `pkg-${randomBytes(8).toString("hex")}`,
-        name: "MVP Launch Sprint",
-        slug: "mvp-launch-sprint",
-        description: "Validate your product idea with a high-converting landing page and working prototype. Perfect for founders who need to test their concept with users or pitch to investors with something tangible.",
-        tagline: "Ship your MVP in 2 weeks",
+        name: "Product Foundations Sprint",
+        slug: "product-foundations-sprint",
+        description: "Perfect for new clients launching a product or feature. Start with our Foundation Workshop to validate direction and priorities, then we'll build a high-converting landing page and interactive prototype to test with users.",
+        tagline: "Validate and launch in 2 weeks",
         category: "Product",
         active: true,
         featured: true,
         sort_order: 2,
         deliverables: [
+          "Foundation Workshop (3 hours)",
           "Landing Page (Marketing)",
           "Prototype - Level 1 (Basic)",
-        ],
-      },
-      {
-        id: `pkg-${randomBytes(8).toString("hex")}`,
-        name: "Startup Branding Sprint",
-        slug: "startup-branding-sprint",
-        description: "Launch-ready branding package with logo, social media presence, and investor pitch materials. Everything an early-stage startup needs to look professional and pitch with confidence.",
-        tagline: "Launch-ready brand + pitch deck",
-        category: "Branding",
-        active: true,
-        featured: true,
-        sort_order: 3,
-        deliverables: [
-          "Typography Scale + Wordmark Logo",
-          "Social Media Template Kit",
-          "Pitch Deck Template (Branded)",
         ],
       },
     ];

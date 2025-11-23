@@ -92,9 +92,10 @@ export default function CreateSprintButton({ documentId, model }: Props) {
         type="button"
         onClick={onClick}
         disabled={loading}
-        className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition disabled:opacity-50"
       >
-        {loading ? "Creating…" : "Create Sprint"}
+        <span className="text-xs font-semibold opacity-60">AI</span>
+        {loading ? "Generating…" : "Create Sprint"}
       </button>
       {error ? <span className="text-red-600 text-xs">{error}</span> : null}
     </div>

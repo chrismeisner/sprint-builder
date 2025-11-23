@@ -176,8 +176,8 @@ export async function POST(request: Request, { params }: Params) {
         deliverables: deliverablesList.slice(0, Math.ceil(deliverablesList.length / 2)),
         milestones: [
           "Monday: Sprint kickoff workshop",
-          "Wednesday: First concepts shared",
-          "Friday: Direction locked in",
+          "Thursday: Decision Day - direction chosen",
+          "Friday: Execution plan documented",
         ],
       },
       week2: {
@@ -189,8 +189,8 @@ export async function POST(request: Request, { params }: Params) {
         ],
         deliverables: deliverablesList.slice(Math.ceil(deliverablesList.length / 2)),
         milestones: [
-          "Monday: Implementation begins",
-          "Wednesday: Final revisions",
+          "Monday: Heads-down build begins",
+          "Wednesday: Live work-in-progress review",
           "Friday: Delivery and handoff",
         ],
       },
@@ -204,16 +204,103 @@ export async function POST(request: Request, { params }: Params) {
         acceptance: `${d.name} completed and meets quality standards`,
       })),
       timeline: [
-        { day: 1, dayOfWeek: "Monday", focus: "Kickoff & Alignment", tasks: ["Workshop with client for discovery and alignment"] },
-        { day: 2, dayOfWeek: "Tuesday", focus: "Exploration", tasks: ["Studio creates direction options to choose from"] },
-        { day: 3, dayOfWeek: "Wednesday", focus: "First Review", tasks: ["Studio presents direction solutions for review"] },
-        { day: 4, dayOfWeek: "Thursday", focus: "Feedback & Refinement", tasks: ["Collect feedback from client", "Refine directions based on input"] },
-        { day: 5, dayOfWeek: "Friday", focus: "Direction Lock", tasks: ["Solution direction locked", "Share locked direction with client"] },
-        { day: 6, dayOfWeek: "Monday", focus: "Deliverables Alignment", tasks: ["Revisit deliverables from Day 1", "Map agreed solution direction to deliverables", "Align on the downhill execution path"] },
-        { day: 7, dayOfWeek: "Tuesday", focus: "Build & Execution", tasks: ["Studio heads down crafting solution"] },
-        { day: 8, dayOfWeek: "Wednesday", focus: "Progress Review", tasks: ["Studio shares progress with client", "All deliverables outlined", "Answer questions and clarify needs"] },
-        { day: 9, dayOfWeek: "Thursday", focus: "Final Execution", tasks: ["Heads down refining assets and deliverables"] },
-        { day: 10, dayOfWeek: "Friday", focus: "Delivery", tasks: ["Solution and assets delivered", "Demo to client", "Handoff completed"] },
+        {
+          day: 1,
+          dayOfWeek: "Monday",
+          focus: "Kickoff workshop",
+          items: [
+            "3-hour Brand/Product workshop (or 60-90 min JTBD session for follow-on sprints)",
+            "Align on goals, guardrails, success criteria, and decision makers",
+            "Capture notes, assign follow-ups, and confirm portal access",
+          ],
+        },
+        {
+          day: 2,
+          dayOfWeek: "Tuesday",
+          focus: "Research + divergence (studio heads down)",
+          items: [
+            "Audit existing assets, references, and market inputs",
+            "Sketch initial directions while staying async-only for focus time",
+            "Prompt client for async comments if anything needs clarification",
+          ],
+        },
+        {
+          day: 3,
+          dayOfWeek: "Wednesday",
+          focus: "Work-in-progress share (optional sync)",
+          items: [
+            "Send Loom or Figma walkthrough covering explorations",
+            "Invite optional live sync if stakeholders want to talk through ideas",
+            "Collect inline comments to guide final explorations",
+          ],
+        },
+        {
+          day: 4,
+          dayOfWeek: "Thursday",
+          focus: "Decision Day",
+          items: [
+            "Review 2-3 viable approaches together",
+            "Debate tradeoffs and confirm one confident direction",
+            "Document success criteria, inputs, and constraints",
+          ],
+        },
+        {
+          day: 5,
+          dayOfWeek: "Friday",
+          focus: "Execution plan (optional sync)",
+          items: [
+            "Studio documents the downhill execution plan and deliverable checklist",
+            "Confirm who gives feedback in Week 2 and what they need to review",
+            "Optional sync to walk through the final direction before build",
+          ],
+        },
+        {
+          day: 6,
+          dayOfWeek: "Monday",
+          focus: "Translate plan → build tasks (studio heads down)",
+          items: [
+            "Break the plan into build tickets across design, product, and systems",
+            "Align deliverables with the locked direction and note dependencies",
+            "Stay heads down to keep momentum into execution",
+          ],
+        },
+        {
+          day: 7,
+          dayOfWeek: "Tuesday",
+          focus: "Deep build day (optional sync share)",
+          items: [
+            "Heads-down production across all deliverables",
+            "Async updates in sprint portal plus optional sync if client wants another peek",
+          ],
+        },
+        {
+          day: 8,
+          dayOfWeek: "Wednesday",
+          focus: "Work-in-progress review (client input)",
+          items: [
+            "Live or Loom review so stakeholders can annotate and request tweaks",
+            "Capture decisions before the final polish sprint",
+          ],
+        },
+        {
+          day: 9,
+          dayOfWeek: "Thursday",
+          focus: "Polish + stress test (studio heads down)",
+          items: [
+            "Apply Wednesday feedback, QA flows, prep exports/source files",
+            "Rehearse demos and walkthrough scripts",
+          ],
+        },
+        {
+          day: 10,
+          dayOfWeek: "Friday",
+          focus: "Delivery + handoff (optional sync)",
+          items: [
+            "Deliver final files, Loom walkthrough, and documentation",
+            "Optional live demo or office hours for final Q&A",
+            "Provide next-sprint recommendations and close the loop",
+          ],
+        },
       ],
       assumptions: [
         "All deliverables follow standard scope and complexity",

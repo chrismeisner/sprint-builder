@@ -210,6 +210,20 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS name text;
   `);
   
+  // Add workshop tracking to accounts table
+  await pool.query(`
+    ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS workshop_completed_at timestamptz;
+  `);
+  
+  // Add sprint request and discovery call tracking to sprint_drafts
+  await pool.query(`
+    ALTER TABLE sprint_drafts
+    ADD COLUMN IF NOT EXISTS sprint_request_submitted_at timestamptz,
+    ADD COLUMN IF NOT EXISTS discovery_call_completed_at timestamptz,
+    ADD COLUMN IF NOT EXISTS sprint_type text CHECK (sprint_type IN ('foundation', 'followon'));
+  `);
+  
   // Create index for admin queries
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_accounts_is_admin ON accounts(is_admin);
