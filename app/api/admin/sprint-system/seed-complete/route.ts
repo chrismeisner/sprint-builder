@@ -1,6 +1,51 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 
+type WorkshopSummary = {
+  id: string;
+  name: string;
+  hours: number;
+  price: number;
+  points: number;
+};
+
+type DeliverableSummary = {
+  id: string;
+  name: string;
+  hours: number;
+  price: number;
+  points: number;
+};
+
+type PackageSummary = {
+  id: string;
+  name: string;
+  slug: string;
+  totalPrice: number;
+  totalHours: number;
+  totalPoints: number;
+  includesWorkshop: boolean;
+};
+
+type SeedResults = {
+  workshop: WorkshopSummary | null;
+  brandingDeliverables: DeliverableSummary[];
+  productDeliverables: DeliverableSummary[];
+  foundationPackages: PackageSummary[];
+  followOnPackages: PackageSummary[];
+};
+
+type DeliverableSeedConfig = {
+  id: string;
+  name: string;
+  description: string;
+  scope: string;
+  category: string;
+  points: number;
+  hours: number;
+  price: number;
+};
+
 /**
  * Complete seed script for the modular sprint system
  * 
@@ -16,12 +61,12 @@ export async function POST() {
     await ensureSchema();
     const pool = getPool();
 
-    const results = {
-      workshop: null as any,
-      brandingDeliverables: [] as any[],
-      productDeliverables: [] as any[],
-      foundationPackages: [] as any[],
-      followOnPackages: [] as any[],
+    const results: SeedResults = {
+      workshop: null,
+      brandingDeliverables: [],
+      productDeliverables: [],
+      foundationPackages: [],
+      followOnPackages: [],
     };
 
     // ============================================
@@ -73,7 +118,7 @@ export async function POST() {
     // 2. BRANDING EXECUTION DELIVERABLES
     // ============================================
 
-    const brandingDeliverables = [
+    const brandingDeliverables: DeliverableSeedConfig[] = [
       {
         id: crypto.randomUUID(),
         name: "Wordmark Logo Direction",
@@ -183,7 +228,7 @@ export async function POST() {
     // 3. PRODUCT EXECUTION DELIVERABLES
     // ============================================
 
-    const productDeliverables = [
+    const productDeliverables: DeliverableSeedConfig[] = [
       {
         id: crypto.randomUUID(),
         name: "ICP & Proto-Personas",
