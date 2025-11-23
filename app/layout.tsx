@@ -6,6 +6,9 @@ import NavShell from "./NavShell";
 import Header from "./Header";
 import GoogleAnalytics from "./GoogleAnalytics";
 
+// The root layout reads cookies (via NavShell -> getCurrentUser), so force dynamic rendering
+export const dynamic = "force-dynamic";
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
