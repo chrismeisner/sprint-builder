@@ -132,13 +132,16 @@ export async function POST() {
         [slug]
       );
 
-      if (totalsResult.rowCount > 0) {
+      const totalsRow = totalsResult.rows[0];
+      if ((totalsResult.rowCount ?? 0) > 0 && totalsRow) {
         recalculated.push({
-          name: totalsResult.rows[0].name,
-          slug: totalsResult.rows[0].slug,
-          totalPrice: parseFloat(totalsResult.rows[0].total_price),
-          totalHours: parseFloat(totalsResult.rows[0].total_hours),
-          totalPoints: parseInt(totalsResult.rows[0].total_points),
+          name: totalsRow.name,
+          slug: totalsRow.slug,
+          totalPrice: totalsRow.total_price ? parseFloat(totalsRow.total_price) : 0,
+          totalHours: totalsRow.total_hours ? parseFloat(totalsRow.total_hours) : 0,
+          totalPoints: totalsRow.total_points
+            ? parseInt(totalsRow.total_points, 10)
+            : 0,
         });
       }
     }
