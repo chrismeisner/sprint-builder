@@ -64,10 +64,13 @@ export async function GET() {
       [user.email, user.accountId]
     );
 
+    const documentsRowCount = documentsResult.rowCount ?? 0;
+    const sprintsRowCount = sprintsResult.rowCount ?? 0;
+
     await autoUpdateOnboardingTasks({
       pool,
       accountId: user.accountId,
-      hasIntakeForm: documentsResult.rowCount > 0,
+      hasIntakeForm: documentsRowCount > 0,
     });
 
     const onboardingTasks = await fetchOnboardingTasks(pool, user.accountId);
@@ -83,8 +86,8 @@ export async function GET() {
       documents: documentsResult.rows,
       sprints: sprintsResult.rows,
       stats: {
-        totalDocuments: documentsResult.rowCount,
-        totalSprints: sprintsResult.rowCount,
+        totalDocuments: documentsRowCount,
+        totalSprints: sprintsRowCount,
       },
       onboardingTasks: onboardingTasks.map((task) => ({
         accountId: task.account_id,
