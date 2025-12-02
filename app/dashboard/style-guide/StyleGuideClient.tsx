@@ -19,7 +19,7 @@ import Badge from "@/components/ui/Badge";
 import GridPreviewCard from "./GridPreviewCard";
 import useSampleTextEditor from "@/hooks/useSampleTextEditor";
 
-type TabType = "typography" | "buttons" | "colors" | "forms" | "grids" | "spacing";
+type TabType = "typography" | "buttons" | "colors" | "forms" | "grids" | "spacing" | "badges";
 type TypographyViewport = "desktop" | "mobile";
 type GridExampleBlock = {
   label: string;
