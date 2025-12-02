@@ -192,28 +192,25 @@ export function sanitizePlan(raw: unknown): HowItWorksPlan | null {
     return null;
   }
 
-  const steps: HowItWorksPlanStep[] = stepsRaw
-    .map((step) => {
-      if (!step || typeof step !== "object") return null;
-      const record = step as Record<string, unknown>;
-      const title = typeof record.title === "string" ? record.title.trim() : "";
-      const description = typeof record.description === "string" ? record.description.trim() : "";
-      const proofPoint =
-        typeof record.proofPoint === "string" && record.proofPoint.trim()
-          ? record.proofPoint.trim()
-          : undefined;
-      const successSignal =
-        typeof record.successSignal === "string" && record.successSignal.trim()
-          ? record.successSignal.trim()
-          : undefined;
+  const steps = stepsRaw.reduce<HowItWorksPlanStep[]>((acc, step) => {
+    if (!step || typeof step !== "object") {
+      return acc;
+    }
+    const record = step as Record<string, unknown>;
+    const title = typeof record.title === "string" ? record.title.trim() : "";
+    const description = typeof record.description === "string" ? record.description.trim() : "";
+    const proofPoint =
+      typeof record.proofPoint === "string" && record.proofPoint.trim() ? record.proofPoint.trim() : undefined;
+    const successSignal =
+      typeof record.successSignal === "string" && record.successSignal.trim() ? record.successSignal.trim() : undefined;
 
-      if (!title || !description) {
-        return null;
-      }
+    if (!title || !description) {
+      return acc;
+    }
 
-      return { title, description, proofPoint, successSignal };
-    })
-    .filter((item): item is HowItWorksPlanStep => Boolean(item));
+    acc.push({ title, description, proofPoint, successSignal });
+    return acc;
+  }, []);
 
   if (steps.length === 0) {
     return null;
