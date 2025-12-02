@@ -87,7 +87,7 @@ export default function PackageCard({ pkg, className }: PackageCardProps) {
     <article
       data-component="package-card"
       className={cx(
-        "flex h-full flex-col rounded-[28px] border border-black/10 bg-white p-8 text-black shadow-[0_25px_70px_rgba(15,15,15,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_35px_90px_rgba(15,15,15,0.12)]",
+        "flex h-full flex-col rounded-[2px] border border-black/10 bg-white p-8 text-black shadow-[0_25px_70px_rgba(15,15,15,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_35px_90px_rgba(15,15,15,0.12)]",
         "dark:border-white/15 dark:bg-[#040404] dark:text-white",
         className,
       )}

@@ -11,6 +11,7 @@ import { getTypographyClassName, type TypographyScaleId } from "@/lib/design-sys
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Select from "@/components/ui/Select";
+import WidthRuler from "@/components/WidthRuler";
 
 type ComponentsClientProps = {
   samplePackages: SprintPackage[];
@@ -140,11 +141,6 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
   );
   const [selectedOptionId, setSelectedOptionId] = useState(() => previewOptions[0]?.id ?? "");
   const [previewCount, setPreviewCount] = useState<number>(1);
-  const [heroWidth, setHeroWidth] = useState<number | null>(null);
-  const [packageWidth, setPackageWidth] = useState<number | null>(null);
-  const [sectionHeaderWidth, setSectionHeaderWidth] = useState<number | null>(null);
-  const [howItWorksWidth, setHowItWorksWidth] = useState<number | null>(null);
-  const [imageWidth, setImageWidth] = useState<number | null>(null);
   const [imageOptions, setImageOptions] = useState<StorageImageOption[]>([]);
   const [selectedImageId, setSelectedImageId] = useState<string>("");
   const [imageLoading, setImageLoading] = useState(false);
@@ -156,6 +152,11 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
   const [pendingOrder, setPendingOrder] = useState<ComponentKey[]>(() => [...DEFAULT_COMPONENT_ORDER]);
   const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const sectionHeaderPanelRef = useRef<HTMLDivElement>(null);
+  const howItWorksPanelRef = useRef<HTMLDivElement>(null);
+  const heroPanelRef = useRef<HTMLDivElement>(null);
+  const imagePanelRef = useRef<HTMLDivElement>(null);
+  const packagePanelRef = useRef<HTMLDivElement>(null);
   const typographySignatures = useMemo(
     () =>
       typographyScale.map((token) => ({
@@ -221,9 +222,6 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
       setSelectedOptionId(previewOptions[0].id);
     }
   }, [previewOptions, selectedOptionId]);
-  useEffect(() => {
-    setPackageWidth(null);
-  }, [selectedOptionId, previewCount]);
   useEffect(() => {
     fetchStorageImages();
   }, [fetchStorageImages]);
@@ -305,12 +303,6 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
 
   const activeOption = previewOptions.find((option) => option.id === selectedOptionId) ?? previewOptions[0];
   const currentLayout = resolveComponentGridPreset(previewCount);
-  const formatWidth = (width: number | null) => (width ? `${width}px · ${(width / 16).toFixed(1)}rem` : "Measuring…");
-  const heroWidthDisplay = formatWidth(heroWidth);
-  const packageWidthDisplay = formatWidth(packageWidth);
-  const sectionHeaderWidthDisplay = formatWidth(sectionHeaderWidth);
-  const howItWorksWidthDisplay = formatWidth(howItWorksWidth);
-  const imageWidthDisplay = formatWidth(imageWidth);
   const selectedImage = imageOptions.find((image) => image.id === selectedImageId);
   const heroPreviewProps = {
     title: "Let's climb",
@@ -345,7 +337,8 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
     },
   ];
 
-  const measuredPanelClassName = `${showContainerStroke ? "border border-black/10 dark:border-white/15 " : ""}bg-transparent`;
+  const previewSurfaceClassName = `${showContainerStroke ? "border border-black/10 dark:border-white/15 " : ""}bg-transparent`;
+  const widthRulerClassName = "text-black/60 dark:text-white/60";
   const isDefaultOrder = componentOrder.every((key, index) => key === DEFAULT_COMPONENT_ORDER[index]);
   const handleOpenReorder = () => {
     setPendingOrder([...componentOrder]);
@@ -450,51 +443,75 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
       <ComponentSection
         key="sectionHeader"
         title={componentLabelMap.sectionHeader}
-        widthLabel={sectionHeaderWidthDisplay}
+        meta={
+          <WidthRuler
+            targetRef={sectionHeaderPanelRef}
+            label={`${componentLabelMap.sectionHeader} width`}
+            className={widthRulerClassName}
+          />
+        }
         showDetails={showSectionDetails}
       >
-        <MeasuredPanel className={measuredPanelClassName} onWidthChange={setSectionHeaderWidth}>
+        <div ref={sectionHeaderPanelRef} className={previewSurfaceClassName}>
           <SectionHeader {...sectionHeaderPreview} />
-        </MeasuredPanel>
+        </div>
       </ComponentSection>
     ),
     howItWorks: () => (
       <ComponentSection
         key="howItWorks"
         title={componentLabelMap.howItWorks}
-        widthLabel={howItWorksWidthDisplay}
+        meta={
+          <WidthRuler
+            targetRef={howItWorksPanelRef}
+            label={`${componentLabelMap.howItWorks} width`}
+            className={widthRulerClassName}
+          />
+        }
         showDetails={showSectionDetails}
       >
-        <MeasuredPanel className={measuredPanelClassName} onWidthChange={setHowItWorksWidth}>
+        <div ref={howItWorksPanelRef} className={previewSurfaceClassName}>
           <HowItWorksSteps steps={howItWorksStepsPreview} />
-        </MeasuredPanel>
+        </div>
       </ComponentSection>
     ),
     hero: () => (
       <ComponentSection
         key="hero"
         title={componentLabelMap.hero}
-        widthLabel={heroWidthDisplay}
+        meta={
+          <WidthRuler
+            targetRef={heroPanelRef}
+            label={`${componentLabelMap.hero} width`}
+            className={widthRulerClassName}
+          />
+        }
         showDetails={showSectionDetails}
       >
-        <MeasuredPanel className={measuredPanelClassName} onWidthChange={setHeroWidth}>
+        <div ref={heroPanelRef} className={previewSurfaceClassName}>
           <HeroSection
             {...heroPreviewProps}
             minHeight={false}
             className="bg-transparent"
           />
-        </MeasuredPanel>
+        </div>
       </ComponentSection>
     ),
     image: () => (
       <ComponentSection
         key="image"
         title={componentLabelMap.image}
-        widthLabel={imageWidthDisplay}
+        meta={
+          <WidthRuler
+            targetRef={imagePanelRef}
+            label={`${componentLabelMap.image} width`}
+            className={widthRulerClassName}
+          />
+        }
         controls={imageControls}
         showDetails={showSectionDetails}
       >
-        <MeasuredPanel className={measuredPanelClassName} onWidthChange={setImageWidth}>
+        <div ref={imagePanelRef} className={previewSurfaceClassName}>
           <ComponentContainer>
             <div className="space-y-4">
               <div className="relative overflow-hidden border border-black/10 bg-black/5 text-white shadow-sm dark:border-white/15 dark:bg-white/5">
@@ -543,18 +560,24 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
               )}
             </div>
           </ComponentContainer>
-        </MeasuredPanel>
+        </div>
       </ComponentSection>
     ),
     packageCard: () => (
       <ComponentSection
         key="packageCard"
         title={componentLabelMap.packageCard}
-        widthLabel={packageWidthDisplay}
+        meta={
+          <WidthRuler
+            targetRef={packagePanelRef}
+            label={`${componentLabelMap.packageCard} width`}
+            className={widthRulerClassName}
+          />
+        }
         controls={packageControls}
         showDetails={showSectionDetails}
       >
-        <MeasuredPanel className={measuredPanelClassName} onWidthChange={setPackageWidth}>
+        <div ref={packagePanelRef} className={previewSurfaceClassName}>
           {activeOption && (
             <div className="space-y-6">
               {previewCount === 1 ? (
@@ -583,7 +606,7 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
               )}
             </div>
           )}
-        </MeasuredPanel>
+        </div>
       </ComponentSection>
     ),
   };
@@ -591,52 +614,57 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
   return (
     <div
       ref={rootRef}
-      className={`container max-w-6xl py-10 space-y-16 ${showTypographyLabels ? "typography-label-mode" : ""}`}
+      className={`container max-w-7xl space-y-16 px-6 py-12 lg:px-8 ${showTypographyLabels ? "typography-label-mode" : ""}`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="inline-flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={handleOpenReorder} className="normal-case tracking-normal">
-            Edit order
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleResetOrder}
-            disabled={isDefaultOrder}
-            className="normal-case tracking-normal"
-          >
-            Reset order
-          </Button>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="inline-flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={handleOpenReorder} className="normal-case tracking-normal">
+              Edit order
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleResetOrder}
+              disabled={isDefaultOrder}
+              className="normal-case tracking-normal"
+            >
+              Reset order
+            </Button>
+          </div>
+          <div className="inline-flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 dark:text-white/70">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border border-black/20 text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:border-white/40 dark:bg-black dark:text-white"
+                checked={showContainerStroke}
+                onChange={(event) => setShowContainerStroke(event.target.checked)}
+              />
+              Show container stroke
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border border-black/20 text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:border-white/40 dark:bg-black dark:text-white"
+                checked={showSectionDetails}
+                onChange={(event) => setShowSectionDetails(event.target.checked)}
+              />
+              Show section details
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border border-black/20 text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:border-white/40 dark:bg-black dark:text-white"
+                checked={showTypographyLabels}
+                onChange={(event) => setShowTypographyLabels(event.target.checked)}
+              />
+              Show font class
+            </label>
+          </div>
         </div>
-        <div className="inline-flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 dark:text-white/70">
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border border-black/20 text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:border-white/40 dark:bg-black dark:text-white"
-              checked={showContainerStroke}
-              onChange={(event) => setShowContainerStroke(event.target.checked)}
-            />
-            Show container stroke
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border border-black/20 text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:border-white/40 dark:bg-black dark:text-white"
-              checked={showSectionDetails}
-              onChange={(event) => setShowSectionDetails(event.target.checked)}
-            />
-            Show section details
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border border-black/20 text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:border-white/40 dark:bg-black dark:text-white"
-              checked={showTypographyLabels}
-              onChange={(event) => setShowTypographyLabels(event.target.checked)}
-            />
-            Show font class
-          </label>
-        </div>
+        {showSectionDetails && (
+          <WidthRuler targetRef={rootRef} label="Preview canvas width" className={widthRulerClassName} />
+        )}
       </div>
 
       {componentOrder.map((key) => {
@@ -673,62 +701,26 @@ function ComponentContainer({ children, constrainWidth = true }: ComponentContai
 
 type ComponentSectionProps = {
   title: string;
-  widthLabel: string;
+  meta?: ReactNode;
   controls?: ReactNode;
   children: ReactNode;
   showDetails?: boolean;
 };
 
-function ComponentSection({ title, widthLabel, controls, children, showDetails = true }: ComponentSectionProps) {
+function ComponentSection({ title, meta, controls, children, showDetails = true }: ComponentSectionProps) {
   return (
     <section className="space-y-4">
       {showDetails && (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Badge variant="subtle">{title}</Badge>
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            {controls && <div className="flex flex-wrap items-center gap-3">{controls}</div>}
-            <Badge variant="metric">{widthLabel}</Badge>
-          </div>
+          {controls && <div className="flex flex-wrap items-center gap-3">{controls}</div>}
         </div>
       )}
-      {children}
+      <div className="space-y-3">
+        {children}
+        {showDetails && meta}
+      </div>
     </section>
-  );
-}
-
-type MeasuredPanelProps = {
-  children: ReactNode;
-  className?: string;
-  onWidthChange?: (width: number | null) => void;
-};
-
-function MeasuredPanel({ children, className, onWidthChange }: MeasuredPanelProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !panelRef.current) {
-      return;
-    }
-
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) {
-        onWidthChange?.(Math.round(entry.contentRect.width));
-      }
-    });
-
-    observer.observe(panelRef.current);
-
-    return () => {
-      observer.disconnect();
-      onWidthChange?.(null);
-    };
-  }, [onWidthChange]);
-
-  return (
-    <div ref={panelRef} className={className}>
-      {children}
-    </div>
   );
 }
 
