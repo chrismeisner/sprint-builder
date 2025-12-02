@@ -5,9 +5,7 @@ import {
   OnboardingTaskKey,
 } from "@/lib/constants/onboarding";
 
-export const SERVER_MANAGED_TASKS: Set<OnboardingTaskKey> = new Set([
-  "intake_form",
-]);
+export const SERVER_MANAGED_TASKS = new Set<OnboardingTaskKey>(["intake_form"]);
 
 export type OnboardingTaskRow = {
   account_id: string;
