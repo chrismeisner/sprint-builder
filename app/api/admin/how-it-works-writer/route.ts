@@ -51,7 +51,6 @@ export async function POST(request: Request) {
     await requireAdmin();
 
     const requestId = crypto.randomUUID();
-    const startedAt = new Date().toISOString();
 
     let body: GenerateBody = {};
     try {

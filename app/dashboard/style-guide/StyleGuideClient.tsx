@@ -15,7 +15,6 @@ import { getTypographyClassName } from "@/lib/design-system/typography-classname
 import type { FontToken } from "@/lib/design-system/tokens";
 import WidthRuler from "@/components/WidthRuler";
 import Button from "@/components/ui/Button";
-import Typography from "@/components/ui/Typography";
 import Badge from "@/components/ui/Badge";
 import GridPreviewCard from "./GridPreviewCard";
 import useSampleTextEditor from "@/hooks/useSampleTextEditor";

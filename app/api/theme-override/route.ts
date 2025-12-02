@@ -4,7 +4,6 @@ import { requireAdmin } from "@/lib/auth";
 import {
   DEFAULT_THEME_MODE,
   THEME_OVERRIDE_COOKIE,
-  ThemeMode,
   ThemeOverrideSelection,
   normalizeThemeSelection,
 } from "@/lib/theme-mode";

@@ -11,6 +11,12 @@ type Document = {
   has_sprint: boolean;
 };
 
+type GenerationResult = {
+  success: boolean;
+  sprintId?: string;
+  error?: string;
+};
+
 type Props = {
   documents: Document[];
 };
@@ -18,12 +24,16 @@ type Props = {
 export default function AdminAiToolsClient({ documents }: Props) {
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<"gpt-4o-mini" | "gpt-4o">("gpt-4o-mini");
-  const [results, setResults] = useState<Record<string, { success: boolean; sprintId?: string; error?: string }>>({});
+  const [results, setResults] = useState<Partial<Record<string, GenerationResult>>>({});
   const [showOnlyWithoutSprints, setShowOnlyWithoutSprints] = useState(true);
 
   async function handleGenerateSprint(documentId: string) {
     setGeneratingId(documentId);
-    setResults((prev) => ({ ...prev, [documentId]: undefined as any }));
+    setResults((prev) => {
+      const next = { ...prev };
+      delete next[documentId];
+      return next;
+    });
 
     try {
       const res = await fetch(`/api/documents/${documentId}/sprint`, {

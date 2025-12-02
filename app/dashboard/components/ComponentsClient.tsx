@@ -11,7 +11,6 @@ import { getTypographyClassName, type TypographyScaleId } from "@/lib/design-sys
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Select from "@/components/ui/Select";
-import Typography from "@/components/ui/Typography";
 
 type ComponentsClientProps = {
   samplePackages: SprintPackage[];
