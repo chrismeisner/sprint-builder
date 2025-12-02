@@ -1,55 +1,33 @@
 import Link from "next/link";
 import { ensureSchema, getPool } from "@/lib/db";
-
-type PackageDeliverable = {
-  deliverableId: string;
-  name: string;
-  description: string | null;
-  scope: string | null;
-  fixedHours: number | null;
-  fixedPrice: number | null;
-  quantity: number;
-  complexityScore: number;
-};
-
-type SprintPackage = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  category: string | null;
-  tagline: string | null;
-  deliverables: PackageDeliverable[];
-};
+import PackageCard, { type SprintPackage } from "./PackageCard";
+import { resolveComponentGridPreset } from "./componentGrid";
 
 type FoundationPackagesPreviewProps = {
   heading?: string;
   description?: string;
   ctaLabel?: string;
   limit?: number;
+  packageType?: "foundation" | "extend";
+  variant?: "default" | "compact" | "detailed";
 };
-
-function calculatePackageTotal(pkg: SprintPackage) {
-  return pkg.deliverables.reduce(
-    (totals, d) => {
-      const multiplier = d.complexityScore ?? 1;
-      const qty = d.quantity ?? 1;
-      totals.price += (d.fixedPrice ?? 0) * multiplier * qty;
-      totals.hours += (d.fixedHours ?? 0) * multiplier * qty;
-      return totals;
-    },
-    { price: 0, hours: 0 }
-  );
-}
 
 export default async function FoundationPackagesPreview({
   heading = "Example packages",
   description = "Pulled straight from our sprint packages table—start with one of these or browse every foundation option and customize from there.",
   ctaLabel = "browse every foundation option",
   limit = 2,
+  packageType = "foundation",
+  variant = "compact",
 }: FoundationPackagesPreviewProps) {
   await ensureSchema();
   const pool = getPool();
+  
+  // Build WHERE clause based on packageType
+  const whereClause = packageType 
+    ? `WHERE sp.active = true AND sp.package_type = $1`
+    : `WHERE sp.active = true`;
+  
   const result = await pool.query(
     `
       SELECT 
@@ -58,7 +36,9 @@ export default async function FoundationPackagesPreview({
         sp.slug,
         sp.description,
         sp.category,
+        sp.package_type,
         sp.tagline,
+        sp.featured,
         COALESCE(
           json_agg(
             json_build_object(
@@ -77,25 +57,27 @@ export default async function FoundationPackagesPreview({
       FROM sprint_packages sp
       LEFT JOIN sprint_package_deliverables spd ON sp.id = spd.sprint_package_id
       LEFT JOIN deliverables d ON spd.deliverable_id = d.id AND d.active = true
-      WHERE sp.active = true
+      ${whereClause}
       GROUP BY 
         sp.id,
         sp.name,
         sp.slug,
         sp.description,
         sp.category,
+        sp.package_type,
         sp.tagline,
         sp.featured,
         sp.sort_order
       ORDER BY sp.featured DESC, sp.sort_order ASC, sp.name ASC
-      LIMIT $1
+      LIMIT $${packageType ? '2' : '1'}
     `,
-    [limit]
+    packageType ? [packageType, limit] : [limit]
   );
   const packages: SprintPackage[] = result.rows;
+  const gridPreset = resolveComponentGridPreset(packages.length || 1);
 
   return (
-    <section className="max-w-6xl mx-auto px-6 py-16">
+    <section className="container max-w-6xl py-16">
       <div className="text-center space-y-2 mb-12">
         <h2 className="text-3xl font-bold">{heading}</h2>
         <p className="text-lg opacity-70 max-w-2xl mx-auto">
@@ -116,55 +98,10 @@ export default async function FoundationPackagesPreview({
           .
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-6">
-          {packages.map((pkg) => {
-            const { price, hours } = calculatePackageTotal(pkg);
-            const snippet = pkg.description ?? pkg.tagline ?? "Fixed-scope sprint package.";
-            const highlights = pkg.deliverables.slice(0, 3);
-
-            return (
-              <Link
-                key={pkg.id}
-                href={`/packages/${pkg.slug}`}
-                className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 space-y-4 hover:border-black/20 dark:hover:border-white/25 hover:shadow-lg transition"
-              >
-                <div className="space-y-2">
-                  <h3 className="text-xl font-semibold">{pkg.name}</h3>
-                  <p className="text-sm opacity-70">{snippet}</p>
-                </div>
-
-                {highlights.length > 0 && (
-                  <div className="space-y-2 text-sm">
-                    <div className="font-medium opacity-90">Includes:</div>
-                    <div className="space-y-1 opacity-80">
-                      {highlights.map((d, idx) => (
-                        <div key={`${pkg.id}-${d.deliverableId}-${idx}`} className="flex items-start gap-2">
-                          <span className="text-xs mt-0.5">•</span>
-                          <span>{d.name}</span>
-                        </div>
-                      ))}
-                      {pkg.deliverables.length > highlights.length && (
-                        <div className="text-xs opacity-60 italic">
-                          + {pkg.deliverables.length - highlights.length} more deliverable
-                          {pkg.deliverables.length - highlights.length === 1 ? "" : "s"}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="pt-4 border-t border-black/10 dark:border-white/15">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold">${price.toLocaleString()}</span>
-                    <span className="text-sm opacity-60">fixed price</span>
-                  </div>
-                  <div className="text-sm opacity-60 mt-1">
-                    {Math.round(hours)} hours · 2 weeks
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+        <div className={gridPreset.className} data-component-grid={gridPreset.id}>
+          {packages.map((pkg) => (
+            <PackageCard key={pkg.id} pkg={pkg} variant={variant} />
+          ))}
         </div>
       )}
     </section>

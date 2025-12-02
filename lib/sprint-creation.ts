@@ -197,8 +197,18 @@ type CreateSprintResult = {
 };
 
 /**
- * Automatically create a sprint draft for a document
- * This is the core logic extracted from /api/documents/[id]/sprint
+ * Create a sprint draft for a document using AI analysis
+ * 
+ * NOTE: This function is now ADMIN-ONLY and triggered manually from /ai-test page.
+ * It is NO LONGER automatically called when documents are created.
+ * 
+ * When called, it:
+ * 1. Analyzes the Typeform intake document using OpenAI
+ * 2. Recommends sprint packages or individual deliverables
+ * 3. Creates a sprint draft in the database
+ * 4. Sends an email notification to the client with their sprint draft link
+ * 
+ * This is the core logic used by /api/documents/[id]/sprint endpoint
  */
 export async function createSprintForDocument(
   documentId: string,

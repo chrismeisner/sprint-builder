@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function IntakePage() {
   return (
-    <main className="min-h-screen max-w-3xl mx-auto px-6 py-16">
+    <main className="container min-h-screen max-w-3xl py-16">
       <div className="space-y-8">
         {/* Header */}
         <div className="space-y-4">
@@ -54,7 +54,7 @@ export default function IntakePage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
             <a
-              href="mailto:hello@yourstudio.com?subject=Follow-on Sprint Request&body=Hi! I&apos;m a returning client and would like to request a follow-on sprint.%0A%0AProject Goals:%0A[Describe what you want to achieve]%0A%0ADesired Deliverables:%0A[List specific deliverables you&apos;re interested in]%0A%0ATimeline:%0A[When would you like to start?]%0A%0AThanks!"
+              href="mailto:hello@greatwork.studio?subject=Follow-on Sprint Request&body=Hi! I&apos;m a returning client and would like to request a follow-on sprint.%0A%0AProject Goals:%0A[Describe what you want to achieve]%0A%0ADesired Deliverables:%0A[List specific deliverables you&apos;re interested in]%0A%0ATimeline:%0A[When would you like to start?]%0A%0AThanks!"
               className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-6 py-3 font-semibold hover:opacity-90 transition"
             >
               Email us directly

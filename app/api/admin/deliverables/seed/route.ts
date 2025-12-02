@@ -24,6 +24,147 @@ export async function POST() {
       },
       {
         id: crypto.randomUUID(),
+        name: "Executive Summary One-Pager",
+        description: "Investor-ready summary that distills the heart of your pitch into a single branded sheet.",
+        scope: `• Compresses problem, solution, traction, and ask into one page
+• Highlights top metrics, market sizing, and business model
+• Includes CTA section plus contact + investor relations info
+• Delivered in Figma with export-ready PDF + Google Doc`,
+        category: "Branding",
+        default_estimate_points: 3,
+        fixed_hours: 6,
+        fixed_price: 900,
+        active: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "Investor Metrics + FAQ Addendum",
+        description: "Fast-follow appendix that answers the most common diligence questions and highlights performance.",
+        scope: `• 3-4 data slides covering KPIs, financial model, and roadmap
+• 8-10 concise FAQ responses aligned with your deck story
+• Highlight cards for GTM, hiring, and fundraising plan
+• Delivered as Figma slides + Google Slides export`,
+        category: "Branding",
+        default_estimate_points: 3,
+        fixed_hours: 5,
+        fixed_price: 750,
+        active: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "Coming Soon Landing Page",
+        description: "Single-scroll launch page that teases your product, collects emails, and sets expectations.",
+        scope: `• Hero, teaser copy, feature highlights, and social proof
+• Responsive Next.js + Tailwind build deployed to Vercel
+• Email capture form with validation + success state
+• Basic SEO + analytics (GA4) wired in
+• Includes branded imagery or abstract art direction`,
+        category: "Product",
+        default_estimate_points: 4,
+        fixed_hours: 10,
+        fixed_price: 1600,
+        active: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "Email Waitlist Automation",
+        description: "Capture and nurture early interest with an automated waitlist flow.",
+        scope: `• Connects landing page form to ConvertKit/Mailchimp/Loops
+• Sets up double opt-in, confirmation, and welcome emails
+• Includes segment tags + simple broadcast template
+• Provides loom walkthrough + documentation`,
+        category: "Product",
+        default_estimate_points: 2,
+        fixed_hours: 4,
+        fixed_price: 600,
+        active: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "Launch Announcement Toolkit",
+        description: "Ready-to-post copy and assets for email, LinkedIn, and social to announce what’s coming.",
+        scope: `• 3 announcement posts (LinkedIn, X/Twitter, newsletter blurb)
+• 3 lightweight graphics sized for major platforms
+• Messaging matrix covering CTA variants + positioning angles
+• Editable Figma + doc templates`,
+        category: "Branding",
+        default_estimate_points: 3,
+        fixed_hours: 5,
+        fixed_price: 800,
+        active: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "Interaction Spec & Build Plan",
+        description: "Annotated interaction spec so engineers know exactly how the prototype behaves.",
+        scope: `• Click-by-click notes layered on top of the prototype
+• Captures empty/error/loading states and motion cues
+• Defines technical considerations + component re-use plan
+• Includes prioritized build backlog (Now/Next/Later)`,
+        category: "Product",
+        default_estimate_points: 5,
+        fixed_hours: 8,
+        fixed_price: 1400,
+        active: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "Usability Test Script & Plan",
+        description: "Self-serve research kit to validate the new prototype with 3-5 target users.",
+        scope: `• Moderator guide with intro, tasks, and probing questions
+• Participant screener criteria + outreach template
+• Observation grid + insights capture doc
+• Loom walkthrough on how to run the sessions`,
+        category: "Product",
+        default_estimate_points: 3,
+        fixed_hours: 4,
+        fixed_price: 600,
+        active: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "Prototype Feedback Integration",
+        description: "Implements the highest-value feedback from user tests or stakeholders inside your live prototype.",
+        scope: `• Synthesizes feedback themes and prioritizes updates
+• Updates flows, content, and components inside the prototype
+• Re-validates UX with spot checks across devices
+• Ships change log so everyone knows what moved`,
+        category: "Product",
+        default_estimate_points: 5,
+        fixed_hours: 12,
+        fixed_price: 2200,
+        active: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "Feature Flow Refinement",
+        description: "Adds a net-new flow or ups the fidelity of an existing feature so it’s ready for engineering.",
+        scope: `• Maps edge cases for the new or refined feature
+• Designs high-fidelity screens + micro-interactions
+• Updates design system tokens/components as needed
+• Packages assets for handoff (Figma components + exports)`,
+        category: "Product",
+        default_estimate_points: 5,
+        fixed_hours: 10,
+        fixed_price: 2000,
+        active: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "Release Notes & Loom Demo",
+        description: "Story-driven walkthrough + written release notes so stakeholders instantly grasp what changed.",
+        scope: `• 3-4 minute Loom demo highlighting key updates
+• Written release notes with before/after visuals
+• Embed-ready summary for Notion, Linear, or email
+• Includes next steps + success metrics to watch`,
+        category: "Product",
+        default_estimate_points: 2,
+        fixed_hours: 3,
+        fixed_price: 500,
+        active: true,
+      },
+      {
+        id: crypto.randomUUID(),
         name: "Brand Style Guide",
         description: "Comprehensive brand identity system for consistent brand application. Requires existing logo.",
         scope: `• Color palette (primary, secondary, neutrals)

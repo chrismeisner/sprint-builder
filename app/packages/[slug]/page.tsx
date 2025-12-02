@@ -17,6 +17,7 @@ type Package = {
   slug: string;
   description: string | null;
   category: string | null;
+  package_type: "foundation" | "extend";
   tagline: string | null;
   flat_fee: number | null;      // NULL = dynamic pricing (most packages)
   flat_hours: number | null;    // NULL = dynamic hours (most packages)
@@ -49,6 +50,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
       sp.slug,
       sp.description,
       sp.category,
+      sp.package_type,
       sp.tagline,
       sp.flat_fee,
       sp.flat_hours,
@@ -119,16 +121,35 @@ export default async function PackageDetailPage({ params }: PageProps) {
           >
             ← Back to all packages
           </Link>
-          {pkg.featured && (
-            <div className="inline-flex items-center rounded-full bg-yellow-400 text-yellow-900 px-3 py-1 text-xs font-medium mb-4 ml-3">
-              ⭐ Featured Package
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {pkg.featured && (
+              <div className="inline-flex items-center rounded-full bg-yellow-400 text-yellow-900 px-3 py-1 text-xs font-medium">
+                ⭐ Featured Package
+              </div>
+            )}
+            <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+              pkg.package_type === "extend" 
+                ? "bg-emerald-500/90 text-white" 
+                : "bg-blue-500/90 text-white"
+            }`}>
+              {pkg.package_type === "extend" ? "🚀 Expansion Sprint" : "🏗️ Foundation Sprint"}
             </div>
-          )}
-          {pkg.category && (
-            <div className="inline-flex items-center rounded-full bg-white/20 text-white px-3 py-1 text-xs font-medium mb-4 ml-2">
-              {pkg.category}
-            </div>
-          )}
+            {pkg.category && (
+              <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                pkg.category === "Branding" ? "bg-purple-500/90 text-white" :
+                pkg.category === "Product" ? "bg-cyan-500/90 text-white" :
+                pkg.category === "Brand Extend" ? "bg-violet-500/90 text-white" :
+                pkg.category === "Product Extend" ? "bg-teal-500/90 text-white" :
+                "bg-white/20 text-white"
+              }`}>
+                {pkg.category === "Branding" ? "🎨 Branding" :
+                 pkg.category === "Product" ? "⚡ Product" :
+                 pkg.category === "Brand Extend" ? "✨ Brand Extend" :
+                 pkg.category === "Product Extend" ? "🔧 Product Extend" :
+                 pkg.category}
+              </div>
+            )}
+          </div>
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">{pkg.name}</h1>
           {pkg.tagline && <p className="text-xl opacity-90 mb-6">{pkg.tagline}</p>}
           {pkg.description && <p className="text-lg opacity-80">{pkg.description}</p>}
@@ -296,8 +317,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
             </div>
             <h2 className="text-3xl font-bold">Our uphill → downhill playbook</h2>
             <p className="text-base sm:text-lg opacity-80">
-              Every package follows the identical cadence: Week 1 we climb the hill to explore options and pick a direction. Week 2 we run down
-              the hill to build, review, and deliver. Here&apos;s what that looks like day to day.
+              Every package follows the identical cadence: Week 1 is Uphill—explore options and pick a direction. Week 2 is Downhill—build, review, and deliver. Here&apos;s what that looks like day to day.
             </p>
           </div>
 
@@ -312,9 +332,11 @@ export default async function PackageDetailPage({ params }: PageProps) {
                       <p className="text-sm sm:text-base opacity-80 mt-1">{week.summary}</p>
                     </div>
                   </div>
-                  <div className="text-xs sm:text-sm font-medium uppercase tracking-wide text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 rounded-full px-4 py-1 self-start">
-                    {week.highlight}
-                  </div>
+                  {week.highlight && (
+                    <div className="text-xs sm:text-sm font-medium uppercase tracking-wide text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 rounded-full px-4 py-1 self-start">
+                      {week.highlight}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">

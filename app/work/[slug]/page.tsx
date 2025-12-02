@@ -68,8 +68,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   return (
     <main className="min-h-screen font-[family-name:var(--font-geist-sans)]">
       {/* Header */}
-      <section className="bg-gradient-to-b from-black/5 to-transparent dark:from-white/5 py-12 px-6">
-        <div className="max-w-4xl mx-auto space-y-4">
+      <section className="bg-gradient-to-b from-black/5 to-transparent dark:from-white/5 py-12">
+        <div className="container max-w-4xl space-y-4">
           <Link
             href="/work"
             className="inline-flex items-center text-sm opacity-70 hover:opacity-100 transition"
@@ -116,7 +116,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       </section>
 
       {/* Main Content */}
-      <section className="max-w-4xl mx-auto px-6 py-12 space-y-12">
+      <section className="container max-w-4xl py-12 space-y-12">
         {/* Hero Image */}
         {project.thumbnail_url && (
           <div className="rounded-lg overflow-hidden border border-black/10 dark:border-white/15">
@@ -187,7 +187,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       </section>
 
       {/* CTA */}
-      <section className="max-w-4xl mx-auto px-6 py-16 text-center space-y-6 border-t border-black/10 dark:border-white/15">
+      <section className="container max-w-4xl py-16 text-center space-y-6 border-t border-black/10 dark:border-white/15">
         <h2 className="text-2xl font-bold">Like what you see?</h2>
         <p className="text-lg opacity-80">
           Start your own 2-week sprint and get results like this.

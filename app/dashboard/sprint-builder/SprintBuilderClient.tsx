@@ -173,7 +173,7 @@ export default function SprintBuilderClient({ deliverables, packages }: Props) {
   }, {} as Record<string, Deliverable[]>);
 
   return (
-    <main className="min-h-screen max-w-6xl mx-auto p-6 space-y-6 font-[family-name:var(--font-geist-sans)]">
+    <main className="container min-h-screen max-w-6xl space-y-6 py-6 font-[family-name:var(--font-geist-sans)]">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Sprint Builder</h1>

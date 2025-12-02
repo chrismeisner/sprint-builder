@@ -107,7 +107,7 @@ export default async function DeliverablesPage() {
     Branding: {
       label: "Brand Foundation Deliverables",
       description:
-        "Everything you can plug into a Brand or Extend & Iterate sprint once your foundation is set.",
+        "Everything you can plug into a Brand or Expansion Sprint once your foundation is set.",
       icon: "🎨",
     },
     Product: {
@@ -126,8 +126,8 @@ export default async function DeliverablesPage() {
   return (
     <main className="min-h-screen">
       {/* Hero */}
-      <section className="bg-black/[0.02] dark:bg-white/[0.02] py-20 px-6">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
+      <section className="bg-black/[0.02] dark:bg-white/[0.02] py-20">
+        <div className="container max-w-4xl text-center space-y-6">
           <div className="inline-flex items-center rounded-full bg-black/5 dark:bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-black/70 dark:text-white/70">
             Deliverables Library
           </div>
@@ -135,9 +135,7 @@ export default async function DeliverablesPage() {
             Everything we can ship in a sprint
           </h1>
           <p className="text-lg sm:text-xl opacity-80">
-            Browse the deliverables available inside Brand/Product Foundations and Extend &amp;
-            Iterate sprints. Each item includes scope, pricing, hours, and complexity so you can mix
-            and match with confidence.
+            Browse the deliverables available inside Brand/Product Foundations and Expansion Sprints. Each item includes scope, pricing, hours, and complexity so you can mix and match with confidence.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
@@ -150,7 +148,7 @@ export default async function DeliverablesPage() {
               href="/intake"
               className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
             >
-              Request Extend &amp; Iterate sprint →
+              Request Expansion Sprint →
             </Link>
           </div>
           <p className="text-sm opacity-60">
@@ -161,7 +159,7 @@ export default async function DeliverablesPage() {
       </section>
 
       {/* Category Sections */}
-      <section className="max-w-6xl mx-auto px-6 py-16 space-y-16">
+      <section className="container max-w-6xl py-16 space-y-16">
         {orderedCategories.length === 0 && (
           <div className="text-center py-20 space-y-3">
             <h2 className="text-2xl font-semibold">No deliverables available yet</h2>
@@ -259,12 +257,12 @@ export default async function DeliverablesPage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-black/[0.02] dark:bg-white/[0.02] py-16 px-6">
-        <div className="max-w-4xl mx-auto text-center space-y-5">
+      <section className="bg-black/[0.02] dark:bg-white/[0.02] py-16">
+        <div className="container max-w-4xl text-center space-y-5">
           <h2 className="text-3xl font-bold">Ready to build your sprint?</h2>
           <p className="text-base sm:text-lg opacity-80">
             Pick your foundation sprint, then plug in deliverables from this library. Once your
-            foundation is complete, rebook Extend &amp; Iterate sprints whenever you need momentum.
+            foundation is complete, rebook Expansion Sprints whenever you need momentum.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -277,7 +275,7 @@ export default async function DeliverablesPage() {
               href="/intake"
               className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
             >
-              Plan Extend &amp; Iterate sprint
+              Plan Expansion Sprint
             </Link>
           </div>
         </div>

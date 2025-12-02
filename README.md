@@ -183,6 +183,15 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Design System Catalog
+
+The design system is documented inside the app so the preview always matches production:
+
+- `/dashboard/style-guide` renders typography, color, form, and spacing tokens straight from the Tailwind theme and shared design token metadata.
+- `/dashboard/components` hydrates live `PackageCard` components with either production sprint data or high-fidelity fallbacks for quick QA.
+
+Because these routes run inside Next.js, updating `app/components/**` or the Tailwind theme automatically updates the catalog without Storybook.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

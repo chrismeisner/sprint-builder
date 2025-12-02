@@ -49,11 +49,28 @@ export function getBucketName(): string {
   return bucketName;
 }
 
-export async function uploadFile(
+type UploadFileOptions = {
+  prefix?: string;
+  makePublic?: boolean;
+  metadata?: Record<string, string>;
+};
+
+type UploadResult = {
+  objectPath: string;
+  publicUrl: string;
+};
+
+function normalizePrefix(prefix?: string | null): string {
+  if (!prefix) return "projects";
+  return prefix.replace(/^\/+/, "").replace(/\/+$/, "") || "projects";
+}
+
+async function saveBufferToBucket(
   buffer: Buffer,
   filename: string,
-  contentType: string
-): Promise<string> {
+  contentType: string,
+  options?: UploadFileOptions
+): Promise<UploadResult> {
   const storage = getStorage();
   if (!storage) {
     throw new Error("Google Cloud Storage is not configured");
@@ -61,36 +78,76 @@ export async function uploadFile(
 
   const bucketName = getBucketName();
   const bucket = storage.bucket(bucketName);
-  
+
+  const prefix = normalizePrefix(options?.prefix);
+
   // Generate unique filename with timestamp
   const timestamp = Date.now();
   const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, "_");
-  const uniqueFilename = `projects/${timestamp}-${sanitizedFilename}`;
-  
+  const uniqueFilename = `${prefix}/${timestamp}-${sanitizedFilename}`;
+
   const file = bucket.file(uniqueFilename);
 
   await file.save(buffer, {
     contentType,
     metadata: {
       cacheControl: "public, max-age=31536000",
+      ...options?.metadata,
     },
   });
 
-  // Try to make file publicly readable (works if uniform bucket-level access is disabled)
-  // If it fails, we'll use the public URL anyway and the bucket must be public
-  try {
-    await file.makePublic();
-  } catch {
-    // Uniform bucket-level access is enabled, file can't be made public individually
-    // The bucket itself needs to be public, or we return the public URL which will work if bucket is public
-    console.warn("[Storage] Could not make file public individually (uniform bucket-level access enabled)");
+  // Try to make file publicly readable unless explicitly disabled
+  if (options?.makePublic !== false) {
+    try {
+      await file.makePublic();
+    } catch {
+      console.warn("[Storage] Could not make file public individually (uniform bucket-level access enabled)");
+    }
   }
 
-  // Return public URL (will work if bucket is public)
-  return `https://storage.googleapis.com/${bucketName}/${uniqueFilename}`;
+  return {
+    objectPath: uniqueFilename,
+    publicUrl: `https://storage.googleapis.com/${bucketName}/${uniqueFilename}`,
+  };
 }
 
-export async function deleteFile(url: string): Promise<void> {
+export async function uploadFile(
+  buffer: Buffer,
+  filename: string,
+  contentType: string,
+  options?: UploadFileOptions
+): Promise<string> {
+  const { publicUrl } = await saveBufferToBucket(buffer, filename, contentType, options);
+  return publicUrl;
+}
+
+export async function uploadFileWithPath(
+  buffer: Buffer,
+  filename: string,
+  contentType: string,
+  options?: UploadFileOptions
+): Promise<UploadResult> {
+  return saveBufferToBucket(buffer, filename, contentType, options);
+}
+
+function extractFilenameFromIdentifier(identifier: string, bucketName: string): string {
+  if (!identifier) {
+    throw new Error("Missing file identifier");
+  }
+
+  if (identifier.startsWith(`https://`)) {
+    const urlPattern = new RegExp(`https://storage.googleapis.com/${bucketName}/(.+)`);
+    const match = identifier.match(urlPattern);
+    if (!match || !match[1]) {
+      throw new Error("Invalid GCS URL");
+    }
+    return match[1];
+  }
+
+  return identifier.replace(/^\/+/, "");
+}
+
+export async function deleteFile(identifier: string): Promise<void> {
   const storage = getStorage();
   if (!storage) {
     throw new Error("Google Cloud Storage is not configured");
@@ -98,18 +155,10 @@ export async function deleteFile(url: string): Promise<void> {
 
   const bucketName = getBucketName();
   const bucket = storage.bucket(bucketName);
-  
-  // Extract filename from URL
-  const urlPattern = new RegExp(`https://storage.googleapis.com/${bucketName}/(.+)`);
-  const match = url.match(urlPattern);
-  
-  if (!match || !match[1]) {
-    throw new Error("Invalid GCS URL");
-  }
 
-  const filename = match[1];
+  const filename = extractFilenameFromIdentifier(identifier, bucketName);
   const file = bucket.file(filename);
-  
+
   await file.delete();
 }
 
@@ -120,6 +169,7 @@ export interface FileMetadata {
   contentType: string;
   created: string;
   updated: string;
+  metadata?: Record<string, string>;
 }
 
 export async function listFiles(prefix?: string): Promise<FileMetadata[]> {
@@ -142,6 +192,29 @@ export async function listFiles(prefix?: string): Promise<FileMetadata[]> {
     contentType: file.metadata.contentType || "unknown",
     created: file.metadata.timeCreated || "",
     updated: file.metadata.updated || "",
+    metadata: (file.metadata.metadata ?? undefined) as Record<string, string> | undefined,
   }));
+}
+
+export async function getSignedFileUrl(
+  objectPath: string,
+  expiresInSeconds = 10 * 60
+): Promise<string> {
+  const storage = getStorage();
+  if (!storage) {
+    throw new Error("Google Cloud Storage is not configured");
+  }
+
+  const bucketName = getBucketName();
+  const bucket = storage.bucket(bucketName);
+  const file = bucket.file(objectPath);
+
+  const [url] = await file.getSignedUrl({
+    action: "read",
+    version: "v4",
+    expires: Date.now() + expiresInSeconds * 1000,
+  });
+
+  return url;
 }
 

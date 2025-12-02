@@ -39,7 +39,7 @@ export default async function ProjectsPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
+    <div className="container max-w-6xl py-10">
       <ProjectsClient initialProjects={projects} />
     </div>
   );

@@ -1,7 +1,10 @@
 import Link from "next/link";
 import PromptSettingsClient from "./PromptSettingsClient";
 import DatabaseToolsClient from "./DatabaseToolsClient";
+import UserUploadsClient from "./UserUploadsClient";
 import { getCurrentUser } from "@/lib/auth";
+import Typography from "@/components/ui/Typography";
+import Button from "@/components/ui/Button";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -15,35 +18,42 @@ export default async function DashboardPage() {
     { href: "/dashboard/deliverables", label: "Deliverables" },
     { href: "/dashboard/sprint-packages", label: "Sprint Packages" },
     { href: "/dashboard/storage-test", label: "Cloud Storage Test" },
-    { href: "/ai-test", label: "OpenAI Test" },
   ];
 
   // Add admin-only links
   if (isAdmin) {
+    links.push({ href: "/ai-test", label: "AI Sprint Generation (Admin)" });
     links.push({ href: "/dashboard/sprint-drafts", label: "Sprint Drafts (Admin)" });
     links.push({ href: "/dashboard/users", label: "User Management" });
     links.push({ href: "/dashboard/workshop-cleanup", label: "Workshop Cleanup (Admin)" });
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
-      <h1 className="text-2xl font-semibold mb-6">Dashboard</h1>
-      <p className="text-sm opacity-70 mb-6">
-        Quick links to available pages:
-      </p>
-      <ul className="space-y-3">
+    <div className="container max-w-4xl py-10 space-y-10">
+      <div className="space-y-2">
+        <Typography as="h1" scale="h2">
+          Dashboard
+        </Typography>
+        <Typography as="p" scale="body-sm" className="text-black/70 dark:text-white/70">
+          Quick links to available pages:
+        </Typography>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
         {links.map((link) => (
-          <li key={link.href}>
-            <Link
-              href={link.href}
-              className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
-            >
-              {link.label}
-            </Link>
-          </li>
+          <Button
+            key={link.href}
+            as={Link}
+            href={link.href}
+            variant="secondary"
+            className="justify-between text-left"
+          >
+            <span>{link.label}</span>
+            <span className="text-[11px] font-normal normal-case tracking-normal opacity-60">→</span>
+          </Button>
         ))}
-      </ul>
+      </div>
 
+      <UserUploadsClient />
       <PromptSettingsClient />
       <DatabaseToolsClient />
     </div>

@@ -9,6 +9,7 @@ type Package = {
   slug: string;
   description: string | null;
   category: string | null;
+  package_type: "foundation" | "extend";
   tagline: string | null;
   flat_fee: number | null;
   flat_hours: number | null;
@@ -37,6 +38,7 @@ export default async function PackagesPage() {
       sp.slug,
       sp.description,
       sp.category,
+      sp.package_type,
       sp.tagline,
       sp.flat_fee,
       sp.flat_hours,

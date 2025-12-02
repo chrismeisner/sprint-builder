@@ -1,27 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { calculatePackageTotal, type SprintPackage } from "../components/PackageCard";
 
-type Package = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  category: string | null;
-  tagline: string | null;
+type Package = SprintPackage & {
   flat_fee: number | null;      // NULL = dynamic (calculate from deliverables)
   flat_hours: number | null;    // NULL = dynamic (calculate from deliverables)
   featured: boolean;
-  deliverables: Array<{
-    deliverableId: string;
-    name: string;
-    description: string | null;
-    scope: string | null;
-    fixedHours: number | null;
-    fixedPrice: number | null;
-    quantity: number;
-    complexityScore: number;
-  }>;
 };
 
 type Props = {
@@ -29,55 +14,42 @@ type Props = {
 };
 
 export default function PackagesClient({ packages }: Props) {
-  // Calculate package totals dynamically from deliverables (base complexity 1.0)
-  function calculatePackageTotal(pkg: Package): { hours: number; price: number } {
-    let totalHours = 0;
-    let totalPrice = 0;
-
-    pkg.deliverables.forEach((d) => {
-      const baseHours = d.fixedHours ?? 0;
-      const basePrice = d.fixedPrice ?? 0;
-      const qty = d.quantity ?? 1;
-      const complexityMultiplier = d.complexityScore ?? 1.0; // Base complexity is 1.0
-      
-      // Apply complexity adjustment
-      totalHours += baseHours * complexityMultiplier * qty;
-      totalPrice += basePrice * complexityMultiplier * qty;
-    });
-
-    return { hours: totalHours, price: totalPrice };
-  }
+  const foundationPackages = packages.filter(
+    (pkg) => pkg.package_type === "foundation"
+  );
+  const extendPackages = packages.filter(
+    (pkg) => pkg.package_type === "extend"
+  );
+  const hasPackages = packages.length > 0;
 
   return (
     <main className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-black dark:bg-white text-white dark:text-black py-20 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Foundation Packages</h1>
+      <section className="bg-black text-white py-20">
+        <div className="container max-w-4xl text-center">
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">
+            Foundation &amp; Expansion Sprints
+          </h1>
           <p className="text-xl opacity-90 mb-8">
-            Two clear entry points for new clients. Both start with our 3-hour Foundation Workshop, then diverge into Brand or Product execution.
+            Start with a 2-week Foundation Sprint to lock your strategy, then stack Expansion Sprints whenever you need a launch, prototype, or feature refresh—same cadence, zero re-onboarding.
           </p>
           <Link
             href="/"
-            className="inline-flex items-center rounded-md bg-white dark:bg-black text-black dark:text-white px-6 py-3 text-sm font-medium hover:opacity-90 transition"
+            className="inline-flex items-center rounded-md bg-white text-black px-6 py-3 text-sm font-medium hover:opacity-90 transition"
           >
             Back to Home
           </Link>
         </div>
       </section>
 
-      {/* Foundation Packages */}
-      <section className="py-12 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Choose Your Foundation</h2>
-            <p className="text-base sm:text-lg opacity-70 max-w-2xl mx-auto">
-              Every new client begins with the same Foundation Workshop (3 hours) to align on goals and strategy. Then we diverge into your chosen track.
-            </p>
-          </div>
-          {packages.length === 0 ? (
+      {/* Packages */}
+      <section className="py-12">
+        <div className="container space-y-16">
+          {!hasPackages ? (
             <div className="text-center py-12">
-              <p className="text-lg opacity-70 mb-4">No packages available yet.</p>
+              <p className="text-lg opacity-70 mb-4">
+                No sprint packages are available yet.
+              </p>
               <Link
                 href="/"
                 className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
@@ -86,28 +58,66 @@ export default function PackagesClient({ packages }: Props) {
               </Link>
             </div>
           ) : (
-            <div className="grid gap-8 md:grid-cols-2 max-w-5xl mx-auto">
-              {packages.map((pkg) => (
-                <PackageCard key={pkg.id} pkg={pkg} featured={pkg.featured} />
-              ))}
-            </div>
+            <>
+              <div>
+                <div className="text-center mb-12">
+                  <h2 className="text-3xl font-bold mb-4">Start with a Foundation Sprint</h2>
+                  <p className="text-base sm:text-lg opacity-70 max-w-2xl mx-auto">
+                    Every new client begins with our 3-hour Foundation Workshop to align on goals and strategy. Choose Brand or Product foundations to set the source of truth for every future sprint.
+                  </p>
+                </div>
+                {foundationPackages.length === 0 ? (
+                  <p className="text-center text-sm opacity-70">
+                    Foundation packages are currently unavailable.
+                  </p>
+                ) : (
+                  <div className="grid gap-8 md:grid-cols-2 max-w-5xl mx-auto">
+                    {foundationPackages.map((pkg) => (
+                      <PackageCard key={pkg.id} pkg={pkg} featured={pkg.featured} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {extendPackages.length > 0 && (
+                <div>
+                  <div className="text-center mb-12">
+                    <h2 className="text-3xl font-bold mb-4">Expansion Sprints</h2>
+                    <p className="text-base sm:text-lg opacity-70 max-w-2xl mx-auto">
+                      Unlocked after a Foundation Sprint. Each Expansion Sprint starts with a 1-hour Mini Foundation Workshop, then ships focused deliverables in the same 10-day cadence.
+                    </p>
+                  </div>
+                  <div className="grid gap-8 md:grid-cols-2 max-w-5xl mx-auto">
+                    {extendPackages.map((pkg) => (
+                      <PackageCard key={pkg.id} pkg={pkg} featured={pkg.featured} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="bg-black/[0.02] dark:bg-white/[0.02] py-16 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">Already a client?</h2>
-          <p className="text-base sm:text-lg opacity-80 mb-8">
-            Looking for iteration or expansion sprints? Request specific deliverables for your follow-on project.
+      <section className="bg-black/[0.02] dark:bg-white/[0.02] py-16">
+        <div className="container max-w-4xl text-center space-y-6">
+          <h2 className="text-3xl font-bold">Need something different?</h2>
+          <p className="text-base sm:text-lg opacity-80 max-w-2xl mx-auto">
+            The packages above are our most common starting points, but we can build a custom sprint around any combination of deliverables. Browse the full library, then reach out to scope a 2-week sprint that fits your exact needs.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/intake"
+              href="/deliverables"
               className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-6 py-3 text-sm font-medium hover:opacity-90 transition"
             >
-              Submit intake form →
+              Browse deliverables
+            </Link>
+            <Link
+              href="/intake"
+              className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 transition"
+            >
+              Request custom sprint
             </Link>
             <Link
               href="/how-it-works"
@@ -116,8 +126,8 @@ export default function PackagesClient({ packages }: Props) {
               How it works
             </Link>
           </div>
-          <p className="text-xs sm:text-sm opacity-60 mt-6 max-w-lg mx-auto">
-            All follow-on sprints begin with a Mini Foundation Workshop (1 hour) to quickly realign and confirm deliverables.
+          <p className="text-xs sm:text-sm opacity-60 max-w-2xl mx-auto">
+            Every Expansion Sprint starts with a 1-hour Mini Foundation Workshop to quickly realign on scope and direction—no repeat discovery, just execution.
           </p>
         </div>
       </section>
@@ -137,16 +147,35 @@ export default function PackagesClient({ packages }: Props) {
       >
         {/* Header */}
         <div className="mb-4">
-          {featured && (
-            <div className="inline-flex items-center rounded-full bg-yellow-100 text-yellow-800 px-2 py-0.5 text-xs font-medium mb-2">
-              ⭐ Featured
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            {featured && (
+              <div className="inline-flex items-center rounded-full bg-yellow-100 text-yellow-800 px-2 py-0.5 text-xs font-medium">
+                ⭐ Featured
+              </div>
+            )}
+            <div className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+              pkg.package_type === "extend" 
+                ? "bg-emerald-500/90 text-white" 
+                : "bg-blue-500/90 text-white"
+            }`}>
+              {pkg.package_type === "extend" ? "🚀 Expansion Sprint" : "🏗️ Foundation Sprint"}
             </div>
-          )}
-          {pkg.category && (
-            <div className="inline-flex items-center rounded-full bg-blue-600/10 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300 px-2 py-0.5 text-xs font-medium mb-2 ml-2">
-              {pkg.category}
-            </div>
-          )}
+            {pkg.category && (
+              <div className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                pkg.category === "Branding" ? "bg-purple-500/90 text-white" :
+                pkg.category === "Product" ? "bg-cyan-500/90 text-white" :
+                pkg.category === "Brand Extend" ? "bg-violet-500/90 text-white" :
+                pkg.category === "Product Extend" ? "bg-teal-500/90 text-white" :
+                "bg-black/10 dark:bg-white/10 text-black dark:text-white"
+              }`}>
+                {pkg.category === "Branding" ? "🎨 Branding" :
+                 pkg.category === "Product" ? "⚡ Product" :
+                 pkg.category === "Brand Extend" ? "✨ Brand Extend" :
+                 pkg.category === "Product Extend" ? "🔧 Product Extend" :
+                 pkg.category}
+              </div>
+            )}
+          </div>
           <h3 className="text-2xl font-bold mb-2">{pkg.name}</h3>
           {pkg.tagline && <p className="text-sm opacity-80 mb-3">{pkg.tagline}</p>}
         </div>
@@ -203,4 +232,5 @@ export default function PackagesClient({ packages }: Props) {
     );
   }
 }
+
 

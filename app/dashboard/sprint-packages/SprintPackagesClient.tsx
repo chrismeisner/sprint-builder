@@ -130,7 +130,7 @@ export default function SprintPackagesClient({ rows }: Props) {
   }
 
   return (
-    <main className="min-h-screen max-w-6xl mx-auto p-6 space-y-6 font-[family-name:var(--font-geist-sans)]">
+    <main className="container min-h-screen max-w-6xl space-y-6 py-6 font-[family-name:var(--font-geist-sans)]">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold">Sprint Packages</h1>
         <div className="flex items-center gap-2">

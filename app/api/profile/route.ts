@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  autoUpdateOnboardingTasks,
+  ensureOnboardingTasks,
+  fetchOnboardingTasks,
+} from "@/lib/onboarding";
 
 // GET /api/profile - Get current user's profile with their documents and sprints
 export async function GET() {
@@ -12,6 +17,7 @@ export async function GET() {
     }
 
     const pool = getPool();
+    await ensureOnboardingTasks(pool, user.accountId);
     
     // Get user profile information
     const profileResult = await pool.query(
@@ -58,6 +64,14 @@ export async function GET() {
       [user.email, user.accountId]
     );
 
+    await autoUpdateOnboardingTasks({
+      pool,
+      accountId: user.accountId,
+      hasIntakeForm: documentsResult.rowCount > 0,
+    });
+
+    const onboardingTasks = await fetchOnboardingTasks(pool, user.accountId);
+
     return NextResponse.json({
       profile: {
         id: profile.id,
@@ -72,6 +86,15 @@ export async function GET() {
         totalDocuments: documentsResult.rowCount,
         totalSprints: sprintsResult.rowCount,
       },
+      onboardingTasks: onboardingTasks.map((task) => ({
+        accountId: task.account_id,
+        taskKey: task.task_key,
+        status: task.status,
+        metadata: task.metadata,
+        completedAt: task.completed_at,
+        updatedAt: task.updated_at,
+        createdAt: task.created_at,
+      })),
     });
   } catch (error) {
     console.error("Error fetching profile:", error);

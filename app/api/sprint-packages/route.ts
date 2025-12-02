@@ -30,6 +30,7 @@ export async function GET(request: Request) {
         sp.slug,
         sp.description,
         sp.category,
+        sp.package_type,
         sp.tagline,
         sp.flat_fee,
         sp.flat_hours,
@@ -113,6 +114,7 @@ export async function POST(request: Request) {
       active,
       featured,
       sortOrder,
+      packageType,
       deliverables,
     } = body as {
       name?: unknown;
@@ -125,6 +127,7 @@ export async function POST(request: Request) {
       active?: unknown;
       featured?: unknown;
       sortOrder?: unknown;
+      packageType?: unknown;
       deliverables?: unknown;
     };
 
@@ -161,6 +164,12 @@ export async function POST(request: Request) {
       if (!Number.isNaN(parsed)) order = parsed;
     }
 
+    const allowedPackageTypes = new Set(["foundation", "extend"]);
+    const packageTypeValue =
+      typeof packageType === "string" && allowedPackageTypes.has(packageType)
+        ? packageType
+        : "foundation";
+
     const id = crypto.randomUUID();
     const activeValue = typeof active === "boolean" ? active : true;
     const featuredValue = typeof featured === "boolean" ? featured : false;
@@ -169,11 +178,11 @@ export async function POST(request: Request) {
     await pool.query(
       `
       INSERT INTO sprint_packages (
-        id, name, slug, description, category, tagline, 
+        id, name, slug, description, category, package_type, tagline, 
         flat_fee, flat_hours,
         active, featured, sort_order
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     `,
       [
         id,
@@ -181,9 +190,10 @@ export async function POST(request: Request) {
         slug.trim(),
         typeof description === "string" ? description : null,
         typeof category === "string" ? category : null,
+        packageTypeValue,
         typeof tagline === "string" ? tagline : null,
-        fee,     // NULL = dynamic pricing
-        hours,   // NULL = dynamic hours
+        fee, // NULL = dynamic pricing
+        hours, // NULL = dynamic hours
         activeValue,
         featuredValue,
         order,

@@ -31,8 +31,8 @@ export default async function WorkPage() {
   return (
     <main className="min-h-screen font-[family-name:var(--font-geist-sans)]">
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-black/5 to-transparent dark:from-white/5 py-16 px-6">
-        <div className="max-w-4xl mx-auto text-center space-y-4">
+      <section className="bg-gradient-to-b from-black/5 to-transparent dark:from-white/5 py-16">
+        <div className="container max-w-4xl text-center space-y-4">
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
             Past Work
           </h1>
@@ -44,7 +44,7 @@ export default async function WorkPage() {
 
       {/* Featured Projects */}
       {featured.length > 0 && (
-        <section className="max-w-6xl mx-auto px-6 py-12">
+        <section className="container max-w-6xl py-12">
           <h2 className="text-2xl font-bold mb-6">Featured Work</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {featured.map((project) => (
@@ -96,7 +96,7 @@ export default async function WorkPage() {
 
       {/* Other Projects */}
       {others.length > 0 && (
-        <section className="max-w-6xl mx-auto px-6 py-12">
+        <section className="container max-w-6xl py-12">
           {featured.length > 0 && <h2 className="text-2xl font-bold mb-6">More Projects</h2>}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {others.map((project) => (
@@ -147,13 +147,13 @@ export default async function WorkPage() {
       )}
 
       {projects.length === 0 && (
-        <section className="max-w-4xl mx-auto px-6 py-16 text-center">
+        <section className="container max-w-4xl py-16 text-center">
           <p className="text-lg opacity-70">No published projects yet. Check back soon!</p>
         </section>
       )}
 
       {/* CTA */}
-      <section className="max-w-4xl mx-auto px-6 py-16 text-center space-y-6 border-t border-black/10 dark:border-white/15">
+      <section className="container max-w-4xl py-16 text-center space-y-6 border-t border-black/10 dark:border-white/15">
         <h2 className="text-2xl font-bold">Ready to start your sprint?</h2>
         <p className="text-lg opacity-80">
           Get a custom sprint plan for your project in minutes.

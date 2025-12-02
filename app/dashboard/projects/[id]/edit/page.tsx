@@ -57,7 +57,7 @@ export default async function EditProjectPage({ params }: PageProps) {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
+    <div className="container max-w-4xl py-10">
       <div className="mb-6">
         <Link
           href="/dashboard/projects"

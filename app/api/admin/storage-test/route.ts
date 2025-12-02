@@ -1,5 +1,16 @@
 import { NextResponse } from "next/server";
-import { getStorage, getBucketName, uploadFile, listFiles, deleteFile } from "@/lib/storage";
+import { getCurrentUser } from "@/lib/auth";
+import {
+  getStorage,
+  getBucketName,
+  uploadFileWithPath,
+  listFiles,
+  deleteFile,
+  getSignedFileUrl,
+} from "@/lib/storage";
+
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const ADMIN_UPLOAD_PREFIX = "admin-uploads";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -16,7 +27,25 @@ export async function GET(request: Request) {
         );
       }
 
-      const files = await listFiles();
+      const prefixParam = searchParams.get("prefix");
+      const includeSigned = searchParams.get("includeSignedUrls") === "true";
+
+      let files = await listFiles(prefixParam || undefined);
+
+      if (includeSigned) {
+        files = await Promise.all(
+          files.map(async (file) => {
+            try {
+              const signedUrl = await getSignedFileUrl(file.name);
+              return { ...file, signedUrl };
+            } catch (error) {
+              console.warn(`[StorageTest] Failed to sign URL for ${file.name}:`, error);
+              return file;
+            }
+          })
+        );
+      }
+
       return NextResponse.json({ success: true, files });
     } catch (error: unknown) {
       return NextResponse.json(
@@ -117,20 +146,48 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "File is too large. Maximum size is 50MB.",
+        },
+        { status: 400 }
+      );
+    }
+
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Upload test file
-    const url = await uploadFile(buffer, `test-${file.name}`, file.type);
+    const contentType = file.type || "application/octet-stream";
+    const currentUser = await getCurrentUser();
+    const metadata: Record<string, string> = {
+      originalName: file.name,
+      uploadSource: "admin",
+      uploadSourceLabel: "Admin storage test",
+    };
+
+    if (currentUser?.email) {
+      metadata.uploaderEmail = currentUser.email;
+    }
+    if (currentUser?.accountId) {
+      metadata.uploaderId = currentUser.accountId;
+    }
+
+    const { publicUrl, objectPath } = await uploadFileWithPath(buffer, `test-${file.name}`, contentType, {
+      prefix: ADMIN_UPLOAD_PREFIX,
+      metadata,
+    });
 
     return NextResponse.json({
       success: true,
       message: "✅ Test file uploaded successfully!",
-      url,
+      url: publicUrl,
+      objectPath,
       fileSize: file.size,
       fileName: file.name,
-      contentType: file.type,
+      contentType,
     });
   } catch (error: unknown) {
     return NextResponse.json(
@@ -155,13 +212,16 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const fileUrl = searchParams.get("url");
+    const fileName = searchParams.get("name");
 
-    if (!fileUrl) {
-      return NextResponse.json({ error: "No file URL provided" }, { status: 400 });
+    if (!fileUrl && !fileName) {
+      return NextResponse.json({ error: "No file identifier provided" }, { status: 400 });
     }
 
+    const identifier = fileName || fileUrl!;
+
     // Delete the file
-    await deleteFile(fileUrl);
+    await deleteFile(identifier);
 
     return NextResponse.json({
       success: true,

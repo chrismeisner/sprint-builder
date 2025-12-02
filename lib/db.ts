@@ -215,6 +215,22 @@ export async function ensureSchema(): Promise<void> {
     ALTER TABLE accounts
     ADD COLUMN IF NOT EXISTS workshop_completed_at timestamptz;
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS onboarding_tasks (
+      account_id text NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      task_key text NOT NULL,
+      status text NOT NULL DEFAULT 'pending',
+      metadata jsonb,
+      completed_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT onboarding_tasks_status_check CHECK (status IN ('pending','in_progress','submitted','completed')),
+      CONSTRAINT onboarding_tasks_pk PRIMARY KEY (account_id, task_key)
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_onboarding_tasks_status ON onboarding_tasks(status);
+  `);
   
   // Add sprint request and discovery call tracking to sprint_drafts
   await pool.query(`
@@ -274,6 +290,7 @@ export async function ensureSchema(): Promise<void> {
       slug text UNIQUE NOT NULL,
       description text,
       category text,
+      package_type text NOT NULL DEFAULT 'foundation',
       tagline text,
       flat_fee numeric(10,2),        -- NULL = dynamic pricing (calculate from deliverables)
       flat_hours numeric(10,2),      -- NULL = dynamic hours (calculate from deliverables)
@@ -281,12 +298,29 @@ export async function ensureSchema(): Promise<void> {
       featured boolean NOT NULL DEFAULT false,
       sort_order integer NOT NULL DEFAULT 0,
       created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT sprint_packages_package_type_check CHECK (package_type IN ('foundation', 'extend'))
     );
     CREATE INDEX IF NOT EXISTS idx_sprint_packages_active ON sprint_packages(active);
     CREATE INDEX IF NOT EXISTS idx_sprint_packages_featured ON sprint_packages(featured);
     CREATE INDEX IF NOT EXISTS idx_sprint_packages_category ON sprint_packages(category);
     CREATE INDEX IF NOT EXISTS idx_sprint_packages_sort ON sprint_packages(sort_order);
+  `);
+  await pool.query(`
+    ALTER TABLE sprint_packages
+    ADD COLUMN IF NOT EXISTS package_type text NOT NULL DEFAULT 'foundation';
+  `);
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'sprint_packages_package_type_check'
+      ) THEN
+        ALTER TABLE sprint_packages
+        ADD CONSTRAINT sprint_packages_package_type_check
+        CHECK (package_type IN ('foundation','extend'));
+      END IF;
+    END $$;
   `);
   
   // Remove discount_percentage column (no longer used - pricing is always accurate)
