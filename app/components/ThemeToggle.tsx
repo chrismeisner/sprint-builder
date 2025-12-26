@@ -72,7 +72,7 @@ export default function ThemeToggle() {
     };
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
+  }, [selection]);
 
   const handleSelect = (next: ThemeOverrideSelection) => {
     if (next === selection) return;

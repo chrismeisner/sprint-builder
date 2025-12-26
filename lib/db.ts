@@ -392,7 +392,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Work-in-progress share",
         subtitle: "Day 3 · Wednesday",
         client_copy:
-          "Explorations shared via Loom/Figma; react inline to help narrow the strongest options. Optional live sync if helpful. You'll feel: Excited.",
+          "Explorations shared via Loom/Figma with initial “ingredient”/“solution” buckets—categories with a few variations each (e.g., 3 color palette options, 3 hero font options). React inline to steer which buckets we’ll carry into Decision Day. Optional live sync if helpful. You'll feel: Excited.",
         internal_notes: "Engagement: optional sync share",
         deliverable_examples: { engagement: "optional", feel: "Excited" },
         links: null,

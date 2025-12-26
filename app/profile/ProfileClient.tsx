@@ -43,13 +43,6 @@ type Project = {
   isOwner?: boolean | null;
 };
 
-type Package = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-};
-
 type ProfileData = {
   profile: Profile;
   documents: Document[];
@@ -75,13 +68,9 @@ export default function ProfileClient() {
   const [projectName, setProjectName] = useState("");
   const [projectSaving, setProjectSaving] = useState(false);
   const [projectError, setProjectError] = useState<string | null>(null);
-  const [selectedPackageId] = useState("");
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
-  const [packages, setPackages] = useState<Package[]>([]);
-  const [, setPackagesLoading] = useState(true);
-  const [packagesError, setPackagesError] = useState<string | null>(null);
   const [memberModalProjectId, setMemberModalProjectId] = useState<string | null>(null);
   const [memberModalProjectName, setMemberModalProjectName] = useState<string>("");
   const [memberModalMembers, setMemberModalMembers] = useState<Array<{ email: string; addedByAccount: string | null; createdAt: string }>>([]);
@@ -147,27 +136,8 @@ export default function ProfileClient() {
     }
   };
 
-  const fetchPackages = async () => {
-    try {
-      setPackagesLoading(true);
-      const res = await fetch("/api/sprint-packages");
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to fetch packages");
-      }
-      const data = await res.json().catch(() => ({})) as { packages?: Package[] };
-      setPackages(data.packages ?? []);
-      setPackagesError(null);
-    } catch (err) {
-      setPackagesError(err instanceof Error ? err.message : "Failed to fetch packages");
-    } finally {
-      setPackagesLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchProfile();
-    fetchPackages();
   }, []);
 
   useEffect(() => {
@@ -698,11 +668,6 @@ export default function ProfileClient() {
             </div>
             {/* Package selector removed per request */}
           </div>
-          {packagesError && (
-            <div className={`${bodySmClass} text-red-700 dark:text-red-300 bg-red-600/10 dark:bg-red-900/30 border border-red-600/20 dark:border-red-900/30 rounded-md px-3 py-2`}>
-              {packagesError}
-            </div>
-          )}
           {deleteProjectError && (
             <div className={`${bodySmClass} text-red-700 dark:text-red-300 bg-red-600/10 dark:bg-red-900/30 border border-red-600/20 dark:border-red-900/30 rounded-md px-3 py-2`}>
               {deleteProjectError}

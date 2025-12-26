@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 
 type ConnectionStatus = {
@@ -174,11 +174,7 @@ export default function StorageTestClient() {
     };
   };
 
-  useEffect(() => {
-    checkConnection();
-  }, []);
-
-  const checkConnection = async () => {
+  const checkConnection = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/storage-test");
@@ -202,7 +198,11 @@ export default function StorageTestClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkConnection();
+  }, [checkConnection]);
 
   const fetchFilesForPrefix = async (prefix?: string): Promise<AdminStorageFile[]> => {
     const params = new URLSearchParams({

@@ -46,7 +46,7 @@ export const SPRINT_WEEKS: SprintWeek[] = [
         day: "Day 3 · Wednesday",
         title: "Work-in-progress share",
         detail:
-          "Explorations shared via Loom/Figma; react inline to help narrow the strongest options. Optional live sync if helpful. You'll feel: Excited.",
+          "Explorations shared via Loom/Figma with initial “ingredient”/“solution” buckets—categories with a few variations each (e.g., 3 color palette options, 3 hero font options). React inline to steer which buckets we’ll carry into Decision Day. Optional live sync if helpful. You'll feel: Excited.",
         engagement: { label: "Optional sync share", variant: "optional" },
       },
       {

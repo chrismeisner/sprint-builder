@@ -179,7 +179,7 @@ export default function ProjectDocuments({ projectId }: Props) {
           uploaded: d.createdAt ? new Date(d.createdAt).toLocaleDateString() : "—",
         };
       }),
-    [docs]
+    [docs, projectId]
   );
 
   const handleDelete = async (id: string) => {
