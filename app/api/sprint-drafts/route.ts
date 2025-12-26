@@ -151,7 +151,8 @@ export async function POST(request: Request) {
         `SELECT name, description FROM sprint_packages WHERE id = $1`,
         [packageId]
       );
-      if (pkgRes.rowCount > 0) {
+      const pkgRowCount = pkgRes.rowCount ?? 0;
+      if (pkgRowCount > 0) {
         packageNameSnapshot = (pkgRes.rows[0] as { name: string | null }).name ?? null;
         packageDescriptionSnapshot = (pkgRes.rows[0] as { description: string | null }).description ?? null;
       }
