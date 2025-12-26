@@ -366,7 +366,10 @@ export default function DeliverablesClient({ rows }: Props) {
                   <tr>
                     <th className={`${tableHeadingClass} px-4 py-2`}>Name</th>
                     <th className={`${tableHeadingClass} px-4 py-2`}>Category</th>
-                    <th className={`${tableHeadingClass} px-4 py-2`} aria-sort={pointSort ?? "none"}>
+                    <th
+                      className={`${tableHeadingClass} px-4 py-2`}
+                      aria-sort={pointSort === "asc" ? "ascending" : pointSort === "desc" ? "descending" : "none"}
+                    >
                       <button type="button" onClick={togglePointSort} className="inline-flex items-center gap-1">
                         <span>Points</span>
                         <span className="text-xs opacity-70">
