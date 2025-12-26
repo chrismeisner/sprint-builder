@@ -24,7 +24,8 @@ async function assertAuth(projectId: string, user: { accountId: string; email: s
     `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
     [projectId, user.email]
   );
-  const isMember = membershipRes.rowCount > 0;
+  const membershipRowCount = membershipRes.rowCount ?? 0;
+  const isMember = membershipRowCount > 0;
 
   const canManage = isAdmin || isOwner;
   const canView = canManage || isMember;

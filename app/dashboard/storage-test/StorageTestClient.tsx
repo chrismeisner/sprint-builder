@@ -198,7 +198,7 @@ export default function StorageTestClient() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchFiles]);
 
   useEffect(() => {
     checkConnection();
@@ -224,7 +224,7 @@ export default function StorageTestClient() {
     return [];
   };
 
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
     setLoadingFiles(true);
     try {
       const [userUploads, adminUploads] = await Promise.all([
@@ -240,7 +240,7 @@ export default function StorageTestClient() {
     } finally {
       setLoadingFiles(false);
     }
-  };
+  }, [fetchFilesForPrefix]);
 
   const handleDeleteClick = (file: AdminStorageFile) => {
     setFileToDelete(file);
