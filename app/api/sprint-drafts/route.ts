@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     const startDateValue = typeof startDate === "string" && startDate.trim() ? startDate.trim() : null;
     const dueDateValue = typeof dueDate === "string" && dueDate.trim() ? dueDate.trim() : null;
 
-    async function ensureProjectForAccount(): Promise<string> {
+    const ensureProjectForAccount = async (): Promise<string> => {
       if (requestedProjectId) {
         const owned = await pool.query(
           `
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
         [randomUUID(), newProjectId, user.email, user.accountId]
       );
       return newProjectId;
-    }
+    };
 
     const projectIdValue = await ensureProjectForAccount();
 
