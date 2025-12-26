@@ -174,36 +174,6 @@ export default function StorageTestClient() {
     };
   };
 
-  const checkConnection = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/storage-test");
-      const data = await res.json();
-      setStatus(data);
-      
-      // If connection is successful, also fetch the files
-      if (data.success) {
-        fetchFiles();
-      }
-    } catch (error) {
-      setStatus({
-        configPresent: false,
-        storageInitialized: false,
-        bucketAccessible: false,
-        projectId: null,
-        bucketName: null,
-        credentialsPresent: false,
-        error: `Failed to check connection: ${error}`,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchFiles]);
-
-  useEffect(() => {
-    checkConnection();
-  }, [checkConnection]);
-
   const fetchFilesForPrefix = useCallback(async (prefix?: string): Promise<AdminStorageFile[]> => {
     const params = new URLSearchParams({
       action: "list",
@@ -241,6 +211,36 @@ export default function StorageTestClient() {
       setLoadingFiles(false);
     }
   }, [fetchFilesForPrefix]);
+
+  const checkConnection = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/storage-test");
+      const data = await res.json();
+      setStatus(data);
+      
+      // If connection is successful, also fetch the files
+      if (data.success) {
+        fetchFiles();
+      }
+    } catch (error) {
+      setStatus({
+        configPresent: false,
+        storageInitialized: false,
+        bucketAccessible: false,
+        projectId: null,
+        bucketName: null,
+        credentialsPresent: false,
+        error: `Failed to check connection: ${error}`,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchFiles]);
+
+  useEffect(() => {
+    checkConnection();
+  }, [checkConnection]);
 
   const handleDeleteClick = (file: AdminStorageFile) => {
     setFileToDelete(file);
