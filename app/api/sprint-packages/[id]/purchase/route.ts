@@ -241,11 +241,10 @@ export async function POST(request: Request, { params }: Params) {
         {
           day: 3,
           dayOfWeek: "Wednesday",
-          focus: "Work-in-progress share (optional sync)",
+          focus: "Work-in-progress share (ingredient/solution buckets)",
           items: [
-            "Send Loom or Figma walkthrough covering explorations",
-            "Invite optional live sync if stakeholders want to talk through ideas",
-            "Collect inline comments to guide final explorations",
+            "Send Loom or Figma walkthrough showing “ingredient/solution” buckets with a few variations",
+            "Collect inline comments (and optional live sync) to decide what continues into Decision Day",
           ],
         },
         {

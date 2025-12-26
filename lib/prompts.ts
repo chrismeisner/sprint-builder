@@ -191,7 +191,7 @@ Purpose: Reduce uncertainty, build confidence, find direction
 - Day 2 (Tuesday): Research + divergence
   - Studio heads down exploring options; no live touchpoints, client leaves async comments only
 - Day 3 (Wednesday): Work-in-progress share
-  - Async Loom/Figma review with OPTIONAL sync if the client wants to talk it through
+  - Async Loom/Figma review with OPTIONAL sync, showing “ingredient”/“solution” buckets—categories with a few variations so the client can steer what to carry into Decision Day
 - Day 4 (Thursday): Decision Day
   - Client input REQUIRED - review 2-3 viable paths and commit to one confident direction
 - Day 5 (Friday): Execution plan

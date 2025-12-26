@@ -111,7 +111,8 @@ export async function POST(request: Request) {
         `
       );
 
-      if (pkgResult.rowCount > 0) {
+      const pkgRowCount = pkgResult.rowCount ?? 0;
+      if (pkgRowCount > 0) {
         const pkg = pkgResult.rows[0] as { id: string; name: string; slug: string };
 
         // Fetch deliverables for the package (with complexity)

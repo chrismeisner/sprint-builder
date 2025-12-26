@@ -204,7 +204,7 @@ export default function StorageTestClient() {
     checkConnection();
   }, [checkConnection]);
 
-  const fetchFilesForPrefix = async (prefix?: string): Promise<AdminStorageFile[]> => {
+  const fetchFilesForPrefix = useCallback(async (prefix?: string): Promise<AdminStorageFile[]> => {
     const params = new URLSearchParams({
       action: "list",
       includeSignedUrls: "true",
@@ -222,7 +222,7 @@ export default function StorageTestClient() {
     }
 
     return [];
-  };
+  }, []);
 
   const fetchFiles = useCallback(async () => {
     setLoadingFiles(true);
