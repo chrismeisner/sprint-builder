@@ -52,10 +52,17 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        text: {
+          primary: "var(--text-primary)",
+          secondary: "var(--text-secondary)",
+          muted: "var(--text-muted)",
+          inverse: "var(--text-inverse)",
+        },
         brand: {
           primary: "var(--color-brand-primary)",
           inverse: "var(--color-brand-inverse)",
           muted: "var(--color-brand-muted)",
+          accent: "var(--color-brand-accent)",
         },
         surface: {
           subtle: "var(--color-surface-subtle)",
@@ -96,6 +103,11 @@ const config: Config = {
         general: ["var(--font-general-grotesque)", "var(--font-akkurat)", "sans-serif"],
         "general-mono": ["var(--font-general-grotesque-mono)", "var(--font-akkurat-mono)", "ui-monospace", "monospace"],
         inter: ["var(--font-inter)", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        "inter-tight": ["var(--font-inter-tight)", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        gooper: ["var(--font-gooper)", "var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
+        "gooper-condensed": ["var(--font-gooper-condensed)", "var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
+        "gooper-semicondensed": ["var(--font-gooper-semicondensed)", "var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
+        "gooper-text": ["var(--font-gooper-text)", "var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
         system: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Helvetica Neue", "sans-serif"],
         emoji: ["var(--font-noto-emoji)", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "sans-serif"],
       },

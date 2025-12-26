@@ -21,9 +21,9 @@ export default async function ComponentsPage() {
         sp.name,
         sp.slug,
         sp.description,
-        sp.category,
         sp.package_type,
         sp.tagline,
+        sp.emoji,
         sp.featured,
         COALESCE(
           (

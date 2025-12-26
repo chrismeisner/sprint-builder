@@ -8,20 +8,16 @@ type Row = {
   name: string;
   slug: string;
   description: string | null;
-  category: string | null;
   tagline: string | null;
-  flat_fee: number | null;
-  flat_hours: number | null;
+  emoji: string | null;
   active: boolean;
-  featured: boolean;
   sort_order: number;
   created_at: string | Date;
   updated_at: string | Date;
   deliverables: Array<{
     deliverableId: string;
     name: string;
-    fixedHours: number | null;
-    fixedPrice: number | null;
+    points: number | null;
     quantity: number;
   }>;
 };
@@ -36,12 +32,9 @@ export default async function SprintPackagesPage() {
       sp.name,
       sp.slug,
       sp.description,
-      sp.category,
       sp.tagline,
-      sp.flat_fee,
-      sp.flat_hours,
+      sp.emoji,
       sp.active,
-      sp.featured,
       sp.sort_order,
       sp.created_at,
       sp.updated_at,
@@ -50,8 +43,7 @@ export default async function SprintPackagesPage() {
           json_build_object(
             'deliverableId', d.id,
             'name', d.name,
-            'fixedHours', d.fixed_hours,
-            'fixedPrice', d.fixed_price,
+            'points', d.points,
             'quantity', spd.quantity
           ) ORDER BY spd.sort_order ASC, d.name ASC
         ) FILTER (WHERE d.id IS NOT NULL),
@@ -61,7 +53,7 @@ export default async function SprintPackagesPage() {
     LEFT JOIN sprint_package_deliverables spd ON sp.id = spd.sprint_package_id
     LEFT JOIN deliverables d ON spd.deliverable_id = d.id
     GROUP BY sp.id
-    ORDER BY sp.featured DESC, sp.sort_order ASC, sp.name ASC
+    ORDER BY sp.sort_order ASC, sp.name ASC
   `);
 
   const rows: Row[] = result.rows;

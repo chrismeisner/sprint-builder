@@ -14,12 +14,10 @@ export async function GET(request: Request) {
     const pool = getPool();
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get("includeInactive") === "true";
-    const featuredOnly = searchParams.get("featured") === "true";
 
     // Build WHERE clause
     const conditions: string[] = [];
     if (!includeInactive) conditions.push("sp.active = true");
-    if (featuredOnly) conditions.push("sp.featured = true");
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     // Fetch packages with aggregated deliverable data
@@ -29,13 +27,9 @@ export async function GET(request: Request) {
         sp.name,
         sp.slug,
         sp.description,
-        sp.category,
-        sp.package_type,
         sp.tagline,
-        sp.flat_fee,
-        sp.flat_hours,
+        sp.emoji,
         sp.active,
-        sp.featured,
         sp.sort_order,
         sp.created_at,
         sp.updated_at,
@@ -47,13 +41,9 @@ export async function GET(request: Request) {
               'description', d.description,
               'category', d.category,
               'scope', d.scope,
-              'fixedHours', d.fixed_hours,
-              'fixedPrice', d.fixed_price,
-              'defaultEstimatePoints', d.default_estimate_points,
+              'points', d.points,
               'quantity', spd.quantity,
-              'notes', spd.notes,
-              'sortOrder', spd.sort_order,
-              'complexityScore', COALESCE(spd.complexity_score, 2.5)
+              'sortOrder', spd.sort_order
             ) ORDER BY spd.sort_order ASC, d.name ASC
           ) FILTER (WHERE d.id IS NOT NULL),
           '[]'
@@ -63,7 +53,7 @@ export async function GET(request: Request) {
       LEFT JOIN deliverables d ON spd.deliverable_id = d.id
       ${whereClause}
       GROUP BY sp.id
-      ORDER BY sp.featured DESC, sp.sort_order ASC, sp.name ASC
+      ORDER BY sp.sort_order ASC, sp.name ASC
     `);
 
     return NextResponse.json({ packages: result.rows });
@@ -83,14 +73,10 @@ export async function GET(request: Request) {
  *   name: string,
  *   slug: string,
  *   description?: string,
- *   category?: string,
  *   tagline?: string,
- *   flatFee?: number,
- *   flatHours?: number,
  *   active?: boolean,
- *   featured?: boolean,
  *   sortOrder?: number,
- *   deliverables?: Array<{ deliverableId: string, quantity?: number, notes?: string, sortOrder?: number, complexityScore?: number }>
+ *   deliverables?: Array<{ deliverableId: string, quantity?: number, sortOrder?: number }>
  * }
  */
 export async function POST(request: Request) {
@@ -107,27 +93,19 @@ export async function POST(request: Request) {
       name,
       slug,
       description,
-      category,
       tagline,
-      flatFee,
-      flatHours,
+      emoji,
       active,
-      featured,
       sortOrder,
-      packageType,
       deliverables,
     } = body as {
       name?: unknown;
       slug?: unknown;
       description?: unknown;
-      category?: unknown;
       tagline?: unknown;
-      flatFee?: unknown;
-      flatHours?: unknown;
+      emoji?: unknown;
       active?: unknown;
-      featured?: unknown;
       sortOrder?: unknown;
-      packageType?: unknown;
       deliverables?: unknown;
     };
 
@@ -139,23 +117,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Slug is required" }, { status: 400 });
     }
 
-    // Parse optional numeric fields
-    let fee: number | null = null;
-    if (typeof flatFee === "number") {
-      fee = flatFee;
-    } else if (typeof flatFee === "string" && flatFee.trim()) {
-      const parsed = Number(flatFee);
-      if (!Number.isNaN(parsed)) fee = parsed;
-    }
-
-    let hours: number | null = null;
-    if (typeof flatHours === "number") {
-      hours = flatHours;
-    } else if (typeof flatHours === "string" && flatHours.trim()) {
-      const parsed = Number(flatHours);
-      if (!Number.isNaN(parsed)) hours = parsed;
-    }
-
     let order: number = 0;
     if (typeof sortOrder === "number") {
       order = sortOrder;
@@ -164,38 +125,27 @@ export async function POST(request: Request) {
       if (!Number.isNaN(parsed)) order = parsed;
     }
 
-    const allowedPackageTypes = new Set(["foundation", "extend"]);
-    const packageTypeValue =
-      typeof packageType === "string" && allowedPackageTypes.has(packageType)
-        ? packageType
-        : "foundation";
-
     const id = crypto.randomUUID();
     const activeValue = typeof active === "boolean" ? active : true;
-    const featuredValue = typeof featured === "boolean" ? featured : false;
-
+    const emojiValue =
+      typeof emoji === "string" && emoji.trim().length > 0 ? emoji.trim() : null;
     // Insert package
     await pool.query(
       `
       INSERT INTO sprint_packages (
-        id, name, slug, description, category, package_type, tagline, 
-        flat_fee, flat_hours,
-        active, featured, sort_order
+        id, name, slug, description, tagline, emoji,
+        active, sort_order
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `,
       [
         id,
         name.trim(),
         slug.trim(),
         typeof description === "string" ? description : null,
-        typeof category === "string" ? category : null,
-        packageTypeValue,
         typeof tagline === "string" ? tagline : null,
-        fee, // NULL = dynamic pricing
-        hours, // NULL = dynamic hours
+        emojiValue,
         activeValue,
-        featuredValue,
         order,
       ]
     );
@@ -207,32 +157,19 @@ export async function POST(request: Request) {
         if (d && typeof d === "object" && "deliverableId" in d) {
           const delId = (d as { deliverableId?: unknown }).deliverableId;
           const qty = (d as { quantity?: unknown }).quantity;
-          const notes = (d as { notes?: unknown }).notes;
           const delSortOrder = (d as { sortOrder?: unknown }).sortOrder;
-          const complexityScore = (d as { complexityScore?: unknown }).complexityScore;
 
           if (typeof delId === "string" && delId.trim()) {
             const quantity = typeof qty === "number" ? qty : 1;
             const delOrder = typeof delSortOrder === "number" ? delSortOrder : i;
             
-            // Parse complexity score (1-5, default 2.5)
-            let complexity = 2.5;
-            if (typeof complexityScore === "number") {
-              complexity = Math.max(1.0, Math.min(5.0, complexityScore));
-            } else if (typeof complexityScore === "string") {
-              const parsed = parseFloat(complexityScore);
-              if (!isNaN(parsed)) {
-                complexity = Math.max(1.0, Math.min(5.0, parsed));
-              }
-            }
-            
             const junctionId = crypto.randomUUID();
             await pool.query(
               `
               INSERT INTO sprint_package_deliverables (
-                id, sprint_package_id, deliverable_id, quantity, notes, sort_order, complexity_score
+                id, sprint_package_id, deliverable_id, quantity, sort_order
               )
-              VALUES ($1, $2, $3, $4, $5, $6, $7)
+              VALUES ($1, $2, $3, $4, $5)
               ON CONFLICT (sprint_package_id, deliverable_id) DO NOTHING
             `,
               [
@@ -240,9 +177,7 @@ export async function POST(request: Request) {
                 id,
                 delId,
                 quantity,
-                typeof notes === "string" ? notes : null,
                 delOrder,
-                complexity,
               ]
             );
           }

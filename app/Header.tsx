@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import Typography from "@/components/ui/Typography";
 import Button from "@/components/ui/Button";
+import ThemeToggle from "./components/ThemeToggle";
+import AdminMenuButton from "./components/AdminMenuButton";
 
 export default async function Header() {
   const user = await getCurrentUser();
@@ -10,6 +12,7 @@ export default async function Header() {
       <div className="container flex h-16 items-center justify-between">
         {/* Logo/Brand */}
         <div className="flex items-center gap-6">
+          {user?.isAdmin ? <AdminMenuButton /> : null}
           <Link href="/" className="flex items-center space-x-2">
             <Typography as="span" scale="h3" className="tracking-tight">
               Great Work Studio
@@ -19,27 +22,7 @@ export default async function Header() {
 
         {/* Right side actions */}
         <div className="flex items-center gap-4">
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link
-              href="/how-it-works"
-              className="transition-colors hover:text-brand-primary"
-            >
-              How We Work
-            </Link>
-            <Link
-              href="/deliverables"
-              className="transition-colors hover:text-brand-primary"
-            >
-              Deliverables
-            </Link>
-            <Link
-              href="/packages"
-              className="transition-colors hover:text-brand-primary"
-            >
-              Packages
-            </Link>
-          </nav>
-          
+          <ThemeToggle />
           <div className="flex items-center gap-2">
             {user ? (
               <Button as={Link} href="/profile" variant="secondary" size="sm" className="normal-case tracking-normal">

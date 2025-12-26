@@ -26,6 +26,7 @@ export default async function NavShell({ children }: { children: ReactNode }) {
     { href: "/dashboard/theme", label: "🌗 Theme Controls" },
     { href: "/dashboard/how-it-works-writer", label: "✍️ How It Works Writer" },
     { href: "/dashboard/stack", label: "🧱 Stack" },
+    { href: "/dashboard/fade-tester", label: "🌫️ Fade Tester" },
     { href: "/dashboard/storage-test", label: "💾 Storage Test" },
     { href: "/dashboard/email-test", label: "✉️ Email Test" },
     { href: "/ai-test", label: "🧠 OpenAI Test" },

@@ -401,14 +401,14 @@ export async function createSprintForDocument(
       "\n\n=== SPRINT PACKAGES & DELIVERABLES ===\n\n" +
       "You have TWO OPTIONS for recommending work to the client:\n\n" +
       "OPTION 1: Recommend a SPRINT PACKAGE (preferred when a good fit exists)\n" +
-      "Sprint packages are pre-bundled collections of deliverables with fixed pricing.\n" +
+      "Sprint packages are pre-bundled collections of deliverables with points-based pricing.\n" +
       "They offer better value and are easier for clients to understand.\n" +
       "If you recommend a package, include 'sprintPackageId' in your JSON response.\n" +
       packagesText +
       "\n\n" +
       "OPTION 2: Recommend INDIVIDUAL DELIVERABLES (when no package fits)\n" +
       "Select 1-3 individual deliverables from the catalog below.\n" +
-      "Each deliverable has fixed hours and fixed price (NOT estimates).\n" +
+      "Each deliverable uses points-based budgeting (NOT estimates).\n" +
       "If you recommend individual deliverables, include them in 'deliverables' array.\n" +
       deliverablesText +
       "\n\n" +

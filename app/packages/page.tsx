@@ -9,8 +9,9 @@ type Package = {
   slug: string;
   description: string | null;
   category: string | null;
-  package_type: "foundation" | "extend";
+  package_type: "foundation" | "extend" | null;
   tagline: string | null;
+  emoji: string | null;
   flat_fee: number | null;
   flat_hours: number | null;
   featured: boolean;
@@ -21,6 +22,7 @@ type Package = {
     scope: string | null;
     fixedHours: number | null;
     fixedPrice: number | null;
+    points: number | null;
     quantity: number;
     complexityScore: number;
   }>;
@@ -40,6 +42,7 @@ export default async function PackagesPage() {
       sp.category,
       sp.package_type,
       sp.tagline,
+      sp.emoji,
       sp.flat_fee,
       sp.flat_hours,
       sp.featured,
@@ -52,6 +55,7 @@ export default async function PackagesPage() {
             'scope', d.scope,
             'fixedHours', d.fixed_hours,
             'fixedPrice', d.fixed_price,
+            'points', d.points,
             'quantity', spd.quantity,
             'complexityScore', COALESCE(spd.complexity_score, 1.0)
           ) ORDER BY spd.sort_order ASC, d.name ASC

@@ -165,7 +165,7 @@ export async function POST(request: Request) {
     const metadata: Record<string, string> = {
       originalName: file.name,
       uploadSource: "admin",
-      uploadSourceLabel: "Admin storage test",
+      uploadSourceLabel: "Admin upload",
     };
 
     if (currentUser?.email) {
@@ -175,14 +175,14 @@ export async function POST(request: Request) {
       metadata.uploaderId = currentUser.accountId;
     }
 
-    const { publicUrl, objectPath } = await uploadFileWithPath(buffer, `test-${file.name}`, contentType, {
+    const { publicUrl, objectPath } = await uploadFileWithPath(buffer, file.name, contentType, {
       prefix: ADMIN_UPLOAD_PREFIX,
       metadata,
     });
 
     return NextResponse.json({
       success: true,
-      message: "✅ Test file uploaded successfully!",
+      message: "✅ File uploaded successfully!",
       url: publicUrl,
       objectPath,
       fileSize: file.size,

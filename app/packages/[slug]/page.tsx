@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import PurchaseButton from "./PurchaseButton";
 import { SPRINT_WEEKS, ENGAGEMENT_BADGES } from "@/lib/sprintProcess";
+import { calculatePricingFromDeliverables, POINT_PRICE_PER_POINT, POINT_BASE_FEE, hoursFromPoints } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +17,9 @@ type Package = {
   name: string;
   slug: string;
   description: string | null;
-  category: string | null;
   package_type: "foundation" | "extend";
   tagline: string | null;
+  emoji: string | null;
   flat_fee: number | null;      // NULL = dynamic pricing (most packages)
   flat_hours: number | null;    // NULL = dynamic hours (most packages)
   featured: boolean;
@@ -49,9 +50,9 @@ export default async function PackageDetailPage({ params }: PageProps) {
       sp.name,
       sp.slug,
       sp.description,
-      sp.category,
       sp.package_type,
       sp.tagline,
+      sp.emoji,
       sp.flat_fee,
       sp.flat_hours,
       sp.featured,
@@ -64,7 +65,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
             'scope', d.scope,
             'fixedHours', d.fixed_hours,
             'fixedPrice', d.fixed_price,
-            'defaultEstimatePoints', d.default_estimate_points,
+              'defaultEstimatePoints', d.points,
             'quantity', spd.quantity,
             'complexityScore', COALESCE(spd.complexity_score, 1.0)
           ) ORDER BY spd.sort_order ASC, d.name ASC
@@ -86,29 +87,9 @@ export default async function PackageDetailPage({ params }: PageProps) {
 
   const pkg: Package = result.rows[0];
 
-  // Calculate totals dynamically from deliverables (base complexity 1.0)
-  // Packages NEVER have stored flat_fee - always calculated from deliverables
-  let totalHours = 0;
-  let totalPrice = 0;
-  let totalPoints = 0;
-
-  pkg.deliverables.forEach((d) => {
-    const baseHours = d.fixedHours ?? 0;
-    const basePrice = d.fixedPrice ?? 0;
-    const points = d.defaultEstimatePoints ?? 0;
-    const qty = d.quantity ?? 1;
-    // Base complexity is 1.0 (no adjustment)
-    const complexityMultiplier = d.complexityScore ?? 1.0;
-    
-    // Apply complexity adjustment to hours and price
-    totalHours += baseHours * complexityMultiplier * qty;
-    totalPrice += basePrice * complexityMultiplier * qty;
-    totalPoints += points * qty;
-  });
-
-  // Always use calculated values (no stored flat_fee)
-  const finalPrice = totalPrice;
-  const finalHours = totalHours;
+  const { price: finalPrice, hours: finalHours, points: totalPoints } = calculatePricingFromDeliverables(
+    pkg.deliverables
+  );
 
   return (
     <main className="min-h-screen font-[family-name:var(--font-geist-sans)]">
@@ -130,27 +111,21 @@ export default async function PackageDetailPage({ params }: PageProps) {
             <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
               pkg.package_type === "extend" 
                 ? "bg-emerald-500/90 text-white" 
-                : "bg-blue-500/90 text-white"
+                : pkg.package_type === "foundation"
+                  ? "bg-blue-500/90 text-white"
+                  : "bg-gray-600 text-white"
             }`}>
-              {pkg.package_type === "extend" ? "🚀 Expansion Sprint" : "🏗️ Foundation Sprint"}
+              {pkg.package_type === "extend"
+                ? "🚀 Expansion Sprint"
+                : pkg.package_type === "foundation"
+                  ? "🏗️ Foundation Sprint"
+                  : "Sprint package"}
             </div>
-            {pkg.category && (
-              <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-                pkg.category === "Branding" ? "bg-purple-500/90 text-white" :
-                pkg.category === "Product" ? "bg-cyan-500/90 text-white" :
-                pkg.category === "Brand Extend" ? "bg-violet-500/90 text-white" :
-                pkg.category === "Product Extend" ? "bg-teal-500/90 text-white" :
-                "bg-white/20 text-white"
-              }`}>
-                {pkg.category === "Branding" ? "🎨 Branding" :
-                 pkg.category === "Product" ? "⚡ Product" :
-                 pkg.category === "Brand Extend" ? "✨ Brand Extend" :
-                 pkg.category === "Product Extend" ? "🔧 Product Extend" :
-                 pkg.category}
-              </div>
-            )}
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4">{pkg.name}</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4 flex items-center gap-3">
+            {pkg.emoji && <span aria-hidden className="text-5xl leading-none">{pkg.emoji}</span>}
+            <span>{pkg.name}</span>
+          </h1>
           {pkg.tagline && <p className="text-xl opacity-90 mb-6">{pkg.tagline}</p>}
           {pkg.description && <p className="text-lg opacity-80">{pkg.description}</p>}
         </div>
@@ -162,7 +137,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
           <div>
             <div className="flex items-baseline gap-3 mb-2">
               <span className="text-5xl font-bold">${finalPrice.toLocaleString()}</span>
-              <span className="text-lg opacity-70">fixed price</span>
+              <span className="text-lg opacity-70">calculated from deliverables</span>
             </div>
             <div className="flex items-center gap-4 text-sm opacity-80">
               <span>{finalHours} hours</span>
@@ -189,7 +164,14 @@ export default async function PackageDetailPage({ params }: PageProps) {
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold mb-8">What&apos;s Included</h2>
           <div className="space-y-6">
-            {pkg.deliverables.map((d, i) => (
+            {pkg.deliverables.map((d, i) => {
+              const basePoints = d.defaultEstimatePoints ?? 0;
+              const qty = d.quantity ?? 1;
+              const complexityMultiplier = d.complexityScore ?? 1.0;
+              const hours = hoursFromPoints(basePoints * complexityMultiplier);
+              const pointPriceValue = basePoints * POINT_PRICE_PER_POINT * complexityMultiplier * qty;
+
+              return (
               <div
                 key={`${d.deliverableId}-${i}`}
                 className="rounded-lg border border-black/10 dark:border-white/10 p-6 hover:border-black/20 dark:hover:border-white/20 transition"
@@ -212,23 +194,16 @@ export default async function PackageDetailPage({ params }: PageProps) {
                       </div>
                     )}
                     <div className="flex items-center gap-4 mt-3 text-xs opacity-70">
-                      {d.fixedHours != null && (
                         <span>
-                          {(d.fixedHours * (d.complexityScore ?? 1.0)).toFixed(1)}h
+                        {(hours * qty).toFixed(1)}h
                           {d.complexityScore !== 1.0 && (
-                            <span className="opacity-60"> (base: {d.fixedHours}h)</span>
+                          <span className="opacity-60"> (base: {hoursFromPoints(basePoints * qty).toFixed(1)}h)</span>
                           )}
                         </span>
-                      )}
-                      {d.fixedPrice != null && (
+                      {basePoints > 0 && (
                         <>
                           <span>•</span>
-                          <span>
-                            ${(d.fixedPrice * (d.complexityScore ?? 1.0)).toLocaleString()}
-                            {d.complexityScore !== 1.0 && (
-                              <span className="opacity-60"> (base: ${d.fixedPrice.toLocaleString()})</span>
-                            )}
-                          </span>
+                          <span>${pointPriceValue.toLocaleString()} (points-based)</span>
                         </>
                       )}
                       {d.complexityScore !== 1.0 && (
@@ -251,7 +226,8 @@ export default async function PackageDetailPage({ params }: PageProps) {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         </div>
       </section>
@@ -273,8 +249,10 @@ export default async function PackageDetailPage({ params }: PageProps) {
               <tbody>
                 {pkg.deliverables.map((d, i) => {
                   const complexityMultiplier = d.complexityScore ?? 1.0;
-                  const adjustedHours = (d.fixedHours ?? 0) * complexityMultiplier * d.quantity;
-                  const adjustedPrice = (d.fixedPrice ?? 0) * complexityMultiplier * d.quantity;
+                  const basePoints = d.defaultEstimatePoints ?? 0;
+                  const qty = d.quantity ?? 1;
+                  const adjustedHours = hoursFromPoints(basePoints * complexityMultiplier * qty);
+                  const adjustedPrice = basePoints * POINT_PRICE_PER_POINT * complexityMultiplier * qty;
                   
                   return (
                     <tr key={`${d.deliverableId}-${i}`} className="border-t border-black/10 dark:border-white/10">
@@ -286,7 +264,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center">{d.quantity}</td>
+                      <td className="px-4 py-3 text-center">{qty}</td>
                       <td className="px-4 py-3 text-right">
                         {adjustedHours.toFixed(1)}h
                       </td>
@@ -296,6 +274,12 @@ export default async function PackageDetailPage({ params }: PageProps) {
                     </tr>
                   );
                 })}
+                <tr className="border-t border-black/10 dark:border-white/10">
+                  <td className="px-4 py-3 font-medium">Base fee</td>
+                  <td className="px-4 py-3 text-center">–</td>
+                  <td className="px-4 py-3 text-right">–</td>
+                  <td className="px-4 py-3 text-right">${POINT_BASE_FEE.toLocaleString()}</td>
+                </tr>
                 <tr className="border-t-2 border-black/20 dark:border-white/20 font-bold text-lg">
                   <td className="px-4 py-3">Package Total</td>
                   <td className="px-4 py-3"></td>

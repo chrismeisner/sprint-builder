@@ -3,12 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --background: #0a0a0a;
+  --background: #111114;
   --foreground: #ededed;
+  --text-primary: #ededed;
+  --text-secondary: rgba(237, 237, 237, 0.82);
+  --text-muted: rgba(237, 237, 237, 0.65);
+  --text-inverse: #111114;
 
   --color-brand-primary: #ffffff;
   --color-brand-inverse: #000000;
   --color-brand-muted: rgba(255, 255, 255, 0.7);
+  --color-brand-accent: #03ff7f;
 
   --color-surface-subtle: rgba(255, 255, 255, 0.05);
   --color-surface-strong: rgba(255, 255, 255, 0.12);
@@ -26,10 +31,15 @@
 :root:not(.dark) {
   --background: #f9f7f4;
   --foreground: #0f0f0f;
+  --text-primary: #0f0f0f;
+  --text-secondary: rgba(15, 15, 15, 0.8);
+  --text-muted: rgba(15, 15, 15, 0.6);
+  --text-inverse: #f9f7f4;
 
-  --color-brand-primary: #111111;
+  --color-brand-primary: #111114;
   --color-brand-inverse: #ffffff;
   --color-brand-muted: rgba(15, 15, 15, 0.58);
+  --color-brand-accent: #03c76a;
 
   --color-surface-subtle: rgba(0, 0, 0, 0.03);
   --color-surface-strong: rgba(0, 0, 0, 0.08);
@@ -77,11 +87,11 @@
 
   h1,
   .type-h1 {
-    font-family: var(--font-general-grotesque), var(--font-akkurat), var(--font-inter), system-ui, -apple-system, sans-serif;
-    font-weight: 300;
-    letter-spacing: -0.025em;
-    font-size: 1.5rem;
-    line-height: 1.35;
+    font-family: var(--font-gooper-semicondensed), var(--font-inter), system-ui, -apple-system, sans-serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    font-size: 5rem;
+    line-height: 5.3rem;
   }
 
   h2,

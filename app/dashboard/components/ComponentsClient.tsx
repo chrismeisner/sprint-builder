@@ -4,13 +4,19 @@ import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "re
 import PackageCard, { type SprintPackage } from "@/app/components/PackageCard";
 import HeroSection from "@/app/components/HeroSection";
 import SectionHeader from "@/app/components/SectionHeader";
+import SectionIntro from "@/app/components/SectionIntro";
 import HowItWorksSteps from "@/app/components/HowItWorksSteps";
+import GettingStartedStep, { getGettingStartedStackClassName } from "@/app/components/GettingStartedStep";
+import AboutFounder from "@/app/components/AboutFounder";
+import Footer from "@/app/components/Footer";
 import { resolveComponentGridPreset } from "@/app/components/componentGrid";
+import { typography } from "@/app/components/typography";
 import { typographyScale } from "@/lib/design-system/tokens";
 import { getTypographyClassName, type TypographyScaleId } from "@/lib/design-system/typography-classnames";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Select from "@/components/ui/Select";
+import FAQSection from "@/components/ui/FAQSection";
 import WidthRuler from "@/components/WidthRuler";
 
 type ComponentsClientProps = {
@@ -23,7 +29,6 @@ const fallbackPackages: SprintPackage[] = [
     name: "Sample Foundation Sprint",
     slug: "sample-foundation",
     description: "Full PackageCard preview using the detailed variant and emoji list.",
-    category: "Branding",
     package_type: "foundation",
     tagline: "Demonstration only",
     featured: false,
@@ -55,7 +60,6 @@ const fallbackPackages: SprintPackage[] = [
     name: "Sample Expansion Sprint",
     slug: "sample-expansion",
     description: "Shows the default variant stacked below the detailed card.",
-    category: "Product Extend",
     package_type: "extend",
     tagline: "One more stackable sprint",
     featured: true,
@@ -84,15 +88,31 @@ const fallbackPackages: SprintPackage[] = [
   },
 ];
 
-const DEFAULT_COMPONENT_ORDER = ["sectionHeader", "howItWorks", "hero", "image", "packageCard"] as const;
+const DEFAULT_COMPONENT_ORDER = [
+  "sectionIntro",
+  "sectionHeader",
+  "howItWorks",
+  "faq",
+  "hero",
+  "image",
+  "gettingStarted",
+  "packageCard",
+  "aboutFounder",
+  "footer",
+] as const;
 type ComponentKey = (typeof DEFAULT_COMPONENT_ORDER)[number];
 
 const componentLabelMap: Record<ComponentKey, string> = {
+  sectionIntro: "SectionIntro",
   sectionHeader: "SectionHeader",
   howItWorks: "HowItWorksSteps",
+  faq: "FAQSection",
   hero: "HeroSection",
   image: "Image spotlight",
+  gettingStarted: "GettingStartedStep",
   packageCard: "PackageCard",
+  aboutFounder: "AboutFounder",
+  footer: "Footer",
 };
 
 type StorageTestFileResponse = {
@@ -140,7 +160,7 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
     [packages],
   );
   const [selectedOptionId, setSelectedOptionId] = useState(() => previewOptions[0]?.id ?? "");
-  const [previewCount, setPreviewCount] = useState<number>(1);
+  const [previewCount, setPreviewCount] = useState<number>(3);
   const [imageOptions, setImageOptions] = useState<StorageImageOption[]>([]);
   const [selectedImageId, setSelectedImageId] = useState<string>("");
   const [imageLoading, setImageLoading] = useState(false);
@@ -150,10 +170,15 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
   const [showTypographyLabels, setShowTypographyLabels] = useState(false);
   const [componentOrder, setComponentOrder] = useState<ComponentKey[]>(() => [...DEFAULT_COMPONENT_ORDER]);
   const [pendingOrder, setPendingOrder] = useState<ComponentKey[]>(() => [...DEFAULT_COMPONENT_ORDER]);
+  const [gettingStartedCount, setGettingStartedCount] = useState(4);
+  const [gettingStartedVariant, setGettingStartedVariant] = useState<"card" | "flat">("card");
+
   const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const sectionIntroPanelRef = useRef<HTMLDivElement>(null);
   const sectionHeaderPanelRef = useRef<HTMLDivElement>(null);
   const howItWorksPanelRef = useRef<HTMLDivElement>(null);
+  const faqPanelRef = useRef<HTMLDivElement>(null);
   const heroPanelRef = useRef<HTMLDivElement>(null);
   const imagePanelRef = useRef<HTMLDivElement>(null);
   const packagePanelRef = useRef<HTMLDivElement>(null);
@@ -305,13 +330,32 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
   const currentLayout = resolveComponentGridPreset(previewCount);
   const selectedImage = imageOptions.find((image) => image.id === selectedImageId);
   const heroPreviewProps = {
-    title: "Let's climb",
-    supportingText: "Fast clarity. Fast momentum. Real output every 10 days.",
-    primaryCta: { label: "View Foundation Packages", href: "/#foundation-packages" },
-    secondaryCta: { label: "How it works", href: "/how-it-works" },
+    eyebrow: "Now booking for January 2026",
+    title: "Early brand & product support for fast-moving founders",
+    subtitle: "Two-week sprints led by a senior creative director—strategy, design, and messaging aligned in one climb.",
+    body: (
+      <>
+        <span className="block">
+          Turn your next push into a focused sprint with a dedicated partner who knows how to ship quality work without wasted cycles.
+        </span>
+        <span className="block mt-4">
+          Start with a Brand or Product Foundation Sprint to lock direction, codify your story, and ship premium deliverables your team can run with.
+        </span>
+        <span className="block mt-4">
+          After that, stack expansion sprints or plug into a monthly subscription whenever you need extra lift—no repeat discovery, just execution.
+        </span>
+      </>
+    ),
+    primaryCta: { label: "Get started", href: "https://form.typeform.com/to/eEiCy7Xj" },
+    secondaryCta: { label: "Book a discovery call", href: "https://cal.com/chrismeisner/intro" },
+    ctaTarget: "_blank",
+    ctaRel: "noreferrer noopener",
+  };
+  const sectionIntroPreview = {
+    text: "Snapshot",
+    align: "center" as const,
   };
   const sectionHeaderPreview = {
-    label: "Services",
     heading: "Two weeks. One clear outcome.",
     description:
       "This sentence is about how our services are tailored for early stage startups and founders and give them speed, predictable pricing and guaranteed deliverables.",
@@ -337,8 +381,26 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
     },
   ];
 
+  const faqPreview = {
+    items: [
+      {
+        question: "How long is a sprint?",
+        answer: "Ten working days. Monday kickoff, Friday handoff with Loom walkthroughs and source files.",
+      },
+      {
+        question: "What do you need to get started?",
+        answer: "Your intake form, access to any core files, and a 60–90 minute live kickoff.",
+      },
+      {
+        question: "Can we stack multiple sprints?",
+        answer: "Yes. We often run a Foundation sprint then stack expansion sprints for launches or feature pushes.",
+      },
+    ],
+  };
+
   const previewSurfaceClassName = `${showContainerStroke ? "border border-black/10 dark:border-white/15 " : ""}bg-transparent`;
   const widthRulerClassName = "text-black/60 dark:text-white/60";
+  const controlLabelClasses = `${typography.bodySm} inline-flex items-center gap-2 normal-case tracking-normal`;
   const isDefaultOrder = componentOrder.every((key, index) => key === DEFAULT_COMPONENT_ORDER[index]);
   const handleOpenReorder = () => {
     setPendingOrder([...componentOrder]);
@@ -369,59 +431,70 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
     });
   };
 
+  const selectLabelClasses = `${typography.bodySm} text-black/70 dark:text-white/75`;
+  const selectFieldClasses =
+    "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-black dark:border-white/15 dark:bg-black dark:text-white dark:focus:ring-white";
+  const gettingStartedLayoutClass = getGettingStartedStackClassName(gettingStartedCount, "grid gap-4");
+
   const packageControls = (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="grid gap-3 sm:grid-cols-2">
       {previewOptions.length > 1 && (
+        <label className="flex flex-col gap-1">
+          <span className={selectLabelClasses}>Variant</span>
+          <Select
+            aria-label="View variant"
+            value={selectedOptionId}
+            onChange={(event) => setSelectedOptionId(event.target.value)}
+            className={selectFieldClasses}
+          >
+            {previewOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </label>
+      )}
+
+      <label className="flex flex-col gap-1">
+        <span className={selectLabelClasses}>Count</span>
         <Select
-          aria-label="View variant"
-          label="Variant"
-          value={selectedOptionId}
-          onChange={(event) => setSelectedOptionId(event.target.value)}
-          className="min-w-[12rem] text-xs"
+          aria-label="Preview count"
+          value={previewCount}
+          onChange={(event) => setPreviewCount(Number(event.target.value))}
+          className={selectFieldClasses}
         >
-          {previewOptions.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
+          {previewCountOptions.map((count) => (
+            <option key={count} value={count}>
+              {count} component{count > 1 ? "s" : ""}
             </option>
           ))}
         </Select>
-      )}
-
-      <Select
-        aria-label="Preview count"
-        label="Count"
-        value={previewCount}
-        onChange={(event) => setPreviewCount(Number(event.target.value))}
-        className="min-w-[10rem] text-xs"
-      >
-        {previewCountOptions.map((count) => (
-          <option key={count} value={count}>
-            {count} component{count > 1 ? "s" : ""}
-          </option>
-        ))}
-      </Select>
+      </label>
     </div>
   );
 
   const imageControls = (
     <div className="flex flex-wrap items-center gap-3">
       {imageOptions.length > 0 ? (
-        <Select
-          aria-label="Select stored image"
-          label="Image"
-          value={selectedImageId}
-          disabled={imageLoading}
-          onChange={(event) => setSelectedImageId(event.target.value)}
-          className="min-w-[14rem] text-xs"
-        >
-          {imageOptions.map((image) => (
-            <option key={image.id} value={image.id}>
-              {image.label}
-            </option>
-          ))}
-        </Select>
+        <label className="flex flex-col gap-1">
+          <span className={selectLabelClasses}>Image</span>
+          <Select
+            aria-label="Select stored image"
+            value={selectedImageId}
+            disabled={imageLoading}
+            onChange={(event) => setSelectedImageId(event.target.value)}
+            className={`${selectFieldClasses} min-w-[14rem]`}
+          >
+            {imageOptions.map((image) => (
+              <option key={image.id} value={image.id}>
+                {image.label}
+              </option>
+            ))}
+          </Select>
+        </label>
       ) : (
-        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/50 dark:text-white/50">
+        <span className={selectLabelClasses}>
           {imageLoading ? "Looking for uploads…" : "No stored images"}
         </span>
       )}
@@ -438,7 +511,50 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
     </div>
   );
 
+  const aboutFounderPreview = {
+    name: "Chris Meisner",
+    title: "Founder & Creative Director",
+    imageSrc: "/founder.jpg",
+    socialLinks: [
+      { label: "LinkedIn", href: "https://linkedin.com/in/chrismeisner" },
+      { label: "Twitter", href: "https://twitter.com/chrismeisner" },
+    ],
+    experienceLinks: [
+      { label: "NYTimes feature — Fast launches", href: "https://www.nytimes.com/" },
+      { label: "TechCrunch — Studio playbooks", href: "https://techcrunch.com/" },
+      { label: "Case study — Global retail sprint", href: "/work" },
+    ],
+    bio: (
+      <>
+        <p>
+          I&apos;ve led sprints for pre-seed teams and public companies alike. Every engagement hinges on decisive direction, premium execution, and zero wasted cycles.
+        </p>
+        <p>
+          This studio packages those reps into a repeatable climb founders can trust whenever they need another leap forward.
+        </p>
+      </>
+    ),
+  };
+
   const sectionsByKey: Record<ComponentKey, () => JSX.Element> = {
+    sectionIntro: () => (
+      <ComponentSection
+        key="sectionIntro"
+        title={componentLabelMap.sectionIntro}
+        meta={
+          <WidthRuler
+            targetRef={sectionIntroPanelRef}
+            label={`${componentLabelMap.sectionIntro} width`}
+            className={widthRulerClassName}
+          />
+        }
+        showDetails={showSectionDetails}
+      >
+        <div ref={sectionIntroPanelRef} className={previewSurfaceClassName}>
+          <SectionIntro {...sectionIntroPreview} />
+        </div>
+      </ComponentSection>
+    ),
     sectionHeader: () => (
       <ComponentSection
         key="sectionHeader"
@@ -453,7 +569,7 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
         showDetails={showSectionDetails}
       >
         <div ref={sectionHeaderPanelRef} className={previewSurfaceClassName}>
-          <SectionHeader {...sectionHeaderPreview} />
+          <SectionHeader {...sectionHeaderPreview} align="center" />
         </div>
       </ComponentSection>
     ),
@@ -472,6 +588,24 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
       >
         <div ref={howItWorksPanelRef} className={previewSurfaceClassName}>
           <HowItWorksSteps steps={howItWorksStepsPreview} />
+        </div>
+      </ComponentSection>
+    ),
+    faq: () => (
+      <ComponentSection
+        key="faq"
+        title={componentLabelMap.faq}
+        meta={
+          <WidthRuler
+            targetRef={faqPanelRef}
+            label={`${componentLabelMap.faq} width`}
+            className={widthRulerClassName}
+          />
+        }
+        showDetails={showSectionDetails}
+      >
+        <div ref={faqPanelRef} className={previewSurfaceClassName}>
+          <FAQSection {...faqPreview} />
         </div>
       </ComponentSection>
     ),
@@ -563,6 +697,54 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
         </div>
       </ComponentSection>
     ),
+    gettingStarted: () => (
+      <ComponentSection
+        key="gettingStarted"
+        title={componentLabelMap.gettingStarted}
+        showDetails={showSectionDetails}
+        controls={
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1">
+              <span className={selectLabelClasses}>Steps shown</span>
+              <Select
+                value={gettingStartedCount}
+                onChange={(event) => setGettingStartedCount(Number(event.target.value))}
+                className={selectFieldClasses}
+              >
+                {[2, 4, 6].map((count) => (
+                  <option key={`steps-${count}`} value={count}>
+                    {count} steps
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className={selectLabelClasses}>Style</span>
+              <Select
+                value={gettingStartedVariant}
+                onChange={(event) => setGettingStartedVariant(event.target.value as "card" | "flat")}
+                className={selectFieldClasses}
+              >
+                <option value="card">Card</option>
+                <option value="flat">Flat</option>
+              </Select>
+            </label>
+          </div>
+        }
+      >
+        <div className={gettingStartedLayoutClass}>
+          {Array.from({ length: gettingStartedCount }).map((_, index) => (
+            <GettingStartedStep
+              key={`getting-started-${index}`}
+              number={String(index + 1).padStart(2, "0")}
+              title={`Sample step ${index + 1}`}
+              body="Use GettingStartedStep for onboarding instructions or repeatable playbooks inside marketing pages."
+              variant={gettingStartedVariant}
+            />
+          ))}
+        </div>
+      </ComponentSection>
+    ),
     packageCard: () => (
       <ComponentSection
         key="packageCard"
@@ -609,6 +791,18 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
         </div>
       </ComponentSection>
     ),
+    aboutFounder: () => (
+      <ComponentSection key="aboutFounder" title={componentLabelMap.aboutFounder} showDetails={showSectionDetails}>
+        <ComponentContainer constrainWidth={false}>
+          <AboutFounder {...aboutFounderPreview} />
+        </ComponentContainer>
+      </ComponentSection>
+    ),
+    footer: () => (
+      <ComponentSection key="footer" title={componentLabelMap.footer} showDetails={showSectionDetails}>
+        <Footer />
+      </ComponentSection>
+    ),
   };
 
   return (
@@ -632,8 +826,8 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
               Reset order
             </Button>
           </div>
-          <div className="inline-flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 dark:text-white/70">
-            <label className="inline-flex items-center gap-2">
+          <div className="inline-flex flex-wrap items-center gap-4">
+            <label className={controlLabelClasses}>
               <input
                 type="checkbox"
                 className="h-4 w-4 rounded border border-black/20 text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:border-white/40 dark:bg-black dark:text-white"
@@ -642,7 +836,7 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
               />
               Show container stroke
             </label>
-            <label className="inline-flex items-center gap-2">
+            <label className={controlLabelClasses}>
               <input
                 type="checkbox"
                 className="h-4 w-4 rounded border border-black/20 text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:border-white/40 dark:bg-black dark:text-white"
@@ -651,7 +845,7 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
               />
               Show section details
             </label>
-            <label className="inline-flex items-center gap-2">
+            <label className={controlLabelClasses}>
               <input
                 type="checkbox"
                 className="h-4 w-4 rounded border border-black/20 text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:border-white/40 dark:bg-black dark:text-white"

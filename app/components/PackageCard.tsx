@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { typography } from "./typography";
+import { calculatePricingFromDeliverables } from "@/lib/pricing";
 
 export type PackageDeliverable = {
   deliverableId: string;
@@ -9,6 +10,7 @@ export type PackageDeliverable = {
   scope: string | null;
   fixedHours: number | null;
   fixedPrice: number | null;
+  points?: number | null;
   quantity: number;
   complexityScore: number;
 };
@@ -19,9 +21,9 @@ export type SprintPackage = {
   slug: string;
   description: string | null;
   summary?: string | null;
-  category: string | null;
   package_type?: "foundation" | "extend";
   tagline: string | null;
+  emoji?: string | null;
   featured?: boolean;
   deliverables: PackageDeliverable[];
   highlights?: string[];
@@ -35,20 +37,8 @@ export type SprintPackage = {
 };
 
 export function calculatePackageTotal(pkg: SprintPackage): { hours: number; price: number } {
-  let totalHours = 0;
-  let totalPrice = 0;
-
-  pkg.deliverables.forEach((d) => {
-    const baseHours = d.fixedHours ?? 0;
-    const basePrice = d.fixedPrice ?? 0;
-    const qty = d.quantity ?? 1;
-    const complexityMultiplier = d.complexityScore ?? 1.0;
-    
-    totalHours += baseHours * complexityMultiplier * qty;
-    totalPrice += basePrice * complexityMultiplier * qty;
-  });
-
-  return { hours: totalHours, price: totalPrice };
+  const { price, hours } = calculatePricingFromDeliverables(pkg.deliverables);
+  return { hours, price };
 }
 
 type PackageCardProps = {
@@ -61,8 +51,12 @@ type PackageCardProps = {
   className?: string;
 };
 
-const badgeTypography = getTypographyClassName("label");
-const buttonTypography = typography.linkLabel;
+const badgeTypography = getTypographyClassName("subtitle-sm");
+const buttonTypography = getTypographyClassName("button-sm");
+const summaryTypography = getTypographyClassName("body-md");
+const bulletTypography = getTypographyClassName("body-sm");
+const priceTypography = getTypographyClassName("mono-lg");
+const priceMetaTypography = getTypographyClassName("body-sm");
 
 export default function PackageCard({ pkg, className }: PackageCardProps) {
   const { price, hours } = calculatePackageTotal(pkg);
@@ -74,34 +68,32 @@ export default function PackageCard({ pkg, className }: PackageCardProps) {
   const priceLabel = pkg.priceLabel ?? formatCurrency(price || 0);
   const priceSuffix =
     pkg.priceSuffix ??
-    (pkg.package_type === "foundation"
-      ? "Flat fee"
-      : hours
-        ? `${Math.round(hours)} hours`
-        : "Scope determined");
+    (hours ? `${Math.round(hours)} hours · points-based budget` : "Points-based budget");
   const footnote = pkg.priceFootnote ?? pkg.finePrint ?? "";
-  const ctaLabel = pkg.ctaLabel ?? "Get started";
+  const ctaLabel = pkg.ctaLabel ?? "Learn more";
   const ctaHref = pkg.ctaHref ?? `/packages/${pkg.slug}`;
 
   return (
     <article
       data-component="package-card"
       className={cx(
-        "flex h-full flex-col rounded-[2px] border border-black/10 bg-white p-8 text-black shadow-[0_25px_70px_rgba(15,15,15,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_35px_90px_rgba(15,15,15,0.12)]",
-        "dark:border-white/15 dark:bg-[#040404] dark:text-white",
+        "flex h-full flex-col rounded-[2px] border border-stroke-muted bg-surface-card p-8 text-text-primary shadow-[0_25px_70px_rgba(15,15,15,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_35px_90px_rgba(15,15,15,0.12)]",
         className,
       )}
     >
       <div className="space-y-4">
         {badgeLabel && (
-          <p className={cx(badgeTypography, "text-amber-500 dark:text-amber-300")} data-typography-id="label">
+          <p className={cx(badgeTypography, "text-semantic-warning")} data-typography-id="subtitle-sm">
             {badgeLabel}
           </p>
         )}
         <div className="space-y-3">
-          <h3 className={cx(typography.headingCard, "text-balance text-black dark:text-white")}>{pkg.name}</h3>
+          <h3 className={cx(typography.headingCard, "text-balance text-text-primary flex items-center gap-2")}>
+            {pkg.emoji && <span aria-hidden className="text-2xl leading-none">{pkg.emoji}</span>}
+            <span>{pkg.name}</span>
+          </h3>
           {summary && (
-            <p className={cx(typography.supportingLarge, "text-black/70 dark:text-white/70 text-balance")}>
+            <p className={cx(summaryTypography, "text-text-secondary text-balance")} data-typography-id="body-md">
               {summary}
           </p>
           )}
@@ -111,9 +103,15 @@ export default function PackageCard({ pkg, className }: PackageCardProps) {
       {highlights.length > 0 && (
         <ul className="mt-6 space-y-2">
           {highlights.map((item, index) => (
-            <li key={`${pkg.id}-highlight-${index}`} className="flex items-start gap-3">
-              <span className="mt-1 text-lg text-emerald-500 dark:text-emerald-300">✓</span>
-              <span className={cx(typography.bodyBase, "text-black/75 dark:text-white/80")}>{item}</span>
+            <li key={`${pkg.id}-highlight-${index}`}>
+              <div className="flex items-stretch gap-3">
+                <div className={cx(bulletTypography, "flex items-center text-semantic-success leading-none")} aria-hidden>
+                  ✓
+                </div>
+                <div className={cx(bulletTypography, "text-text-secondary")} data-typography-id="body-sm">
+                  {item}
+                </div>
+              </div>
             </li>
               ))}
         </ul>
@@ -122,17 +120,17 @@ export default function PackageCard({ pkg, className }: PackageCardProps) {
       <div className="mt-8 space-y-6">
             <div className="space-y-1">
           <div className="flex flex-wrap items-baseline gap-3">
-            <span className={typography.price} data-typography-id="display-sm">
+            <span className={cx(priceTypography, "text-text-primary")} data-typography-id="mono-lg">
               {priceLabel}
             </span>
             {priceSuffix && (
-              <span className={cx(typography.bodySm, "uppercase tracking-wide text-black/60 dark:text-white/70")} data-typography-id="body-sm">
+              <span className={cx(priceMetaTypography, "text-text-muted")} data-typography-id="body-sm">
                 {priceSuffix}
               </span>
             )}
           </div>
           {footnote && (
-            <p className={cx(typography.bodyXs, "text-black/55 dark:text-white/60")} data-typography-id="caption">
+            <p className={cx(typography.bodyXs, "text-text-muted")} data-typography-id="body-sm">
               {footnote}
             </p>
           )}
@@ -142,10 +140,9 @@ export default function PackageCard({ pkg, className }: PackageCardProps) {
           className={cx(
             buttonTypography,
             "inline-flex w-full items-center justify-center rounded-xl px-5 py-3 font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
-            "bg-black text-white hover:bg-black/90 focus-visible:outline-black",
-            "dark:bg-white/10 dark:text-white dark:hover:bg-white/15 dark:focus-visible:outline-white",
+            "bg-brand-primary text-brand-inverse border border-brand-primary hover:opacity-90 focus-visible:outline-brand-primary",
           )}
-          data-typography-id="subtitle-sm"
+          data-typography-id="button-sm"
         >
           {ctaLabel}
         </Link>

@@ -19,7 +19,7 @@ import Badge from "@/components/ui/Badge";
 import GridPreviewCard from "./GridPreviewCard";
 import useSampleTextEditor from "@/hooks/useSampleTextEditor";
 
-type TabType = "typography" | "buttons" | "colors" | "forms" | "grids" | "spacing" | "badges";
+type TabType = "typography" | "buttons" | "colors" | "forms" | "grids" | "spacing" | "badges" | "layout";
 type TypographyViewport = "desktop" | "mobile";
 type GridExampleBlock = {
   label: string;
@@ -86,6 +86,18 @@ type GridManualSpanOption = {
   className: string;
 };
 
+type LayoutGuideline = {
+  title: string;
+  description: string;
+  tokens: string[];
+};
+
+type LayoutWidthRecommendation = {
+  surface: string;
+  width: string;
+  notes: string;
+};
+
 type TypographyScaleId = (typeof typographyScale)[number]["id"];
 
 const TRACKING_MIN = -0.1;
@@ -96,7 +108,7 @@ const LINE_HEIGHT_MAX = 2;
 const LINE_HEIGHT_STEP = 0.05;
 
 const GRID_PREVIEW_BLOCK_BASE_CLASS =
-  "rounded-md border border-dashed border-black/15 dark:border-white/20 bg-white dark:bg-white/5 px-3 py-3 flex flex-col gap-1 justify-center";
+  "rounded-md border border-dashed border-stroke-muted bg-surface-subtle px-3 py-3 flex flex-col gap-1 justify-center";
 
 const GRID_CARD_COUNT_MIN = 1;
 const GRID_CARD_COUNT_MAX = 12;
@@ -244,24 +256,115 @@ const gridExamples: GridExample[] = [
   },
 ];
 
+const layoutGuidelineCards: LayoutGuideline[] = [
+  {
+    title: "Global container shell",
+    description:
+      "Every marketing and dashboard view sits inside `container max-w-7xl px-6 lg:px-8` so gutters line up with the navigation chrome.",
+    tokens: ["container", "max-w-7xl", "px-6 lg:px-8"],
+  },
+  {
+    title: "Focused reading rail",
+    description:
+      "Hero text, SectionHeader blocks, and longform copy clamp to `max-w-3xl` (≈768px) for comfortable line lengths and mirrored margins.",
+    tokens: ["max-w-3xl", "mx-auto", "text-balance"],
+  },
+  {
+    title: "Grid cadence",
+    description:
+      "Switch to the 12-column grid at `md`. Marketing sections still use container padding, dashboards add `gap-6` gutters for cards and rails.",
+    tokens: ["md:grid-cols-12", "gap-6", "col-span-*"],
+  },
+  {
+    title: "Full-bleed allowances",
+    description:
+      "Backgrounds and illustration bands can extend full-width, but content rails still clamp to the container using `mx-auto` within the band.",
+    tokens: ["w-full", "mx-auto", "max-w-7xl"],
+  },
+];
+
+const layoutWidthRecommendations: LayoutWidthRecommendation[] = [
+  {
+    surface: "HeroSection title rails",
+    width: "max-w-5xl (default `maxWidth=\"md\"`)",
+    notes: "Bump to `maxWidth=\"lg\"` for the full 6xl rail; drop to `sm` for tighter stories.",
+  },
+  {
+    surface: "SectionHeader + longform copy",
+    width: "max-w-3xl",
+    notes: "Matches typography comfort zone and keeps packages/descriptions readable.",
+  },
+  {
+    surface: "Grid surfaces & dashboards",
+    width: "container max-w-7xl",
+    notes: "Wrap entire page in the container; inside use 12-column grid or responsive auto-fit rails.",
+  },
+  {
+    surface: "Sidebar / split layouts",
+    width: "lg:col-span-8 / lg:col-span-4",
+    notes: "Primary rail (8 columns) handles forms, secondary rail handles guidance or stats.",
+  },
+];
+
+const layoutSpacingNotes = [
+  "Default section padding is `py-16` for marketing views and `py-12` inside app dashboards.",
+  "Horizontal gutters follow container padding: `px-6` on mobile, `lg:px-8` on desktop.",
+  "`gap-6` is the default grid gutter. Use `gap-4` for dense tables and `gap-8` when showcasing imagery.",
+  "Keep stacked sections separated by at least `space-y-12`; hero-to-section jumps use `space-y-16`.",
+];
+
+const FALLBACK_FONT_SIZE_REM = 2.75;
 const defaultFontSize = "2.75rem";
+const defaultFontSizeRem = parseRemValue(defaultFontSize);
+const DEFAULT_LINE_HEIGHT_RATIO = 1.1;
+const defaultLineHeightLengthRem = defaultFontSizeRem * DEFAULT_LINE_HEIGHT_RATIO;
 const defaultSampleText = "The quick brown fox jumps over the lazy dog";
 
 const clampTrackingValue = (value: number) => Math.min(TRACKING_MAX, Math.max(TRACKING_MIN, value));
 const formatTrackingValue = (value: number) => `${value.toFixed(3)}em`;
 const clampLineHeightValue = (value: number) => Math.min(LINE_HEIGHT_MAX, Math.max(LINE_HEIGHT_MIN, value));
 const formatLineHeightValue = (value: number) => value.toFixed(2);
+const formatRemValue = (value: number) => `${value}rem`;
+const SECTION_HEADING_CLASS = getTypographyClassName("h3");
 
 const FontFamilyCard = ({ token }: { token: FontToken }) => {
   const [selectedVariantId, setSelectedVariantId] = useState(token.variants[0]?.id ?? "");
   const [trackingValue, setTrackingValue] = useState(0);
-  const [lineHeightValue, setLineHeightValue] = useState(1.1);
-  const [lineFontSize, setLineFontSize] = useState(defaultFontSize);
+  const [lineHeightLengthRem, setLineHeightLengthRem] = useState(defaultLineHeightLengthRem);
+  const [lineFontSizeRem, setLineFontSizeRem] = useState(defaultFontSizeRem);
+  const [sizeUnit, setSizeUnit] = useState<"rem" | "px">("rem");
   const [sampleInput, setSampleInput] = useState(defaultSampleText);
   const [sampleLine, setSampleLine] = useState(defaultSampleText);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
-  const [selectedTypographyId, setSelectedTypographyId] = useState<TypographyScaleId>("display-lg");
+  const [selectedTypographyId, setSelectedTypographyId] = useState<TypographyScaleId>("h1");
   const sampleTextEditor = useSampleTextEditor();
+  const resolvedFontSizeRem = Number.isFinite(lineFontSizeRem) && lineFontSizeRem > 0 ? lineFontSizeRem : defaultFontSizeRem;
+  const effectiveFontSizeRem = resolvedFontSizeRem || defaultFontSizeRem;
+  const safeFontSizeRem = Math.max(effectiveFontSizeRem, 0.01);
+  const fontSizeRemString = formatRemValue(effectiveFontSizeRem);
+  const fontSizePxValue = convertRemToPxValue(effectiveFontSizeRem);
+  const computedLineHeightRatio = clampLineHeightValue(lineHeightLengthRem / safeFontSizeRem);
+  const normalizedLineHeightLengthRem = computedLineHeightRatio * safeFontSizeRem;
+  const lineHeightLengthPx = convertRemToPxValue(normalizedLineHeightLengthRem);
+  const minLineHeightDisplayValue =
+    sizeUnit === "rem"
+      ? LINE_HEIGHT_MIN * safeFontSizeRem
+      : convertRemToPxValue(LINE_HEIGHT_MIN * safeFontSizeRem);
+  const maxLineHeightDisplayValue =
+    sizeUnit === "rem"
+      ? LINE_HEIGHT_MAX * safeFontSizeRem
+      : convertRemToPxValue(LINE_HEIGHT_MAX * safeFontSizeRem);
+  const sizeInputStep = sizeUnit === "rem" ? 0.05 : 1;
+  const lineHeightInputStep = sizeUnit === "rem" ? 0.05 : 1;
+  const minLineHeightInput = Number(minLineHeightDisplayValue.toFixed(sizeUnit === "rem" ? 3 : 1));
+  const maxLineHeightInput = Number(maxLineHeightDisplayValue.toFixed(sizeUnit === "rem" ? 3 : 1));
+  const [trackingInputValue, setTrackingInputValue] = useState(() => trackingValue.toFixed(3));
+  const [lineHeightInputValue, setLineHeightInputValue] = useState(() =>
+    (sizeUnit === "rem" ? normalizedLineHeightLengthRem : lineHeightLengthPx).toFixed(sizeUnit === "rem" ? 3 : 1),
+  );
+  const [sizeInputValue, setSizeInputValue] = useState(() =>
+    (sizeUnit === "rem" ? safeFontSizeRem : fontSizePxValue).toFixed(sizeUnit === "rem" ? 3 : 1),
+  );
 
   const activeVariant = token.variants.find((variant) => variant.id === selectedVariantId) ?? token.variants[0];
   useEffect(() => {
@@ -270,8 +373,24 @@ const FontFamilyCard = ({ token }: { token: FontToken }) => {
     return () => window.clearTimeout(timeoutId);
   }, [copyStatus]);
 
+  useEffect(() => {
+    setTrackingInputValue(trackingValue.toFixed(3));
+  }, [trackingValue]);
+
+  useEffect(() => {
+    setLineHeightInputValue(
+      (sizeUnit === "rem" ? normalizedLineHeightLengthRem : lineHeightLengthPx).toFixed(sizeUnit === "rem" ? 3 : 1),
+    );
+  }, [normalizedLineHeightLengthRem, lineHeightLengthPx, sizeUnit]);
+
+  useEffect(() => {
+    setSizeInputValue((sizeUnit === "rem" ? safeFontSizeRem : fontSizePxValue).toFixed(sizeUnit === "rem" ? 3 : 1));
+  }, [safeFontSizeRem, fontSizePxValue, sizeUnit]);
+
   const handleTrackingInput = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const numericValue = Number(event.target.value);
+    const rawValue = event.target.value;
+    setTrackingInputValue(rawValue);
+    const numericValue = Number(rawValue);
     if (Number.isNaN(numericValue)) {
       return;
     }
@@ -279,11 +398,19 @@ const FontFamilyCard = ({ token }: { token: FontToken }) => {
   };
 
   const handleLineHeightInput = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const numericValue = Number(event.target.value);
+    const rawValue = event.target.value;
+    setLineHeightInputValue(rawValue);
+    const numericValue = Number(rawValue);
     if (Number.isNaN(numericValue)) {
       return;
     }
-    setLineHeightValue(clampLineHeightValue(parseFloat(numericValue.toFixed(2))));
+    const remLength = sizeUnit === "rem" ? numericValue : numericValue / REM_IN_PX;
+    if (!Number.isFinite(remLength) || remLength <= 0) {
+      return;
+    }
+    const nextRatio = clampLineHeightValue(remLength / safeFontSizeRem);
+    const nextLengthRem = nextRatio * safeFontSizeRem;
+    setLineHeightLengthRem(nextLengthRem);
   };
 
   const handleSampleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -313,30 +440,51 @@ const FontFamilyCard = ({ token }: { token: FontToken }) => {
     if (!preset) {
       return;
     }
-    if (preset.desktop.rem) {
-      setLineFontSize(preset.desktop.rem);
+    const presetFontSizeRem = resolveFontSizeRem(preset.desktop.rem, preset.desktop.sizeClass) ?? defaultFontSizeRem;
+    setLineFontSizeRem(presetFontSizeRem);
+
+    const presetLineHeightLengthRem = resolveLineHeightLengthRem(preset.desktop.lineHeight, presetFontSizeRem);
+    setLineHeightLengthRem(presetLineHeightLengthRem);
+
+    const nextTracking = parseTrackingValueFromClass(preset.baseClass);
+    if (typeof nextTracking === "number" && Number.isFinite(nextTracking)) {
+      setTrackingValue(clampTrackingValue(nextTracking));
     }
-    const numericLineHeight = parseFloat(preset.desktop.lineHeight.replace(/[^\d.]/g, ""));
-    if (!Number.isNaN(numericLineHeight)) {
-      setLineHeightValue(clampLineHeightValue(numericLineHeight));
+
+    const matchedVariantId = resolveVariantIdForPreset(token, preset);
+    if (matchedVariantId) {
+      setSelectedVariantId(matchedVariantId);
     }
   };
 
+  const handleSizeInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = event.target.value;
+    setSizeInputValue(rawValue);
+    const numericValue = Number(rawValue);
+    if (Number.isNaN(numericValue) || numericValue <= 0) {
+      return;
+    }
+    const remValue = sizeUnit === "rem" ? numericValue : convertPxToRemValue(numericValue);
+    setLineFontSizeRem(remValue);
+  };
+
   useEffect(() => {
-    applyTypographyPreset("display-lg");
+    applyTypographyPreset("h1");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const copyStyleToClipboard = async () => {
+    const fontSizeSummary = `${fontSizeRemString} (${Math.round(fontSizePxValue)}px)`;
+    const lineHeightRemSummary = `${normalizedLineHeightLengthRem.toFixed(2)}rem`;
+    const lineHeightPxSummary = `${lineHeightLengthPx.toFixed(1)}px`;
     const styleSummary = [
       `Font family: ${token.label}`,
       `Variant: ${activeVariant?.label ?? "Default"}`,
       `Tailwind base: ${token.tailwindClass}`,
       `Variant classes: ${activeVariant?.className ?? "n/a"}`,
-      `Font size: ${lineFontSize || defaultFontSize}`,
-      `Line height: ${formatLineHeightValue(lineHeightValue)}`,
+      `Font size: ${fontSizeSummary}`,
+      `Line height: ${formatLineHeightValue(computedLineHeightRatio)} (${lineHeightRemSummary} / ${lineHeightPxSummary})`,
       `Letter spacing: ${formatTrackingValue(trackingValue)}`,
-      `Sample text: ${sampleLine}`,
     ].join("\n");
 
     try {
@@ -363,8 +511,8 @@ const FontFamilyCard = ({ token }: { token: FontToken }) => {
   const sampleParams = new URLSearchParams({
     text: sampleLine,
     fontClass: activeVariant?.className ?? token.baseClass,
-    fontSize: lineFontSize || defaultFontSize,
-    lineHeight: lineHeightValue.toFixed(2),
+    fontSize: fontSizeRemString,
+    lineHeight: computedLineHeightRatio.toFixed(2),
     letterSpacing: trackingValue.toFixed(3),
     label: token.label,
   });
@@ -375,45 +523,38 @@ const FontFamilyCard = ({ token }: { token: FontToken }) => {
     <div className="p-6">
       <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between 2xl:gap-8">
         <div>
-          <p className="text-sm font-semibold tracking-wide opacity-60">{token.label}</p>
+          <p className="text-sm font-semibold tracking-wide text-text-secondary">{token.label}</p>
         </div>
         <div className="w-full space-y-4">
           <form onSubmit={handleSampleSubmit} className="w-full sm:w-auto">
-            <label className="flex flex-col gap-1 text-xs font-semibold tracking-wide opacity-80">
+            <label className="flex flex-col gap-1 text-xs font-semibold tracking-wide text-text-secondary">
               Sample text
               <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <input
                   type="text"
                   value={sampleInput}
                   onChange={(event) => setSampleInput(event.target.value)}
-                  className="flex-1 rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm font-normal"
+                  className="flex-1 rounded-md border border-stroke-muted bg-surface-card px-3 py-2 text-sm font-normal text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 focus:ring-offset-background"
                   placeholder={defaultSampleText}
                 />
                 <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-3 py-2 text-xs font-semibold hover:opacity-90 transition whitespace-nowrap"
-                  >
+                  <Button type="submit" size="sm">
                     Update
-                  </button>
-                  <button
-                    type="button"
-                    onClick={resetSample}
-                    className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-2 text-xs font-semibold hover:bg-black/5 dark:hover:bg-white/10 transition whitespace-nowrap"
-                  >
+                  </Button>
+                  <Button type="button" variant="secondary" size="sm" onClick={resetSample}>
                     Reset
-                  </button>
+                  </Button>
                 </div>
               </div>
             </label>
           </form>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-            <label className="flex flex-col gap-1 text-xs font-semibold tracking-wide opacity-80 w-full lg:flex-1">
+            <label className="flex flex-col gap-1 text-xs font-semibold tracking-wide text-text-secondary w-full lg:flex-1">
               Apply typography scale
               <select
                 value={selectedTypographyId}
                 onChange={(event) => applyTypographyPreset(event.target.value as TypographyScaleId)}
-                className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm font-normal normal-case opacity-100"
+                className="rounded-md border border-stroke-muted bg-surface-card text-text-primary px-3 py-2 text-sm font-normal normal-case focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 focus:ring-offset-background"
               >
                 {typographyScale.map((scaleToken) => (
                   <option key={scaleToken.id} value={scaleToken.id}>
@@ -423,12 +564,12 @@ const FontFamilyCard = ({ token }: { token: FontToken }) => {
               </select>
             </label>
             {token.variants.length > 1 ? (
-              <label className="flex flex-col gap-1 text-xs font-semibold tracking-wide opacity-80 w-full lg:flex-1">
+              <label className="flex flex-col gap-1 text-xs font-semibold tracking-wide text-text-secondary w-full lg:flex-1">
                 Variant
                 <select
                   value={activeVariant?.id}
                   onChange={(event) => setSelectedVariantId(event.target.value)}
-                  className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm font-normal normal-case opacity-100"
+                  className="rounded-md border border-stroke-muted bg-surface-card text-text-primary px-3 py-2 text-sm font-normal normal-case focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 focus:ring-offset-background"
                 >
                   {token.variants.map((variant) => (
                     <option key={variant.id} value={variant.id}>
@@ -438,8 +579,18 @@ const FontFamilyCard = ({ token }: { token: FontToken }) => {
                 </select>
               </label>
             ) : (
-              <div className="text-xs font-semibold tracking-wide opacity-70 w-full lg:flex-1">{activeVariant?.label}</div>
+              <div className="text-xs font-semibold tracking-wide text-text-secondary w-full lg:flex-1">{activeVariant?.label}</div>
             )}
+
+            <label className="flex items-center justify-between gap-2 text-xs font-semibold tracking-wide text-text-secondary w-full lg:w-auto">
+              <span className="normal-case">Use px units</span>
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border border-stroke-muted accent-brand-primary"
+                checked={sizeUnit === "px"}
+                onChange={(event) => setSizeUnit(event.target.checked ? "px" : "rem")}
+              />
+            </label>
 
             <label className="flex flex-col gap-1 text-xs font-semibold tracking-wide opacity-80 w-full lg:max-w-[10rem]">
               Tracking (em)
@@ -448,36 +599,33 @@ const FontFamilyCard = ({ token }: { token: FontToken }) => {
                 step={TRACKING_STEP}
                 min={TRACKING_MIN}
                 max={TRACKING_MAX}
-                value={trackingValue.toFixed(3)}
+                value={trackingInputValue}
                 onChange={handleTrackingInput}
                 className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm font-medium"
               />
             </label>
 
             <label className="flex flex-col gap-1 text-xs font-semibold tracking-wide opacity-80 w-full lg:max-w-[10rem]">
-              Line height
+              {`Line height (${sizeUnit})`}
               <input
                 type="number"
-                step={LINE_HEIGHT_STEP}
-                min={LINE_HEIGHT_MIN}
-                max={LINE_HEIGHT_MAX}
-                value={lineHeightValue.toFixed(2)}
+                step={lineHeightInputStep}
+                min={minLineHeightInput}
+                max={maxLineHeightInput}
+                value={lineHeightInputValue}
                 onChange={handleLineHeightInput}
                 className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm font-medium"
               />
             </label>
 
             <label className="flex flex-col gap-1 text-xs font-semibold tracking-wide opacity-80 w-full lg:max-w-[10rem]">
-              Size (rem)
+              {`Size (${sizeUnit})`}
               <input
                 type="number"
-                step={0.05}
+                step={sizeInputStep}
                 min={0}
-                value={parseFloat(lineFontSize) || parseFloat(defaultFontSize)}
-                onChange={(event) => {
-                  const numericValue = Number(event.target.value);
-                  setLineFontSize(Number.isNaN(numericValue) ? defaultFontSize : `${numericValue}rem`);
-                }}
+                value={sizeInputValue}
+                onChange={handleSizeInput}
                 className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm font-medium"
               />
             </label>
@@ -526,8 +674,8 @@ const FontFamilyCard = ({ token }: { token: FontToken }) => {
               className={`${activeVariant?.className ?? token.baseClass} opacity-90`}
               style={{
                 letterSpacing: formatTrackingValue(trackingValue),
-                fontSize: lineFontSize || defaultFontSize,
-                lineHeight: lineHeightValue,
+                fontSize: fontSizeRemString,
+                lineHeight: computedLineHeightRatio,
               }}
             >
               {sampleLine}
@@ -563,9 +711,12 @@ export default function StyleGuideClient() {
   });
   const [gridBuilderCopyStatus, setGridBuilderCopyStatus] = useState<"idle" | "copied" | "error">("idle");
   const gridBuilderPreviewRef = useRef<HTMLDivElement>(null);
+  const layoutContainerRef = useRef<HTMLDivElement>(null);
+  const [browserWidth, setBrowserWidth] = useState(0);
   const filteredTypographyScale = typographyScale.filter((token) => visibleTypography[token.id] ?? true);
   const hasVisibleTypographyTokens = filteredTypographyScale.length > 0;
   const typographySampleEditor = useSampleTextEditor();
+  const baseFontSizeLabel = `${REM_IN_PX}px / 1rem`;
 
   const openTypographyScaleSample = () => {
     if (!hasVisibleTypographyTokens) {
@@ -718,19 +869,33 @@ export default function StyleGuideClient() {
     }
   };
 
+  useEffect(() => {
+    const updateWidth = () => {
+      if (typeof window !== "undefined") {
+        setBrowserWidth(window.innerWidth);
+      }
+    };
+    updateWidth();
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", updateWidth);
+      return () => window.removeEventListener("resize", updateWidth);
+    }
+    return () => {};
+  }, []);
+
   return (
     <div className="container max-w-7xl py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Design System Style Guide</h1>
-        <p className="text-base opacity-70">
+        <h1 className="text-3xl font-bold mb-2 text-text-primary">Design System Style Guide</h1>
+        <p className="text-base text-text-secondary">
           A comprehensive reference for typography, colors, components, and design tokens used throughout the application.
         </p>
       </div>
 
 
       {/* Navigation Tabs */}
-      <div className="border-b border-black/10 dark:border-white/15 mb-8">
+      <div className="border-b border-stroke-muted mb-8">
         <nav className="flex gap-6">
           {[
             { id: "typography" as const, label: "Typography" },
@@ -740,14 +905,15 @@ export default function StyleGuideClient() {
             { id: "grids" as const, label: "Grids" },
             { id: "spacing" as const, label: "Spacing" },
             { id: "badges" as const, label: "Badges" },
+            { id: "layout" as const, label: "Layout" },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setSelectedTab(tab.id)}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 selectedTab === tab.id
-                  ? "border-black dark:border-white text-black dark:text-white"
-                  : "border-transparent text-black/60 dark:text-white/60 hover:text-black/80 dark:hover:text-white/80"
+                  ? "border-brand-primary text-text-primary"
+                  : "border-transparent text-text-muted hover:text-text-primary"
               }`}
             >
               {tab.label}
@@ -764,9 +930,7 @@ export default function StyleGuideClient() {
             <div className="space-y-12">
               {/* Font Families */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Font Families
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Font Families</h2>
                 <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02] p-4 mb-6">
                   <p className="text-xs font-semibold tracking-wide opacity-70 mb-3">Show / hide families</p>
                   <div className="flex flex-wrap gap-4">
@@ -793,8 +957,11 @@ export default function StyleGuideClient() {
               {/* Typography Scale */}
               <div>
                 <div className="mb-4 pb-2 border-b border-black/10 dark:border-white/15 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <h2 className="text-2xl font-semibold">Typography Scale</h2>
-                  <div className="flex flex-col gap-2 text-xs font-semibold tracking-wide uppercase opacity-80 md:flex-row md:items-center md:gap-4">
+                  <h2 className={`${SECTION_HEADING_CLASS}`}>Typography Scale</h2>
+                <div className="flex flex-col gap-2 text-xs font-semibold tracking-wide uppercase opacity-80 md:flex-row md:items-center md:gap-4">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-black/70 dark:text-white/70">
+                    Base text size: {baseFontSizeLabel}
+                  </span>
                     <select
                       value={typographyViewport}
                       onChange={(event) => setTypographyViewport(event.target.value as TypographyViewport)}
@@ -844,14 +1011,9 @@ export default function StyleGuideClient() {
                         ))}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={openTypographyScaleSample}
-                      disabled={!hasVisibleTypographyTokens}
-                      className="inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-xs font-semibold uppercase tracking-wide text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
+                    <Button type="button" variant="secondary" size="sm" onClick={openTypographyScaleSample} disabled={!hasVisibleTypographyTokens}>
                       See sample
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <div className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-white/5 p-4 mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -865,16 +1027,18 @@ export default function StyleGuideClient() {
                       placeholder={defaultSampleText}
                     />
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTypographySampleText(defaultSampleText);
-                      setTypographySampleOverrides({});
-                    }}
-                    className="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/20 bg-transparent px-3 py-2 text-xs font-semibold uppercase tracking-wide text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10"
-                  >
-                    Reset
-                  </button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="mt-2 sm:mt-0"
+                      onClick={() => {
+                        setTypographySampleText(defaultSampleText);
+                        setTypographySampleOverrides({});
+                      }}
+                    >
+                      Reset
+                    </Button>
                 </div>
                 <div className="space-y-6">
                   {filteredTypographyScale.map((token) => {
@@ -945,19 +1109,17 @@ export default function StyleGuideClient() {
             <div className="space-y-12">
               {/* Primary Buttons */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Primary Buttons
-                </h2>
-                <p className="text-sm opacity-70 mb-4">Used for primary actions and call-to-actions</p>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-stroke-muted text-text-primary`}>Primary Buttons</h2>
+                <p className="text-sm text-text-secondary mb-4">Used for primary actions and call-to-actions</p>
                 <div className="space-y-4">
-                  <div className="p-6 rounded-lg border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02]">
+                  <div className="p-6 rounded-lg border border-stroke-muted bg-surface-card">
                     <div className="flex flex-wrap items-center gap-4 mb-3">
                       <Button size="lg">Large Button</Button>
                       <Button>Medium Button</Button>
                       <Button size="sm">Small Button</Button>
                     </div>
-                    <code className="text-xs bg-black/5 dark:bg-white/10 px-2 py-1 rounded block">
-                      bg-black dark:bg-white text-white dark:text-black hover:opacity-90
+                    <code className="text-xs bg-surface-subtle px-2 py-1 rounded block text-text-secondary">
+                      bg-brand-primary text-brand-inverse border border-brand-primary hover:opacity-90
                     </code>
                   </div>
                 </div>
@@ -965,12 +1127,10 @@ export default function StyleGuideClient() {
 
               {/* Secondary Buttons */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Secondary Buttons
-                </h2>
-                <p className="text-sm opacity-70 mb-4">Used for secondary actions</p>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-stroke-muted text-text-primary`}>Secondary Buttons</h2>
+                <p className="text-sm text-text-secondary mb-4">Used for secondary actions</p>
                 <div className="space-y-4">
-                  <div className="p-6 rounded-lg border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02]">
+                  <div className="p-6 rounded-lg border border-stroke-muted bg-surface-card">
                     <div className="flex flex-wrap items-center gap-4 mb-3">
                       <Button variant="secondary" size="lg">
                         Large Button
@@ -980,8 +1140,8 @@ export default function StyleGuideClient() {
                         Small Button
                       </Button>
                     </div>
-                    <code className="text-xs bg-black/5 dark:bg-white/10 px-2 py-1 rounded block">
-                      border border-black/10 dark:border-white/15 bg-transparent hover:bg-black/5 dark:hover:bg-white/10
+                    <code className="text-xs bg-surface-subtle px-2 py-1 rounded block text-text-secondary">
+                      border border-stroke-muted text-text-primary bg-surface-subtle hover:bg-surface-strong
                     </code>
                   </div>
                 </div>
@@ -989,12 +1149,10 @@ export default function StyleGuideClient() {
 
               {/* Ghost Buttons */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Ghost Buttons
-                </h2>
-                <p className="text-sm opacity-70 mb-4">Used for tertiary actions with minimal visual weight</p>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-stroke-muted text-text-primary`}>Ghost Buttons</h2>
+                <p className="text-sm text-text-secondary mb-4">Used for tertiary actions with minimal visual weight</p>
                 <div className="space-y-4">
-                  <div className="p-6 rounded-lg border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02]">
+                  <div className="p-6 rounded-lg border border-stroke-muted bg-surface-card">
                     <div className="flex flex-wrap items-center gap-4 mb-3">
                       <Button variant="ghost" size="lg">
                         Large Button
@@ -1004,8 +1162,8 @@ export default function StyleGuideClient() {
                         Small Button
                       </Button>
                     </div>
-                    <code className="text-xs bg-black/5 dark:bg-white/10 px-2 py-1 rounded block">
-                      bg-transparent hover:bg-black/5 dark:hover:bg-white/10
+                    <code className="text-xs bg-surface-subtle px-2 py-1 rounded block text-text-secondary">
+                      bg-transparent text-text-primary hover:bg-surface-subtle
                     </code>
                   </div>
                 </div>
@@ -1013,12 +1171,10 @@ export default function StyleGuideClient() {
 
               {/* Destructive Buttons */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Destructive Buttons
-                </h2>
-                <p className="text-sm opacity-70 mb-4">Used for destructive actions like delete</p>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-stroke-muted text-text-primary`}>Destructive Buttons</h2>
+                <p className="text-sm text-text-secondary mb-4">Used for destructive actions like delete</p>
                 <div className="space-y-4">
-                  <div className="p-6 rounded-lg border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02]">
+                  <div className="p-6 rounded-lg border border-stroke-muted bg-surface-card">
                     <div className="flex flex-wrap items-center gap-4 mb-3">
                       <Button variant="destructive" size="lg">
                         Delete Item
@@ -1026,8 +1182,8 @@ export default function StyleGuideClient() {
                       <Button variant="destructive">Delete Item</Button>
                       <Button variant="destructiveOutline">Delete Outline</Button>
                     </div>
-                    <code className="text-xs bg-black/5 dark:bg-white/10 px-2 py-1 rounded block">
-                      bg-red-600 text-white hover:bg-red-700
+                    <code className="text-xs bg-surface-subtle px-2 py-1 rounded block text-text-secondary">
+                      bg-semantic-danger text-brand-inverse border border-semantic-danger hover:opacity-90
                     </code>
                   </div>
                 </div>
@@ -1035,12 +1191,10 @@ export default function StyleGuideClient() {
 
               {/* Link Buttons */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Link Buttons
-                </h2>
-                <p className="text-sm opacity-70 mb-4">Text-only buttons for inline actions</p>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-stroke-muted text-text-primary`}>Link Buttons</h2>
+                <p className="text-sm text-text-secondary mb-4">Text-only buttons for inline actions</p>
                 <div className="space-y-4">
-                  <div className="p-6 rounded-lg border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02]">
+                  <div className="p-6 rounded-lg border border-stroke-muted bg-surface-card">
                     <div className="flex flex-wrap items-center gap-4 mb-3">
                       <Button variant="link" size="lg">
                         Link Button
@@ -1050,8 +1204,8 @@ export default function StyleGuideClient() {
                         Link Button
                       </Button>
                     </div>
-                    <code className="text-xs bg-black/5 dark:bg-white/10 px-2 py-1 rounded block">
-                      underline hover:opacity-80
+                    <code className="text-xs bg-surface-subtle px-2 py-1 rounded block text-text-secondary">
+                      bg-transparent underline text-text-primary hover:text-text-secondary
                     </code>
                   </div>
                 </div>
@@ -1059,11 +1213,9 @@ export default function StyleGuideClient() {
 
               {/* Button States */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Button States
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-stroke-muted text-text-primary`}>Button States</h2>
                 <div className="space-y-4">
-                  <div className="p-6 rounded-lg border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02]">
+                  <div className="p-6 rounded-lg border border-stroke-muted bg-surface-card">
                     <div className="flex flex-wrap items-center gap-4 mb-3">
                       <Button>Normal</Button>
                       <Button disabled>Disabled</Button>
@@ -1075,7 +1227,7 @@ export default function StyleGuideClient() {
                         Loading...
                       </Button>
                     </div>
-                    <code className="text-xs bg-black/5 dark:bg-white/10 px-2 py-1 rounded block">
+                    <code className="text-xs bg-surface-subtle px-2 py-1 rounded block text-text-secondary">
                       Disabled: opacity-50 cursor-not-allowed
                     </code>
                   </div>
@@ -1090,9 +1242,7 @@ export default function StyleGuideClient() {
           <section>
             <div className="space-y-12">
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Badge Variants
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Badge Variants</h2>
                 <p className="text-sm opacity-70 mb-4">Use badges to label sections, metrics, and interactive controls.</p>
                 <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02] p-6 space-y-4">
                   <div className="flex flex-wrap gap-3">
@@ -1118,9 +1268,7 @@ export default function StyleGuideClient() {
             <div className="space-y-12">
               {/* Brand Colors */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Brand Colors
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Brand Colors</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {brandColors.map((token) => (
                     <div key={token.id} className="p-6 rounded-lg border border-stroke-muted bg-surface-subtle">
@@ -1135,9 +1283,7 @@ export default function StyleGuideClient() {
 
               {/* Semantic Colors */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Semantic Colors
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Semantic Colors</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {semanticColors.map((token) => (
                     <div key={token.id} className="p-6 rounded-lg border border-stroke-muted bg-surface-subtle">
@@ -1152,9 +1298,7 @@ export default function StyleGuideClient() {
 
               {/* Opacity Scale */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Opacity Scale
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Opacity Scale</h2>
                 <p className="text-sm opacity-70 mb-4">Used for creating visual hierarchy and subtle backgrounds</p>
                 <div className="space-y-3">
                   {opacityScale.map((item) => (
@@ -1169,9 +1313,7 @@ export default function StyleGuideClient() {
 
               {/* Background Colors */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Background Colors
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Background Colors</h2>
                 <div className="space-y-4">
                   <div className="p-6 rounded-lg bg-surface-subtle border border-stroke-muted">
                     <p className="font-medium mb-2">Subtle Background</p>
@@ -1193,9 +1335,7 @@ export default function StyleGuideClient() {
 
               {/* Border Colors */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Border Colors
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Border Colors</h2>
                 <div className="space-y-4">
                   <div className="p-6 rounded-lg border-2 border-stroke-muted">
                     <p className="font-medium mb-2">Default Border</p>
@@ -1219,9 +1359,7 @@ export default function StyleGuideClient() {
             <div className="space-y-12">
               {/* Text Inputs */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Text Inputs
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Text Inputs</h2>
                 <div className="space-y-4 max-w-2xl">
                   <div>
                     <label className="block text-sm font-medium mb-2">Default Input</label>
@@ -1277,9 +1415,7 @@ export default function StyleGuideClient() {
 
               {/* Textarea */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Textarea
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Textarea</h2>
                 <div className="space-y-4 max-w-2xl">
                   <div>
                     <label className="block text-sm font-medium mb-2">Default Textarea</label>
@@ -1294,9 +1430,7 @@ export default function StyleGuideClient() {
 
               {/* Select Dropdown */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Select Dropdown
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Select Dropdown</h2>
                 <div className="space-y-4 max-w-2xl">
                   <div>
                     <label className="block text-sm font-medium mb-2">Default Select</label>
@@ -1311,9 +1445,7 @@ export default function StyleGuideClient() {
 
               {/* Checkboxes and Radio Buttons */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Checkboxes & Radio Buttons
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Checkboxes & Radio Buttons</h2>
                 <div className="space-y-6 max-w-2xl">
                   <div>
                     <p className="text-sm font-medium mb-3">Checkboxes</p>
@@ -1355,9 +1487,7 @@ export default function StyleGuideClient() {
 
               {/* Form Layouts */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Form Layouts
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Form Layouts</h2>
                 <div className="space-y-6 max-w-2xl">
                   <div className="p-6 rounded-lg border border-black/10 dark:border-white/15">
                     <h3 className="text-lg font-semibold mb-4">Example Form</h3>
@@ -1400,7 +1530,7 @@ export default function StyleGuideClient() {
           <section>
             <div className="space-y-12">
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">Grid Builder Sandbox</h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Grid Builder Sandbox</h2>
                 <p className="text-sm opacity-70 mb-4">
                   Quickly prototype how cards wrap by toggling between auto-fit rails and manual column spans. Every configuration uses Tailwind utility classes so
                   you can copy the output directly into a layout.
@@ -1420,7 +1550,6 @@ export default function StyleGuideClient() {
                               type="button"
                               size="sm"
                               variant={gridBuilderConfig.mode === option.id ? "primary" : "secondary"}
-                              className="normal-case tracking-normal"
                               onClick={() => updateGridBuilderConfig("mode", option.id)}
                             >
                               {option.label}
@@ -1436,7 +1565,6 @@ export default function StyleGuideClient() {
                           rel="noreferrer"
                           variant="secondary"
                           size="sm"
-                          className="normal-case tracking-normal"
                         >
                           Create sample
                         </Button>
@@ -1445,7 +1573,6 @@ export default function StyleGuideClient() {
                           onClick={copyGridBuilderStyles}
                           variant="ghost"
                           size="sm"
-                          className="normal-case tracking-normal"
                         >
                           Copy style
                         </Button>
@@ -1597,7 +1724,7 @@ export default function StyleGuideClient() {
               </div>
 
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">Grid Foundations</h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Grid Foundations</h2>
                 <p className="text-sm opacity-70 mb-4">
                   The design system relies on Tailwind&apos;s container plus a responsive 12-column grid. Use these guardrails to make sure layouts stay
                   consistent with the rest of the dashboard surface.
@@ -1636,7 +1763,7 @@ export default function StyleGuideClient() {
               </div>
 
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">Breakpoints & Column Behavior</h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Breakpoints & Column Behavior</h2>
                 <p className="text-sm opacity-70 mb-4">How columns and gutters evolve across Tailwind&apos;s default media queries.</p>
                 <div className="overflow-hidden rounded-lg border border-black/10 dark:border-white/15">
                   <div className="hidden md:grid grid-cols-4 bg-black/5 dark:bg-white/10 text-xs font-semibold uppercase tracking-wide">
@@ -1671,7 +1798,7 @@ export default function StyleGuideClient() {
               </div>
 
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">Example Grids</h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Example Grids</h2>
                 <p className="text-sm opacity-70 mb-4">
                   Copyable Tailwind compositions that we use repeatedly across the dashboard. Each example collapses to a single column on smaller screens.
                 </p>
@@ -1706,15 +1833,101 @@ export default function StyleGuideClient() {
           </section>
         )}
 
+        {/* Layout Section */}
+        {selectedTab === "layout" && (
+          <section className="space-y-12">
+            <div className="mx-auto w-full max-w-7xl px-6 lg:px-8">
+              <div className="rounded-2xl border border-black/10 dark:border-white/15 p-6 bg-black/[0.02] dark:bg-white/[0.02] space-y-6">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className={`${SECTION_HEADING_CLASS} mb-2`}>Global container & gutters</h2>
+                    <p className="text-sm opacity-70">
+                      Marketing pages and dashboard views share the same centered shell so typography rails and component grids line up with the chrome.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 md:items-end">
+                    <WidthRuler targetRef={layoutContainerRef} label="Container width" className="text-sm opacity-70" />
+                    <span className="text-xs font-semibold uppercase tracking-wide text-black/60 dark:text-white/70">
+                      Current viewport: {browserWidth ? `${browserWidth}px` : "…"}
+                    </span>
+                  </div>
+                </div>
+                <div ref={layoutContainerRef} className="mx-auto w-full max-w-7xl px-6 lg:px-8">
+                  <div className="rounded-xl border border-dashed border-black/20 dark:border-white/30 bg-white dark:bg-white/5 px-6 py-10 text-center text-sm font-semibold tracking-wide text-black dark:text-white">
+                    container · max-w-7xl · px-6 lg:px-8
+                  </div>
+                </div>
+                <p className="text-sm opacity-70">
+                  Keep section wrappers full-bleed if needed, but clamp the content rail using this container so copy and CTAs never drift.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-12 px-6 lg:px-8">
+              <div className="grid gap-6 md:grid-cols-2 max-w-6xl mx-auto">
+                {layoutGuidelineCards.map((card) => (
+                  <div
+                    key={card.title}
+                    className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-white/5 p-5 space-y-3"
+                  >
+                    <div>
+                      <h3 className="text-lg font-semibold">{card.title}</h3>
+                      <p className="text-sm opacity-70">{card.description}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {card.tokens.map((token) => (
+                        <span
+                          key={token}
+                          className="inline-flex items-center rounded-full bg-black/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-black/70 dark:bg-white/10 dark:text-white/80"
+                        >
+                          {token}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-2xl border border-black/10 dark:border-white/15 overflow-hidden max-w-6xl mx-auto">
+                <div className="bg-black/[0.04] dark:bg-white/[0.06] px-4 py-3 text-sm font-semibold tracking-wide uppercase">
+                  Width specs & rails
+                </div>
+                <div className="divide-y divide-black/5 dark:divide-white/10">
+                  {layoutWidthRecommendations.map((row) => (
+                    <div key={row.surface} className="grid gap-4 md:grid-cols-[1.3fr_0.8fr_1fr] px-4 py-4 text-sm">
+                      <div>
+                        <p className="font-semibold">{row.surface}</p>
+                        <p className="text-xs opacity-70">Surface</p>
+                      </div>
+                      <div>
+                        <p className="font-medium">{row.width}</p>
+                        <p className="text-xs opacity-70">Width / utility</p>
+                      </div>
+                      <p className="text-sm opacity-80">{row.notes}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-black/10 dark:border-white/15 p-6 max-w-6xl mx-auto">
+                <h3 className="text-lg font-semibold mb-3">Spacing cadence</h3>
+                <ul className="space-y-2 text-sm list-disc list-inside opacity-80">
+                  {layoutSpacingNotes.map((note) => (
+                    <li key={note}>{note}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Spacing Section */}
         {selectedTab === "spacing" && (
           <section>
             <div className="space-y-12">
               {/* Spacing Scale */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Spacing Scale
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Spacing Scale</h2>
                 <p className="text-sm opacity-70 mb-4">
                   Tailwind spacing scale based on 0.25rem (4px) increments
                 </p>
@@ -1731,9 +1944,7 @@ export default function StyleGuideClient() {
 
               {/* Padding Examples */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Padding Examples
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Padding Examples</h2>
                 <div className="space-y-4">
                   {[
                     { class: "p-2", label: "p-2 (8px all sides)" },
@@ -1761,9 +1972,7 @@ export default function StyleGuideClient() {
 
               {/* Gap Examples */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Gap Examples (Flexbox/Grid)
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Gap Examples (Flexbox/Grid)</h2>
                 <div className="space-y-4">
                   {gapTokens.map((item) => (
                     <div key={item.className} className="p-4 border border-black/10 dark:border-white/15 rounded-lg">
@@ -1783,9 +1992,7 @@ export default function StyleGuideClient() {
 
               {/* Border Radius */}
               <div>
-                <h2 className="text-2xl font-semibold mb-4 pb-2 border-b border-black/10 dark:border-white/15">
-                  Border Radius
-                </h2>
+                <h2 className={`${SECTION_HEADING_CLASS} mb-4 pb-2 border-b border-black/10 dark:border-white/15`}>Border Radius</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {borderRadiusTokens.map((token) => (
                     <div key={token.className} className="p-4 border border-black/10 dark:border-white/15 rounded-lg">
@@ -1855,5 +2062,161 @@ function buildTypographyScaleExport(viewport: TypographyViewport) {
       ].join("\n");
     })
     .join("\n\n");
+}
+
+function parseRemValue(value: string) {
+  if (!value) {
+    return FALLBACK_FONT_SIZE_REM;
+  }
+  const numeric = parseFloat(value.replace(/rem$/, ""));
+  return Number.isFinite(numeric) ? numeric : FALLBACK_FONT_SIZE_REM;
+}
+
+function convertRemToPxValue(value: number) {
+  return value * REM_IN_PX;
+}
+
+function convertPxToRemValue(value: number) {
+  return value / REM_IN_PX;
+}
+
+function parseRemValueOrNull(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+  const numeric = parseFloat(String(value).replace(/rem$/, ""));
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function parseRemFromSizeClass(sizeClass?: string | null) {
+  if (!sizeClass) {
+    return null;
+  }
+  const remMatch = sizeClass.match(/text-\[(\d*\.?\d+)rem\]/i);
+  if (remMatch?.[1]) {
+    const numeric = parseFloat(remMatch[1]);
+    if (Number.isFinite(numeric)) {
+      return numeric;
+    }
+  }
+  const pxMatch = sizeClass.match(/text-\[(\d*\.?\d+)px\]/i);
+  if (pxMatch?.[1]) {
+    const numeric = parseFloat(pxMatch[1]);
+    if (Number.isFinite(numeric)) {
+      return numeric / REM_IN_PX;
+    }
+  }
+  return null;
+}
+
+function resolveFontSizeRem(remValue?: string, sizeClass?: string) {
+  const fromRem = parseRemValueOrNull(remValue);
+  if (fromRem !== null) {
+    return fromRem;
+  }
+  const fromClass = parseRemFromSizeClass(sizeClass);
+  if (fromClass !== null) {
+    return fromClass;
+  }
+  return null;
+}
+
+function resolveLineHeightLengthRem(lineHeight: string, fontSizeRem: number) {
+  const trimmed = lineHeight.trim();
+  if (trimmed.endsWith("rem")) {
+    const remValue = parseFloat(trimmed.replace(/rem$/, ""));
+    if (Number.isFinite(remValue)) {
+      return remValue;
+    }
+  }
+  if (trimmed.endsWith("px")) {
+    const pxValue = parseFloat(trimmed.replace(/px$/, ""));
+    if (Number.isFinite(pxValue)) {
+      return pxValue / REM_IN_PX;
+    }
+  }
+  const numeric = parseFloat(trimmed);
+  if (Number.isFinite(numeric)) {
+    const clampedRatio = clampLineHeightValue(numeric);
+    return clampedRatio * fontSizeRem;
+  }
+  return clampLineHeightValue(DEFAULT_LINE_HEIGHT_RATIO) * fontSizeRem;
+}
+
+function parseTrackingValueFromClass(className: string) {
+  const bracketMatch = className.match(/tracking-\[([^\]]+)\]/);
+  if (bracketMatch?.[1]) {
+    const raw = bracketMatch[1].trim();
+    const numeric = parseFloat(raw.replace(/(rem|em)$/i, ""));
+    if (Number.isFinite(numeric)) {
+      return numeric;
+    }
+  }
+  const trackingMap: Record<string, number> = {
+    tighter: -0.05,
+    tight: -0.025,
+    normal: 0,
+    wide: 0.025,
+    wider: 0.05,
+    widest: 0.1,
+  };
+  const match = Object.entries(trackingMap).find(([key]) => className.includes(`tracking-${key}`));
+  return match ? match[1] : null;
+}
+
+function resolveVariantIdForPreset(token: FontToken, preset: (typeof typographyScale)[number]) {
+  const baseMatchesToken =
+    preset.fontFamily.toLowerCase() === token.label.toLowerCase() ||
+    preset.baseClass.includes(token.baseClass) ||
+    preset.baseClass.includes(token.tailwindClass);
+  if (!baseMatchesToken) {
+    return null;
+  }
+
+  const weightNumber = (() => {
+    const digitMatch = preset.fontWeight.match(/(\d{3})/);
+    if (digitMatch?.[1]) {
+      return parseInt(digitMatch[1], 10);
+    }
+    const lower = preset.fontWeight.toLowerCase();
+    if (lower.includes("thin")) return 100;
+    if (lower.includes("extra light") || lower.includes("extralight")) return 200;
+    if (lower.includes("light")) return 300;
+    if (lower.includes("regular") || lower.includes("normal")) return 400;
+    if (lower.includes("medium")) return 500;
+    if (lower.includes("semibold") || lower.includes("semi bold")) return 600;
+    if (lower.includes("bold")) return 700;
+    if (lower.includes("extrabold") || lower.includes("extra bold")) return 800;
+    if (lower.includes("black")) return 900;
+    return null;
+  })();
+
+  const weightToClass: Record<number, string> = {
+    100: "font-thin",
+    200: "font-extralight",
+    300: "font-light",
+    400: "font-normal",
+    500: "font-medium",
+    600: "font-semibold",
+    700: "font-bold",
+    800: "font-extrabold",
+    900: "font-black",
+  };
+
+  if (weightNumber) {
+    const weightClass = weightToClass[weightNumber];
+    const variantMatch =
+      weightClass && token.variants.find((variant) => variant.className.includes(weightClass));
+    if (variantMatch) {
+      return variantMatch.id;
+    }
+  }
+
+  const baseVariant = token.variants.find((variant) => preset.baseClass.split(/\s+/).every((cls) => variant.className.includes(cls)));
+  if (baseVariant) {
+    return baseVariant.id;
+  }
+
+  return token.variants[0]?.id ?? null;
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChangeEvent } from "react";
+import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 
 type SampleTextEditorModalProps = {
   isOpen: boolean;
@@ -50,12 +51,12 @@ export default function SampleTextEditorModal({
         className="relative z-10 w-full max-w-lg rounded-lg border border-black/10 bg-white p-6 shadow-2xl dark:border-white/20 dark:bg-neutral-900"
       >
         <div className="space-y-1">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-black/60 dark:text-white/70">Edit sample text</p>
-          <p className="text-base font-semibold text-black dark:text-white">{label}</p>
-          {helperText && <p className="text-sm text-black/70 dark:text-white/70">{helperText}</p>}
+          <p className={getTypographyClassName("body-sm")}>Edit sample text</p>
+          <p className={getTypographyClassName("h3")}>{label}</p>
+          {helperText && <p className={getTypographyClassName("body-sm")}>{helperText}</p>}
         </div>
         <form className="mt-4 space-y-4" onSubmit={(event) => event.preventDefault()}>
-          <label className="text-xs font-semibold uppercase tracking-[0.25em] opacity-70" htmlFor="sample-editor-textarea">
+          <label className={getTypographyClassName("body-sm")} htmlFor="sample-editor-textarea">
             {textareaLabel}
           </label>
           <textarea
@@ -66,13 +67,13 @@ export default function SampleTextEditorModal({
             placeholder={placeholder}
             className="w-full rounded-md border border-black/15 bg-white p-3 text-sm text-black shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/70 dark:border-white/25 dark:bg-black/40 dark:text-white dark:focus-visible:ring-white/60"
           />
-          {error && <p className="text-sm font-medium text-red-600 dark:text-red-400">{error}</p>}
-          <div className="flex flex-wrap justify-between gap-3 text-xs font-semibold uppercase tracking-[0.25em]">
+          {error && <p className={`${getTypographyClassName("body-sm")} text-red-600 dark:text-red-400`}>{error}</p>}
+          <div className="flex flex-wrap justify-between gap-3">
             {onReset ? (
               <button
                 type="button"
                 onClick={onReset}
-                className="rounded-md border border-black/15 px-3 py-2 text-black/70 transition hover:text-black dark:border-white/25 dark:text-white/70 dark:hover:text-white"
+                className={`rounded-md border border-black/15 px-3 py-2 transition hover:text-black dark:border-white/25 dark:text-white/70 dark:hover:text-white ${getTypographyClassName("button-sm")}`}
               >
                 {resetLabel}
               </button>
@@ -83,14 +84,14 @@ export default function SampleTextEditorModal({
               <button
                 type="button"
                 onClick={onCancel}
-                className="rounded-md border border-black/15 px-3 py-2 text-black/70 transition hover:text-black dark:border-white/25 dark:text-white/70 dark:hover:text-white"
+                className={`rounded-md border border-black/15 px-3 py-2 transition hover:text-black dark:border-white/25 dark:text-white/70 dark:hover:text-white ${getTypographyClassName("button-sm")}`}
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={onSubmit}
-                className="rounded-md border border-black bg-black px-4 py-2 text-white transition hover:opacity-90 dark:border-white dark:bg-white dark:text-black"
+                className={`rounded-md border border-black bg-black px-4 py-2 text-white transition hover:opacity-90 dark:border-white dark:bg-white dark:text-black ${getTypographyClassName("button-sm")}`}
               >
                 {submitLabel}
               </button>

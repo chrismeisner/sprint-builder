@@ -33,7 +33,7 @@ export async function POST() {
 
     // Get the branding deliverables
     const deliverablesResult = await pool.query(
-      `SELECT id, name, fixed_hours, fixed_price 
+      `SELECT id, name, fixed_hours, fixed_price, points 
        FROM deliverables 
        WHERE name IN ('Wordmark Logo', 'Color Palette (Primary + Secondary)', 'Brand Moodboard')
        AND deliverable_type = 'standard'
@@ -133,7 +133,7 @@ export async function POST() {
     const totalsResult = await pool.query(
       `SELECT 
         SUM(d.fixed_price * spd.quantity * spd.complexity_score) as total_price,
-        SUM(d.fixed_hours * spd.quantity * spd.complexity_score) as total_hours,
+        SUM(COALESCE(d.points, 0) * 15 * spd.quantity * spd.complexity_score) as total_hours,
         SUM(d.default_estimate_points) as total_points
        FROM sprint_package_deliverables spd
        JOIN deliverables d ON spd.deliverable_id = d.id
@@ -173,6 +173,20 @@ export async function POST() {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

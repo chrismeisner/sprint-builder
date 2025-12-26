@@ -1,18 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import UserUploadsClient from "../dashboard/UserUploadsClient";
-import {
-  AGREEMENT_PLACEHOLDER_URL,
-  DEPOSIT_PLACEHOLDER_URL,
-  DISCOVERY_CALL_URL,
-  ONBOARDING_TASK_CONTENT,
-  ONBOARDING_TASK_SEQUENCE,
-  OnboardingStatus,
-  OnboardingTaskKey,
-} from "@/lib/constants/onboarding";
+import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 
 type Profile = {
   id: string;
@@ -36,59 +27,108 @@ type Sprint = {
   deliverable_count: number;
   total_fixed_price: number | null;
   total_fixed_hours: number | null;
+  project_id: string | null;
   created_at: string;
   updated_at: string | null;
   document_id: string;
   document_filename: string | null;
 };
 
-type OnboardingTask = {
-  accountId: string;
-  taskKey: OnboardingTaskKey;
-  status: OnboardingStatus;
-  metadata: Record<string, unknown> | null;
-  completedAt: string | null;
-  updatedAt: string;
-  createdAt: string;
+type Project = {
+  id: string;
+  name: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  accountId?: string | null;
+  isOwner?: boolean | null;
+};
+
+type Package = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
 };
 
 type ProfileData = {
   profile: Profile;
   documents: Document[];
   sprints: Sprint[];
+  projects: Project[];
+  projectMembers?: Record<string, Array<{ email: string; addedByAccount: string | null; createdAt: string }>>;
   stats: {
     totalDocuments: number;
     totalSprints: number;
+    totalProjects: number;
   };
-  onboardingTasks: OnboardingTask[];
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
 
 export default function ProfileClient() {
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [updatingTaskKey, setUpdatingTaskKey] = useState<OnboardingTaskKey | null>(null);
-  const [kickoffDate, setKickoffDate] = useState("");
-  const [kickoffError, setKickoffError] = useState<string | null>(null);
-  const [kickoffSubmitting, setKickoffSubmitting] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [projectSaving, setProjectSaving] = useState(false);
+  const [projectError, setProjectError] = useState<string | null>(null);
+  const [selectedPackageId, setSelectedPackageId] = useState("");
+  const [sprintCreateError, setSprintCreateError] = useState<string | null>(null);
+  const [sprintCreateSavingId, setSprintCreateSavingId] = useState<string | null>(null);
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
+  const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [packagesLoading, setPackagesLoading] = useState(true);
+  const [packagesError, setPackagesError] = useState<string | null>(null);
+  const [memberModalProjectId, setMemberModalProjectId] = useState<string | null>(null);
+  const [memberModalProjectName, setMemberModalProjectName] = useState<string>("");
+  const [memberModalMembers, setMemberModalMembers] = useState<Array<{ email: string; addedByAccount: string | null; createdAt: string }>>([]);
+  const [memberModalLoading, setMemberModalLoading] = useState(false);
+  const [memberModalError, setMemberModalError] = useState<string | null>(null);
+  const [memberEmailInput, setMemberEmailInput] = useState("");
+  const [memberSaving, setMemberSaving] = useState(false);
+  const [memberRemovingEmail, setMemberRemovingEmail] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pageTitleClass = getTypographyClassName("h2");
+  const pageSubtitleClass = getTypographyClassName("subtitle-sm");
+  const sectionTitleClass = getTypographyClassName("h3");
+  const labelClass = `${getTypographyClassName("body-sm")} text-text-secondary`;
+  const helperTextClass = `${getTypographyClassName("body-sm")} opacity-70`;
+  const bodyClass = getTypographyClassName("body-md");
+  const bodySmClass = getTypographyClassName("body-sm");
+  const monoMetaClass = `${getTypographyClassName("mono-sm")} opacity-70`;
+  const statNumberClass = `${getTypographyClassName("mono-lg")} text-text-primary`;
+  const tableHeadingClass = `${getTypographyClassName("mono-sm")} uppercase tracking-wide text-text-secondary text-left`;
+  const tableCellClass = getTypographyClassName("body-sm");
   const logoutButtonClasses =
-    "px-4 py-2 border border-red-600/20 dark:border-red-400/20 text-red-700 dark:text-red-300 rounded-md hover:bg-red-600/10 dark:hover:bg-red-400/10 disabled:opacity-50 disabled:cursor-not-allowed transition";
-  const onboardingTaskMap = useMemo(() => {
-    const map: Partial<Record<OnboardingTaskKey, OnboardingTask>> = {};
-    data?.onboardingTasks?.forEach((task) => {
-      map[task.taskKey] = task;
+    `${getTypographyClassName("button-md")} px-4 py-2 border border-red-600/20 dark:border-red-400/20 text-red-700 dark:text-red-300 rounded-md hover:bg-red-600/10 dark:hover:bg-red-400/10 disabled:opacity-50 disabled:cursor-not-allowed transition`;
+  const projectNameLookup = useMemo(() => {
+    const map: Record<string, string> = {};
+    data?.projects.forEach((p) => {
+      map[p.id] = p.name;
     });
     return map;
-  }, [data?.onboardingTasks]);
-
+  }, [data?.projects]);
+  const projectSprintCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    data?.sprints.forEach((sprint) => {
+      if (!sprint.project_id) return;
+      counts[sprint.project_id] = (counts[sprint.project_id] || 0) + 1;
+    });
+    return counts;
+  }, [data?.sprints]);
+  const projectById = useMemo(() => {
+    const map: Record<string, Project> = {};
+    data?.projects.forEach((p) => {
+      map[p.id] = p;
+    });
+    return map;
+  }, [data?.projects]);
   const fetchProfile = async () => {
     try {
       setLoading(true);
@@ -102,25 +142,8 @@ export default function ProfileClient() {
       const profileData: ProfileData = await res.json();
       setData(profileData);
       setNameValue(profileData.profile.name || "");
-      const kickoffTask = profileData.onboardingTasks?.find(
-        (task) => task.taskKey === "kickoff_request"
-      );
-      if (kickoffTask && isRecord(kickoffTask.metadata)) {
-        const meta = kickoffTask.metadata as {
-          requestedKickoffDateLabel?: string;
-          requestedKickoffDate?: string;
-        };
-        setKickoffDate(
-          meta.requestedKickoffDateLabel ||
-            (meta.requestedKickoffDate
-              ? meta.requestedKickoffDate.slice(0, 10)
-              : "")
-        );
-      } else {
-        setKickoffDate("");
-      }
-      setKickoffError(null);
       setError(null);
+      setProjectError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -128,9 +151,49 @@ export default function ProfileClient() {
     }
   };
 
+  const fetchPackages = async () => {
+    try {
+      setPackagesLoading(true);
+      const res = await fetch("/api/sprint-packages");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to fetch packages");
+      }
+      const data = await res.json().catch(() => ({})) as { packages?: Package[] };
+      setPackages(data.packages ?? []);
+      setPackagesError(null);
+    } catch (err) {
+      setPackagesError(err instanceof Error ? err.message : "Failed to fetch packages");
+    } finally {
+      setPackagesLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchProfile();
+    fetchPackages();
   }, []);
+
+  useEffect(() => {
+    if (data && data.projects.length === 0) {
+      setShowProjectModal(true);
+    }
+  }, [data]);
+
+  useEffect(() => {
+    // Show welcome modal when arriving from the magic link email
+    if (searchParams.get("from") === "magic-email") {
+      setShowWelcome(true);
+    }
+  }, [searchParams]);
+
+  const dismissWelcome = () => {
+    setShowWelcome(false);
+    // Drop the query param so refresh doesn't re-open the modal
+    const url = new URL(window.location.href);
+    url.searchParams.delete("from");
+    router.replace(url.pathname + (url.search ? url.search : ""), { scroll: false });
+  };
 
   const handleSaveName = async () => {
     if (!data) return;
@@ -171,6 +234,218 @@ export default function ProfileClient() {
     }
   };
 
+  const handleCreateProject = async () => {
+    if (!projectName.trim()) {
+      setProjectError("Project name is required");
+      return;
+    }
+
+    try {
+      setProjectSaving(true);
+      setProjectError(null);
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: projectName.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to create project");
+      }
+
+      setProjectName("");
+      await fetchProfile();
+      setShowProjectModal(false);
+    } catch (err) {
+      setProjectError(err instanceof Error ? err.message : "Failed to create project");
+    } finally {
+      setProjectSaving(false);
+    }
+  };
+
+  const handleCreateSprintForProject = async (projectId: string, projectName: string) => {
+    if (!selectedPackageId) {
+      setSprintCreateError("Select a package to continue");
+      return;
+    }
+
+    const selectedPackage = packages.find((p) => p.id === selectedPackageId);
+    const titleFromPackage = selectedPackage?.name || `${projectName} sprint`;
+
+    try {
+      setSprintCreateSavingId(projectId);
+      setSprintCreateError(null);
+      const res = await fetch("/api/sprint-drafts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: titleFromPackage,
+          status: "draft",
+          projectId,
+          sprintPackageId: selectedPackageId,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to create sprint");
+      }
+
+      await fetchProfile();
+    } catch (err) {
+      setSprintCreateError(err instanceof Error ? err.message : "Failed to create sprint");
+    }
+    finally {
+      setSprintCreateSavingId(null);
+    }
+  };
+
+  const handleCreateSprintFromPackage = async () => {
+    if (!selectedPackageId) {
+      setSprintCreateError("Select a package to continue");
+      return;
+    }
+
+    const selectedPackage = packages.find((p) => p.id === selectedPackageId);
+    const titleFromPackage = selectedPackage?.name || "New sprint";
+
+    try {
+      setSprintCreateSavingId("package-add");
+      setSprintCreateError(null);
+      const res = await fetch("/api/sprint-drafts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: titleFromPackage,
+          status: "draft",
+          sprintPackageId: selectedPackageId,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to create sprint");
+      }
+
+      await fetchProfile();
+    } catch (err) {
+      setSprintCreateError(err instanceof Error ? err.message : "Failed to create sprint");
+    } finally {
+      setSprintCreateSavingId(null);
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    if (!confirm("Delete this project? This cannot be undone.")) return;
+    setDeletingProjectId(projectId);
+    setDeleteProjectError(null);
+    try {
+      const res = await fetch(`/api/projects?id=${projectId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete project");
+      }
+      await fetchProfile();
+    } catch (err) {
+      setDeleteProjectError(err instanceof Error ? err.message : "Failed to delete project");
+    } finally {
+      setDeletingProjectId(null);
+    }
+  };
+
+  const fetchProjectMembers = async (projectId: string) => {
+    try {
+      setMemberModalLoading(true);
+      setMemberModalError(null);
+      const res = await fetch(`/api/project-members?projectId=${projectId}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to fetch members");
+      }
+      const json = await res.json();
+      const members = (json.members || []) as Array<{ email: string; addedByAccount: string | null; createdAt: string }>;
+      setMemberModalMembers(members);
+    } catch (err) {
+      setMemberModalError(err instanceof Error ? err.message : "Failed to fetch members");
+      setMemberModalMembers([]);
+    } finally {
+      setMemberModalLoading(false);
+    }
+  };
+
+  const openMemberModal = async (project: Project) => {
+    setMemberModalProjectId(project.id);
+    setMemberModalProjectName(project.name);
+    setMemberEmailInput("");
+    const cached = data?.projectMembers?.[project.id];
+    if (cached) {
+      setMemberModalMembers(cached);
+    } else {
+      setMemberModalMembers([]);
+      await fetchProjectMembers(project.id);
+    }
+  };
+
+  const closeMemberModal = () => {
+    setMemberModalProjectId(null);
+    setMemberModalMembers([]);
+    setMemberEmailInput("");
+    setMemberModalError(null);
+  };
+
+  const addMember = async () => {
+    if (!memberModalProjectId) return;
+    const email = memberEmailInput.trim().toLowerCase();
+    if (!email || !email.includes("@")) {
+      setMemberModalError("Enter a valid email");
+      return;
+    }
+    try {
+      setMemberSaving(true);
+      setMemberModalError(null);
+      const res = await fetch("/api/project-members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: memberModalProjectId, email }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to add member");
+      }
+      setMemberEmailInput("");
+      await fetchProjectMembers(memberModalProjectId);
+      await fetchProfile();
+    } catch (err) {
+      setMemberModalError(err instanceof Error ? err.message : "Failed to add member");
+    } finally {
+      setMemberSaving(false);
+    }
+  };
+
+  const removeMember = async (email: string) => {
+    if (!memberModalProjectId) return;
+    try {
+      setMemberRemovingEmail(email);
+      setMemberModalError(null);
+      const res = await fetch(`/api/project-members?projectId=${memberModalProjectId}&email=${encodeURIComponent(email)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to remove member");
+      }
+      await fetchProjectMembers(memberModalProjectId);
+      await fetchProfile();
+    } catch (err) {
+      setMemberModalError(err instanceof Error ? err.message : "Failed to remove member");
+    } finally {
+      setMemberRemovingEmail(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       draft: "bg-black/10 dark:bg-white/10 text-black dark:text-white",
@@ -180,321 +455,16 @@ export default function ProfileClient() {
     };
 
     return (
-      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${styles[status] || styles.draft}`}>
+      <span className={`px-2 py-1 inline-flex ${bodySmClass} leading-5 font-semibold rounded-full ${styles[status] || styles.draft}`}>
         {status.replace("_", " ")}
       </span>
     );
   };
 
-  const onboardingStatusStyles: Record<OnboardingStatus, string> = {
-    pending: "bg-black/10 dark:bg-white/10 text-black dark:text-white",
-    in_progress: "bg-blue-600/10 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300",
-    submitted: "bg-amber-500/15 dark:bg-amber-400/20 text-amber-700 dark:text-amber-200",
-    completed: "bg-green-600/10 dark:bg-green-400/10 text-green-700 dark:text-green-300",
-  };
-  const primaryCtaClasses =
-    "px-4 py-2 rounded-md bg-black dark:bg-white text-white dark:text-black text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition";
-  const outlineCtaClasses =
-    "px-4 py-2 rounded-md border border-black/10 dark:border-white/15 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition";
-  const subtleActionClasses =
-    "text-sm font-medium underline-offset-2 hover:underline disabled:opacity-40";
-
-  const getOnboardingStatusBadge = (status: OnboardingStatus) => (
-    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${onboardingStatusStyles[status]}`}>
-      {status.replace("_", " ")}
-    </span>
-  );
-
-  const handleOnboardingTaskUpdate = async (
-    taskKey: OnboardingTaskKey,
-    status: OnboardingStatus,
-    metadata?: Record<string, unknown> | null
-  ) => {
-    try {
-      setUpdatingTaskKey(taskKey);
-      const payload: Record<string, unknown> = { taskKey, status };
-      if (metadata !== undefined) {
-        payload.metadata = metadata;
-      }
-      const res = await fetch("/api/profile/onboarding", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.error || "Failed to update onboarding task");
-      }
-
-      await fetchProfile();
-    } catch (err) {
-      alert(
-        err instanceof Error
-          ? err.message
-          : "Failed to update onboarding task"
-      );
-    } finally {
-      setUpdatingTaskKey(null);
-    }
-  };
-
-  const handleManualTaskComplete = (taskKey: OnboardingTaskKey) =>
-    handleOnboardingTaskUpdate(taskKey, "completed");
-
-  const handleManualTaskReset = (taskKey: OnboardingTaskKey) => {
-    if (taskKey === "kickoff_request") {
-      handleOnboardingTaskUpdate(taskKey, "pending", null);
-    } else {
-      handleOnboardingTaskUpdate(taskKey, "pending");
-    }
-  };
-
-  const handleKickoffRequest = async () => {
-    if (!kickoffDate) {
-      setKickoffError("Select a Monday to request your kickoff");
-      return;
-    }
-
-    const parsedDate = new Date(kickoffDate);
-    if (Number.isNaN(parsedDate.valueOf())) {
-      setKickoffError("Please choose a valid date");
-      return;
-    }
-
-    if (parsedDate.getUTCDay() !== 1) {
-      setKickoffError("Kickoff requests must start on a Monday");
-      return;
-    }
-
-    setKickoffError(null);
-    try {
-      setKickoffSubmitting(true);
-      await handleOnboardingTaskUpdate("kickoff_request", "submitted", {
-        kickoffDate,
-      });
-    } finally {
-      setKickoffSubmitting(false);
-    }
-  };
-
-  const formatDisplayDate = (value?: string | null) => {
-    if (!value) return "";
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.valueOf())) {
-      return value;
-    }
-    return parsed.toLocaleDateString(undefined, {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
-  const renderOnboardingActions = (
-    taskKey: OnboardingTaskKey,
-    task: OnboardingTask | undefined,
-    isBusy: boolean
-  ) => {
-    const status = task?.status ?? "pending";
-    const metadata =
-      task && isRecord(task.metadata) ? task.metadata : null;
-
-    switch (taskKey) {
-      case "intake_form":
-        if (status === "completed") {
-          return (
-            <p className="text-xs opacity-70">
-              {task?.completedAt
-                ? `Completed ${formatDisplayDate(task.completedAt)}`
-                : "Completed"}
-            </p>
-          );
-        }
-        return (
-          <Link href="/intake" className={primaryCtaClasses}>
-            Open intake form
-          </Link>
-        );
-      case "discovery_call":
-        return (
-          <>
-            <a
-              href={DISCOVERY_CALL_URL}
-              target="_blank"
-              rel="noreferrer"
-              className={outlineCtaClasses}
-            >
-              Book on Calendly
-            </a>
-            {status === "completed" ? (
-              <button
-                onClick={() => handleManualTaskReset(taskKey)}
-                className={subtleActionClasses}
-                disabled={isBusy}
-              >
-                Mark incomplete
-              </button>
-            ) : (
-              <button
-                onClick={() => handleManualTaskComplete(taskKey)}
-                className={primaryCtaClasses}
-                disabled={isBusy}
-              >
-                Mark as complete
-              </button>
-            )}
-          </>
-        );
-      case "kickoff_request": {
-        const requestedLabel =
-          (metadata as { requestedKickoffDateLabel?: string })?.requestedKickoffDateLabel ||
-          (metadata as { requestedKickoffDate?: string })?.requestedKickoffDate;
-        const requestedAt = (metadata as { requestedAt?: string })?.requestedAt;
-
-        return (
-          <>
-            <input
-              type="date"
-              value={kickoffDate}
-              onChange={(event) => {
-                setKickoffDate(event.target.value);
-                setKickoffError(null);
-              }}
-              className="w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-              disabled={isBusy}
-            />
-            <button
-              onClick={handleKickoffRequest}
-              className={primaryCtaClasses}
-              disabled={isBusy || !kickoffDate}
-            >
-              {status === "submitted" ? "Update request" : "Request kickoff"}
-            </button>
-            {kickoffError && (
-              <p className="text-xs text-red-600 dark:text-red-400">
-                {kickoffError}
-              </p>
-            )}
-            {requestedLabel && (
-              <p className="text-xs opacity-70">
-                Requested: {formatDisplayDate(requestedLabel)}
-                {requestedAt
-                  ? ` • Submitted ${formatDisplayDate(requestedAt)}`
-                  : ""}
-              </p>
-            )}
-            <div className="flex flex-wrap gap-3">
-              {status !== "completed" && (
-                <button
-                  onClick={() => handleManualTaskComplete(taskKey)}
-                  className={outlineCtaClasses}
-                  disabled={isBusy}
-                >
-                  Mark as complete
-                </button>
-              )}
-              {status !== "pending" && (
-                <button
-                  onClick={() => handleManualTaskReset(taskKey)}
-                  className={subtleActionClasses}
-                  disabled={isBusy}
-                >
-                  Reset step
-                </button>
-              )}
-            </div>
-          </>
-        );
-      }
-      case "agreement":
-        return (
-          <>
-            <a
-              href={AGREEMENT_PLACEHOLDER_URL}
-              target="_blank"
-              rel="noreferrer"
-              className={outlineCtaClasses}
-            >
-              Review agreement
-            </a>
-            {status === "completed" ? (
-              <button
-                onClick={() => handleManualTaskReset(taskKey)}
-                className={subtleActionClasses}
-                disabled={isBusy}
-              >
-                Mark incomplete
-              </button>
-            ) : (
-              <button
-                onClick={() => handleManualTaskComplete(taskKey)}
-                className={primaryCtaClasses}
-                disabled={isBusy}
-              >
-                Mark as complete
-              </button>
-            )}
-          </>
-        );
-      case "deposit":
-        return (
-          <>
-            <a
-              href={DEPOSIT_PLACEHOLDER_URL}
-              target="_blank"
-              rel="noreferrer"
-              className={outlineCtaClasses}
-            >
-              Open payment link
-            </a>
-            {status === "completed" ? (
-              <button
-                onClick={() => handleManualTaskReset(taskKey)}
-                className={subtleActionClasses}
-                disabled={isBusy}
-              >
-                Mark incomplete
-              </button>
-            ) : (
-              <button
-                onClick={() => handleManualTaskComplete(taskKey)}
-                className={primaryCtaClasses}
-                disabled={isBusy}
-              >
-                Mark as complete
-              </button>
-            )}
-          </>
-        );
-      case "kickoff_workshop":
-        return status === "completed" ? (
-          <button
-            onClick={() => handleManualTaskReset(taskKey)}
-            className={subtleActionClasses}
-            disabled={isBusy}
-          >
-            Mark incomplete
-          </button>
-        ) : (
-          <button
-            onClick={() => handleManualTaskComplete(taskKey)}
-            className={primaryCtaClasses}
-            disabled={isBusy}
-          >
-            Mark as complete
-          </button>
-        );
-      default:
-        return null;
-    }
-  };
-
   if (loading) {
     return (
       <div className="p-6">
-        <p className="opacity-70">Loading profile...</p>
+        <p className={`${bodyClass} opacity-70`}>Loading profile...</p>
       </div>
     );
   }
@@ -503,8 +473,8 @@ export default function ProfileClient() {
     return (
       <div className="p-6">
         <div className="bg-red-600/10 dark:bg-red-400/10 border border-red-600/20 dark:border-red-400/20 rounded-lg p-4">
-          <p className="text-red-700 dark:text-red-300 font-semibold">Error</p>
-          <p className="text-red-600 dark:text-red-400">{error}</p>
+          <p className={`${bodySmClass} font-semibold text-red-700 dark:text-red-300`}>Error</p>
+          <p className={`${bodySmClass} text-red-600 dark:text-red-400`}>{error}</p>
         </div>
       </div>
     );
@@ -514,11 +484,195 @@ export default function ProfileClient() {
 
   return (
     <div className="container min-h-screen max-w-6xl space-y-8 py-6">
+      {showWelcome && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="w-full max-w-lg rounded-lg bg-white dark:bg-black border border-black/10 dark:border-white/15 shadow-xl">
+            <div className="flex items-start justify-between p-5 border-b border-black/10 dark:border-white/15">
+              <div>
+                <p className={`${getTypographyClassName("mono-sm")} uppercase tracking-wide opacity-70`}>Welcome</p>
+                <h2 className={`${getTypographyClassName("h3")} mt-1`}>Login successful</h2>
+              </div>
+              <button
+                onClick={dismissWelcome}
+                className={`rounded-md p-1 ${bodySmClass} opacity-70 hover:opacity-100 transition`}
+                aria-label="Close welcome message"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-5 space-y-3">
+              <p className={getTypographyClassName("body-md")}>
+                You’re logged in via your magic link. Here’s your dashboard to manage sprints, projects, and uploads.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/profile"
+                  className={`${getTypographyClassName("button-sm")} inline-flex items-center justify-center rounded-md bg-black text-white dark:bg-white dark:text-black px-4 py-2 hover:opacity-90 transition`}
+                  onClick={dismissWelcome}
+                >
+                  Go to profile
+                </Link>
+              </div>
+            </div>
+            <div className="px-5 pb-5">
+              <button
+                onClick={dismissWelcome}
+                className={`${getTypographyClassName("body-sm")} text-left w-full opacity-70 hover:opacity-100 underline`}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showProjectModal && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-lg bg-white dark:bg-black border border-black/10 dark:border-white/15 shadow-xl">
+            <div className="flex items-start justify-between p-4 border-b border-black/10 dark:border-white/15">
+              <div>
+                <p className={`${getTypographyClassName("mono-sm")} uppercase tracking-wide opacity-70`}>Start your first project</p>
+                <h2 className={`${getTypographyClassName("h4")} mt-1`}>Create a project</h2>
+              </div>
+              <button
+                onClick={() => setShowProjectModal(false)}
+                className={`rounded-md p-1 ${bodySmClass} opacity-70 hover:opacity-100 transition`}
+                aria-label="Close project modal"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="space-y-1">
+                <label className={`${labelClass}`}>Project name</label>
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="e.g. Apollo launch"
+                  className={`w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 ${bodySmClass} focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white`}
+                  disabled={projectSaving}
+                  autoFocus
+                />
+                {projectError && (
+                  <p className={`${bodySmClass} text-red-600 dark:text-red-400`}>{projectError}</p>
+                )}
+              </div>
+            </div>
+            <div className="px-5 pb-5 flex items-center gap-2">
+              <button
+                onClick={handleCreateProject}
+                disabled={projectSaving}
+                className={`${getTypographyClassName("button-md")} px-4 py-2 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
+              >
+                {projectSaving ? "Creating..." : "Create project"}
+              </button>
+              <button
+                onClick={() => setShowProjectModal(false)}
+                disabled={projectSaving}
+                className={`${getTypographyClassName("button-sm")} px-4 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {memberModalProjectId && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-xl rounded-lg bg-white dark:bg-black border border-black/10 dark:border-white/15 shadow-xl">
+            <div className="flex items-start justify-between p-4 border-b border-black/10 dark:border-white/15">
+              <div>
+                <p className={`${getTypographyClassName("mono-sm")} uppercase tracking-wide opacity-70`}>Project access</p>
+                <h2 className={`${getTypographyClassName("h4")} mt-1`}>{memberModalProjectName}</h2>
+              </div>
+              <button
+                onClick={closeMemberModal}
+                className={`rounded-md p-1 ${bodySmClass} opacity-70 hover:opacity-100 transition`}
+                aria-label="Close access modal"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {memberModalError && (
+                <div className={`${bodySmClass} text-red-700 dark:text-red-300 bg-red-600/10 dark:bg-red-900/30 border border-red-600/20 dark:border-red-900/30 rounded-md px-3 py-2`}>
+                  {memberModalError}
+                </div>
+              )}
+              <div className="space-y-2">
+                <p className={helperTextClass}>People with access</p>
+                {memberModalLoading ? (
+                  <p className={helperTextClass}>Loading members…</p>
+                ) : memberModalMembers.length === 0 ? (
+                  <p className={helperTextClass}>No members yet. Add the first email below.</p>
+                ) : (
+                  <div className="divide-y divide-black/10 dark:divide-white/15 rounded-md border border-black/10 dark:border-white/15">
+                    {memberModalMembers.map((m) => (
+                      <div key={`${m.email}-${m.createdAt}`} className="flex items-center justify-between px-3 py-2">
+                        <div className="flex flex-col">
+                          <span className={bodyClass}>{m.email}</span>
+                          <span className={helperTextClass}>
+                            Added {new Date(m.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => removeMember(m.email)}
+                          disabled={memberRemovingEmail === m.email || !projectById[memberModalProjectId]?.isOwner}
+                          className={`${bodySmClass} px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+                        >
+                          {memberRemovingEmail === m.email ? "Removing..." : "Remove"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className={helperTextClass}>Add a new email</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <input
+                    type="email"
+                    value={memberEmailInput}
+                    onChange={(e) => setMemberEmailInput(e.target.value)}
+                    className={`flex-1 rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 ${bodySmClass} focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white`}
+                    placeholder="user@example.com"
+                    disabled={memberSaving || !projectById[memberModalProjectId]?.isOwner}
+                  />
+                  <button
+                    onClick={addMember}
+                    disabled={memberSaving || !projectById[memberModalProjectId]?.isOwner}
+                    className={`${getTypographyClassName("button-md")} px-4 py-2 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
+                  >
+                    {memberSaving ? "Adding..." : "Add"}
+                  </button>
+                </div>
+                {!projectById[memberModalProjectId]?.isOwner && (
+                  <p className={`${helperTextClass} italic`}>Only owners can add or remove members.</p>
+                )}
+              </div>
+            </div>
+            <div className="px-5 pb-4 flex justify-end">
+              <button
+                onClick={closeMemberModal}
+                className={`${getTypographyClassName("button-sm")} px-4 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Profile Header */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">My Profile</h1>
-          <p className="opacity-70">Manage your account and view your sprints</p>
+          <h1 className={`${pageTitleClass} text-text-primary`}>My Profile</h1>
+          <p className={`${pageSubtitleClass} text-text-secondary`}>
+            Manage your account and view your sprints
+          </p>
         </div>
         <button
           onClick={handleLogout}
@@ -531,16 +685,16 @@ export default function ProfileClient() {
 
       {/* Profile Information Card */}
       <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 p-6 space-y-4">
-        <h2 className="text-xl font-semibold mb-4">Profile Information</h2>
+        <h2 className={`${sectionTitleClass} text-text-primary mb-2`}>Profile Information</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1 opacity-70">Email</label>
-            <div>{data.profile.email}</div>
+            <label className={`block mb-1 ${labelClass}`}>Email</label>
+            <div className={bodyClass}>{data.profile.email}</div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 opacity-70">Name</label>
+            <label className={`block mb-1 ${labelClass}`}>Name</label>
             {editingName ? (
               <div className="flex gap-2">
                 <input
@@ -553,7 +707,7 @@ export default function ProfileClient() {
                 <button
                   onClick={handleSaveName}
                   disabled={saving}
-                  className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-md hover:opacity-90 disabled:opacity-50 transition"
+                  className={`${getTypographyClassName("button-md")} px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-md hover:opacity-90 disabled:opacity-50 transition`}
                 >
                   {saving ? "Saving..." : "Save"}
                 </button>
@@ -570,12 +724,12 @@ export default function ProfileClient() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <span>
+                <span className={bodyClass}>
                   {data.profile.name || <span className="opacity-50 italic">Not set</span>}
                 </span>
                 <button
                   onClick={() => setEditingName(true)}
-                  className="text-sm hover:underline opacity-80"
+                  className={`${bodySmClass} hover:underline opacity-80`}
                 >
                   Edit
                 </button>
@@ -584,14 +738,14 @@ export default function ProfileClient() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 opacity-70">Account Type</label>
-            <div>
+            <label className={`block mb-1 ${labelClass}`}>Account Type</label>
+            <div className={bodyClass}>
               {data.profile.isAdmin ? (
-                <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-600/10 dark:bg-green-400/10 text-green-700 dark:text-green-300">
+                <span className={`px-2 py-1 inline-flex ${bodySmClass} leading-5 font-semibold rounded-full bg-green-600/10 dark:bg-green-400/10 text-green-700 dark:text-green-300`}>
                   Admin
                 </span>
               ) : (
-                <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-black/10 dark:bg-white/10">
+                <span className={`px-2 py-1 inline-flex ${bodySmClass} leading-5 font-semibold rounded-full bg-black/10 dark:bg-white/10`}>
                   User
                 </span>
               )}
@@ -599,129 +753,104 @@ export default function ProfileClient() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 opacity-70">Member Since</label>
-            <div>
+            <label className={`block mb-1 ${labelClass}`}>Member Since</label>
+            <div className={bodyClass}>
               {new Date(data.profile.createdAt).toLocaleDateString()}
             </div>
           </div>
         </div>
 
-        <div className="pt-4 border-t border-black/10 dark:border-white/15 mt-4">
-          <button
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className={logoutButtonClasses}
-          >
-            {isLoggingOut ? "Logging out..." : "Log out"}
-          </button>
-        </div>
       </div>
 
-      {/* Onboarding Checklist */}
+      {/* Projects */}
       <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
-        <div className="px-6 py-4 border-b border-black/10 dark:border-white/15">
-          <h2 className="text-xl font-semibold">Foundation Onboarding</h2>
-          <p className="text-sm opacity-70 mt-1">
-            Every account starts with a Foundation Sprint. Knock out this checklist so we can schedule your kickoff.
-          </p>
+        <div className="px-6 py-4 border-b border-black/10 dark:border-white/15 space-y-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <h2 className={`${sectionTitleClass} text-text-primary`}>Projects</h2>
+              <p className={helperTextClass}>
+                Track the initiatives you’re running sprints for.
+              </p>
+            </div>
+            {/* Package selector removed per request */}
+          </div>
+          {packagesError && (
+            <div className={`${bodySmClass} text-red-700 dark:text-red-300 bg-red-600/10 dark:bg-red-900/30 border border-red-600/20 dark:border-red-900/30 rounded-md px-3 py-2`}>
+              {packagesError}
+            </div>
+          )}
+          {deleteProjectError && (
+            <div className={`${bodySmClass} text-red-700 dark:text-red-300 bg-red-600/10 dark:bg-red-900/30 border border-red-600/20 dark:border-red-900/30 rounded-md px-3 py-2`}>
+              {deleteProjectError}
+            </div>
+          )}
         </div>
-        <div className="divide-y divide-black/10 dark:divide-white/15">
-          {ONBOARDING_TASK_SEQUENCE.map((taskKey) => {
-            const config = ONBOARDING_TASK_CONTENT[taskKey];
-            const task = onboardingTaskMap[taskKey];
-            const status = task?.status ?? "pending";
-            const isBusy =
-              updatingTaskKey === taskKey ||
-              (taskKey === "kickoff_request" && kickoffSubmitting);
-
-            return (
-              <div
-                key={taskKey}
-                className="px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">{config.title}</p>
-                    {config.optional && (
-                      <span className="text-xs uppercase tracking-wide px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10">
-                        Optional
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm opacity-70 mt-1">{config.description}</p>
-                  {config.helperText && (
-                    <p className="text-xs opacity-60 mt-1">{config.helperText}</p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2 min-w-[240px]">
-                  {getOnboardingStatusBadge(status)}
-                  {renderOnboardingActions(taskKey, task, isBusy)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 p-6">
-          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{data.stats.totalDocuments}</div>
-          <div className="opacity-70 mt-1">Intake Forms</div>
-        </div>
-        <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 p-6">
-          <div className="text-3xl font-bold text-green-600 dark:text-green-400">{data.stats.totalSprints}</div>
-          <div className="opacity-70 mt-1">Sprint Drafts</div>
-        </div>
-      </div>
-
-      {/* Personal uploads */}
-      <UserUploadsClient />
-
-      {/* My Intake Forms */}
-      <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
-        <div className="px-6 py-4 border-b border-black/10 dark:border-white/15">
-          <h2 className="text-xl font-semibold">My Intake Forms</h2>
-        </div>
-        {data.documents.length === 0 ? (
-          <div className="p-6 text-center opacity-70">
-            No intake forms yet. Submit a form to get started.
+        {data.projects.length === 0 ? (
+          <div className="p-6 text-center">
+            <p className={`${helperTextClass}`}>
+              No projects yet. Add your first project to keep related sprints together.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
-                    Filename
+                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                    Project
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
-                    Submitted
+                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                    Created
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
+                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                    Access
+                  </th>
+                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                    Sprints
+                  </th>
+                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-black divide-y divide-black/10 dark:divide-white/15">
-                {data.documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
+                {data.projects.map((project) => (
+                  <tr key={project.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium">
-                        {doc.filename || <span className="opacity-50 italic">Untitled</span>}
-                      </div>
-                      <div className="text-xs opacity-60 font-mono">{doc.id.slice(0, 8)}...</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm opacity-70">
-                      {new Date(doc.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <Link
-                        href={`/documents/${doc.id}`}
-                        className="hover:underline"
-                      >
-                        View Details
+                      <Link href={`/projects/${project.id}`} className="flex flex-col">
+                        <div className={`${bodyClass} font-medium hover:underline`}>{project.name}</div>
+                        <div className={monoMetaClass}>{project.id.slice(0, 8)}...</div>
                       </Link>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={helperTextClass}>
+                        {new Date(project.createdAt).toLocaleDateString()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={helperTextClass}>
+                        {project.isOwner ? "Owner" : "Shared"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={helperTextClass}>
+                        {projectSprintCounts[project.id] ?? 0}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => openMemberModal(project)}
+                        className={`${getTypographyClassName("button-sm")} w-full mb-2 px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                      >
+                        Manage access
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProject(project.id)}
+                        disabled={deletingProjectId === project.id || !project.isOwner}
+                        className={`${getTypographyClassName("button-sm")} w-full px-3 py-2 rounded-md border border-red-200 text-red-700 dark:border-red-800 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50 disabled:cursor-not-allowed transition`}
+                      >
+                        {deletingProjectId === project.id ? "Deleting..." : "Delete project"}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -731,36 +860,39 @@ export default function ProfileClient() {
         )}
       </div>
 
-      {/* My Sprint Drafts */}
+      {/* Sprints */}
       <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
         <div className="px-6 py-4 border-b border-black/10 dark:border-white/15">
-          <h2 className="text-xl font-semibold">My Sprint Drafts</h2>
+          <h2 className={`${sectionTitleClass} text-text-primary`}>Sprints</h2>
         </div>
         {data.sprints.length === 0 ? (
-          <div className="p-6 text-center opacity-70">
-            No sprint drafts yet. Create a sprint from your intake forms.
+          <div className="p-6 text-center">
+            <p className={helperTextClass}>No sprint drafts yet. Create a sprint from your intake forms.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
+                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
                     Title
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
+                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
+                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                    Project
+                  </th>
+                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
                     Deliverables
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
+                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
                     Price
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
+                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
                     Created
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
+                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
                     Actions
                   </th>
                 </tr>
@@ -769,31 +901,40 @@ export default function ProfileClient() {
                 {data.sprints.map((sprint) => (
                   <tr key={sprint.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium">
+                      <div className={`${bodyClass} font-medium`}>
                         {sprint.title || <span className="opacity-50 italic">Untitled Sprint</span>}
                       </div>
-                      <div className="text-xs opacity-60">
+                      <div className={helperTextClass}>
                         From: {sprint.document_filename || "Form submission"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(sprint.status)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm opacity-70">
-                      {sprint.deliverable_count}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={helperTextClass}>
+                        {sprint.project_id ? projectNameLookup[sprint.project_id] || sprint.project_id : "—"}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {sprint.total_fixed_price
-                        ? `$${sprint.total_fixed_price.toLocaleString()}`
-                        : "—"}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={helperTextClass}>{sprint.deliverable_count}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm opacity-70">
-                      {new Date(sprint.created_at).toLocaleDateString()}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={bodySmClass}>
+                        {sprint.total_fixed_price
+                          ? `$${sprint.total_fixed_price.toLocaleString()}`
+                          : "—"}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={helperTextClass}>
+                        {new Date(sprint.created_at).toLocaleDateString()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <Link
                         href={`/sprints/${sprint.id}`}
-                        className="hover:underline"
+                        className={`${bodySmClass} font-medium hover:underline`}
                       >
                         View Sprint
                       </Link>
@@ -805,6 +946,8 @@ export default function ProfileClient() {
           </div>
         )}
       </div>
+
+
     </div>
   );
 }

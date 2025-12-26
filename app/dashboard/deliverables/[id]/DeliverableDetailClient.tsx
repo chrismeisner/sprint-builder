@@ -3,13 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Typography from "@/components/ui/Typography";
+import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 
 type Row = {
   id: string;
   name: string;
   description: string | null;
   category: string | null;
-  default_estimate_points: number | null;
+  points: number | null;
+  format: string | null;
   active: boolean;
   created_at: string | Date;
   updated_at: string | Date;
@@ -24,14 +27,17 @@ export default function DeliverableDetailClient({ row }: Props) {
   const [name, setName] = useState(row.name);
   const [category, setCategory] = useState(row.category ?? "");
   const [description, setDescription] = useState(row.description ?? "");
-  const [estimate, setEstimate] = useState(
-    row.default_estimate_points != null ? String(row.default_estimate_points) : ""
-  );
+  const [format, setFormat] = useState(row.format ?? "");
+  const [points, setPoints] = useState(row.points != null ? String(row.points) : "");
   const [active, setActive] = useState(row.active);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const labelClass = `${getTypographyClassName("body-sm")} font-semibold text-text-secondary`;
+  const bodySm = getTypographyClassName("body-sm");
+  const buttonTextClass = bodySm;
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -43,8 +49,9 @@ export default function DeliverableDetailClient({ row }: Props) {
         name,
         category,
         description,
+        format,
         active,
-        defaultEstimatePoints: estimate || null,
+        points: points || null,
       };
       const res = await fetch(`/api/deliverables/${row.id}`, {
         method: "PATCH",
@@ -84,26 +91,28 @@ export default function DeliverableDetailClient({ row }: Props) {
   }
 
   return (
-    <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6 font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen container py-8 space-y-6 font-[family-name:var(--font-geist-sans)]">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl sm:text-3xl font-bold">Deliverable detail</h1>
+        <Typography as="h1" scale="h2">
+          Deliverable detail
+        </Typography>
         <div className="flex items-center gap-2">
           <Link
             href="/dashboard/deliverables"
-            className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition text-sm"
+            className={`${buttonTextClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition`}
           >
             Back to deliverables
           </Link>
           <Link
             href="/dashboard"
-            className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition text-sm"
+            className={`${buttonTextClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition`}
           >
             Dashboard
           </Link>
         </div>
       </div>
 
-      <div className="rounded-lg border border-black/10 dark:border-white/15 p-4 text-sm space-y-1">
+      <div className={`${bodySm} rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-1`}>
         <div>
           <span className="font-mono opacity-70">id:</span> {row.id}
         </div>
@@ -118,20 +127,22 @@ export default function DeliverableDetailClient({ row }: Props) {
       </div>
 
       <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-4">
-        <h2 className="text-lg font-semibold">Edit deliverable</h2>
+        <Typography as="h2" scale="h3">
+          Edit deliverable
+        </Typography>
         {error && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <div className={`${bodySm} rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700`}>
             {error}
           </div>
         )}
         {success && (
-          <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
+          <div className={`${bodySm} rounded-md border border-green-200 bg-green-50 px-3 py-2 text-green-700`}>
             {success}
           </div>
         )}
         <form className="grid gap-3 sm:grid-cols-2" onSubmit={handleSave}>
           <div className="sm:col-span-1">
-            <label className="block text-xs font-medium mb-1" htmlFor="name">
+            <label className={`${labelClass} mb-1 block`} htmlFor="name">
               Name
             </label>
             <input
@@ -139,44 +150,62 @@ export default function DeliverableDetailClient({ row }: Props) {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
+              className={`${bodySm} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
             />
           </div>
           <div className="sm:col-span-1">
-            <label className="block text-xs font-medium mb-1" htmlFor="category">
+            <label className={`${labelClass} mb-1 block`} htmlFor="category">
               Category
             </label>
-            <input
+            <select
               id="category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
-            />
+              className={`${bodySm} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+            >
+              <option value="">Select category</option>
+              <option value="Branding">Branding</option>
+              <option value="Product">Product</option>
+              <option value="Workshop">Workshop</option>
+              <option value="Strategy">Strategy</option>
+            </select>
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-xs font-medium mb-1" htmlFor="description">
+            <label className={`${labelClass} mb-1 block`} htmlFor="description">
               Description
             </label>
             <textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm min-h-[80px] bg-white text-black"
+              className={`${bodySm} w-full rounded-md border border-black/15 px-2 py-1.5 min-h-[80px] bg-white text-black`}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={`${labelClass} mb-1 block`} htmlFor="format">
+              Format (what we deliver)
+            </label>
+            <input
+              id="format"
+              value={format}
+              onChange={(e) => setFormat(e.target.value)}
+              className={`${bodySm} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+              placeholder="e.g. Flow diagram (Figma) + annotations"
             />
           </div>
           <div className="sm:col-span-1">
-            <label className="block text-xs font-medium mb-1" htmlFor="estimate">
-              Default estimate (points)
+            <label className={`${labelClass} mb-1 block`} htmlFor="points">
+              Complexity (points)
             </label>
             <input
-              id="estimate"
-              value={estimate}
-              onChange={(e) => setEstimate(e.target.value)}
-              className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
+              id="points"
+              value={points}
+              onChange={(e) => setPoints(e.target.value)}
+              className={`${bodySm} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
             />
           </div>
           <div className="sm:col-span-1 flex items-center gap-2">
-            <label className="text-xs font-medium" htmlFor="active">
+            <label className={labelClass} htmlFor="active">
               Active
             </label>
             <input
@@ -191,7 +220,7 @@ export default function DeliverableDetailClient({ row }: Props) {
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
+              className={`${buttonTextClass} inline-flex items-center rounded-md bg-black text-white px-4 py-2 disabled:opacity-60`}
             >
               {saving ? "Saving…" : "Save changes"}
             </button>
@@ -199,7 +228,7 @@ export default function DeliverableDetailClient({ row }: Props) {
               type="button"
               onClick={handleDelete}
               disabled={deleting}
-              className="inline-flex items-center rounded-md border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-60"
+              className={`${buttonTextClass} inline-flex items-center rounded-md border border-red-300 px-4 py-2 text-red-700 hover:bg-red-50 disabled:opacity-60`}
             >
               {deleting ? "Deleting…" : "Delete"}
             </button>

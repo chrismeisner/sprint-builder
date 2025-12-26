@@ -9,9 +9,7 @@ type Deliverable = {
   description: string | null;
   category: string | null;
   scope: string | null;
-  fixed_hours: number | null;
-  fixed_price: number | null;
-  default_estimate_points: number | null;
+  points: number | null;
 };
 
 export default async function NewSprintPackagePage() {
@@ -20,7 +18,7 @@ export default async function NewSprintPackagePage() {
 
   // Fetch all active deliverables for selection
   const result = await pool.query(`
-    SELECT id, name, description, category, scope, fixed_hours, fixed_price, default_estimate_points
+    SELECT id, name, description, category, scope, points
     FROM deliverables
     WHERE active = true
     ORDER BY name ASC

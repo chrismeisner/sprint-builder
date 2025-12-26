@@ -1,13 +1,11 @@
+import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { typography } from "./typography";
 
 type SectionHeaderProps = {
-  label: string;
-  heading?: string;
+  heading: string;
   description: string;
-  align?: "center" | "left";
   maxWidth?: "sm" | "md" | "lg";
   className?: string;
-  labelClassName?: string;
   headingClassName?: string;
   descriptionClassName?: string;
 };
@@ -19,34 +17,30 @@ const widthMap: Record<NonNullable<SectionHeaderProps["maxWidth"]>, string> = {
 };
 
 export default function SectionHeader({
-  label,
   heading,
   description,
-  align = "center",
   maxWidth = "md",
   className,
-  labelClassName,
   headingClassName,
   descriptionClassName,
 }: SectionHeaderProps) {
   const resolvedWidthKey = maxWidth ?? "md";
-  const alignmentClass = align === "center" ? "text-center" : "text-left";
-  const containerAlignment = align === "center" ? "mx-auto" : "";
-  const labelClasses = mergeClasses(typography.eyebrow, labelClassName);
+  const alignmentClass = "text-center";
+  const containerAlignment = "mx-auto";
   const headingClasses = mergeClasses(typography.headingSection, "text-balance", headingClassName);
-  const descriptionClasses = mergeClasses(typography.supportingLarge, "text-balance", descriptionClassName);
+  const descriptionClasses = mergeClasses(
+    getTypographyClassName("subtitle-md"),
+    "text-text-secondary",
+    "text-balance",
+    descriptionClassName,
+  );
 
   return (
     <div className={`w-full ${alignmentClass}`}>
       <div className={`${widthMap[resolvedWidthKey]} ${containerAlignment} space-y-4 ${className ?? ""}`}>
-        <p className={labelClasses} data-typography-id="label">
-          {label}
-        </p>
-        {heading && (
-          <h2 className={headingClasses} data-typography-id="h1">
-            {heading}
-          </h2>
-        )}
+        <h2 className={headingClasses} data-typography-id="h2">
+          {heading}
+        </h2>
         <p className={descriptionClasses} data-typography-id="subtitle-lg">
           {description}
         </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 
 type ConnectionStatus = {
   configPresent: boolean;
@@ -42,25 +43,91 @@ const ADMIN_UPLOAD_PREFIX = "admin-uploads/";
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 const MAX_FILE_SIZE_LABEL = "50MB";
 
+type UploadTaskStatus = "pending" | "uploading" | "success" | "error";
+
+type UploadTask = {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  contentType: string;
+  status: UploadTaskStatus;
+  message?: string;
+  url?: string;
+  error?: string;
+};
+
 export default function StorageTestClient() {
   const [status, setStatus] = useState<ConnectionStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [uploadResult, setUploadResult] = useState<{
-    success: boolean;
-    message?: string;
-    url?: string;
-    error?: string;
-    fileName?: string;
-    fileSize?: number;
-    contentType?: string;
-  } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadQueue, setUploadQueue] = useState<UploadTask[]>([]);
   const [userFiles, setUserFiles] = useState<AdminStorageFile[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<AdminStorageFile | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [copiedPath, setCopiedPath] = useState<string | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+
+  const generateUploadId = () =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+
+  const updateUploadTask = (id: string, patch: Partial<UploadTask>) => {
+    setUploadQueue((prev) => prev.map((task) => (task.id === id ? { ...task, ...patch } : task)));
+  };
+
+  const uploadStatusLabel = (status: UploadTaskStatus) => {
+    switch (status) {
+      case "pending":
+        return "Pending";
+      case "uploading":
+        return "Uploading";
+      case "success":
+        return "Uploaded";
+      case "error":
+        return "Failed";
+      default:
+        return status;
+    }
+  };
+
+  const uploadStatusClasses = (status: UploadTaskStatus) => {
+    switch (status) {
+      case "pending":
+        return "bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-200";
+      case "uploading":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200";
+      case "success":
+        return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200";
+      case "error":
+        return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200";
+      default:
+        return "bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-200";
+    }
+  };
+
+  const handleCopyPath = async (path: string) => {
+    try {
+      await navigator.clipboard.writeText(path);
+      setCopiedPath(path);
+      setTimeout(() => setCopiedPath((prev) => (prev === path ? null : prev)), 1500);
+    } catch (error) {
+      alert(`Failed to copy: ${error}`);
+    }
+  };
+
+  const handleCopyUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedUrl(url);
+      setTimeout(() => setCopiedUrl((prev) => (prev === url ? null : prev)), 1500);
+    } catch (error) {
+      alert(`Failed to copy: ${error}`);
+    }
+  };
 
   const enhanceFileRecord = (file: FileMetadata): AdminStorageFile => {
     const metadata = file.metadata ?? {};
@@ -215,18 +282,7 @@ export default function StorageTestClient() {
     setFileToDelete(null);
   };
 
-  const handleTestUpload = async (file: File) => {
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setUploadResult({
-        success: false,
-        error: `File is too large. Please upload files up to ${MAX_FILE_SIZE_LABEL}.`,
-      });
-      return;
-    }
-
-    setUploading(true);
-    setUploadResult(null);
-    try {
+  const uploadSingleFile = async (file: File) => {
       const formData = new FormData();
       formData.append("file", file);
 
@@ -236,19 +292,76 @@ export default function StorageTestClient() {
       });
 
       const data = await res.json();
-      setUploadResult(data);
+    return { data, ok: res.ok };
+  };
+
+  const handleFilesSelected = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+
+    const files = Array.from(fileList);
+    const newTasks: UploadTask[] = files.map((file) => ({
+      id: generateUploadId(),
+      fileName: file.name,
+      fileSize: file.size,
+      contentType: file.type || "application/octet-stream",
+      status: "pending",
+    }));
       
-      // Refresh the file list after successful upload
-      if (data.success) {
-        fetchFiles();
+    // Add new tasks to the top of the queue
+    setUploadQueue((prev) => [...newTasks, ...prev]);
+    setUploading(true);
+
+    let anySuccess = false;
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const task = newTasks[i];
+
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          updateUploadTask(task.id, {
+            status: "error",
+            error: `File is too large. Please upload files up to ${MAX_FILE_SIZE_LABEL}.`,
+          });
+          continue;
+        }
+
+        updateUploadTask(task.id, {
+          status: "uploading",
+          error: undefined,
+          message: undefined,
+        });
+
+        try {
+          const { data } = await uploadSingleFile(file);
+
+          if (data?.success) {
+            anySuccess = true;
+            updateUploadTask(task.id, {
+              status: "success",
+              message: data.message || "Uploaded",
+              url: data.url,
+              fileSize: file.size,
+              contentType: data.contentType || file.type || "application/octet-stream",
+            });
+          } else {
+            updateUploadTask(task.id, {
+              status: "error",
+              error: data?.error || "Upload failed",
+            });
       }
     } catch (error) {
-      setUploadResult({
-        success: false,
+          updateUploadTask(task.id, {
+            status: "error",
         error: `Upload failed: ${error}`,
       });
+        }
+      }
     } finally {
       setUploading(false);
+      if (anySuccess) {
+        fetchFiles();
+      }
     }
   };
 
@@ -269,7 +382,11 @@ export default function StorageTestClient() {
   const StatusIndicator = ({ checked, label }: { checked: boolean; label: string }) => (
     <div className="flex items-center gap-2">
       <div className={`w-4 h-4 rounded-full ${checked ? "bg-green-500" : "bg-red-500"}`} />
-      <span className={checked ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"}>
+      <span
+        className={`${getTypographyClassName("body-sm")} ${
+          checked ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
+        }`}
+      >
         {label}
       </span>
     </div>
@@ -299,15 +416,15 @@ export default function StorageTestClient() {
   ) => (
     <>
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className={`w-full ${getTypographyClassName("body-sm")}`}>
           <thead>
             <tr className="border-b border-black/10 dark:border-white/15">
-              <th className="text-left py-3 px-2 font-semibold">File</th>
-              <th className="text-left py-3 px-2 font-semibold">Owner</th>
-              <th className="text-left py-3 px-2 font-semibold">Size</th>
-              <th className="text-left py-3 px-2 font-semibold">Type</th>
-              <th className="text-left py-3 px-2 font-semibold">Uploaded</th>
-              <th className="text-left py-3 px-2 font-semibold">Actions</th>
+              <th className={`${getTypographyClassName("body-sm")} text-left py-3 px-2 font-semibold md:w-56`}>File</th>
+              <th className={`${getTypographyClassName("body-sm")} text-left py-3 px-2 font-semibold`}>Owner</th>
+              <th className={`${getTypographyClassName("body-sm")} text-left py-3 px-2 font-semibold`}>Size</th>
+              <th className={`${getTypographyClassName("body-sm")} text-left py-3 px-2 font-semibold`}>Type</th>
+              <th className={`${getTypographyClassName("body-sm")} text-left py-3 px-2 font-semibold`}>Uploaded</th>
+              <th className={`${getTypographyClassName("body-sm")} text-left py-3 px-2 font-semibold`}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -320,7 +437,7 @@ export default function StorageTestClient() {
               >
                 <td className="py-3 px-2">
                   <div className="flex items-center gap-3">
-                    {isImageContentType(file.contentType) && (
+                    {isImageContentType(file.contentType, file.name) && (
                       <img
                         src={file.signedUrl || file.url}
                         alt={file.displayName}
@@ -328,48 +445,52 @@ export default function StorageTestClient() {
                       />
                     )}
                     <div className="min-w-0">
-                      <p className="font-medium truncate">{file.displayName}</p>
-                      <p className="font-mono text-[11px] opacity-60 break-all">{file.name}</p>
+                      <p className={`${getTypographyClassName("body-md")} font-medium truncate`}>{file.displayName}</p>
+                      <p className={`${getTypographyClassName("mono-sm")} opacity-60 break-all`}>{file.name}</p>
                     </div>
                   </div>
                 </td>
                 <td className="py-3 px-2">
-                  <div className="text-xs space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium break-all">{ownerLabel(file)}</p>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${uploadTypeBadgeClasses(file)}`}
-                      >
-                        {file.sourceLabel}
-                      </span>
-                    </div>
-                    {file.uploaderEmail && (file.uploaderId || file.parsedAccountId) && (
-                      <p className="opacity-60 break-all">Account: {file.uploaderId || file.parsedAccountId}</p>
-                    )}
-                  </div>
+                  <p className={`${getTypographyClassName("body-sm")} font-medium break-all`}>
+                    {ownerLabel(file) || file.sourceLabel || "Unknown uploader"}
+                  </p>
                 </td>
-                <td className="py-3 px-2 whitespace-nowrap">{formatFileSize(file.size)}</td>
+                <td className="py-3 px-2 whitespace-nowrap">
+                  <span className={getTypographyClassName("body-sm")}>{formatFileSize(file.size)}</span>
+                </td>
                 <td className="py-3 px-2">
-                  <code className="text-xs bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded">
+                  <code className={`${getTypographyClassName("mono-sm")} bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded`}>
                     {file.contentType}
                   </code>
                 </td>
-                <td className="py-3 px-2 text-xs whitespace-nowrap opacity-70">
-                  {formatDate(file.created || file.updated)}
+                <td className="py-3 px-2 whitespace-nowrap opacity-70">
+                  <span className={getTypographyClassName("body-sm")}>{formatDate(file.created || file.updated)}</span>
                 </td>
                 <td className="py-3 px-2">
                   <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => handleCopyPath(file.name)}
+                      className={`${getTypographyClassName("body-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 inline-block`}
+                    >
+                      {copiedPath === file.name ? "Copied!" : "Copy path"}
+                    </button>
+                    <button
+                      onClick={() => handleCopyUrl(file.signedUrl || file.url)}
+                      className={`${getTypographyClassName("body-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 inline-block`}
+                    >
+                      {copiedUrl === (file.signedUrl || file.url) ? "Copied!" : "Copy URL"}
+                    </button>
                     <a
                       href={file.signedUrl || file.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 inline-block"
+                      className={`${getTypographyClassName("body-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 inline-block`}
                     >
                       Download
                     </a>
                     <button
                       onClick={() => handleDeleteClick(file)}
-                      className="text-xs px-2 py-1 rounded-md border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 inline-block"
+                      className={`${getTypographyClassName("body-sm")} px-2 py-1 rounded-md border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 inline-block`}
                     >
                       Delete
                     </button>
@@ -381,7 +502,7 @@ export default function StorageTestClient() {
         </table>
       </div>
       {showDownloadNote && (
-        <p className="text-xs opacity-60 mt-4">
+        <p className={`${getTypographyClassName("body-sm")} opacity-60 mt-4`}>
           Download links expire after ~15 minutes. Refresh the table to generate new signed URLs.
         </p>
       )}
@@ -423,34 +544,220 @@ export default function StorageTestClient() {
     return haystack.includes(normalizedSearch);
   });
 
-  const isImageContentType = (type?: string | null) =>
-    Boolean(type && type.startsWith("image/"));
+  const isImageContentType = (type?: string | null, name?: string) => {
+    if (type && type.startsWith("image/")) return true;
+    if (!name) return false;
+    const lower = name.toLowerCase();
+    const imageExts = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".svg", ".bmp", ".tif", ".tiff", ".heic", ".heif"];
+    return imageExts.some((ext) => lower.endsWith(ext));
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold mb-2">Upload System Admin View</h1>
-        <p className="text-sm opacity-70">
+      <div className="space-y-2">
+        <h1 className={getTypographyClassName("h2")}>Upload System Admin View</h1>
+        <p className={`${getTypographyClassName("body-md")} opacity-80`}>
           Monitor end-user uploads, audit storage usage, and run health checks on the Google Cloud
           Storage integration that powers the client dashboard.
         </p>
       </div>
 
+      {/* Upload Test */}
+      {status?.success && (
+        <div className="rounded-lg border border-black/10 dark:border-white/15 p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-2">
+              <h2 className={getTypographyClassName("h3")}>Admin uploads</h2>
+              <p className={`${getTypographyClassName("body-md")} opacity-80`}>
+                Select one or more files to upload directly to storage for troubleshooting or admin-side delivery.
+              </p>
+              <p className={`${getTypographyClassName("body-sm")} opacity-70`}>
+                Files are stored under <code className="bg-black/10 dark:bg-white/10 px-1 rounded">{ADMIN_UPLOAD_PREFIX}</code> with timestamped names, so you can reuse them as site content later.
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-4 mt-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <label className={`inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-2 font-medium hover:opacity-90 cursor-pointer ${getTypographyClassName("body-sm")}`}>
+            {uploading ? "Uploading..." : "Choose files to upload"}
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,.svg,.webp,.avif,.heic,.heif,.bmp,.tif,.tiff,.png,.jpg,.jpeg,.gif,.pdf,.zip,.txt"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={(e) => {
+                    handleFilesSelected(e.target.files);
+                    if (e.target) e.target.value = "";
+                  }}
+                />
+              </label>
+              <p className={`${getTypographyClassName("body-sm")} opacity-70`}>
+                Up to {MAX_FILE_SIZE_LABEL} per file. All image types (PNG, JPG, GIF, WEBP, AVIF, HEIC/HEIF, SVG, BMP, TIFF) plus PDF, ZIP, TXT.
+              </p>
+            </div>
+
+            {uploadQueue.length > 0 && (
+              <div className="space-y-3">
+                <p className={`${getTypographyClassName("body-sm")} uppercase tracking-wide opacity-60`}>Upload queue</p>
+                <div className="space-y-3">
+                  {uploadQueue.map((task) => (
+                    <div
+                      key={task.id}
+                      className="rounded-md border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-3 space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className={`${getTypographyClassName("body-md")} font-semibold truncate`}>{task.fileName}</p>
+                          <p className={`${getTypographyClassName("body-sm")} opacity-70`}>
+                            {formatFileSize(task.fileSize)} · {task.contentType}
+                          </p>
+                        </div>
+                        <span
+                          className={`px-2 py-1 rounded-full text-[11px] font-semibold ${uploadStatusClasses(task.status)}`}
+                        >
+                          {uploadStatusLabel(task.status)}
+                        </span>
+                      </div>
+                      {task.message && (
+                        <p className={`${getTypographyClassName("body-sm")} text-green-700 dark:text-green-300`}>{task.message}</p>
+                      )}
+                      {task.error && (
+                        <p className={`${getTypographyClassName("body-sm")} text-red-700 dark:text-red-300`}>{task.error}</p>
+                      )}
+                      {task.status === "success" && task.url && (
+                        <div className={`flex flex-wrap items-center gap-3 ${getTypographyClassName("body-sm")}`}>
+                          <a
+                            href={task.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline"
+                          >
+                            Open link
+                          </a>
+                          {isImageContentType(task.contentType, task.fileName) && (
+                            <img
+                              src={task.url}
+                              alt={task.fileName}
+                              className="w-16 h-16 object-cover rounded border border-black/10 dark:border-white/15"
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Storage Insights */}
+      {status?.success && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
+            <p className={`${getTypographyClassName("body-sm")} uppercase tracking-wide opacity-60`}>Total files</p>
+            <p className={`${getTypographyClassName("h3")} mt-2`}>{userFiles.length.toLocaleString()}</p>
+            <p className={`${getTypographyClassName("body-sm")} opacity-70 mt-1`}>All user and admin storage test uploads</p>
+          </div>
+          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
+            <p className={`${getTypographyClassName("body-sm")} uppercase tracking-wide opacity-60`}>Storage used</p>
+            <p className={`${getTypographyClassName("h3")} mt-2`}>{formatFileSize(totalStorageUsed)}</p>
+            <p className={`${getTypographyClassName("body-sm")} opacity-70 mt-1`}>Across {uniqueOwners.size.toLocaleString()} uploaders</p>
+          </div>
+          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
+            <p className={`${getTypographyClassName("body-sm")} uppercase tracking-wide opacity-60`}>Latest upload</p>
+            <p className={`${getTypographyClassName("subtitle-md")} mt-2`}>{latestUploadLabel}</p>
+            <p className={`${getTypographyClassName("body-sm")} opacity-70 mt-1`}>Refresh to pull the newest data</p>
+          </div>
+        </div>
+      )}
+
+      {/* Recent Uploads */}
+      {status?.success && (
+        <div className="rounded-lg border border-black/10 dark:border-white/15 p-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className={getTypographyClassName("h3")}>Recent uploads</h2>
+            <button
+              onClick={fetchFiles}
+              disabled={loadingFiles}
+              className={`${getTypographyClassName("body-sm")} px-3 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50`}
+            >
+              {loadingFiles ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
+          {recentUploads.length === 0 ? (
+            <div className={`${getTypographyClassName("body-sm")} opacity-70`}>No uploads yet.</div>
+          ) : (
+            renderUploadsTable(recentUploads)
+          )}
+        </div>
+      )}
+
+      {/* All User Uploads */}
+      {status?.success && (
+        <div className="rounded-lg border border-black/10 dark:border-white/15 p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <h2 className={getTypographyClassName("h3")}>All uploads</h2>
+              <p className={`${getTypographyClassName("body-md")} opacity-80`}>
+                Includes dashboard uploads under{" "}
+                <code className="bg-black/10 dark:bg-white/10 px-1 rounded">
+                  {USER_UPLOAD_PREFIX}
+                  {"{accountId}"}
+                </code>{" "}
+                and admin uploads under{" "}
+                <code className="bg-black/10 dark:bg-white/10 px-1 rounded">{ADMIN_UPLOAD_PREFIX}</code>.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 md:flex-row md:items-center">
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search name, path, email, or source"
+                className={`${getTypographyClassName("body-sm")} rounded-md border border-black/10 dark:border-white/15 px-3 py-2 bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black/20 dark:focus:ring-white/30`}
+              />
+              <button
+                onClick={fetchFiles}
+                disabled={loadingFiles}
+                className={`${getTypographyClassName("body-sm")} px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50`}
+              >
+                {loadingFiles ? "Refreshing..." : "Refresh"}
+              </button>
+            </div>
+          </div>
+
+          {loadingFiles ? (
+            <div className={`${getTypographyClassName("body-sm")} opacity-70 mt-4`}>Loading files...</div>
+          ) : filteredFiles.length === 0 ? (
+            <div className={`${getTypographyClassName("body-sm")} opacity-70 text-center py-8`}>
+              {normalizedSearch ? "No files match your filters." : "No uploads yet."}
+            </div>
+          ) : (
+            renderUploadsTable(filteredFiles, { showDownloadNote: true })
+          )}
+        </div>
+      )}
+
+      {/* How it works */}
       <div className="rounded-lg border border-black/10 dark:border-white/15 p-6 bg-black/5 dark:bg-white/5">
-        <h2 className="text-lg font-semibold mb-3">How the upload system works</h2>
-        <ul className="list-disc pl-5 space-y-2 text-sm opacity-80">
-          <li>
+        <h2 className={`${getTypographyClassName("h3")} mb-3`}>How the upload system works</h2>
+        <ul className={`list-disc pl-5 space-y-2 ${getTypographyClassName("body-md")} opacity-80`}>
+          <li className={getTypographyClassName("body-md")}>
             Every file a customer uploads from the logged-in dashboard is stored under{" "}
             <code className="bg-black/10 dark:bg-white/10 px-1 rounded">{USER_UPLOAD_PREFIX}
               {"{accountId}"}
             </code>{" "}
             in GCS.
           </li>
-          <li>
+          <li className={getTypographyClassName("body-md")}>
             Objects stay private by default; the dashboard generates short-lived signed URLs for the
             owner (and this admin view signs links on demand).
           </li>
-          <li>
+          <li className={getTypographyClassName("body-md")}>
             This page also exposes health checks and a manual upload tool so the team can validate the
             pipeline end-to-end.
           </li>
@@ -460,18 +767,18 @@ export default function StorageTestClient() {
       {/* Connection Status */}
       <div className="rounded-lg border border-black/10 dark:border-white/15 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Connection Status</h2>
+          <h2 className={getTypographyClassName("h3")}>Connection Status</h2>
           <button
             onClick={checkConnection}
             disabled={loading}
-            className="text-sm px-3 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50"
+            className={`${getTypographyClassName("body-sm")} px-3 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50`}
           >
             {loading ? "Checking..." : "Refresh"}
           </button>
         </div>
 
         {loading && (
-          <div className="text-sm opacity-70">Checking connection...</div>
+          <div className={`${getTypographyClassName("body-sm")} opacity-70`}>Checking connection...</div>
         )}
 
         {!loading && status && (
@@ -497,7 +804,7 @@ export default function StorageTestClient() {
             </div>
 
             {/* Configuration Details */}
-            <div className="pt-4 border-t border-black/10 dark:border-white/15 space-y-1 text-sm">
+            <div className={`pt-4 border-t border-black/10 dark:border-white/15 space-y-1 ${getTypographyClassName("body-sm")}`}>
               <div>
                 <span className="opacity-70">Project ID:</span>{" "}
                 <code className="bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
@@ -514,13 +821,13 @@ export default function StorageTestClient() {
 
             {/* Success/Error Message */}
             {status.success && (
-              <div className="p-3 rounded-md bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-sm">
+              <div className={`p-3 rounded-md bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 ${getTypographyClassName("body-sm")}`}>
                 {status.message}
               </div>
             )}
 
             {status.error && (
-              <div className="p-3 rounded-md bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-sm">
+              <div className={`p-3 rounded-md bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 ${getTypographyClassName("body-sm")}`}>
                 <strong>Error:</strong> {status.error}
               </div>
             )}
@@ -528,226 +835,18 @@ export default function StorageTestClient() {
         )}
       </div>
 
-      {/* Upload Test */}
-      {status?.success && (
-        <div className="rounded-lg border border-black/10 dark:border-white/15 p-6">
-          <h2 className="text-lg font-semibold mb-4">Manual upload (admin)</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-2 text-sm font-medium hover:opacity-90 cursor-pointer">
-                {uploading ? "Uploading..." : "Choose File to Upload"}
-                <input
-                  type="file"
-                  accept="image/*,.pdf,.zip,.txt"
-                  className="hidden"
-                  disabled={uploading}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleTestUpload(file);
-                  }}
-                />
-              </label>
-              <p className="text-xs opacity-60 mt-2">
-                Upload a test image, PDF, ZIP, or TXT (max {MAX_FILE_SIZE_LABEL}) to verify storage without using the client UI.
-              </p>
-            </div>
-
-            {uploadResult && (
-              <div
-                className={`p-3 rounded-md text-sm ${
-                  uploadResult.success
-                    ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
-                    : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
-                }`}
-              >
-                {uploadResult.success ? (
-                  <div className="space-y-2">
-                    <div><strong>{uploadResult.message}</strong></div>
-                    {uploadResult.url && (
-                      <div className="space-y-2">
-                        <div className="break-all">
-                          <strong>URL:</strong>{" "}
-                          <a
-                            href={uploadResult.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline"
-                          >
-                            {uploadResult.url}
-                          </a>
-                        </div>
-                        <div className="text-xs space-y-1 opacity-80">
-                          {uploadResult.fileName && (
-                            <div>
-                              <strong>Name:</strong> {uploadResult.fileName}
-                            </div>
-                          )}
-                          {uploadResult.fileSize !== undefined && (
-                            <div>
-                              <strong>Size:</strong> {formatFileSize(uploadResult.fileSize)}
-                            </div>
-                          )}
-                          {uploadResult.contentType && (
-                            <div>
-                              <strong>Type:</strong> {uploadResult.contentType}
-                            </div>
-                          )}
-                        </div>
-                        {isImageContentType(uploadResult.contentType) && (
-                          <img
-                            src={uploadResult.url}
-                            alt={uploadResult.fileName || "Uploaded test"}
-                            className="max-w-xs rounded border border-black/10 dark:border-white/15"
-                          />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <strong>Upload Failed:</strong> {uploadResult.error}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Storage Insights */}
-      {status?.success && (
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-            <p className="text-xs uppercase tracking-wide opacity-60">Total files</p>
-            <p className="text-2xl font-semibold mt-2">{userFiles.length.toLocaleString()}</p>
-            <p className="text-xs opacity-60 mt-1">All user and admin storage test uploads</p>
-          </div>
-          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-            <p className="text-xs uppercase tracking-wide opacity-60">Storage used</p>
-            <p className="text-2xl font-semibold mt-2">{formatFileSize(totalStorageUsed)}</p>
-            <p className="text-xs opacity-60 mt-1">Across {uniqueOwners.size.toLocaleString()} uploaders</p>
-          </div>
-          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-            <p className="text-xs uppercase tracking-wide opacity-60">Latest upload</p>
-            <p className="text-lg font-semibold mt-2">{latestUploadLabel}</p>
-            <p className="text-xs opacity-60 mt-1">Refresh to pull the newest data</p>
-          </div>
-        </div>
-      )}
-
-      {/* Recent Uploads */}
-      {status?.success && (
-        <div className="rounded-lg border border-black/10 dark:border-white/15 p-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">Recent uploads</h2>
-            <button
-              onClick={fetchFiles}
-              disabled={loadingFiles}
-              className="text-sm px-3 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50"
-            >
-              {loadingFiles ? "Refreshing..." : "Refresh"}
-            </button>
-          </div>
-          {recentUploads.length === 0 ? (
-            <div className="text-sm opacity-70">No uploads yet.</div>
-          ) : (
-            renderUploadsTable(recentUploads)
-          )}
-        </div>
-      )}
-
-      {/* All User Uploads */}
-      {status?.success && (
-        <div className="rounded-lg border border-black/10 dark:border-white/15 p-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">All uploads</h2>
-              <p className="text-sm opacity-70">
-                Includes dashboard uploads under{" "}
-                <code className="bg-black/10 dark:bg-white/10 px-1 rounded">
-                  {USER_UPLOAD_PREFIX}
-                  {"{accountId}"}
-                </code>{" "}
-                and admin storage test files under{" "}
-                <code className="bg-black/10 dark:bg-white/10 px-1 rounded">{ADMIN_UPLOAD_PREFIX}</code>.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 md:flex-row md:items-center">
-              <input
-                type="search"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search name, path, email, or source"
-                className="text-sm rounded-md border border-black/10 dark:border-white/15 px-3 py-2 bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black/20 dark:focus:ring-white/30"
-              />
-              <button
-                onClick={fetchFiles}
-                disabled={loadingFiles}
-                className="text-sm px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50"
-              >
-                {loadingFiles ? "Refreshing..." : "Refresh"}
-              </button>
-            </div>
-          </div>
-
-          {loadingFiles ? (
-            <div className="text-sm opacity-70 mt-4">Loading files...</div>
-          ) : filteredFiles.length === 0 ? (
-            <div className="text-sm opacity-70 text-center py-8">
-              {normalizedSearch ? "No files match your filters." : "No uploads yet."}
-            </div>
-          ) : (
-            renderUploadsTable(filteredFiles, { showDownloadNote: true })
-          )}
-        </div>
-      )}
-
-      {/* Help Section */}
-      <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-6">
-        <h2 className="text-lg font-semibold mb-3">Need Help?</h2>
-        <div className="space-y-3 text-sm">
-          <div>
-            <strong className="block mb-1">Missing environment variables?</strong>
-            <p className="opacity-80">
-              Make sure your <code className="bg-black/10 dark:bg-white/10 px-1 rounded">.env.local</code> file has:
-            </p>
-            <ul className="list-disc pl-5 mt-1 opacity-80 space-y-1">
-              <li><code>GCS_PROJECT_ID</code></li>
-              <li><code>GCS_BUCKET_NAME</code></li>
-              <li><code>GCS_CREDENTIALS_JSON</code> (or <code>GOOGLE_APPLICATION_CREDENTIALS</code>)</li>
-            </ul>
-          </div>
-
-          <div>
-            <strong className="block mb-1">Bucket not accessible?</strong>
-            <p className="opacity-80">
-              Check that your service account has the <strong>Storage Object Admin</strong> role.
-            </p>
-          </div>
-
-          <div>
-            <strong className="block mb-1">Need setup instructions?</strong>
-            <p className="opacity-80">
-              See the full guide in <code className="bg-black/10 dark:bg-white/10 px-1 rounded">README.md</code> or{" "}
-              <code className="bg-black/10 dark:bg-white/10 px-1 rounded">ENV_TEMPLATE.md</code>
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
-            <h3 className="text-lg font-semibold mb-3">Confirm Delete</h3>
-            <p className="text-sm opacity-80 mb-4">
+            <h3 className={`${getTypographyClassName("h3")} mb-3`}>Confirm Delete</h3>
+            <p className={`${getTypographyClassName("body-md")} opacity-80 mb-4`}>
               Are you sure you want to delete this file?
             </p>
             {fileToDelete && (
               <div className="mb-6 p-3 rounded-md bg-black/5 dark:bg-white/5">
                 <div className="flex items-center gap-2">
-                  {isImageContentType(fileToDelete.contentType) && (
+                  {isImageContentType(fileToDelete.contentType, fileToDelete.name) && (
                     <img
                       src={fileToDelete.signedUrl || fileToDelete.url}
                       alt={fileToDelete.displayName}
@@ -755,10 +854,10 @@ export default function StorageTestClient() {
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{fileToDelete.displayName}</p>
-                    <p className="text-xs opacity-60 truncate">{ownerLabel(fileToDelete)}</p>
-                    <p className="text-xs opacity-60 break-all">{fileToDelete.name}</p>
-                    <p className="text-xs opacity-60 mt-1">{formatFileSize(fileToDelete.size)}</p>
+                    <p className={`${getTypographyClassName("body-md")} font-medium truncate`}>{fileToDelete.displayName}</p>
+                    <p className={`${getTypographyClassName("body-sm")} opacity-60 truncate`}>{ownerLabel(fileToDelete)}</p>
+                    <p className={`${getTypographyClassName("mono-sm")} opacity-60 break-all`}>{fileToDelete.name}</p>
+                    <p className={`${getTypographyClassName("body-sm")} opacity-60 mt-1`}>{formatFileSize(fileToDelete.size)}</p>
                   </div>
                 </div>
               </div>
@@ -767,14 +866,14 @@ export default function StorageTestClient() {
               <button
                 onClick={handleDeleteCancel}
                 disabled={deleting}
-                className="px-4 py-2 text-sm rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50"
+                className={`${getTypographyClassName("body-sm")} px-4 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50`}
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteConfirm}
                 disabled={deleting}
-                className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                className={`${getTypographyClassName("body-sm")} px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50`}
               >
                 {deleting ? "Deleting..." : "Delete"}
               </button>

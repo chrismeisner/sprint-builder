@@ -122,7 +122,7 @@ export async function POST() {
           sp.name,
           sp.slug,
           SUM(d.fixed_price * spd.quantity * spd.complexity_score) as total_price,
-          SUM(d.fixed_hours * spd.quantity * spd.complexity_score) as total_hours,
+          SUM(COALESCE(d.default_estimate_points, d.points, 0) * 15 * spd.quantity * spd.complexity_score) as total_hours,
           SUM(d.default_estimate_points) as total_points
          FROM sprint_packages sp
          JOIN sprint_package_deliverables spd ON sp.id = spd.sprint_package_id

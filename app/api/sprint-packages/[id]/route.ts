@@ -22,8 +22,8 @@ export async function GET(request: Request, { params }: Params) {
         sp.name,
         sp.slug,
         sp.description,
-        sp.category,
         sp.tagline,
+        sp.emoji,
         sp.flat_fee,
         sp.flat_hours,
         sp.active,
@@ -38,7 +38,6 @@ export async function GET(request: Request, { params }: Params) {
               'deliverableId', d.id,
               'name', d.name,
               'description', d.description,
-              'category', d.category,
               'scope', d.scope,
               'fixedHours', d.fixed_hours,
               'fixedPrice', d.fixed_price,
@@ -92,8 +91,8 @@ export async function PATCH(request: Request, { params }: Params) {
       name,
       slug,
       description,
-      category,
       tagline,
+      emoji,
       flatFee,
       flatHours,
       active,
@@ -104,8 +103,8 @@ export async function PATCH(request: Request, { params }: Params) {
       name?: unknown;
       slug?: unknown;
       description?: unknown;
-      category?: unknown;
       tagline?: unknown;
+      emoji?: unknown;
       flatFee?: unknown;
       flatHours?: unknown;
       active?: unknown;
@@ -131,13 +130,13 @@ export async function PATCH(request: Request, { params }: Params) {
       updates.push(`description = $${paramIndex++}`);
       values.push(description || null);
     }
-    if (typeof category === "string") {
-      updates.push(`category = $${paramIndex++}`);
-      values.push(category || null);
-    }
     if (typeof tagline === "string") {
       updates.push(`tagline = $${paramIndex++}`);
       values.push(tagline || null);
+    }
+    if (typeof emoji === "string") {
+      updates.push(`emoji = $${paramIndex++}`);
+      values.push(emoji.trim() || null);
     }
     if (flatFee !== undefined) {
       let fee: number | null = null;
@@ -211,7 +210,6 @@ export async function PATCH(request: Request, { params }: Params) {
         if (d && typeof d === "object" && "deliverableId" in d) {
           const delId = (d as { deliverableId?: unknown }).deliverableId;
           const qty = (d as { quantity?: unknown }).quantity;
-          const notes = (d as { notes?: unknown }).notes;
           const delSortOrder = (d as { sortOrder?: unknown }).sortOrder;
 
           if (typeof delId === "string" && delId.trim()) {
@@ -222,9 +220,9 @@ export async function PATCH(request: Request, { params }: Params) {
             await pool.query(
               `
               INSERT INTO sprint_package_deliverables (
-                id, sprint_package_id, deliverable_id, quantity, notes, sort_order
+                id, sprint_package_id, deliverable_id, quantity, sort_order
               )
-              VALUES ($1, $2, $3, $4, $5, $6)
+              VALUES ($1, $2, $3, $4, $5)
               ON CONFLICT (sprint_package_id, deliverable_id) DO NOTHING
             `,
               [
@@ -232,7 +230,6 @@ export async function PATCH(request: Request, { params }: Params) {
                 params.id,
                 delId,
                 quantity,
-                typeof notes === "string" ? notes : null,
                 delOrder,
               ]
             );

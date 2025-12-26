@@ -9,9 +9,7 @@ type Deliverable = {
   description: string | null;
   category: string | null;
   scope: string | null;
-  fixed_hours: number | null;
-  fixed_price: number | null;
-  default_estimate_points: number | null;
+  points: number | null;
 };
 
 type Package = {
@@ -19,8 +17,7 @@ type Package = {
   name: string;
   slug: string;
   tagline: string | null;
-  flat_fee: number | null;
-  flat_hours: number | null;
+  emoji: string | null;
   deliverables: Array<{
     deliverableId: string;
     quantity: number;
@@ -33,7 +30,7 @@ export default async function SprintBuilderPage() {
 
   // Fetch deliverables
   const deliverablesResult = await pool.query(`
-    SELECT id, name, description, category, scope, fixed_hours, fixed_price, default_estimate_points
+    SELECT id, name, description, category, scope, points
     FROM deliverables
     WHERE active = true
     ORDER BY category ASC, name ASC
@@ -46,8 +43,7 @@ export default async function SprintBuilderPage() {
       sp.name,
       sp.slug,
       sp.tagline,
-      sp.flat_fee,
-      sp.flat_hours,
+      sp.emoji,
       COALESCE(
         json_agg(
           json_build_object(
@@ -61,7 +57,7 @@ export default async function SprintBuilderPage() {
     LEFT JOIN sprint_package_deliverables spd ON sp.id = spd.sprint_package_id
     WHERE sp.active = true
     GROUP BY sp.id
-    ORDER BY sp.featured DESC, sp.name ASC
+    ORDER BY sp.sort_order ASC, sp.name ASC
   `);
 
   const deliverables: Deliverable[] = deliverablesResult.rows;

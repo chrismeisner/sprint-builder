@@ -9,13 +9,13 @@ export async function GET(request: Request) {
     const includeInactive = searchParams.get("includeInactive") === "true";
     const rows = await pool.query(
       includeInactive
-        ? `SELECT id, name, description, category, deliverable_type, default_estimate_points, fixed_hours, fixed_price, scope, active, created_at, updated_at
+        ? `SELECT id, name, description, category, points, scope, format, active, created_at, updated_at
            FROM deliverables
-           ORDER BY active DESC, deliverable_type ASC, name ASC`
-        : `SELECT id, name, description, category, deliverable_type, default_estimate_points, fixed_hours, fixed_price, scope, active, created_at, updated_at
+           ORDER BY active DESC, name ASC`
+        : `SELECT id, name, description, category, points, scope, format, active, created_at, updated_at
            FROM deliverables
            WHERE active = true
-           ORDER BY deliverable_type ASC, name ASC`
+           ORDER BY name ASC`
     );
     return NextResponse.json({ deliverables: rows.rows });
   } catch (error: unknown) {
@@ -34,14 +34,13 @@ export async function POST(request: Request) {
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
-    const { name, description, category, defaultEstimatePoints, fixedHours, fixedPrice, scope, active } = body as {
+    const { name, description, category, points, scope, format, active } = body as {
       name?: unknown;
       description?: unknown;
       category?: unknown;
-      defaultEstimatePoints?: unknown;
-      fixedHours?: unknown;
-      fixedPrice?: unknown;
+      points?: unknown;
       scope?: unknown;
+      format?: unknown;
       active?: unknown;
     };
 
@@ -49,47 +48,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    let estimate: number | null = null;
-    if (typeof defaultEstimatePoints === "number") {
-      estimate = defaultEstimatePoints;
-    } else if (typeof defaultEstimatePoints === "string" && defaultEstimatePoints.trim()) {
-      const parsed = Number(defaultEstimatePoints);
-      if (!Number.isNaN(parsed)) estimate = parsed;
+    let pointsValue: number | null = null;
+    if (typeof points === "number") {
+      pointsValue = points;
+    } else if (typeof points === "string" && points.trim()) {
+      const parsed = Number(points);
+      if (!Number.isNaN(parsed)) pointsValue = parsed;
     }
-
-    let hours: number | null = null;
-    if (typeof fixedHours === "number") {
-      hours = fixedHours;
-    } else if (typeof fixedHours === "string" && fixedHours.trim()) {
-      const parsed = Number(fixedHours);
-      if (!Number.isNaN(parsed)) hours = parsed;
+    if (pointsValue == null || Number.isNaN(pointsValue)) {
+      return NextResponse.json({ error: "Points (1.0 - 3.0) are required" }, { status: 400 });
     }
-
-    let price: number | null = null;
-    if (typeof fixedPrice === "number") {
-      price = fixedPrice;
-    } else if (typeof fixedPrice === "string" && fixedPrice.trim()) {
-      const parsed = Number(fixedPrice);
-      if (!Number.isNaN(parsed)) price = parsed;
+    if (pointsValue < 0.1 || pointsValue > 3.0) {
+      return NextResponse.json({ error: "Points must be between 0.1 and 3.0" }, { status: 400 });
     }
+    pointsValue = Math.round(pointsValue * 10) / 10; // enforce single decimal
 
     const id = crypto.randomUUID();
     const activeValue = typeof active === "boolean" ? active : true;
 
     await pool.query(
       `
-        INSERT INTO deliverables (id, name, description, category, default_estimate_points, fixed_hours, fixed_price, scope, active)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO deliverables (id, name, description, category, points, scope, format, active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `,
       [
         id,
         name.trim(),
         typeof description === "string" ? description : null,
         typeof category === "string" ? category : null,
-        estimate,
-        hours,
-        price,
+        pointsValue,
         typeof scope === "string" ? scope : null,
+        typeof format === "string" ? format : null,
         activeValue,
       ]
     );

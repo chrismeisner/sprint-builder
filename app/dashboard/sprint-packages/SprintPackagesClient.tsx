@@ -2,26 +2,24 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { priceFromPoints } from "@/lib/pricing";
 
 type Row = {
   id: string;
   name: string;
   slug: string;
   description: string | null;
-  category: string | null;
   tagline: string | null;
-  flat_fee: number | null;
-  flat_hours: number | null;
+  emoji: string | null;
   active: boolean;
-  featured: boolean;
+  featured?: boolean | null;
   sort_order: number;
   created_at: string | Date;
   updated_at: string | Date;
   deliverables: Array<{
     deliverableId: string;
     name: string;
-    fixedHours: number | null;
-    fixedPrice: number | null;
+    points: number | null;
     quantity: number;
   }>;
 };
@@ -56,29 +54,6 @@ export default function SprintPackagesClient({ rows }: Props) {
     }
   }
 
-  async function toggleFeatured(item: Row) {
-    try {
-      const res = await fetch(`/api/sprint-packages/${item.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ featured: !item.featured }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || "Failed to update package");
-      }
-      setItems((prev) =>
-        prev.map((row) =>
-          row.id === item.id
-            ? { ...row, featured: !row.featured, updated_at: new Date().toISOString() }
-            : row
-        )
-      );
-    } catch (e) {
-      alert((e as Error).message || "Failed to update package");
-    }
-  }
-
   async function deletePackage(item: Row) {
     if (!confirm(`Delete package "${item.name}"? This cannot be undone.`)) return;
     
@@ -96,37 +71,14 @@ export default function SprintPackagesClient({ rows }: Props) {
     }
   }
 
-  function calculatePackageTotal(pkg: Row): { hours: number; price: number } {
-    let totalHours = 0;
-    let totalPrice = 0;
-
+  function calculatePackageTotals(pkg: Row): { totalComplexity: number; totalPrice: number } {
+    let totalComplexity = 0;
     pkg.deliverables.forEach((d) => {
-      const hours = d.fixedHours ?? 0;
-      const price = d.fixedPrice ?? 0;
       const qty = d.quantity ?? 1;
-      totalHours += hours * qty;
-      totalPrice += price * qty;
+      totalComplexity += (d.points ?? 0) * qty;
     });
-
-    return { hours: totalHours, price: totalPrice };
-  }
-
-  function getFinalPrice(pkg: Row): number {
-    // If flat fee is set, use that
-    if (pkg.flat_fee != null) return pkg.flat_fee;
-    
-    // Otherwise calculate from deliverables
-    const { price } = calculatePackageTotal(pkg);
-    return price;
-  }
-
-  function getFinalHours(pkg: Row): number {
-    // If flat hours is set, use that
-    if (pkg.flat_hours != null) return pkg.flat_hours;
-    
-    // Otherwise calculate from deliverables
-    const { hours } = calculatePackageTotal(pkg);
-    return hours;
+    const totalPrice = priceFromPoints(totalComplexity);
+    return { totalComplexity, totalPrice };
   }
 
   return (
@@ -167,9 +119,7 @@ export default function SprintPackagesClient({ rows }: Props) {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {items.map((item) => {
-              const finalPrice = getFinalPrice(item);
-              const finalHours = getFinalHours(item);
-              const { price: calculatedPrice } = calculatePackageTotal(item);
+              const { totalComplexity, totalPrice } = calculatePackageTotals(item);
 
               return (
                 <div
@@ -178,7 +128,10 @@ export default function SprintPackagesClient({ rows }: Props) {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-lg mb-1">{item.name}</h3>
+                      <h3 className="font-semibold text-lg mb-1 flex items-center gap-2">
+                        {item.emoji && <span className="text-xl" aria-hidden>{item.emoji}</span>}
+                        <span>{item.name}</span>
+                      </h3>
                       {item.tagline && (
                         <p className="text-sm opacity-80 mb-2">{item.tagline}</p>
                       )}
@@ -197,11 +150,9 @@ export default function SprintPackagesClient({ rows }: Props) {
                             ⭐ Featured
                           </span>
                         )}
-                        {item.category && (
-                          <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 px-2 py-0.5 text-xs">
-                            {item.category}
-                          </span>
-                        )}
+                        <span className="inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 text-xs px-2 py-0.5 text-black/80 dark:text-white/80">
+                          Sort: {item.sort_order}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -212,19 +163,14 @@ export default function SprintPackagesClient({ rows }: Props) {
 
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded bg-black/5 dark:bg-white/5 p-2">
-                      <div className="text-xs opacity-70 mb-1">Price</div>
+                      <div className="text-xs opacity-70 mb-1">Total Price</div>
                       <div className="font-semibold text-lg">
-                        ${finalPrice.toLocaleString()}
+                        ${totalPrice.toLocaleString()}
                       </div>
-                      {item.flat_fee != null && calculatedPrice !== item.flat_fee && (
-                        <div className="text-xs opacity-60">
-                          (from ${calculatedPrice.toLocaleString()})
-                        </div>
-                      )}
                     </div>
                     <div className="rounded bg-black/5 dark:bg-white/5 p-2">
-                      <div className="text-xs opacity-70 mb-1">Hours</div>
-                      <div className="font-semibold text-lg">{finalHours}h</div>
+                      <div className="text-xs opacity-70 mb-1">Total Complexity</div>
+                      <div className="font-semibold text-lg">{totalComplexity.toFixed(1)}</div>
                     </div>
                   </div>
 
@@ -262,13 +208,6 @@ export default function SprintPackagesClient({ rows }: Props) {
                       className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10"
                     >
                       {item.active ? "Deactivate" : "Activate"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleFeatured(item)}
-                      className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10"
-                    >
-                      {item.featured ? "Unfeature" : "Feature"}
                     </button>
                     <button
                       type="button"

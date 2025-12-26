@@ -2,6 +2,7 @@ import { ensureSchema, getPool } from "@/lib/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { hoursFromPoints } from "@/lib/pricing";
 import DeliverablesEditor from "./DeliverablesEditor";
 import SprintTotals from "./SprintTotals";
 import AdminStatusChanger from "./AdminStatusChanger";
@@ -60,17 +61,21 @@ export default async function SprintDetailPage({ params }: PageProps) {
       spd.deliverable_id,
       spd.complexity_score,
       spd.custom_hours,
-      spd.custom_price,
       spd.custom_estimate_points,
       spd.custom_scope,
-      d.name,
-      d.category,
+      spd.deliverable_name,
+      spd.deliverable_description,
+      spd.deliverable_category,
+      spd.deliverable_scope,
+      spd.base_points,
+      d.name AS base_name,
+      d.category AS base_category,
+      d.scope AS base_scope,
       d.fixed_hours,
       d.fixed_price,
-      d.default_estimate_points,
-      d.deliverable_type
+      d.points
      FROM sprint_deliverables spd
-     JOIN deliverables d ON spd.deliverable_id = d.id
+     LEFT JOIN deliverables d ON spd.deliverable_id = d.id
      WHERE spd.sprint_draft_id = $1
      ORDER BY spd.created_at`,
     [params.id]
@@ -78,17 +83,31 @@ export default async function SprintDetailPage({ params }: PageProps) {
 
   const sprintDeliverables = deliverablesResult.rows.map((row) => ({
     deliverableId: row.deliverable_id as string,
-    name: row.name as string,
-    category: row.category as string | null,
-    deliverableType: row.deliverable_type as string | null,
+    name: (row.deliverable_name as string | null) ?? (row.base_name as string | null) ?? "",
+    category: (row.deliverable_category as string | null) ?? (row.base_category as string | null),
+    deliverableType: null,
     complexityScore: row.complexity_score != null ? Number(row.complexity_score) : 1.0,
     customHours: row.custom_hours != null ? Number(row.custom_hours) : null,
     customPrice: row.custom_price != null ? Number(row.custom_price) : null,
     customPoints: row.custom_estimate_points != null ? Number(row.custom_estimate_points) : null,
-    customScope: row.custom_scope as string | null,
-    baseHours: row.fixed_hours != null ? Number(row.fixed_hours) : null,
+    customScope: (row.custom_scope as string | null) ?? (row.deliverable_scope as string | null) ?? (row.base_scope as string | null),
+    baseHours:
+      row.base_points != null
+        ? hoursFromPoints(Number(row.base_points))
+        : row.points != null
+          ? hoursFromPoints(Number(row.points))
+          : row.fixed_hours != null
+            ? Number(row.fixed_hours)
+            : null,
     basePrice: row.fixed_price != null ? Number(row.fixed_price) : null,
-    basePoints: row.default_estimate_points != null ? Number(row.default_estimate_points) : null,
+    basePoints:
+      row.custom_estimate_points != null
+        ? Number(row.custom_estimate_points)
+        : row.base_points != null
+          ? Number(row.base_points)
+          : row.points != null
+            ? Number(row.points)
+            : null,
   }));
 
   function isObject(value: unknown): value is Record<string, unknown> {

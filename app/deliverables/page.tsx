@@ -11,9 +11,7 @@ type Deliverable = {
   description: string | null;
   scope: string | null;
   category: string | null;
-  defaultEstimatePoints: NumericLike;
-  fixedHours: NumericLike;
-  fixedPrice: NumericLike;
+  points: NumericLike;
 };
 
 type ComplexityMeta = {
@@ -58,10 +56,8 @@ function formatCurrency(valueLike: NumericLike) {
   return `$${value.toLocaleString()}`;
 }
 
-function formatHours(valueLike: NumericLike) {
-  const value = toNumber(valueLike);
-  if (value == null) return "N/A";
-  return `${value.toFixed(1).replace(/\.0$/, "")}h`;
+function formatHours(_valueLike: NumericLike) {
+  return "—";
 }
 
 export default async function DeliverablesPage() {
@@ -76,9 +72,7 @@ export default async function DeliverablesPage() {
         description,
         scope,
         category,
-        default_estimate_points AS "defaultEstimatePoints",
-        fixed_hours AS "fixedHours",
-        fixed_price AS "fixedPrice"
+        points
       FROM deliverables
       WHERE active = true
       ORDER BY category ASC, name ASC
@@ -187,7 +181,7 @@ export default async function DeliverablesPage() {
 
               <div className="grid gap-6 md:grid-cols-2">
                 {items.map((item) => {
-                  const complexity = getComplexityMeta(item.defaultEstimatePoints);
+                  const complexity = getComplexityMeta(item.points);
                   const scopeLines = item.scope
                     ? item.scope
                         .split("\n")
@@ -212,19 +206,15 @@ export default async function DeliverablesPage() {
                         >
                           <span>{complexity.label}</span>
                           <span className="opacity-80">
-                            {item.defaultEstimatePoints ?? "—"} pts
+                            {item.points ?? "—"} pts
                           </span>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-3 text-center text-sm font-medium">
+                      <div className="grid grid-cols-2 gap-3 text-center text-sm font-medium">
                         <div className="rounded-lg bg-black/5 dark:bg-white/5 p-3">
-                          <p className="text-xs uppercase tracking-wide opacity-60">Investment</p>
-                          <p className="text-lg">{formatCurrency(item.fixedPrice)}</p>
-                        </div>
-                        <div className="rounded-lg bg-black/5 dark:bg-white/5 p-3">
-                          <p className="text-xs uppercase tracking-wide opacity-60">Hours</p>
-                          <p className="text-lg">{formatHours(item.fixedHours)}</p>
+                          <p className="text-xs uppercase tracking-wide opacity-60">Complexity</p>
+                          <p className="text-lg">{item.points ?? "—"} pts</p>
                         </div>
                         <div className="rounded-lg bg-black/5 dark:bg-white/5 p-3">
                           <p className="text-xs uppercase tracking-wide opacity-60">Pairing</p>

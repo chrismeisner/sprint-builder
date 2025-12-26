@@ -5,6 +5,8 @@ declare global {
   var _pgPool: Pool | undefined;
   // eslint-disable-next-line no-var
   var _schemaInitialized: boolean | undefined;
+  // eslint-disable-next-line no-var
+  var _basePointsPatched: boolean | undefined;
 }
 
 function createPool(): Pool {
@@ -34,6 +36,21 @@ export function getPool(): Pool {
 }
 
 export async function ensureSchema(): Promise<void> {
+  // Hotfix: ensure sprint_deliverables.base_points supports decimals
+  if (!global._basePointsPatched) {
+    try {
+      const pool = getPool();
+      await pool.query(`
+        ALTER TABLE sprint_deliverables
+        ALTER COLUMN base_points TYPE numeric(10,2) USING base_points::numeric(10,2)
+      `);
+      global._basePointsPatched = true;
+    } catch (err) {
+      // Ignore if table/column doesn't exist yet; later schema creation will set type
+      global._basePointsPatched = true;
+    }
+  }
+
   if (global._schemaInitialized) return;
   const pool = getPool();
   await pool.query(`
@@ -78,12 +95,15 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS status text DEFAULT 'draft',
     ADD COLUMN IF NOT EXISTS title text,
     ADD COLUMN IF NOT EXISTS deliverable_count integer DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS total_estimate_points integer,
-    ADD COLUMN IF NOT EXISTS total_estimated_hours numeric(10,2),
-    ADD COLUMN IF NOT EXISTS total_estimated_budget numeric(10,2),
+    ADD COLUMN IF NOT EXISTS total_estimate_points numeric(10,2) DEFAULT 0,
     ADD COLUMN IF NOT EXISTS total_fixed_hours numeric(10,2),
     ADD COLUMN IF NOT EXISTS total_fixed_price numeric(10,2),
-    ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+    ADD COLUMN IF NOT EXISTS updated_at timestamptz,
+    ADD COLUMN IF NOT EXISTS start_date date,
+    ADD COLUMN IF NOT EXISTS due_date date,
+    ADD COLUMN IF NOT EXISTS project_id text,
+    ADD COLUMN IF NOT EXISTS package_name_snapshot text,
+    ADD COLUMN IF NOT EXISTS package_description_snapshot text;
   `);
   
   // Add indexes for common queries
@@ -111,34 +131,39 @@ export async function ensureSchema(): Promise<void> {
     END $$;
   `);
   
-  // Create junction table for sprint → deliverables relationship
+  // Create minimal junction table for sprint → deliverables relationship
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sprint_deliverables (
       id text PRIMARY KEY,
       sprint_draft_id text NOT NULL REFERENCES sprint_drafts(id) ON DELETE CASCADE,
       deliverable_id text NOT NULL REFERENCES deliverables(id) ON DELETE CASCADE,
       quantity integer NOT NULL DEFAULT 1,
-      custom_estimate_points integer,
-      custom_hours numeric(10,2),
-      custom_price numeric(10,2),
-      notes text,
       created_at timestamptz NOT NULL DEFAULT now(),
       UNIQUE(sprint_draft_id, deliverable_id)
     );
     CREATE INDEX IF NOT EXISTS idx_sprint_deliverables_sprint ON sprint_deliverables(sprint_draft_id);
     CREATE INDEX IF NOT EXISTS idx_sprint_deliverables_deliverable ON sprint_deliverables(deliverable_id);
   `);
-  
-  // Ensure sprint_deliverables has all required columns
   await pool.query(`
     ALTER TABLE sprint_deliverables
-    ADD COLUMN IF NOT EXISTS custom_estimate_points integer,
+    ADD COLUMN IF NOT EXISTS deliverable_name text,
+    ADD COLUMN IF NOT EXISTS deliverable_description text,
+    ADD COLUMN IF NOT EXISTS deliverable_category text,
+    ADD COLUMN IF NOT EXISTS deliverable_scope text,
+    ADD COLUMN IF NOT EXISTS base_points numeric(3,1),
     ADD COLUMN IF NOT EXISTS custom_hours numeric(10,2),
-    ADD COLUMN IF NOT EXISTS custom_price numeric(10,2),
-    ADD COLUMN IF NOT EXISTS notes text,
-    ADD COLUMN IF NOT EXISTS complexity_score numeric(3,1) DEFAULT 1.0 CHECK (complexity_score >= 0 AND complexity_score <= 2.0),
-    ADD COLUMN IF NOT EXISTS custom_scope text;
+    ADD COLUMN IF NOT EXISTS custom_estimate_points numeric(10,2),
+    ADD COLUMN IF NOT EXISTS complexity_score numeric(3,1),
+    ADD COLUMN IF NOT EXISTS custom_scope text,
+    ADD COLUMN IF NOT EXISTS notes text
   `);
+  // Ensure base_points supports decimals (some DBs may still have integer type)
+  await pool.query(`
+    ALTER TABLE sprint_deliverables
+    ALTER COLUMN base_points TYPE numeric(10,2) USING base_points::numeric(10,2)
+  `);
+  // Drop deprecated custom budget column
+  await pool.query(`ALTER TABLE sprint_deliverables DROP COLUMN IF EXISTS custom_price`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_settings (
       key text PRIMARY KEY,
@@ -152,7 +177,9 @@ export async function ensureSchema(): Promise<void> {
       name text NOT NULL,
       description text,
       category text,
-      default_estimate_points integer,
+      points numeric(3,1) DEFAULT 1.0,
+      scope text,
+      format text,
       active boolean NOT NULL DEFAULT true,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
@@ -160,36 +187,28 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_deliverables_active ON deliverables(active);
     CREATE INDEX IF NOT EXISTS idx_deliverables_category ON deliverables(category);
   `);
-  
-  // Add fixed pricing and scope fields to deliverables
+  // Ensure points column exists for pre-existing tables
   await pool.query(`
     ALTER TABLE deliverables
-    ADD COLUMN IF NOT EXISTS estimated_hours numeric(10,2),
-    ADD COLUMN IF NOT EXISTS estimated_budget numeric(10,2),
+    ADD COLUMN IF NOT EXISTS points numeric(3,1) DEFAULT 1.0
+  `);
+  await pool.query(`
+    ALTER TABLE deliverables
+    ADD COLUMN IF NOT EXISTS format text
+  `);
+  // Pricing + resourcing columns used across the app
+  await pool.query(`
+    ALTER TABLE deliverables
     ADD COLUMN IF NOT EXISTS fixed_hours numeric(10,2),
-    ADD COLUMN IF NOT EXISTS fixed_price numeric(10,2),
-    ADD COLUMN IF NOT EXISTS scope text;
+    ADD COLUMN IF NOT EXISTS fixed_price numeric(12,2)
   `);
-  
-  // Add deliverable_type column to distinguish workshops from standard deliverables
+  // Ensure points column has desired type/default and backfill nulls
   await pool.query(`
     ALTER TABLE deliverables
-    ADD COLUMN IF NOT EXISTS deliverable_type text DEFAULT 'standard' CHECK (deliverable_type IN ('standard', 'workshop'));
+    ALTER COLUMN points TYPE numeric(3,1) USING points::numeric(3,1),
+    ALTER COLUMN points SET DEFAULT 1.0
   `);
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_deliverables_type ON deliverables(deliverable_type);
-  `);
-  
-  // Migrate existing data from estimated_* to fixed_* fields
-  await pool.query(`
-    UPDATE deliverables
-    SET fixed_hours = estimated_hours,
-        fixed_price = estimated_budget
-    WHERE fixed_hours IS NULL AND estimated_hours IS NOT NULL;
-  `);
-  
-  // Drop old columns (we'll keep them for now to avoid data loss, can remove later)
-  // await pool.query(`ALTER TABLE deliverables DROP COLUMN IF EXISTS estimated_hours, DROP COLUMN IF EXISTS estimated_budget;`);
+  await pool.query(`UPDATE deliverables SET points = 1.0 WHERE points IS NULL`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS accounts (
       id text PRIMARY KEY,
@@ -232,24 +251,68 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_onboarding_tasks_status ON onboarding_tasks(status);
   `);
   
-  // Add sprint request and discovery call tracking to sprint_drafts
-  await pool.query(`
-    ALTER TABLE sprint_drafts
-    ADD COLUMN IF NOT EXISTS sprint_request_submitted_at timestamptz,
-    ADD COLUMN IF NOT EXISTS discovery_call_completed_at timestamptz,
-    ADD COLUMN IF NOT EXISTS sprint_type text CHECK (sprint_type IN ('foundation', 'followon'));
-  `);
-  
   // Create index for admin queries
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_accounts_is_admin ON accounts(is_admin);
   `);
+  // Projects owned by accounts
   await pool.query(`
-    ALTER TABLE documents
-    ADD COLUMN IF NOT EXISTS account_id text REFERENCES accounts(id)
+    CREATE TABLE IF NOT EXISTS projects (
+      id text PRIMARY KEY,
+      account_id text REFERENCES accounts(id) ON DELETE SET NULL,
+      name text NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_projects_account ON projects(account_id);
   `);
   await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_documents_account_id ON documents(account_id)
+    ALTER TABLE projects
+    DROP COLUMN IF EXISTS description;
+  `);
+  // Project membership (share projects by email)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_members (
+      id text PRIMARY KEY,
+      project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      email text NOT NULL,
+      added_by_account text REFERENCES accounts(id) ON DELETE SET NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE(project_id, email)
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_project_members_project ON project_members(project_id);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_project_members_email_lower ON project_members((lower(email)));
+  `);
+  // Attach FK after table exists
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'fk_sprint_drafts_project'
+      ) THEN
+        ALTER TABLE sprint_drafts
+        ADD CONSTRAINT fk_sprint_drafts_project
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;
+      END IF;
+    END $$;
+  `);
+  await pool.query(`
+    ALTER TABLE documents
+    ADD COLUMN IF NOT EXISTS account_id text REFERENCES accounts(id),
+    ADD COLUMN IF NOT EXISTS project_id text REFERENCES projects(id) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS sprint_draft_id text REFERENCES sprint_drafts(id) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS sprint_deliverable_id text REFERENCES sprint_deliverables(id) ON DELETE SET NULL
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_documents_account_id ON documents(account_id);
+    CREATE INDEX IF NOT EXISTS idx_documents_project_id ON documents(project_id);
+    CREATE INDEX IF NOT EXISTS idx_documents_sprint_draft_id ON documents(sprint_draft_id);
+    CREATE INDEX IF NOT EXISTS idx_documents_sprint_deliverable_id ON documents(sprint_deliverable_id);
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS past_projects (
@@ -279,6 +342,166 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_past_projects_sort ON past_projects(sort_order);
   `);
   
+  // Process: 10-day cadence content (one row per day)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS process (
+      id text PRIMARY KEY,
+      day_number integer NOT NULL,
+      title text,
+      subtitle text,
+      client_copy text,
+      internal_notes text,
+      deliverable_examples jsonb,
+      links jsonb,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT process_day_number_check CHECK (day_number >= 1 AND day_number <= 10),
+      UNIQUE(day_number)
+    );
+    CREATE INDEX IF NOT EXISTS idx_process_day_number ON process(day_number);
+  `);
+  // Seed default 10-day process content if table is empty
+  const processCount = await pool.query(`SELECT COUNT(*)::int AS c FROM process`);
+  if ((processCount.rows[0]?.c ?? 0) === 0) {
+    const processSeed = [
+      {
+        id: "process-day-1",
+        day_number: 1,
+        title: "Kickoff workshop",
+        subtitle: "Day 1 · Monday",
+        client_copy:
+          "3-hour brand/product workshop to align on goals, constraints, audience, and success metrics. You'll feel: Aligned.",
+        internal_notes: "Engagement: client input required",
+        deliverable_examples: { engagement: "client_required", feel: "Aligned" },
+        links: null,
+      },
+      {
+        id: "process-day-2",
+        day_number: 2,
+        title: "Research + divergence",
+        subtitle: "Day 2 · Tuesday",
+        client_copy:
+          "Studio audits existing materials, gathers references, and explores broadly. Async only so we stay heads down. You'll feel: Curious.",
+        internal_notes: "Engagement: studio heads down",
+        deliverable_examples: { engagement: "studio", feel: "Curious" },
+        links: null,
+      },
+      {
+        id: "process-day-3",
+        day_number: 3,
+        title: "Work-in-progress share",
+        subtitle: "Day 3 · Wednesday",
+        client_copy:
+          "Explorations shared via Loom/Figma; react inline to help narrow the strongest options. Optional live sync if helpful. You'll feel: Excited.",
+        internal_notes: "Engagement: optional sync share",
+        deliverable_examples: { engagement: "optional", feel: "Excited" },
+        links: null,
+      },
+      {
+        id: "process-day-4",
+        day_number: 4,
+        title: "Decision Day",
+        subtitle: "Day 4 · Thursday",
+        client_copy:
+          "Review 2–3 viable paths, debate tradeoffs, and commit to one direction + success criteria. You'll feel: Decisive.",
+        internal_notes: "Engagement: client input required",
+        deliverable_examples: { engagement: "client_required", feel: "Decisive" },
+        links: null,
+      },
+      {
+        id: "process-day-5",
+        day_number: 5,
+        title: "Execution plan",
+        subtitle: "Day 5 · Friday",
+        client_copy:
+          "Studio documents the build plan, deliverables, dependencies, and next steps. Optional quick sync to walk through it. You'll feel: Clear.",
+        internal_notes: "Engagement: optional sync share",
+        deliverable_examples: { engagement: "optional", feel: "Clear" },
+        links: null,
+      },
+      {
+        id: "process-day-6",
+        day_number: 6,
+        title: "Translate plan → build tasks",
+        subtitle: "Day 6 · Monday",
+        client_copy:
+          "Direction is locked; we break the plan into concrete execution tasks and confirm any inputs. You'll feel: Focused.",
+        internal_notes: "Engagement: studio heads down",
+        deliverable_examples: { engagement: "studio", feel: "Focused" },
+        links: null,
+      },
+      {
+        id: "process-day-7",
+        day_number: 7,
+        title: "Deep build day",
+        subtitle: "Day 7 · Tuesday",
+        client_copy:
+          "Heads-down execution across design/copy/systems/product. Mostly async updates; optional sync share. You'll feel: Inspired.",
+        internal_notes: "Engagement: optional sync share",
+        deliverable_examples: { engagement: "optional", feel: "Inspired" },
+        links: null,
+      },
+      {
+        id: "process-day-8",
+        day_number: 8,
+        title: "Work-in-progress review",
+        subtitle: "Day 8 · Wednesday",
+        client_copy:
+          "Live or Loom review to validate progress and request tweaks before polish. You'll feel: Confident.",
+        internal_notes: "Engagement: client input required",
+        deliverable_examples: { engagement: "client_required", feel: "Confident" },
+        links: null,
+      },
+      {
+        id: "process-day-9",
+        day_number: 9,
+        title: "Polish + stress test",
+        subtitle: "Day 9 · Thursday",
+        client_copy:
+          "QA, refinement, exports, and internal demo rehearsals. No meetings so we can polish. You'll feel: Meticulous.",
+        internal_notes: "Engagement: studio heads down",
+        deliverable_examples: { engagement: "studio", feel: "Meticulous" },
+        links: null,
+      },
+      {
+        id: "process-day-10",
+        day_number: 10,
+        title: "Delivery + handoff",
+        subtitle: "Day 10 · Friday",
+        client_copy:
+          "Final deliverables, Loom walkthrough, optional live demo, and next-sprint recommendations. You'll feel: Satisfied.",
+        internal_notes: "Engagement: optional sync share",
+        deliverable_examples: { engagement: "optional", feel: "Satisfied" },
+        links: null,
+      },
+    ];
+    const processValues = processSeed.flatMap((p) => [
+      p.id,
+      p.day_number,
+      p.title,
+      p.subtitle,
+      p.client_copy,
+      p.internal_notes,
+      JSON.stringify(p.deliverable_examples ?? null),
+      JSON.stringify(p.links ?? null),
+    ]);
+    const processPlaceholders = processSeed
+      .map(
+        (_p, i) =>
+          `($${i * 8 + 1}, $${i * 8 + 2}, $${i * 8 + 3}, $${i * 8 + 4}, $${i * 8 + 5}, $${i * 8 + 6}, $${i * 8 + 7}::jsonb, $${i * 8 + 8}::jsonb)`
+      )
+      .join(",\n");
+    await pool.query(
+      `
+        INSERT INTO process (id, day_number, title, subtitle, client_copy, internal_notes, deliverable_examples, links)
+        VALUES
+        ${processPlaceholders}
+        ON CONFLICT (day_number) DO NOTHING
+      `,
+      processValues
+    );
+  }
+  
   // Sprint Packages: Pre-defined bundles of deliverables that clients can select
   // Pricing Strategy: DYNAMIC by default (flat_fee = NULL)
   // - flat_fee NULL = calculate from deliverables at base complexity (1.0)
@@ -289,43 +512,25 @@ export async function ensureSchema(): Promise<void> {
       name text NOT NULL,
       slug text UNIQUE NOT NULL,
       description text,
-      category text,
-      package_type text NOT NULL DEFAULT 'foundation',
       tagline text,
-      flat_fee numeric(10,2),        -- NULL = dynamic pricing (calculate from deliverables)
-      flat_hours numeric(10,2),      -- NULL = dynamic hours (calculate from deliverables)
+      emoji text,
       active boolean NOT NULL DEFAULT true,
-      featured boolean NOT NULL DEFAULT false,
       sort_order integer NOT NULL DEFAULT 0,
       created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now(),
-      CONSTRAINT sprint_packages_package_type_check CHECK (package_type IN ('foundation', 'extend'))
+      updated_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS idx_sprint_packages_active ON sprint_packages(active);
-    CREATE INDEX IF NOT EXISTS idx_sprint_packages_featured ON sprint_packages(featured);
-    CREATE INDEX IF NOT EXISTS idx_sprint_packages_category ON sprint_packages(category);
     CREATE INDEX IF NOT EXISTS idx_sprint_packages_sort ON sprint_packages(sort_order);
   `);
+  // Ensure optional sprint package metadata columns exist
   await pool.query(`
     ALTER TABLE sprint_packages
-    ADD COLUMN IF NOT EXISTS package_type text NOT NULL DEFAULT 'foundation';
-  `);
-  await pool.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'sprint_packages_package_type_check'
-      ) THEN
-        ALTER TABLE sprint_packages
-        ADD CONSTRAINT sprint_packages_package_type_check
-        CHECK (package_type IN ('foundation','extend'));
-      END IF;
-    END $$;
-  `);
-  
-  // Remove discount_percentage column (no longer used - pricing is always accurate)
-  await pool.query(`
-    ALTER TABLE sprint_packages DROP COLUMN IF EXISTS discount_percentage;
+    ADD COLUMN IF NOT EXISTS category text,
+    ADD COLUMN IF NOT EXISTS flat_fee numeric(12,2),
+    ADD COLUMN IF NOT EXISTS flat_hours numeric(10,2),
+    ADD COLUMN IF NOT EXISTS featured boolean NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS package_type text,
+    ADD COLUMN IF NOT EXISTS discount_percentage numeric(5,2)
   `);
   
   // Sprint Package Deliverables: Junction table linking packages to deliverables
@@ -335,7 +540,6 @@ export async function ensureSchema(): Promise<void> {
       sprint_package_id text NOT NULL REFERENCES sprint_packages(id) ON DELETE CASCADE,
       deliverable_id text NOT NULL REFERENCES deliverables(id) ON DELETE CASCADE,
       quantity integer NOT NULL DEFAULT 1,
-      notes text,
       sort_order integer NOT NULL DEFAULT 0,
       created_at timestamptz NOT NULL DEFAULT now(),
       UNIQUE(sprint_package_id, deliverable_id)
@@ -343,13 +547,10 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sprint_package_deliverables_package ON sprint_package_deliverables(sprint_package_id);
     CREATE INDEX IF NOT EXISTS idx_sprint_package_deliverables_deliverable ON sprint_package_deliverables(deliverable_id);
   `);
-  
-  // Add complexity_score column for per-sprint complexity adjustment
-  // Range: 1.0 (very simple) to 5.0 (very complex), default: 2.5 (standard)
-  // Multiplier calculation: (complexity_score / 2.5) * base_value
   await pool.query(`
     ALTER TABLE sprint_package_deliverables
-    ADD COLUMN IF NOT EXISTS complexity_score numeric(3,1) DEFAULT 2.5 CHECK (complexity_score >= 1.0 AND complexity_score <= 5.0);
+    ADD COLUMN IF NOT EXISTS complexity_score numeric(3,1) DEFAULT 1.0,
+    ADD COLUMN IF NOT EXISTS notes text
   `);
   
   // Add sprint_package_id to sprint_drafts to track which package was used (if any)
@@ -361,17 +562,17 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sprint_drafts_package ON sprint_drafts(sprint_package_id);
   `);
   
-  // Add workshop fields to sprint_drafts (workshops are generated by AI, not selected from catalog)
+  // Clean up deprecated columns on sprint_drafts
   await pool.query(`
     ALTER TABLE sprint_drafts
-    ADD COLUMN IF NOT EXISTS workshop_agenda jsonb,
-    ADD COLUMN IF NOT EXISTS workshop_generated_at timestamptz,
-    ADD COLUMN IF NOT EXISTS workshop_ai_response_id text REFERENCES ai_responses(id) ON DELETE SET NULL;
-  `);
-  
-  // Add index for workshop queries
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_sprint_drafts_workshop ON sprint_drafts(workshop_generated_at);
+    DROP COLUMN IF EXISTS total_estimated_hours,
+    DROP COLUMN IF EXISTS total_estimated_budget,
+    DROP COLUMN IF EXISTS sprint_request_submitted_at,
+    DROP COLUMN IF EXISTS discovery_call_completed_at,
+    DROP COLUMN IF EXISTS sprint_type,
+    DROP COLUMN IF EXISTS workshop_agenda,
+    DROP COLUMN IF EXISTS workshop_generated_at,
+    DROP COLUMN IF EXISTS workshop_ai_response_id
   `);
   
   global._schemaInitialized = true;

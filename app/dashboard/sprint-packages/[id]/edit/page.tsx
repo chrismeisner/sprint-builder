@@ -8,11 +8,8 @@ type Deliverable = {
   id: string;
   name: string;
   description: string | null;
-  category: string | null;
   scope: string | null;
-  fixed_hours: number | null;
-  fixed_price: number | null;
-  default_estimate_points: number | null;
+  points: number | null;
 };
 
 type PageProps = {
@@ -31,12 +28,9 @@ export default async function EditSprintPackagePage({ params }: PageProps) {
       sp.name,
       sp.slug,
       sp.description,
-      sp.category,
       sp.tagline,
-      sp.flat_fee,
-      sp.flat_hours,
+      sp.emoji,
       sp.active,
-      sp.featured,
       sp.sort_order,
       COALESCE(
         json_agg(
@@ -64,7 +58,7 @@ export default async function EditSprintPackagePage({ params }: PageProps) {
 
   // Fetch all active deliverables for selection
   const deliverablesResult = await pool.query(`
-    SELECT id, name, description, category, scope, fixed_hours, fixed_price, default_estimate_points
+    SELECT id, name, description, category, scope, points
     FROM deliverables
     WHERE active = true
     ORDER BY name ASC

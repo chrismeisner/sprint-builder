@@ -35,9 +35,9 @@ export default async function FoundationPackagesPreview({
         sp.name,
         sp.slug,
         sp.description,
-        sp.category,
         sp.package_type,
         sp.tagline,
+        sp.emoji,
         sp.featured,
         COALESCE(
           json_agg(
@@ -63,9 +63,9 @@ export default async function FoundationPackagesPreview({
         sp.name,
         sp.slug,
         sp.description,
-        sp.category,
         sp.package_type,
         sp.tagline,
+        sp.emoji,
         sp.featured,
         sp.sort_order
       ORDER BY sp.featured DESC, sp.sort_order ASC, sp.name ASC

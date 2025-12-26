@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
+import { calculatePricingFromDeliverables, POINT_BASE_FEE, POINT_PRICE_PER_POINT } from "@/lib/pricing";
 
 /**
  * GET /api/admin/sprint-packages/calculate
@@ -15,8 +16,6 @@ export async function GET() {
         sp.id,
         sp.name,
         sp.slug,
-        sp.flat_fee,
-        sp.flat_hours,
         json_agg(
           json_build_object(
             'name', d.name,
@@ -35,33 +34,29 @@ export async function GET() {
       ORDER BY sp.sort_order ASC
     `);
 
-    const calculations = result.rows.map((pkg: { name: string; slug: string; flat_fee: string | null; flat_hours: string | null; deliverables: Array<{ fixedHours: string | null; fixedPrice: string | null; points: string | null; quantity: string | null; complexityScore: string | null }> }) => {
-      let totalHours = 0;
-      let totalPrice = 0;
-      let totalPoints = 0;
-
-      pkg.deliverables.forEach((d: { fixedHours: string | null; fixedPrice: string | null; points: string | null; quantity: string | null; complexityScore: string | null }) => {
-        const hours = parseFloat(d.fixedHours || "0");
-        const price = parseFloat(d.fixedPrice || "0");
-        const points = parseInt(d.points || "0");
-        const qty = parseInt(d.quantity || "1");
-        const complexity = parseFloat(d.complexityScore || "1.0");
-
-        totalHours += hours * complexity * qty;
-        totalPrice += price * complexity * qty;
-        totalPoints += points * qty;
-      });
+    const calculations = result.rows.map((pkg: {
+      name: string;
+      slug: string;
+      deliverables: Array<{ fixedHours: string | null; fixedPrice: string | null; points: string | null; quantity: string | null; complexityScore: string | null }>;
+    }) => {
+      const { price, hours, points } = calculatePricingFromDeliverables(
+        pkg.deliverables.map((d) => ({
+          points: d.points ? parseFloat(d.points) : 0,
+          quantity: d.quantity ? parseFloat(d.quantity) : 1,
+          complexityScore: d.complexityScore ? parseFloat(d.complexityScore) : 1,
+        }))
+      );
 
       return {
         name: pkg.name,
         slug: pkg.slug,
-        calculatedPrice: totalPrice,
-        calculatedHours: totalHours,
-        calculatedPoints: totalPoints,
-        storedFlatFee: parseFloat(pkg.flat_fee || "0"),
-        storedFlatHours: parseFloat(pkg.flat_hours || "0"),
-        priceMatch: Math.abs(totalPrice - parseFloat(pkg.flat_fee || "0")) < 0.01,
-        hoursMatch: Math.abs(totalHours - parseFloat(pkg.flat_hours || "0")) < 0.01,
+        calculatedPrice: price,
+        calculatedHours: hours,
+        calculatedPoints: points,
+        pricingModel: {
+          baseFee: POINT_BASE_FEE,
+          pricePerPoint: POINT_PRICE_PER_POINT,
+        },
         deliverables: pkg.deliverables,
       };
     });

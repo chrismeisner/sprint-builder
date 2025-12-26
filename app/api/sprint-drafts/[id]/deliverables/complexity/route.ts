@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
+import { priceFromPoints, hoursFromPoints, HOURS_PER_POINT } from "@/lib/pricing";
 import { getCurrentUser } from "@/lib/auth";
 
 type Params = {
@@ -66,7 +67,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
     // Fetch the deliverable details to recalculate adjusted values
     const deliverableResult = await pool.query(
-      `SELECT id, name, fixed_hours, fixed_price, default_estimate_points
+      `SELECT id, name, points
        FROM deliverables WHERE id = $1 AND active = true`,
       [deliverableId]
     );
@@ -78,27 +79,23 @@ export async function PATCH(request: Request, { params }: Params) {
     const deliverable = deliverableResult.rows[0] as {
       id: string;
       name: string;
-      fixed_hours: number | null;
-      fixed_price: number | null;
-      default_estimate_points: number | null;
+      points: number | null;
     };
 
     // Calculate adjusted values based on complexity
-    const adjustedHours = deliverable.fixed_hours ? deliverable.fixed_hours * complexity : null;
-    const adjustedPrice = deliverable.fixed_price ? deliverable.fixed_price * complexity : null;
-    const adjustedPoints = deliverable.default_estimate_points 
-      ? Math.round(deliverable.default_estimate_points * complexity)
-      : null;
+    const basePoints = deliverable.points ?? 0;
+    const adjustedPoints = Math.round(basePoints * complexity * 10) / 10;
+    const adjustedHours = hoursFromPoints(adjustedPoints); // hours = 15x complexity
 
     // Update complexity score and adjusted values in junction table
     await pool.query(
       `UPDATE sprint_deliverables 
        SET complexity_score = $1,
            custom_hours = $2,
-           custom_price = $3,
-           custom_estimate_points = $4
+           custom_estimate_points = $3,
+           base_points = $4
        WHERE sprint_draft_id = $5 AND deliverable_id = $6`,
-      [complexity, adjustedHours, adjustedPrice, adjustedPoints, params.id, deliverableId]
+      [complexity, adjustedHours, adjustedPoints, adjustedPoints, params.id, deliverableId]
     );
 
     // Recalculate totals
@@ -147,20 +144,21 @@ async function recalculateTotals(pool: ReturnType<typeof getPool>, sprintId: str
   const result = await pool.query(
     `SELECT 
        COUNT(*)::int as deliverable_count,
-       COALESCE(SUM(COALESCE(custom_estimate_points, 0)), 0)::int as total_points,
-       COALESCE(SUM(COALESCE(custom_hours, 0)), 0)::numeric as total_hours,
-       COALESCE(SUM(COALESCE(custom_price, 0)), 0)::numeric as total_price
-     FROM sprint_deliverables
-     WHERE sprint_draft_id = $1`,
+       COALESCE(SUM(COALESCE(custom_estimate_points, base_points, d.points, 0) * sd.quantity), 0)::numeric as total_points
+     FROM sprint_deliverables sd
+     LEFT JOIN deliverables d ON sd.deliverable_id = d.id
+     WHERE sd.sprint_draft_id = $1`,
     [sprintId]
   );
 
   const totals = result.rows[0] as {
     deliverable_count: number;
     total_points: number;
-    total_hours: number;
-    total_price: number;
   };
+
+  const totalPoints = Number(totals.total_points);
+  const totalHours = hoursFromPoints(totalPoints); // hours = 15x complexity
+  const totalPrice = priceFromPoints(totalPoints);
 
   await pool.query(
     `UPDATE sprint_drafts 
@@ -173,8 +171,8 @@ async function recalculateTotals(pool: ReturnType<typeof getPool>, sprintId: str
     [
       totals.deliverable_count,
       totals.total_points,
-      totals.total_hours,
-      totals.total_price,
+      totalHours,
+      totalPrice,
       sprintId,
     ]
   );

@@ -2,6 +2,25 @@ import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { randomBytes } from "crypto";
+import { calculatePricingFromDeliverables, hoursFromPoints } from "@/lib/pricing";
+
+async function ensureProjectForAccount(pool: ReturnType<typeof getPool>, accountId: string) {
+  const existing = await pool.query(
+    `SELECT id FROM projects WHERE account_id = $1 ORDER BY created_at ASC LIMIT 1`,
+    [accountId]
+  );
+  if (existing.rowCount && existing.rows[0]?.id) {
+    return existing.rows[0].id as string;
+  }
+
+  const projectId = `proj-${randomBytes(8).toString("hex")}`;
+  const name = "Default project";
+  await pool.query(
+    `INSERT INTO projects (id, account_id, name) VALUES ($1, $2, $3)`,
+    [projectId, accountId, name]
+  );
+  return projectId;
+}
 
 type Params = {
   params: { id: string };
@@ -27,6 +46,7 @@ export async function POST(request: Request, { params }: Params) {
     }
 
     const pool = getPool();
+    const projectId = await ensureProjectForAccount(pool, user.accountId);
 
     // Fetch the sprint package with its deliverables
     const pkgResult = await pool.query(
@@ -96,10 +116,14 @@ export async function POST(request: Request, { params }: Params) {
       }>;
     };
 
-    // Calculate totals with complexity adjustments
-    let totalHours = 0;
-    let totalPrice = 0;
-    let totalPoints = 0;
+    // Calculate totals with complexity adjustments (points-based only)
+    const { price: totalPrice, hours: totalHours, points: totalPoints } = calculatePricingFromDeliverables(
+      pkg.deliverables.map((d) => ({
+        defaultEstimatePoints: d.defaultEstimatePoints,
+        quantity: d.quantity,
+        complexityScore: d.complexityScore ? (d.complexityScore / 2.5) * 1.0 : 1.0, // normalize using existing 2.5 default baseline
+      }))
+    );
 
     const deliverablesList: Array<{
       deliverableId: string;
@@ -108,16 +132,6 @@ export async function POST(request: Request, { params }: Params) {
     }> = [];
 
     pkg.deliverables.forEach((d) => {
-      const baseHours = d.fixedHours ?? 0;
-      const basePrice = d.fixedPrice ?? 0;
-      const points = d.defaultEstimatePoints ?? 0;
-      const qty = d.quantity ?? 1;
-      const complexityMultiplier = (d.complexityScore ?? 2.5) / 2.5;
-
-      totalHours += baseHours * complexityMultiplier * qty;
-      totalPrice += basePrice * complexityMultiplier * qty;
-      totalPoints += points * qty;
-
       deliverablesList.push({
         deliverableId: d.deliverableId,
         name: d.name,
@@ -125,9 +139,8 @@ export async function POST(request: Request, { params }: Params) {
       });
     });
 
-    // Dynamic pricing: use flat_fee if set, otherwise calculate from deliverables
-    const finalPrice = pkg.flat_fee ?? totalPrice;
-    const finalHours = pkg.flat_hours ?? totalHours;
+    const finalPrice = totalPrice;
+    const finalHours = totalHours;
 
     // Create a minimal document record (package-based, not from Typeform)
     const documentId = `doc-${randomBytes(12).toString("hex")}`;
@@ -142,14 +155,15 @@ export async function POST(request: Request, { params }: Params) {
     };
 
     await pool.query(
-      `INSERT INTO documents (id, content, filename, email, account_id, created_at)
-       VALUES ($1, $2, $3, $4, $5, now())`,
+      `INSERT INTO documents (id, content, filename, email, account_id, project_id, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, now())`,
       [
         documentId,
         JSON.stringify(documentContent),
         `package-${pkg.slug}`,
         user.email,
         user.accountId,
+        projectId,
       ]
     );
 
@@ -321,8 +335,8 @@ export async function POST(request: Request, { params }: Params) {
     await pool.query(
       `INSERT INTO sprint_drafts 
        (id, document_id, sprint_package_id, draft, status, title, deliverable_count, 
-        total_estimate_points, total_fixed_hours, total_fixed_price, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())`,
+        total_estimate_points, total_fixed_hours, total_fixed_price, project_id, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())`,
       [
         sprintDraftId,
         documentId,
@@ -334,6 +348,7 @@ export async function POST(request: Request, { params }: Params) {
         totalPoints,
         finalHours,
         finalPrice,
+        projectId,
       ]
     );
 
@@ -342,17 +357,16 @@ export async function POST(request: Request, { params }: Params) {
     // Link deliverables to sprint with complexity scores
     for (const del of pkg.deliverables) {
       const junctionId = `sd-${randomBytes(8).toString("hex")}`;
-      // Use complexity from package, default to 1.0 for standard
       const complexity = del.complexityScore ?? 1.0;
-      
-      const adjustedHours = (del.fixedHours ?? 0) * complexity * del.quantity;
-      const adjustedPrice = (del.fixedPrice ?? 0) * complexity * del.quantity;
-      const adjustedPoints = Math.round((del.defaultEstimatePoints ?? 0) * complexity * del.quantity);
-      
+
+      const basePoints = del.defaultEstimatePoints ?? 0;
+      const adjustedHours = hoursFromPoints(basePoints * complexity * del.quantity);
+      const adjustedPoints = Math.round(basePoints * complexity * del.quantity);
+
       await pool.query(
         `INSERT INTO sprint_deliverables 
-         (id, sprint_draft_id, deliverable_id, quantity, complexity_score, custom_hours, custom_price, custom_estimate_points, custom_scope)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+         (id, sprint_draft_id, deliverable_id, quantity, complexity_score, custom_hours, custom_estimate_points, custom_scope, deliverable_name, deliverable_description, deliverable_category, deliverable_scope, base_points)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
         [
           junctionId,
           sprintDraftId,
@@ -360,9 +374,13 @@ export async function POST(request: Request, { params }: Params) {
           del.quantity,
           complexity,
           adjustedHours,
-          adjustedPrice,
           adjustedPoints,
-          del.scope, // Copy scope from deliverable
+          del.scope,
+          del.name,
+          del.description,
+          del.category ?? null,
+          del.scope,
+          del.defaultEstimatePoints ?? null,
         ]
       );
     }

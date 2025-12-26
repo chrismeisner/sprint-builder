@@ -15,7 +15,9 @@ export async function POST(request: Request) {
     if (typeof email !== "string" || !email.includes("@")) {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
     }
-    const redirect = typeof redirectUrl === "string" && redirectUrl.trim() ? redirectUrl.trim() : null;
+    // Default to profile with flag so UI can show a welcome overlay
+    const defaultRedirect = "/profile?from=magic-email";
+    const redirect = typeof redirectUrl === "string" && redirectUrl.trim() ? redirectUrl.trim() : defaultRedirect;
     const normalizedEmail = email.trim().toLowerCase();
     const accountRes = await pool.query(
       `
@@ -40,9 +42,8 @@ export async function POST(request: Request) {
       origin = `${url.protocol}//${url.host}`;
     }
     
-    const magicLink = redirect 
-      ? `${origin}/api/auth/callback?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(redirect)}`
-      : `${origin}/api/auth/callback?token=${encodeURIComponent(token)}`;
+    // Always include redirect so we land on profile (or custom redirect) after login
+    const magicLink = `${origin}/api/auth/callback?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(redirect)}`;
 
     // Send magic link via Mailgun
     const mailgunApiKey = process.env.MAILGUN_API_KEY;

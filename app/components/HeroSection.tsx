@@ -12,52 +12,73 @@ type HeroCta = {
 
 export type HeroSectionProps = {
   title: ReactNode;
-  supportingText: ReactNode;
+  subtitle?: ReactNode;
+  body?: ReactNode;
+  /**
+   * @deprecated use `body`
+   */
+  supportingText?: ReactNode;
+  eyebrow?: ReactNode;
+  eyebrowClassName?: string;
   primaryCta: HeroCta;
   secondaryCta?: HeroCta;
+  primaryVariant?: "primary" | "accent";
   align?: "center" | "left";
   maxWidth?: "sm" | "md" | "lg";
+  /**
+   * When true, apply a tall minimum height to keep the hero at ~80vh.
+   */
   minHeight?: boolean;
   className?: string;
   titleScale?: TypographyScaleId;
   titleClassName?: string;
   supportingClassName?: string;
+  ctaTarget?: "_self" | "_blank";
+  ctaRel?: string;
 };
 
 const widthClassMap: Record<NonNullable<HeroSectionProps["maxWidth"]>, string> = {
-  sm: "max-w-xl",
-  md: "max-w-2xl",
-  lg: "max-w-3xl",
+  sm: "max-w-2xl",
+  md: "max-w-5xl",
+  lg: "max-w-6xl",
 };
 
-const buttonTypographyId: TypographyScaleId = "body";
+const buttonTypographyId: TypographyScaleId = "button-md";
 const buttonTypographyClasses = getTypographyClassName(buttonTypographyId);
 
 const buttonBase = cx(
   buttonTypographyClasses,
-  "inline-flex items-center rounded-md font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
+  "inline-flex items-center rounded-md font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2",
 );
-const primaryButtonStyles = "bg-black dark:bg-white text-white dark:text-black hover:opacity-90 focus-visible:outline-black/70";
+const primaryButtonStyles = "bg-brand-primary text-brand-inverse border border-brand-primary hover:opacity-90";
+const accentButtonStyles = "bg-brand-accent text-brand-inverse border border-brand-accent hover:opacity-90";
 const secondaryButtonStyles =
-  "border border-black/10 dark:border-white/15 text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-black/50 dark:focus-visible:outline-white/60";
+  "border border-stroke-muted text-text-primary bg-surface-subtle hover:bg-surface-strong";
 
 export default function HeroSection({
   title,
+  subtitle,
+  body,
   supportingText,
+  eyebrow,
+  eyebrowClassName,
   primaryCta,
   secondaryCta,
+  primaryVariant = "primary",
   align = "center",
   maxWidth = "md",
-  minHeight = false,
+  minHeight = true,
   className,
-  titleScale = "display-lg",
+  titleScale = "h1",
   titleClassName,
   supportingClassName,
+  ctaTarget = "_self",
+  ctaRel,
 }: HeroSectionProps) {
   const resolvedWidthKey = maxWidth ?? "md";
   const sectionClasses = cx(
     "p-6",
-    minHeight ? "min-h-[60vh] grid place-items-center" : "py-16",
+    minHeight ? "min-h-[75vh] grid place-items-center" : "py-16",
     className,
   );
 
@@ -65,34 +86,58 @@ export default function HeroSection({
   const ctaAlignmentClass = align === "center" ? "justify-center" : "justify-start";
   const headingClasses = cx(
     getTypographyClassName(titleScale),
-    "text-black dark:text-white text-balance",
+    "text-text-primary text-balance",
     titleClassName,
   );
 
   return (
     <section className={sectionClasses}>
       <div className={cx("space-y-6 w-full", widthClassMap[resolvedWidthKey], alignmentClass)}>
-        <h1 className={headingClasses} data-typography-id={titleScale}>
-          {title}
-        </h1>
-
-        <p
-          className={cx(
-            typography.supportingLarge,
-            "opacity-90",
-            supportingClassName,
-            align === "center" && "mx-auto",
-            "text-balance",
+        <div className="space-y-3">
+          {eyebrow && (
+            <p
+              className={cx(
+                typography.eyebrow,
+                align === "center" && "mx-auto",
+                eyebrowClassName,
+              )}
+            >
+              {eyebrow}
+            </p>
           )}
-        >
-          {supportingText}
-        </p>
+          <h1 className={headingClasses} data-typography-id={titleScale}>
+            {title}
+          </h1>
+          {subtitle && (
+            <p className={cx(typography.supportingLarge, "text-text-secondary text-balance")}>{subtitle}</p>
+          )}
+        </div>
+
+        {(body ?? supportingText) && (
+          <p
+            className={cx(
+              typography.bodyBase,
+              "text-text-secondary",
+              supportingClassName,
+              align === "center" && "mx-auto",
+              "text-balance",
+            )}
+          >
+            {body ?? supportingText}
+          </p>
+        )}
 
         <div className={cx("flex flex-col gap-3 sm:flex-row sm:items-center", ctaAlignmentClass)}>
           <Link
             href={primaryCta.href}
-            className={cx(buttonBase, primaryButtonStyles, "px-6 py-3 focus-visible:outline-offset-4")}
+            className={cx(
+              buttonBase,
+              primaryVariant === "accent" ? accentButtonStyles : primaryButtonStyles,
+              "px-6 py-3 focus-visible:outline-offset-4",
+            )}
             data-typography-id={buttonTypographyId}
+            target={ctaTarget}
+            rel={ctaRel}
           >
             {primaryCta.label}
           </Link>
@@ -102,6 +147,8 @@ export default function HeroSection({
               href={secondaryCta.href}
               className={cx(buttonBase, secondaryButtonStyles, "px-6 py-3 focus-visible:outline-offset-4")}
               data-typography-id={buttonTypographyId}
+              target={ctaTarget}
+              rel={ctaRel}
             >
               {secondaryCta.label}
             </Link>

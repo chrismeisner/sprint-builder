@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { priceFromPoints } from "@/lib/pricing";
 
 type Deliverable = {
   id: string;
@@ -10,9 +11,7 @@ type Deliverable = {
   description: string | null;
   category: string | null;
   scope: string | null;
-  fixed_hours: number | null;
-  fixed_price: number | null;
-  default_estimate_points: number | null;
+  points: number | null;
 };
 
 type Package = {
@@ -20,8 +19,7 @@ type Package = {
   name: string;
   slug: string;
   tagline: string | null;
-  flat_fee: number | null;
-  flat_hours: number | null;
+  emoji: string | null;
   deliverables: Array<{
     deliverableId: string;
     quantity: number;
@@ -89,20 +87,17 @@ export default function SprintBuilderClient({ deliverables, packages }: Props) {
   }
 
   function calculateTotals() {
-    let totalPoints = 0;
-    let totalHours = 0;
-    let totalPrice = 0;
+    let totalComplexity = 0;
 
     selectedDeliverables.forEach((sd) => {
       const d = deliverables.find((del) => del.id === sd.deliverableId);
       if (d) {
-        totalPoints += (d.default_estimate_points ?? 0) * sd.quantity;
-        totalHours += (d.fixed_hours ?? 0) * sd.quantity;
-        totalPrice += (d.fixed_price ?? 0) * sd.quantity;
+        totalComplexity += (d.points ?? 0) * sd.quantity;
       }
     });
 
-    return { totalPoints, totalHours, totalPrice };
+    const totalPrice = priceFromPoints(totalComplexity);
+    return { totalComplexity, totalPrice };
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -162,7 +157,7 @@ export default function SprintBuilderClient({ deliverables, packages }: Props) {
     }
   }
 
-  const { totalPoints, totalHours, totalPrice } = calculateTotals();
+  const { totalComplexity, totalPrice } = calculateTotals();
 
   // Group deliverables by category
   const deliverablesByCategory = deliverables.reduce((acc, d) => {
@@ -227,6 +222,7 @@ export default function SprintBuilderClient({ deliverables, packages }: Props) {
                 <option value="">Custom sprint (select deliverables below)</option>
                 {packages.map((p) => (
                   <option key={p.id} value={p.id}>
+                    {p.emoji ? `${p.emoji} ` : ""}
                     {p.name} {p.tagline ? `- ${p.tagline}` : ""}
                   </option>
                 ))}
@@ -306,7 +302,7 @@ export default function SprintBuilderClient({ deliverables, packages }: Props) {
                       <div className="flex-1">
                         <div className="font-medium text-sm">{d.name}</div>
                         <div className="text-xs opacity-70">
-                          {d.fixed_hours}h • ${d.fixed_price?.toLocaleString()}
+                          Complexity: {d.points ?? "—"} pts
                           {d.category && ` • ${d.category}`}
                         </div>
                       </div>
@@ -365,7 +361,7 @@ export default function SprintBuilderClient({ deliverables, packages }: Props) {
                         >
                           <div className="font-medium">{d.name}</div>
                           <div className="text-xs opacity-70">
-                            {d.fixed_hours}h • ${d.fixed_price?.toLocaleString()}
+                            Complexity: {d.points ?? "—"} pts
                           </div>
                           {isSelected && (
                             <div className="text-xs text-green-700 dark:text-green-400 mt-1">
@@ -397,15 +393,9 @@ export default function SprintBuilderClient({ deliverables, packages }: Props) {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <div className="text-xs opacity-70 mb-1">Hours</div>
-                    <div className="text-xl font-bold">{totalHours}h</div>
-                  </div>
-                  <div>
-                    <div className="text-xs opacity-70 mb-1">Points</div>
-                    <div className="text-xl font-bold">{totalPoints}</div>
-                  </div>
+                <div>
+                  <div className="text-xs opacity-70 mb-1">Total Complexity</div>
+                  <div className="text-xl font-bold">{totalComplexity.toFixed(1)}</div>
                 </div>
 
                 <div>

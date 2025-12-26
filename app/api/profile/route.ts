@@ -31,20 +31,69 @@ export async function GET() {
 
     const profile = profileResult.rows[0];
 
-    // Get user's documents (intake forms) - match by email or account_id
+    // Projects the user owns or is a member of (by email)
+    const projectsResult = await pool.query(
+      `
+      SELECT DISTINCT
+        p.id,
+        p.name,
+        p.created_at,
+        p.updated_at,
+        p.account_id,
+        (p.account_id = $1) AS is_owner
+      FROM projects p
+      LEFT JOIN project_members pm
+        ON pm.project_id = p.id
+       AND lower(pm.email) = lower($2)
+      WHERE p.account_id = $1
+         OR pm.email IS NOT NULL
+      ORDER BY p.created_at DESC
+      `,
+      [user.accountId, user.email]
+    );
+
+    const accessibleProjectIds = projectsResult.rows.map((row) => row.id as string);
+    const projectArrayParam = accessibleProjectIds.length > 0 ? accessibleProjectIds : [];
+    const projectMembers: Record<string, Array<{ email: string; addedByAccount: string | null; createdAt: string }>> = {};
+
+    if (projectArrayParam.length > 0) {
+      const membersResult = await pool.query(
+        `
+        SELECT project_id, email, added_by_account, created_at
+        FROM project_members
+        WHERE project_id = ANY($1::text[])
+        ORDER BY created_at ASC
+        `,
+        [projectArrayParam]
+      );
+      for (const row of membersResult.rows) {
+        const pid = row.project_id as string;
+        if (!projectMembers[pid]) projectMembers[pid] = [];
+        projectMembers[pid].push({
+          email: row.email as string,
+          addedByAccount: row.added_by_account as string | null,
+          createdAt: row.created_at as string,
+        });
+      }
+    }
+
+    // Get user's documents (intake forms) - match by email, account_id, or shared project membership
     const documentsResult = await pool.query(
       `SELECT 
         id, 
         filename,
         email,
-        created_at
+        created_at,
+        project_id
       FROM documents 
-      WHERE email = $1 OR account_id = $2
+      WHERE email = $1 
+         OR account_id = $2
+         OR (project_id IS NOT NULL AND project_id = ANY($3::text[]))
       ORDER BY created_at DESC`,
-      [user.email, user.accountId]
+      [user.email, user.accountId, projectArrayParam]
     );
 
-    // Get user's sprint drafts (through their documents)
+    // Get user's sprint drafts (through their documents or shared projects)
     const sprintsResult = await pool.query(
       `SELECT 
         sd.id,
@@ -53,19 +102,24 @@ export async function GET() {
         sd.deliverable_count,
         sd.total_fixed_price,
         sd.total_fixed_hours,
+        sd.project_id,
         sd.created_at,
         sd.updated_at,
         sd.document_id,
         d.filename as document_filename
       FROM sprint_drafts sd
       JOIN documents d ON sd.document_id = d.id
-      WHERE d.email = $1 OR d.account_id = $2
+      WHERE d.email = $1 
+         OR d.account_id = $2
+         OR (sd.project_id IS NOT NULL AND sd.project_id = ANY($3::text[]))
+         OR (d.project_id IS NOT NULL AND d.project_id = ANY($3::text[]))
       ORDER BY sd.created_at DESC`,
-      [user.email, user.accountId]
+      [user.email, user.accountId, projectArrayParam]
     );
 
     const documentsRowCount = documentsResult.rowCount ?? 0;
     const sprintsRowCount = sprintsResult.rowCount ?? 0;
+    const projectsRowCount = projectsResult.rowCount ?? 0;
 
     await autoUpdateOnboardingTasks({
       pool,
@@ -85,10 +139,20 @@ export async function GET() {
       },
       documents: documentsResult.rows,
       sprints: sprintsResult.rows,
+      projects: projectsResult.rows.map((row) => ({
+        id: row.id as string,
+        name: row.name as string,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        accountId: row.account_id,
+        isOwner: row.is_owner,
+      })),
       stats: {
         totalDocuments: documentsRowCount,
         totalSprints: sprintsRowCount,
+        totalProjects: projectsRowCount,
       },
+      projectMembers,
       onboardingTasks: onboardingTasks.map((task) => ({
         accountId: task.account_id,
         taskKey: task.task_key,

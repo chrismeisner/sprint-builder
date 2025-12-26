@@ -36,11 +36,11 @@ export default function GridPreviewCard({ index, className, metaLabel }: GridPre
 
   return (
     <div ref={cardRef} className={className}>
-      <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-black/60 dark:text-white/60">
+      <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-text-muted">
         <span>Card {index + 1}</span>
         <span>{cardWidth === null ? "Measuring…" : `${cardWidth}px`}</span>
       </div>
-      <span className="text-xs opacity-70">{metaLabel}</span>
+      <span className="text-xs text-text-secondary">{metaLabel}</span>
     </div>
   );
 }

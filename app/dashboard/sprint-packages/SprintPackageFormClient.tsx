@@ -3,23 +3,20 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { priceFromPoints, pricingFormulaText } from "@/lib/pricing";
 
 type Deliverable = {
   id: string;
   name: string;
   description: string | null;
-  category: string | null;
   scope: string | null;
-  fixed_hours: number | null;
-  fixed_price: number | null;
-  default_estimate_points: number | null;
+  points: number | null;
 };
 
 type SelectedDeliverable = {
   deliverableId: string;
   quantity: number;
   sortOrder: number;
-  complexityScore: number;
 };
 
 type Package = {
@@ -27,18 +24,14 @@ type Package = {
   name: string;
   slug: string;
   description: string | null;
-  category: string | null;
   tagline: string | null;
-  flat_fee: number | null;       // NULL = dynamic pricing
-  flat_hours: number | null;     // NULL = dynamic hours
+  emoji: string | null;
   active: boolean;
-  featured: boolean;
   sort_order: number;
   deliverables: Array<{
     deliverableId: string;
     quantity: number;
     sortOrder: number;
-    complexityScore: number;
   }>;
 };
 
@@ -56,12 +49,10 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
   const [slug, setSlug] = useState(existingPackage?.slug || "");
   const [tagline, setTagline] = useState(existingPackage?.tagline || "");
   const [description, setDescription] = useState(existingPackage?.description || "");
-  const [category, setCategory] = useState(existingPackage?.category || "");
-  const [flatFee, setFlatFee] = useState(existingPackage?.flat_fee?.toString() || "");
-  const [flatHours, setFlatHours] = useState(existingPackage?.flat_hours?.toString() || "");
+  const [emoji, setEmoji] = useState(existingPackage?.emoji || "");
   const [active, setActive] = useState(existingPackage?.active ?? true);
-  const [featured, setFeatured] = useState(existingPackage?.featured ?? false);
   const [sortOrder, setSortOrder] = useState(existingPackage?.sort_order?.toString() || "0");
+  const [availableSearch, setAvailableSearch] = useState("");
 
   // Selected deliverables
   const [selectedDeliverables, setSelectedDeliverables] = useState<SelectedDeliverable[]>(
@@ -93,7 +84,6 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
         deliverableId,
         quantity: 1,
         sortOrder: selectedDeliverables.length,
-        complexityScore: 2.5, // Default: standard complexity
       },
     ]);
   }
@@ -108,14 +98,6 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
     setSelectedDeliverables(
       selectedDeliverables.map((d) =>
         d.deliverableId === deliverableId ? { ...d, quantity } : d
-      )
-    );
-  }
-
-  function updateComplexityScore(deliverableId: string, complexityScore: number) {
-    setSelectedDeliverables(
-      selectedDeliverables.map((d) =>
-        d.deliverableId === deliverableId ? { ...d, complexityScore } : d
       )
     );
   }
@@ -139,37 +121,15 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
   }
 
   function calculateTotals() {
-    let totalHours = 0;
-    let totalPrice = 0;
-
+    let totalComplexity = 0;
     selectedDeliverables.forEach((sd) => {
       const d = deliverables.find((del) => del.id === sd.deliverableId);
       if (d) {
-        const complexityMultiplier = (sd.complexityScore ?? 2.5) / 2.5;
-        totalHours += (d.fixed_hours ?? 0) * complexityMultiplier * sd.quantity;
-        totalPrice += (d.fixed_price ?? 0) * complexityMultiplier * sd.quantity;
+        totalComplexity += (d.points ?? 0) * sd.quantity;
       }
     });
-
-    return { totalHours, totalPrice };
-  }
-
-  function getFinalPrice(): number {
-    // If flat_fee is set, use it as override (rare)
-    // Otherwise, calculate dynamically from deliverables
-    if (flatFee) {
-      return Number(flatFee);
-    }
-    const { totalPrice } = calculateTotals();
-    return totalPrice;
-  }
-
-  function getFinalHours(): number {
-    if (flatHours) {
-      return Number(flatHours);
-    }
-    const { totalHours } = calculateTotals();
-    return totalHours;
+    const totalPrice = priceFromPoints(totalComplexity);
+    return { totalComplexity, totalPrice };
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -183,11 +143,8 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
         slug,
         tagline: tagline || null,
         description: description || null,
-        category: category || null,
-        flatFee: flatFee ? Number(flatFee) : null,  // NULL = dynamic pricing
-        flatHours: flatHours ? Number(flatHours) : null,  // NULL = dynamic hours
+        emoji: emoji || null,
         active,
-        featured,
         sortOrder: sortOrder ? Number(sortOrder) : 0,
         deliverables: selectedDeliverables,
       };
@@ -215,9 +172,16 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
     }
   }
 
-  const { totalHours, totalPrice } = calculateTotals();
-  const finalPrice = getFinalPrice();
-  const finalHours = getFinalHours();
+  const { totalComplexity, totalPrice } = calculateTotals();
+  const availableDeliverables = deliverables.filter((d) => {
+    if (selectedDeliverables.some((sd) => sd.deliverableId === d.id)) return false;
+    if (!availableSearch.trim()) return true;
+    const term = availableSearch.toLowerCase();
+    return (
+      d.name.toLowerCase().includes(term) ||
+      (d.description?.toLowerCase().includes(term) ?? false)
+    );
+  });
 
   return (
     <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6 font-[family-name:var(--font-geist-sans)]">
@@ -300,137 +264,153 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1" htmlFor="category">
-              Category
+            <label className="block text-xs font-medium mb-1" htmlFor="emoji">
+              Emoji
             </label>
-            <select
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+            <input
+              id="emoji"
+              value={emoji}
+              onChange={(e) => setEmoji(e.target.value)}
+              maxLength={4}
               className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
-            >
-              <option value="">Select category</option>
-              <option value="Branding">Branding</option>
-              <option value="Product">Product</option>
-              <option value="Complete">Complete</option>
-              <option value="Startup">Startup</option>
-            </select>
+              placeholder="e.g. 🚀"
+            />
+            <p className="text-[11px] opacity-60 mt-1">Optional. Shown alongside the package name.</p>
           </div>
         </section>
 
         {/* Deliverables Selection */}
         <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-4">
-          <h2 className="text-lg font-semibold">Deliverables</h2>
-          
-          {selectedDeliverables.length === 0 ? (
-            <p className="text-sm opacity-70">No deliverables selected yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {selectedDeliverables.map((sd, index) => {
-                const d = deliverables.find((del) => del.id === sd.deliverableId);
-                if (!d) return null;
-                
-                return (
-                  <div
-                    key={sd.deliverableId}
-                    className="rounded border border-black/10 dark:border-white/15 p-3 flex items-center gap-3"
-                  >
-                    <div className="flex flex-col gap-1">
-                      <button
-                        type="button"
-                        onClick={() => moveDeliverable(sd.deliverableId, "up")}
-                        disabled={index === 0}
-                        className="text-xs px-1 py-0.5 border rounded disabled:opacity-30"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveDeliverable(sd.deliverableId, "down")}
-                        disabled={index === selectedDeliverables.length - 1}
-                        className="text-xs px-1 py-0.5 border rounded disabled:opacity-30"
-                      >
-                        ↓
-                      </button>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{d.name}</div>
-                      <div className="text-xs opacity-70">
-                        Base: {d.fixed_hours}h • ${d.fixed_price?.toLocaleString()}
-                        {sd.complexityScore !== 2.5 && (
-                          <span className="ml-1 text-blue-600 dark:text-blue-400 font-medium">
-                            → Adjusted: {((d.fixed_hours ?? 0) * (sd.complexityScore / 2.5)).toFixed(1)}h • 
-                            ${((d.fixed_price ?? 0) * (sd.complexityScore / 2.5)).toLocaleString()}
-                          </span>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Deliverables</h2>
+            <div className="text-xs opacity-70">Drag order with arrows; edit qty on right</div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Available */}
+            <div className="rounded-md border border-black/10 dark:border-white/15 p-3 space-y-2 bg-white/60 dark:bg-white/5">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold">Available</h3>
+                <span className="text-[11px] opacity-60 whitespace-nowrap">
+                  {availableDeliverables.length} items
+                </span>
+              </div>
+
+              <input
+                type="text"
+                value={availableSearch}
+                onChange={(e) => setAvailableSearch(e.target.value)}
+                placeholder="Search deliverables..."
+                className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
+              />
+
+              {availableDeliverables.length === 0 ? (
+                <p className="text-xs opacity-60">All deliverables have been added.</p>
+              ) : (
+                <div className="space-y-2 max-h-[420px] overflow-auto pr-1">
+                  {availableDeliverables.map((d) => (
+                    <div
+                      key={d.id}
+                      className="rounded border border-black/10 dark:border-white/10 p-2 flex items-start gap-3"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm">{d.name}</div>
+                        <div className="text-[11px] opacity-70">
+                          Complexity: {d.points ?? "—"} pts
+                        </div>
+                        {d.description && (
+                          <p className="text-[11px] opacity-70 line-clamp-2 mt-1">{d.description}</p>
                         )}
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => addDeliverable(d.id)}
+                        className="text-xs rounded-md border border-black/10 dark:border-white/20 px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10"
+                      >
+                        Add
+                      </button>
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs">Qty:</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={sd.quantity}
-                        onChange={(e) =>
-                          updateQuantity(sd.deliverableId, parseInt(e.target.value) || 1)
-                        }
-                        className="w-16 rounded border border-black/15 px-2 py-1 text-sm bg-white text-black"
-                      />
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs whitespace-nowrap" title="1=Very Simple, 2.5=Standard, 5=Very Complex">
-                        Complexity:
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="5"
-                        step="0.5"
-                        value={sd.complexityScore}
-                        onChange={(e) =>
-                          updateComplexityScore(sd.deliverableId, parseFloat(e.target.value) || 2.5)
-                        }
-                        className="w-16 rounded border border-black/15 px-2 py-1 text-sm bg-white text-black"
-                        title="1=Very Simple, 2.5=Standard, 5=Very Complex"
-                      />
-                    </div>
-                    
-                    <button
-                      type="button"
-                      onClick={() => removeDeliverable(sd.deliverableId)}
-                      className="text-red-600 hover:text-red-800 text-sm"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                );
-              })}
+                  ))}
+                </div>
+              )}
             </div>
-          )}
 
-          <div>
-            <label className="block text-xs font-medium mb-1">Add Deliverable</label>
-            <select
-              onChange={(e) => {
-                if (e.target.value) {
-                  addDeliverable(e.target.value);
-                  e.target.value = "";
-                }
-              }}
-              className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
-            >
-              <option value="">Select a deliverable to add...</option>
-              {deliverables
-                .filter((d) => !selectedDeliverables.some((sd) => sd.deliverableId === d.id))
-                .map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name} ({d.fixed_hours}h, ${d.fixed_price?.toLocaleString()})
-                  </option>
-                ))}
-            </select>
+            {/* Selected */}
+            <div className="rounded-md border border-black/10 dark:border-white/15 p-3 space-y-2 bg-white/80 dark:bg-white/[0.04]">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Selected</h3>
+                <span className="text-[11px] opacity-60">{selectedDeliverables.length} items</span>
+              </div>
+
+              {selectedDeliverables.length === 0 ? (
+                <p className="text-sm opacity-70">No deliverables selected yet. Add from the left.</p>
+              ) : (
+                <div className="space-y-2">
+                  {selectedDeliverables.map((sd, index) => {
+                    const d = deliverables.find((del) => del.id === sd.deliverableId);
+                    if (!d) return null;
+
+                    return (
+                      <div
+                        key={sd.deliverableId}
+                        className="rounded border border-black/10 dark:border-white/15 p-3 flex flex-col gap-3"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex flex-col gap-1">
+                            <button
+                              type="button"
+                              onClick={() => moveDeliverable(sd.deliverableId, "up")}
+                              disabled={index === 0}
+                              className="text-xs px-1 py-0.5 border rounded disabled:opacity-30"
+                              aria-label="Move up"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveDeliverable(sd.deliverableId, "down")}
+                              disabled={index === selectedDeliverables.length - 1}
+                              className="text-xs px-1 py-0.5 border rounded disabled:opacity-30"
+                              aria-label="Move down"
+                            >
+                              ↓
+                            </button>
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm">{d.name}</div>
+                            <div className="text-xs opacity-70">
+                              Complexity: {d.points ?? "—"} pts · Points set on deliverable
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => removeDeliverable(sd.deliverableId)}
+                            className="text-red-600 hover:text-red-800 text-xs"
+                          >
+                            Remove
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <label className="text-xs">Qty:</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={sd.quantity}
+                            onChange={(e) =>
+                              updateQuantity(sd.deliverableId, parseInt(e.target.value) || 1)
+                            }
+                            className="w-20 rounded border border-black/15 px-2 py-1 text-sm bg-white text-black"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Calculated totals */}
@@ -439,77 +419,21 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
               <div className="text-xs font-medium mb-2 opacity-70">
                 Calculated from deliverables:
               </div>
-              <div className="flex gap-4 text-sm">
+              <div className="flex gap-4 text-sm flex-wrap">
                 <div>
-                  <span className="opacity-70">Total Hours:</span>{" "}
-                  <span className="font-semibold">{totalHours}h</span>
+                  <span className="opacity-70">Total Complexity:</span>{" "}
+                  <span className="font-semibold">{totalComplexity.toFixed(1)}</span>
                 </div>
                 <div>
                   <span className="opacity-70">Total Price:</span>{" "}
                   <span className="font-semibold">${totalPrice.toLocaleString()}</span>
                 </div>
               </div>
+              <div className="text-[11px] opacity-70 mt-2">
+                {pricingFormulaText()}
+              </div>
             </div>
           )}
-        </section>
-
-        {/* Pricing */}
-        <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-4">
-          <h2 className="text-lg font-semibold">Pricing</h2>
-          <p className="text-sm opacity-70">
-            Leave blank to use calculated values from deliverables. Set custom values to override.
-          </p>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div>
-              <label className="block text-xs font-medium mb-1" htmlFor="flatFee">
-                Flat Fee ($)
-              </label>
-              <input
-                id="flatFee"
-                type="number"
-                step="0.01"
-                value={flatFee}
-                onChange={(e) => setFlatFee(e.target.value)}
-                className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
-                placeholder={`Auto: $${totalPrice.toLocaleString()}`}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" htmlFor="flatHours">
-                Flat Hours
-              </label>
-              <input
-                id="flatHours"
-                type="number"
-                step="0.5"
-                value={flatHours}
-                onChange={(e) => setFlatHours(e.target.value)}
-                className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
-                placeholder={`Auto: ${totalHours}h`}
-              />
-            </div>
-          </div>
-          
-          <div className="rounded bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 text-xs">
-            <strong>💡 Pricing Strategy:</strong> Leave Flat Fee & Hours <strong>empty</strong> for <strong>dynamic pricing</strong> (recommended).
-            Prices will calculate automatically from deliverables at base complexity (1.0x). Only set manual values for special cases.
-          </div>
-
-          {/* Final pricing preview */}
-          <div className="rounded bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-3">
-            <div className="text-xs font-medium mb-2 opacity-70">Final package pricing:</div>
-            <div className="flex gap-4 text-sm">
-              <div>
-                <span className="opacity-70">Price:</span>{" "}
-                <span className="font-bold text-lg">${finalPrice.toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="opacity-70">Hours:</span>{" "}
-                <span className="font-bold text-lg">{finalHours}h</span>
-              </div>
-            </div>
-          </div>
         </section>
 
         {/* Settings */}
@@ -525,16 +449,6 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
                 className="rounded"
               />
               <span className="text-sm">Active (visible to clients)</span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={featured}
-                onChange={(e) => setFeatured(e.target.checked)}
-                className="rounded"
-              />
-              <span className="text-sm">Featured</span>
             </label>
           </div>
 

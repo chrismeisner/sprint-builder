@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
+import { priceFromPoints, hoursFromPoints, HOURS_PER_POINT } from "@/lib/pricing";
+import { priceFromPoints } from "@/lib/pricing";
 import { getCurrentUser } from "@/lib/auth";
 
 type Params = {
@@ -66,7 +68,7 @@ export async function POST(request: Request, { params }: Params) {
 
     // Fetch the deliverable details including scope
     const deliverableResult = await pool.query(
-      `SELECT id, name, description, scope, category, fixed_hours, fixed_price, default_estimate_points
+      `SELECT id, name, description, scope, category, points
        FROM deliverables WHERE id = $1 AND active = true`,
       [deliverableId]
     );
@@ -81,34 +83,34 @@ export async function POST(request: Request, { params }: Params) {
       description: string | null;
       scope: string | null;
       category: string | null;
-      fixed_hours: number | null;
-      fixed_price: number | null;
-      default_estimate_points: number | null;
+      points: number | null;
     };
 
-    // Calculate adjusted values based on complexity
-    const adjustedHours = deliverable.fixed_hours ? deliverable.fixed_hours * complexity : null;
-    const adjustedPrice = deliverable.fixed_price ? deliverable.fixed_price * complexity : null;
-    const adjustedPoints = deliverable.default_estimate_points 
-      ? Math.round(deliverable.default_estimate_points * complexity)
-      : null;
+    // Calculate adjusted values based on complexity (points act as complexity)
+    const basePoints = deliverable.points ?? 0;
+    const adjustedPoints = Math.round(basePoints * complexity * 10) / 10;
+    const adjustedHours = hoursFromPoints(adjustedPoints);
 
     // Add to sprint_deliverables junction table, copying scope from master deliverable
     const junctionId = crypto.randomUUID();
     await pool.query(
       `INSERT INTO sprint_deliverables 
-       (id, sprint_draft_id, deliverable_id, quantity, complexity_score, custom_hours, custom_price, custom_estimate_points, custom_scope)
-       VALUES ($1, $2, $3, 1, $4, $5, $6, $7, $8)
+       (id, sprint_draft_id, deliverable_id, quantity,
+        deliverable_name, deliverable_description, deliverable_category, deliverable_scope, base_points,
+        custom_estimate_points, custom_hours)
+       VALUES ($1, $2, $3, 1, $4, $5, $6, $7, $8, $9, $10)
        ON CONFLICT (sprint_draft_id, deliverable_id) DO NOTHING`,
       [
         junctionId,
         params.id,
         deliverable.id,
-        complexity,
-        adjustedHours,
-        adjustedPrice,
+        deliverable.name,
+        deliverable.description,
+        deliverable.category,
+        deliverable.scope,
         adjustedPoints,
-        deliverable.scope, // Copy scope from master deliverable
+        adjustedPoints,
+        adjustedHours,
       ]
     );
 
@@ -142,12 +144,8 @@ export async function POST(request: Request, { params }: Params) {
         id: deliverable.id,
         name: deliverable.name,
         category: deliverable.category,
-        baseHours: deliverable.fixed_hours,
-        basePrice: deliverable.fixed_price,
-        basePoints: deliverable.default_estimate_points,
+        basePoints: deliverable.points,
         complexityScore: complexity,
-        adjustedHours,
-        adjustedPrice,
         adjustedPoints,
       },
       updatedTotals,
@@ -247,20 +245,21 @@ async function recalculateTotals(pool: ReturnType<typeof getPool>, sprintId: str
   const result = await pool.query(
     `SELECT 
        COUNT(*)::int as deliverable_count,
-       COALESCE(SUM(COALESCE(custom_estimate_points, 0)), 0)::int as total_points,
-       COALESCE(SUM(COALESCE(custom_hours, 0)), 0)::numeric as total_hours,
-       COALESCE(SUM(COALESCE(custom_price, 0)), 0)::numeric as total_price
-     FROM sprint_deliverables
-     WHERE sprint_draft_id = $1`,
+       COALESCE(SUM(COALESCE(sd.base_points, d.points, 0) * sd.quantity), 0)::numeric as total_points
+     FROM sprint_deliverables sd
+     LEFT JOIN deliverables d ON sd.deliverable_id = d.id
+     WHERE sd.sprint_draft_id = $1`,
     [sprintId]
   );
 
   const totals = result.rows[0] as {
     deliverable_count: number;
     total_points: number;
-    total_hours: number;
-    total_price: number;
   };
+
+  const totalPoints = Number(totals.total_points);
+  const totalHours = hoursFromPoints(totalPoints); // hours = 15x complexity
+  const totalPrice = priceFromPoints(totalPoints);
 
   await pool.query(
     `UPDATE sprint_drafts 
@@ -273,8 +272,8 @@ async function recalculateTotals(pool: ReturnType<typeof getPool>, sprintId: str
     [
       totals.deliverable_count,
       totals.total_points,
-      totals.total_hours,
-      totals.total_price,
+      totalHours,
+      totalPrice,
       sprintId,
     ]
   );
@@ -282,8 +281,8 @@ async function recalculateTotals(pool: ReturnType<typeof getPool>, sprintId: str
   // Return the calculated totals
   return {
     totalPoints: Number(totals.total_points),
-    totalHours: Number(totals.total_hours),
-    totalPrice: Number(totals.total_price),
+    totalHours: Number(totalHours),
+    totalPrice: Number(totalPrice),
   };
 }
 

@@ -13,14 +13,13 @@ export async function PATCH(request: Request, { params }: Params) {
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
-    const { name, description, category, defaultEstimatePoints, fixedHours, fixedPrice, scope, active } = body as {
+    const { name, description, category, points, scope, format, active } = body as {
       name?: unknown;
       description?: unknown;
       category?: unknown;
-      defaultEstimatePoints?: unknown;
-      fixedHours?: unknown;
-      fixedPrice?: unknown;
+      points?: unknown;
       scope?: unknown;
+      format?: unknown;
       active?: unknown;
     };
 
@@ -43,42 +42,27 @@ export async function PATCH(request: Request, { params }: Params) {
       fields.push(`scope = $${fields.length + 1}`);
       values.push(scope);
     }
+    if (typeof format === "string" || format === null) {
+      fields.push(`format = $${fields.length + 1}`);
+      values.push(format);
+    }
     if (typeof active === "boolean") {
       fields.push(`active = $${fields.length + 1}`);
       values.push(active);
     }
-    if (defaultEstimatePoints !== undefined) {
-      let estimate: number | null = null;
-      if (typeof defaultEstimatePoints === "number") {
-        estimate = defaultEstimatePoints;
-      } else if (typeof defaultEstimatePoints === "string" && defaultEstimatePoints.trim()) {
-        const parsed = Number(defaultEstimatePoints);
-        if (!Number.isNaN(parsed)) estimate = parsed;
+    if (points !== undefined) {
+      let pointsValue: number | null = null;
+      if (typeof points === "number") {
+        pointsValue = points;
+      } else if (typeof points === "string" && points.trim()) {
+        const parsed = Number(points);
+        if (!Number.isNaN(parsed)) pointsValue = parsed;
       }
-      fields.push(`default_estimate_points = $${fields.length + 1}`);
-      values.push(estimate);
-    }
-    if (fixedHours !== undefined) {
-      let hours: number | null = null;
-      if (typeof fixedHours === "number") {
-        hours = fixedHours;
-      } else if (typeof fixedHours === "string" && fixedHours.trim()) {
-        const parsed = Number(fixedHours);
-        if (!Number.isNaN(parsed)) hours = parsed;
+      if (pointsValue != null) {
+        pointsValue = Math.round(pointsValue * 10) / 10;
       }
-      fields.push(`fixed_hours = $${fields.length + 1}`);
-      values.push(hours);
-    }
-    if (fixedPrice !== undefined) {
-      let price: number | null = null;
-      if (typeof fixedPrice === "number") {
-        price = fixedPrice;
-      } else if (typeof fixedPrice === "string" && fixedPrice.trim()) {
-        const parsed = Number(fixedPrice);
-        if (!Number.isNaN(parsed)) price = parsed;
-      }
-      fields.push(`fixed_price = $${fields.length + 1}`);
-      values.push(price);
+      fields.push(`points = $${fields.length + 1}`);
+      values.push(pointsValue);
     }
 
     if (fields.length === 0) {
