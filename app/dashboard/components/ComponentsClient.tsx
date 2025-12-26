@@ -569,7 +569,11 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
         showDetails={showSectionDetails}
       >
         <div ref={sectionHeaderPanelRef} className={previewSurfaceClassName}>
-          <SectionHeader {...sectionHeaderPreview} align="center" />
+          <SectionHeader
+            {...sectionHeaderPreview}
+            // SectionHeader is center-aligned internally; pass explicit maxWidth if needed
+            maxWidth="md"
+          />
         </div>
       </ComponentSection>
     ),
