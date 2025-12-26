@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
-import { priceFromPoints, hoursFromPoints, HOURS_PER_POINT } from "@/lib/pricing";
+import { priceFromPoints, hoursFromPoints } from "@/lib/pricing";
 import { getCurrentUser } from "@/lib/auth";
 
 type Params = {
@@ -86,6 +86,7 @@ export async function PATCH(request: Request, { params }: Params) {
     const basePoints = deliverable.points ?? 0;
     const adjustedPoints = Math.round(basePoints * complexity * 10) / 10;
     const adjustedHours = hoursFromPoints(adjustedPoints); // hours = 15x complexity
+    const adjustedPrice = priceFromPoints(adjustedPoints);
 
     // Update complexity score and adjusted values in junction table
     await pool.query(

@@ -24,7 +24,7 @@ export async function GET(_req: Request, { params }: Params) {
     }
 
     const row = result.rows[0];
-    const content = row.content as any;
+    const content = row.content as { type?: string; base64?: string; mimetype?: string } | null;
     if (content?.type !== "upload" || !content?.base64) {
       return NextResponse.json({ error: "File content unavailable" }, { status: 400 });
     }

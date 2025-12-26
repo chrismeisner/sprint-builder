@@ -29,7 +29,7 @@ export async function GET(_req: Request, { params }: Params) {
     );
 
     const mapped = docs.rows.map((d) => {
-      const content = d.content as any;
+      const content = d.content as { type?: string; mimetype?: string; size?: number; url?: string; title?: string } | null;
       const type = content?.type ?? "upload";
       if (type === "link") {
         return {

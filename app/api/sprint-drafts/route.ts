@@ -29,7 +29,7 @@ export async function POST(request: Request) {
          ALTER COLUMN base_points TYPE numeric(10,2)
          USING base_points::numeric(10,2)`
       );
-    } catch (err) {
+    } catch {
       // ignore if already correct / no-op
     }
     const user = await getCurrentUser();

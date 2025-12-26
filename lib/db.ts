@@ -45,7 +45,7 @@ export async function ensureSchema(): Promise<void> {
         ALTER COLUMN base_points TYPE numeric(10,2) USING base_points::numeric(10,2)
       `);
       global._basePointsPatched = true;
-    } catch (err) {
+    } catch {
       // Ignore if table/column doesn't exist yet; later schema creation will set type
       global._basePointsPatched = true;
     }

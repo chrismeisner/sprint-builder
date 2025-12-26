@@ -282,8 +282,8 @@ export default function FadeTesterPage() {
               Preview
             </Typography>
             <Typography as="p" scale="body-sm" className="text-text-secondary">
-              Trigger the fade by scrolling the page normally. With "Run only once" off, scroll past the block and back
-              into view to observe fade-out and fade-in.
+              Trigger the fade by scrolling the page normally. With &quot;Run only once&quot; off, scroll past the block
+              and back into view to observe fade-out and fade-in.
             </Typography>
           </div>
 

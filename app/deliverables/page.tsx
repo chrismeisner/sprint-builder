@@ -50,16 +50,6 @@ function getComplexityMeta(pointsLike: NumericLike): ComplexityMeta {
   };
 }
 
-function formatCurrency(valueLike: NumericLike) {
-  const value = toNumber(valueLike);
-  if (value == null) return "Custom";
-  return `$${value.toLocaleString()}`;
-}
-
-function formatHours(_valueLike: NumericLike) {
-  return "—";
-}
-
 export default async function DeliverablesPage() {
   await ensureSchema();
   const pool = getPool();

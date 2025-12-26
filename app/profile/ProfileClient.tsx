@@ -75,14 +75,12 @@ export default function ProfileClient() {
   const [projectName, setProjectName] = useState("");
   const [projectSaving, setProjectSaving] = useState(false);
   const [projectError, setProjectError] = useState<string | null>(null);
-  const [selectedPackageId, setSelectedPackageId] = useState("");
-  const [sprintCreateError, setSprintCreateError] = useState<string | null>(null);
-  const [sprintCreateSavingId, setSprintCreateSavingId] = useState<string | null>(null);
+  const [selectedPackageId] = useState("");
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [packages, setPackages] = useState<Package[]>([]);
-  const [packagesLoading, setPackagesLoading] = useState(true);
+  const [, setPackagesLoading] = useState(true);
   const [packagesError, setPackagesError] = useState<string | null>(null);
   const [memberModalProjectId, setMemberModalProjectId] = useState<string | null>(null);
   const [memberModalProjectName, setMemberModalProjectName] = useState<string>("");
@@ -102,9 +100,7 @@ export default function ProfileClient() {
   const bodyClass = getTypographyClassName("body-md");
   const bodySmClass = getTypographyClassName("body-sm");
   const monoMetaClass = `${getTypographyClassName("mono-sm")} opacity-70`;
-  const statNumberClass = `${getTypographyClassName("mono-lg")} text-text-primary`;
   const tableHeadingClass = `${getTypographyClassName("mono-sm")} uppercase tracking-wide text-text-secondary text-left`;
-  const tableCellClass = getTypographyClassName("body-sm");
   const logoutButtonClasses =
     `${getTypographyClassName("button-md")} px-4 py-2 border border-red-600/20 dark:border-red-400/20 text-red-700 dark:text-red-300 rounded-md hover:bg-red-600/10 dark:hover:bg-red-400/10 disabled:opacity-50 disabled:cursor-not-allowed transition`;
   const projectNameLookup = useMemo(() => {
@@ -263,78 +259,6 @@ export default function ProfileClient() {
       setProjectError(err instanceof Error ? err.message : "Failed to create project");
     } finally {
       setProjectSaving(false);
-    }
-  };
-
-  const handleCreateSprintForProject = async (projectId: string, projectName: string) => {
-    if (!selectedPackageId) {
-      setSprintCreateError("Select a package to continue");
-      return;
-    }
-
-    const selectedPackage = packages.find((p) => p.id === selectedPackageId);
-    const titleFromPackage = selectedPackage?.name || `${projectName} sprint`;
-
-    try {
-      setSprintCreateSavingId(projectId);
-      setSprintCreateError(null);
-      const res = await fetch("/api/sprint-drafts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: titleFromPackage,
-          status: "draft",
-          projectId,
-          sprintPackageId: selectedPackageId,
-        }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.error || "Failed to create sprint");
-      }
-
-      await fetchProfile();
-    } catch (err) {
-      setSprintCreateError(err instanceof Error ? err.message : "Failed to create sprint");
-    }
-    finally {
-      setSprintCreateSavingId(null);
-    }
-  };
-
-  const handleCreateSprintFromPackage = async () => {
-    if (!selectedPackageId) {
-      setSprintCreateError("Select a package to continue");
-      return;
-    }
-
-    const selectedPackage = packages.find((p) => p.id === selectedPackageId);
-    const titleFromPackage = selectedPackage?.name || "New sprint";
-
-    try {
-      setSprintCreateSavingId("package-add");
-      setSprintCreateError(null);
-      const res = await fetch("/api/sprint-drafts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: titleFromPackage,
-          status: "draft",
-          sprintPackageId: selectedPackageId,
-        }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.error || "Failed to create sprint");
-      }
-
-      await fetchProfile();
-    } catch (err) {
-      setSprintCreateError(err instanceof Error ? err.message : "Failed to create sprint");
-    } finally {
-      setSprintCreateSavingId(null);
     }
   };
 

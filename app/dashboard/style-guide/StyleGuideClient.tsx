@@ -105,7 +105,6 @@ const TRACKING_MAX = 0.1;
 const TRACKING_STEP = 0.005;
 const LINE_HEIGHT_MIN = 0.8;
 const LINE_HEIGHT_MAX = 2;
-const LINE_HEIGHT_STEP = 0.05;
 
 const GRID_PREVIEW_BLOCK_BASE_CLASS =
   "rounded-md border border-dashed border-stroke-muted bg-surface-subtle px-3 py-3 flex flex-col gap-1 justify-center";
