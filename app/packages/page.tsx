@@ -1,17 +1,12 @@
 import { ensureSchema, getPool } from "@/lib/db";
 import PackagesClient from "./PackagesClient";
+import type { SprintPackage } from "../components/PackageCard";
 
 export const dynamic = "force-dynamic";
 
-type Package = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
+type Package = SprintPackage & {
   category: string | null;
-  package_type: "foundation" | "extend" | null;
-  tagline: string | null;
-  emoji: string | null;
+  package_type?: "foundation" | "extend";
   flat_fee: number | null;
   flat_hours: number | null;
   featured: boolean;
@@ -70,7 +65,10 @@ export default async function PackagesPage() {
     ORDER BY sp.featured DESC, sp.sort_order ASC, sp.name ASC
   `);
 
-  const packages: Package[] = result.rows;
+  const packages: Package[] = result.rows.map((row) => ({
+    ...row,
+    package_type: row.package_type ?? undefined,
+  }));
 
   return <PackagesClient packages={packages} />;
 }
