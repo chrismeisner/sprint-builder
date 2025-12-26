@@ -2,7 +2,7 @@
 
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PackageCard, { type SprintPackage } from "@/app/components/PackageCard";
-import HeroSection from "@/app/components/HeroSection";
+import HeroSection, { type HeroSectionProps } from "@/app/components/HeroSection";
 import SectionHeader from "@/app/components/SectionHeader";
 import SectionIntro from "@/app/components/SectionIntro";
 import HowItWorksSteps from "@/app/components/HowItWorksSteps";
@@ -329,7 +329,7 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
   const activeOption = previewOptions.find((option) => option.id === selectedOptionId) ?? previewOptions[0];
   const currentLayout = resolveComponentGridPreset(previewCount);
   const selectedImage = imageOptions.find((image) => image.id === selectedImageId);
-  const heroPreviewProps = {
+  const heroPreviewProps: HeroSectionProps = {
     eyebrow: "Now booking for January 2026",
     title: "Early brand & product support for fast-moving founders",
     subtitle: "Two-week sprints led by a senior creative director—strategy, design, and messaging aligned in one climb.",
