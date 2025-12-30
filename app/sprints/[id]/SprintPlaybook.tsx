@@ -16,6 +16,7 @@ export default function SprintPlaybook({ className }: Props) {
     heading: `${typography.headingCard}`,
     label: `${getTypographyClassName("body-sm")} text-text-muted`,
     cellText: `${getTypographyClassName("body-sm")} text-text-primary`,
+    chip: `${getTypographyClassName("body-sm")}`,
   };
 
   const attitudeThemes = [
