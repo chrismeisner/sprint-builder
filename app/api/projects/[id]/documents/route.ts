@@ -26,7 +26,7 @@ export async function GET(_req: Request, { params }: Params) {
       `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
       [params.id, user.email]
     );
-    const isMember = membershipRes.rowCount > 0;
+    const isMember = (membershipRes?.rowCount ?? 0) > 0;
 
     if (!isOwner && !isAdmin && !isMember) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
@@ -94,7 +94,7 @@ export async function POST(request: Request, { params }: Params) {
       `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
       [params.id, user.email]
     );
-    const isMember = membershipRes.rowCount > 0;
+    const isMember = (membershipRes?.rowCount ?? 0) > 0;
 
     if (!isOwner && !isAdmin && !isMember) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
