@@ -146,7 +146,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
     [params.id]
   );
   const budgetPlan =
-    budgetRes.rowCount > 0
+    (budgetRes?.rowCount ?? 0) > 0
       ? (budgetRes.rows[0] as { id: string; label: string | null; created_at: string | Date })
       : null;
 
