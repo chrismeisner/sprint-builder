@@ -243,7 +243,7 @@ export async function POST(request: Request, { params }: Params) {
           dayOfWeek: "Wednesday",
           focus: "Work-in-progress share (ingredient/solution buckets)",
           items: [
-            "Send Loom or Figma walkthrough showing "ingredient/solution" buckets with grouped variations",
+            `Send Loom or Figma walkthrough showing "ingredient/solution" buckets with grouped variations`,
             "Collect inline comments (and optional live sync) to steer what continues into Ingredient Review",
           ],
         },
