@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 
 type DocumentRow = {
   id: string;
@@ -15,14 +14,7 @@ type Props = {
   rows: DocumentRow[];
 };
 
-const MODEL_OPTIONS = [
-  { value: "gpt-4o-mini", label: "gpt-4o-mini" },
-  { value: "gpt-4o", label: "gpt-4o" },
-];
-
 export default function DocumentsClient({ rows }: Props) {
-  const [model, setModel] = useState<string>(MODEL_OPTIONS[0].value);
-
   return (
     <main className="min-h-screen max-w-5xl mx-auto p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

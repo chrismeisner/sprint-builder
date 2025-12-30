@@ -1,7 +1,6 @@
 import DeferredCompensationClient from "./DeferredCompensationClient";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 

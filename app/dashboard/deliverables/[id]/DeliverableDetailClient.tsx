@@ -101,7 +101,10 @@ export default function DeliverableDetailClient({ row, availableTags: initialTag
       const data = await res.json();
       if (res.ok && Array.isArray(data.tags)) {
         setAvailableTags((prev) => {
-          const merged = new Set<string>([...prev, ...data.tags.map((t: any) => t.name as string)]);
+          const merged = new Set<string>([
+            ...prev,
+            ...data.tags.map((t: { name: string }) => t.name as string),
+          ]);
           return Array.from(merged).sort((a, b) => a.localeCompare(b));
         });
       }

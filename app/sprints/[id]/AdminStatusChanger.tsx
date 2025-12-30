@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
-import { typography } from "@/app/components/typography";
 
 type Props = {
   sprintId: string;

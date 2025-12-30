@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 
 type Document = {
@@ -9,12 +8,6 @@ type Document = {
   email: string | null;
   created_at: string;
   has_sprint: boolean;
-};
-
-type GenerationResult = {
-  success: boolean;
-  sprintId?: string;
-  error?: string;
 };
 
 type Props = {
@@ -55,53 +48,43 @@ export default function AdminAiToolsClient({ documents }: Props) {
 
         {filteredDocuments.length === 0 && (
           <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02] p-8 text-center">
-            <p className="text-sm opacity-70">
-              {showOnlyWithoutSprints
-                ? "All documents have sprint drafts! Toggle the filter to see all documents."
-                : "No documents found."}
-            </p>
+            <p className="text-sm opacity-70">No documents found.</p>
           </div>
         )}
 
-        {filteredDocuments.map((doc) => {
-          const result = results[doc.id];
-          const isGenerating = generatingId === doc.id;
-
-          return (
-            <div
-              key={doc.id}
-              className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-3"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/documents/${doc.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {doc.filename || "Untitled Document"}
-                    </Link>
-                    {doc.has_sprint && (
-                      <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 text-xs font-medium">
-                        ✓ Has Sprint
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs opacity-60">
-                    {doc.email && <span className="mr-3">📧 {doc.email}</span>}
-                    <span>🕐 {new Date(doc.created_at).toLocaleString()}</span>
-                  </div>
-                  <div className="text-xs font-mono opacity-50">ID: {doc.id}</div>
+        {filteredDocuments.map((doc) => (
+          <div
+            key={doc.id}
+            className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-3"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/documents/${doc.id}`}
+                    className="font-medium hover:underline"
+                  >
+                    {doc.filename || "Untitled Document"}
+                  </Link>
+                  {doc.has_sprint && (
+                    <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 text-xs font-medium">
+                      ✓ Has Sprint
+                    </span>
+                  )}
                 </div>
-
-                <div className="flex items-center gap-2 text-sm text-text-muted">AI disabled</div>
+                <div className="text-xs opacity-60">
+                  {doc.email && <span className="mr-3">📧 {doc.email}</span>}
+                  <span>🕐 {new Date(doc.created_at).toLocaleString()}</span>
+                </div>
+                <div className="text-xs font-mono opacity-50">ID: {doc.id}</div>
               </div>
 
-              {/* Result Display */}
-              {/* Result Display intentionally removed while AI is disabled */}
+              <div className="flex items-center gap-2 text-sm text-text-muted">AI disabled</div>
             </div>
-          );
-        })}
+
+            {/* Result Display intentionally removed while AI is disabled */}
+          </div>
+        ))}
       </div>
 
       {/* Info Section */}

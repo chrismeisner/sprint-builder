@@ -740,12 +740,31 @@ export default function ProfileClient() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <Link
-                        href={`/projects/${project.id}`}
-                        className={`${getTypographyClassName("button-sm")} w-full px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition text-center inline-block`}
-                      >
-                        Open project
-                      </Link>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <Link
+                          href={`/projects/${project.id}`}
+                          className={`${getTypographyClassName("button-sm")} w-full sm:w-auto px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition text-center inline-block`}
+                        >
+                          Open project
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => openMemberModal(project)}
+                          className={`${getTypographyClassName("button-sm")} w-full sm:w-auto px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition text-center`}
+                        >
+                          Members
+                        </button>
+                        {project.isOwner !== false && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteProject(project.id)}
+                            disabled={deletingProjectId === project.id}
+                            className={`${getTypographyClassName("button-sm")} w-full sm:w-auto px-3 py-2 rounded-md border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50 transition text-center`}
+                          >
+                            {deletingProjectId === project.id ? "Deleting…" : "Delete"}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -41,7 +41,6 @@ export default function DeliverablesClient({ rows }: Props) {
     return Array.from(unique);
   });
   const [showInactive, setShowInactive] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const escapeCsv = (value: string) => `"${value.replace(/"/g, '""')}"`;
   const formatPoints = (value: number | null) =>
@@ -111,7 +110,6 @@ export default function DeliverablesClient({ rows }: Props) {
     // Ensure latest data after navigation back from edits
     const fetchLatest = async () => {
       try {
-        setRefreshing(true);
         const res = await fetch("/api/deliverables?includeInactive=true", { cache: "no-store" });
         const data = await res.json();
         if (res.ok && Array.isArray(data.deliverables)) {
@@ -119,8 +117,6 @@ export default function DeliverablesClient({ rows }: Props) {
         }
       } catch {
         // ignore and keep existing data
-      } finally {
-        setRefreshing(false);
       }
     };
     fetchLatest();

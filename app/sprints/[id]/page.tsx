@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { hoursFromPoints } from "@/lib/pricing";
-import DeliverablesEditor from "./DeliverablesEditor";
 import SprintTotals from "./SprintTotals";
 import AdminStatusChanger from "./AdminStatusChanger";
 import DeleteSprintButton from "./DeleteSprintButton";

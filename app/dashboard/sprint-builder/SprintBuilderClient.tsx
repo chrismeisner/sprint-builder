@@ -174,7 +174,7 @@ export default function SprintBuilderClient({ deliverables, projects }: Props) {
 
         // Map deliverables to builder state
         setSelectedDeliverables(
-          delivs.map((d: any) => ({
+          delivs.map((d: { deliverableId: unknown; multiplier?: unknown; note?: unknown }) => ({
             deliverableId: String(d.deliverableId),
             multiplier: Number.isFinite(Number(d.multiplier)) ? Number(d.multiplier) : 1,
             note: typeof d.note === "string" ? d.note : "",
@@ -254,10 +254,6 @@ export default function SprintBuilderClient({ deliverables, projects }: Props) {
     editingBasePoints != null && Number.isFinite(editingMultiplier)
       ? editingBasePoints * editingMultiplier
       : null;
-  const editingBaseHours =
-    editingBasePoints != null && Number.isFinite(editingBasePoints)
-      ? hoursFromPoints(editingBasePoints)
-      : null;
   const editingAdjustedHours =
     editingAdjustedPoints != null && Number.isFinite(editingAdjustedPoints)
       ? hoursFromPoints(editingAdjustedPoints)
@@ -275,7 +271,6 @@ export default function SprintBuilderClient({ deliverables, projects }: Props) {
     }).format(dt);
   }
 
-  const startFriendly = formatFriendly(startDate || null);
   const endFriendly = formatFriendly(endDate);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -720,10 +715,6 @@ export default function SprintBuilderClient({ deliverables, projects }: Props) {
                     const adjustedPoints =
                       d.points != null && Number.isFinite(Number(d.points))
                         ? Number(d.points) * (Number.isFinite(item.multiplier) ? item.multiplier : 1)
-                        : null;
-                    const adjustedHours =
-                      adjustedPoints != null && Number.isFinite(Number(adjustedPoints))
-                        ? hoursFromPoints(Number(adjustedPoints))
                         : null;
 
                     return (

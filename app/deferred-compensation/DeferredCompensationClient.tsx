@@ -105,7 +105,6 @@ export default function DeferredCompensationClient({
   const upfrontAmount = upfrontPayment * totalProjectValue;
   const equityAmount = equityPercent * totalProjectValue;
   const deferredAmount = deferredPercent * totalProjectValue;
-  const hasValidMilestone = milestones.length > 0;
   const totalMilestoneMultiplier = milestones.reduce(
     (sum, m) => (m.multiplier > 0 ? sum + m.multiplier : sum),
     0
@@ -384,7 +383,6 @@ export default function DeferredCompensationClient({
 
         <div className="space-y-3">
           {milestones.map((milestone) => {
-            const projected = deferredAmount * milestone.multiplier;
             return (
               <div
                 key={milestone.id}
