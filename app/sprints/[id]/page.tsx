@@ -471,19 +471,19 @@ export default async function SprintDetailPage({ params }: PageProps) {
           <div className={`rounded-lg border border-black/10 dark:border-white/15 p-4 ${t.bodySm}`}>
             <h2 className={`${t.cardHeading} mb-3`}>Timeline</h2>
             <ol className="space-y-3">
-              {plan.timeline.map((t, i) => (
-                <li key={`${t.day || i}`} className="rounded border border-black/10 dark:border-white/15 p-3">
+              {plan.timeline.map((entry, i) => (
+                <li key={`${entry.day || i}`} className="rounded border border-black/10 dark:border-white/15 p-3">
                   <div className={t.bodySm}>
                     <div className={`${getTypographyClassName("subtitle-sm")} flex items-baseline gap-2 text-text-primary`}>
-                      <span>Day {typeof t.day === "number" ? t.day : t.day || i + 1}</span>
-                      {t.dayOfWeek && (
-                        <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>({t.dayOfWeek})</span>
+                      <span>Day {typeof entry.day === "number" ? entry.day : entry.day || i + 1}</span>
+                      {entry.dayOfWeek && (
+                        <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>({entry.dayOfWeek})</span>
                       )}
-                      {t.focus && <span className="text-text-secondary">— {t.focus}</span>}
+                      {entry.focus && <span className="text-text-secondary">— {entry.focus}</span>}
                     </div>
-                    {t.items && t.items.length > 0 ? (
+                    {entry.items && entry.items.length > 0 ? (
                       <ul className="list-disc pl-5 mt-2 space-y-1">
-                        {t.items.map((it, j) => (
+                        {entry.items.map((it, j) => (
                           <li key={`${it}-${j}`}>{it}</li>
                         ))}
                       </ul>
