@@ -14,7 +14,7 @@ export default async function Header() {
         <div className="flex items-center gap-6">
           {user?.isAdmin ? <AdminMenuButton /> : null}
           <Link href="/" className="flex items-center space-x-2">
-            <Typography as="span" scale="h3" className="tracking-tight">
+            <Typography as="span" scale="subtitle-md" className="tracking-tight">
               Meisner Design
             </Typography>
           </Link>

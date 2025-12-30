@@ -495,19 +495,19 @@ export const typographyScale: TypographyToken[] = [
     label: "Subtitle Medium",
     usage: "Supporting sentences and UI section intros",
     fontFamily: "Inter",
-    fontWeight: "Light 300",
-    baseClass: "font-inter font-light tracking-[0rem]",
+    fontWeight: "Semibold 600",
+    baseClass: "font-inter font-semibold tracking-[-0.015em]",
     desktop: {
       sizeClass: "text-[1.25rem]",
       pixels: "20px",
       rem: "1.25rem",
-      lineHeight: "2rem",
+      lineHeight: "1.6rem",
     },
     mobile: {
       sizeClass: "text-[1.25rem]",
       pixels: "20px",
       rem: "1.25rem",
-      lineHeight: "2rem",
+      lineHeight: "1.6rem",
     },
   },
   {
