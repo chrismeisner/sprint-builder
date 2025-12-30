@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PackageCard, { type SprintPackage } from "@/app/components/PackageCard";
 import HeroSection, { type HeroSectionProps } from "@/app/components/HeroSection";
@@ -654,15 +655,16 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
             <div className="space-y-4">
               <div className="relative overflow-hidden border border-black/10 bg-black/5 text-white shadow-sm dark:border-white/15 dark:bg-white/5">
                 {selectedImage ? (
-                  <>
-                    <img
+                  <div className="relative h-[420px] w-full">
+                    <Image
                       src={selectedImage.url}
                       alt={selectedImage.label}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-[420px] w-full object-cover"
+                      fill
+                      sizes="(min-width: 1024px) 900px, 100vw"
+                      className="object-cover"
+                      unoptimized
                     />
-                  </>
+                  </div>
                 ) : (
                   <div className="flex h-[320px] flex-col items-center justify-center gap-3 px-6 text-center text-sm font-semibold text-black/60 dark:text-white/70 lg:h-[420px]">
                     {imageLoading ? (

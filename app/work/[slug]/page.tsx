@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ensureSchema, getPool } from "@/lib/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -120,10 +121,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         {/* Hero Image */}
         {project.thumbnail_url && (
           <div className="rounded-lg overflow-hidden border border-black/10 dark:border-white/15">
-            <img
+            <Image
               src={project.thumbnail_url}
               alt={project.title}
-              className="w-full h-auto"
+              width={1600}
+              height={900}
+              className="h-auto w-full"
+              sizes="100vw"
+              unoptimized
             />
           </div>
         )}
@@ -163,7 +168,15 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   key={i}
                   className="rounded-lg overflow-hidden border border-black/10 dark:border-white/15"
                 >
-                  <img src={img} alt={`${project.title} ${i + 1}`} className="w-full h-auto" />
+                  <Image
+                    src={img}
+                    alt={`${project.title} ${i + 1}`}
+                    width={1200}
+                    height={800}
+                    className="h-auto w-full"
+                    sizes="(min-width: 1024px) 600px, (min-width: 640px) 50vw, 100vw"
+                    unoptimized
+                  />
                 </div>
               ))}
             </div>

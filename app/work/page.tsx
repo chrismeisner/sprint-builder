@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ensureSchema, getPool } from "@/lib/db";
 import Link from "next/link";
 
@@ -54,11 +55,14 @@ export default async function WorkPage() {
                 className="group rounded-lg border border-black/10 dark:border-white/15 overflow-hidden hover:border-black/20 dark:hover:border-white/25 transition"
               >
                 {project.thumbnail_url ? (
-                  <div className="aspect-video bg-black/5 dark:bg-white/5">
-                    <img
+                  <div className="aspect-video bg-black/5 dark:bg-white/5 relative">
+                    <Image
                       src={project.thumbnail_url}
                       alt={project.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="(min-width: 1024px) 400px, (min-width: 768px) 50vw, 100vw"
+                      unoptimized
                     />
                   </div>
                 ) : (
@@ -106,11 +110,14 @@ export default async function WorkPage() {
                 className="group rounded-lg border border-black/10 dark:border-white/15 overflow-hidden hover:border-black/20 dark:hover:border-white/25 transition"
               >
                 {project.thumbnail_url ? (
-                  <div className="aspect-video bg-black/5 dark:bg-white/5">
-                    <img
+                  <div className="aspect-video bg-black/5 dark:bg-white/5 relative">
+                    <Image
                       src={project.thumbnail_url}
                       alt={project.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="(min-width: 1024px) 400px, (min-width: 768px) 50vw, 100vw"
+                      unoptimized
                     />
                   </div>
                 ) : (

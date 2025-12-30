@@ -1,7 +1,5 @@
 import Link from "next/link";
 
-import Typography from "@/components/ui/Typography";
-
 export const dynamic = "force-dynamic";
 
 export default function Home() {

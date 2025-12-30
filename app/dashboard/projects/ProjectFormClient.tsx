@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
@@ -407,8 +408,15 @@ export default function ProjectFormClient({ project, mode }: Props) {
             </label>
           </div>
           {thumbnailUrl && (
-            <div className="mt-2">
-              <img src={thumbnailUrl} alt="Thumbnail preview" className="max-w-xs rounded border border-black/10 dark:border-white/15" />
+            <div className="mt-2 max-w-xs">
+              <Image
+                src={thumbnailUrl}
+                alt="Thumbnail preview"
+                width={320}
+                height={200}
+                className="h-auto w-full rounded border border-black/10 dark:border-white/15"
+                unoptimized
+              />
             </div>
           )}
         </div>

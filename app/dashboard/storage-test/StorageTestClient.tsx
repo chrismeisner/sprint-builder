@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 
@@ -428,10 +429,13 @@ export default function StorageTestClient() {
                 <td className="py-3 px-2">
                   <div className="flex items-center gap-3">
                     {isImageContentType(file.contentType, file.name) && (
-                      <img
+                      <Image
                         src={file.signedUrl || file.url}
                         alt={file.displayName}
-                        className="w-12 h-12 object-cover rounded border border-black/10 dark:border-white/15"
+                        width={48}
+                        height={48}
+                        className="h-12 w-12 object-cover rounded border border-black/10 dark:border-white/15"
+                        unoptimized
                       />
                     )}
                     <div className="min-w-0">
@@ -627,10 +631,13 @@ export default function StorageTestClient() {
                             Open link
                           </a>
                           {isImageContentType(task.contentType, task.fileName) && (
-                            <img
+                            <Image
                               src={task.url}
                               alt={task.fileName}
-                              className="w-16 h-16 object-cover rounded border border-black/10 dark:border-white/15"
+                              width={64}
+                              height={64}
+                              className="h-16 w-16 object-cover rounded border border-black/10 dark:border-white/15"
+                              unoptimized
                             />
                           )}
                         </div>
@@ -837,10 +844,13 @@ export default function StorageTestClient() {
               <div className="mb-6 p-3 rounded-md bg-black/5 dark:bg-white/5">
                 <div className="flex items-center gap-2">
                   {isImageContentType(fileToDelete.contentType, fileToDelete.name) && (
-                    <img
+                    <Image
                       src={fileToDelete.signedUrl || fileToDelete.url}
                       alt={fileToDelete.displayName}
-                      className="w-12 h-12 object-cover rounded border border-black/10 dark:border-white/15"
+                      width={48}
+                      height={48}
+                      className="h-12 w-12 object-cover rounded border border-black/10 dark:border-white/15"
+                      unoptimized
                     />
                   )}
                   <div className="flex-1 min-w-0">

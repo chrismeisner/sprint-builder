@@ -51,32 +51,38 @@ export default function IndexTableClient({ pages }: Props) {
       <table className="min-w-full text-sm">
         <thead className="border-b border-stroke-muted bg-surface-strong/60 text-left text-xs uppercase tracking-wide">
           <tr>
-            <th className="px-4 py-3 font-semibold">
+            <th
+              className="px-4 py-3 font-semibold"
+              aria-sort={sortKey === "route" ? (direction === "asc" ? "ascending" : "descending") : "none"}
+            >
               <button
                 type="button"
                 className="flex items-center gap-1 hover:underline"
                 onClick={() => toggleSort("route")}
-                aria-sort={sortKey === "route" ? (direction === "asc" ? "ascending" : "descending") : "none"}
               >
                 {renderSortLabel("Route", "route")}
               </button>
             </th>
-            <th className="px-4 py-3 font-semibold">
+            <th
+              className="px-4 py-3 font-semibold"
+              aria-sort={sortKey === "filePath" ? (direction === "asc" ? "ascending" : "descending") : "none"}
+            >
               <button
                 type="button"
                 className="flex items-center gap-1 hover:underline"
                 onClick={() => toggleSort("filePath")}
-                aria-sort={sortKey === "filePath" ? (direction === "asc" ? "ascending" : "descending") : "none"}
               >
                 {renderSortLabel("File", "filePath")}
               </button>
             </th>
-            <th className="px-4 py-3 font-semibold whitespace-nowrap">
+            <th
+              className="px-4 py-3 font-semibold whitespace-nowrap"
+              aria-sort={sortKey === "updatedAt" ? (direction === "asc" ? "ascending" : "descending") : "none"}
+            >
               <button
                 type="button"
                 className="flex items-center gap-1 hover:underline"
                 onClick={() => toggleSort("updatedAt")}
-                aria-sort={sortKey === "updatedAt" ? (direction === "asc" ? "ascending" : "descending") : "none"}
               >
                 {renderSortLabel("Last updated", "updatedAt")}
               </button>
