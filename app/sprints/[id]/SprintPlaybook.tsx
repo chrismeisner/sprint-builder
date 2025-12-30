@@ -36,7 +36,7 @@ export default function SprintPlaybook({ className }: Props) {
       day: string;
       title: string;
       detail: string;
-      engagement: ReturnType<typeof ENGAGEMENT_BADGES[keyof typeof ENGAGEMENT_BADGES]> | null | undefined;
+      engagement: (typeof ENGAGEMENT_BADGES)[keyof typeof ENGAGEMENT_BADGES] | null | undefined;
       attitude: string;
     }> = [];
     let idx = 0;
