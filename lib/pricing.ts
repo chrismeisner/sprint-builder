@@ -1,6 +1,6 @@
-export const POINT_BASE_FEE = 5000;
-export const POINT_PRICE_PER_POINT = 2500;
-export const HOURS_PER_POINT = 15;
+export const POINT_BASE_FEE = 0;
+export const POINT_PRICE_PER_POINT = 1750;
+export const HOURS_PER_POINT = 10;
 
 /**
  * Human-readable formula string so UI copies stay in sync with constants.

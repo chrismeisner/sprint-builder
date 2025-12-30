@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Typography from "@/components/ui/Typography";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
+import { hoursFromPoints } from "@/lib/pricing";
 
 type Row = {
   id: string;
@@ -16,81 +17,40 @@ type Row = {
   active: boolean;
   created_at: string | Date;
   updated_at: string | Date;
+  tags: string[];
 };
 
 type Props = {
   rows: Row[];
 };
 
+type SortColumn = "name" | "category" | "points" | null;
+type SortDirection = "asc" | "desc" | null;
+const UNCATEGORIZED_KEY = "__uncategorized__";
+
 export default function DeliverablesClient({ rows }: Props) {
   const [items, setItems] = useState<Row[]>(rows);
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
-  const [description, setDescription] = useState("");
-  const [scope, setScope] = useState("");
-  const [format, setFormat] = useState("");
-  const [points, setPoints] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pointSort, setPointSort] = useState<"asc" | "desc" | null>("asc");
+  const [sortColumn, setSortColumn] = useState<SortColumn>("points");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [duplicateTarget, setDuplicateTarget] = useState<Row | null>(null);
   const [duplicateName, setDuplicateName] = useState("");
   const [duplicateSubmitting, setDuplicateSubmitting] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const [enabledCategories, setEnabledCategories] = useState<string[]>(() => {
+    const unique = new Set(rows.map((row) => row.category ?? UNCATEGORIZED_KEY));
+    return Array.from(unique);
+  });
+  const [showInactive, setShowInactive] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const escapeCsv = (value: string) => `"${value.replace(/"/g, '""')}"`;
   const formatPoints = (value: number | null) =>
     value == null ? "" : Number(value).toFixed(1).replace(/\.0$/, "");
+  const formatHours = (value: number | null) => {
+    if (value == null) return "";
+    return hoursFromPoints(value).toFixed(1).replace(/\.0$/, "");
+  };
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    try {
-      setSubmitting(true);
-      setError(null);
-      const body: Record<string, unknown> = {
-        name,
-        description: description || null,
-        category: category || null,
-        scope: scope || null,
-        format: format || null,
-        points: points || null,
-      };
-      const res = await fetch("/api/deliverables", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to create deliverable");
-      }
-      const id = data.id as string;
-      const now = new Date().toISOString();
-      const newRow: Row = {
-        id,
-        name,
-        description: description || null,
-        category: category || null,
-        scope: scope || null,
-        format: format || null,
-        points: points ? Number(points) : null,
-        active: true,
-        created_at: now,
-        updated_at: now,
-      };
-      setItems((prev) => [newRow, ...prev]);
-      setName("");
-      setCategory("");
-      setDescription("");
-      setScope("");
-      setFormat("");
-      setPoints("");
-    } catch (e) {
-      setError((e as Error).message || "Failed to create deliverable");
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   async function toggleActive(item: Row) {
     try {
@@ -109,9 +69,13 @@ export default function DeliverablesClient({ rows }: Props) {
         )
       );
     } catch (e) {
-      setError((e as Error).message || "Failed to update deliverable");
+      // For now, silently fail. Could add toast notifications later
+      console.error("Failed to toggle deliverable active status:", e);
     }
   }
+
+  const getCategoryLabel = (value: string | null) =>
+    value == null ? "Uncategorized" : value;
 
   const labelClass = `${getTypographyClassName("body-sm")} font-semibold text-text-secondary`;
   const tableHeadingClass = `${getTypographyClassName("body-sm")} font-semibold text-left`;
@@ -119,24 +83,107 @@ export default function DeliverablesClient({ rows }: Props) {
   const helperTextClass = `${getTypographyClassName("body-sm")} opacity-70`;
   const inputTextClass = getTypographyClassName("body-sm");
   const buttonTextClass = getTypographyClassName("body-sm");
-  const sortedItems = useMemo(() => {
-    if (!pointSort) return items;
-    return [...items].sort((a, b) => {
-      const aPoints = a.points;
-      const bPoints = b.points;
-      if (aPoints == null && bPoints == null) return 0;
-      if (aPoints == null) return 1;
-      if (bPoints == null) return -1;
-      return pointSort === "asc" ? aPoints - bPoints : bPoints - aPoints;
-    });
-  }, [items, pointSort]);
 
-  const togglePointSort = () =>
-    setPointSort((prev) => {
-      if (prev === "asc") return "desc";
-      if (prev === "desc") return null;
-      return "asc";
+  const categoryOptions = useMemo(() => {
+    const unique = new Set(items.map((item) => item.category ?? UNCATEGORIZED_KEY));
+    return Array.from(unique).sort((a, b) => {
+      const aLabel = getCategoryLabel(a === UNCATEGORIZED_KEY ? null : a);
+      const bLabel = getCategoryLabel(b === UNCATEGORIZED_KEY ? null : b);
+      return aLabel.localeCompare(bLabel);
     });
+  }, [items]);
+
+  useEffect(() => {
+    setEnabledCategories((prev) => {
+      const next = new Set(prev);
+      let changed = false;
+      categoryOptions.forEach((cat) => {
+        if (!next.has(cat)) {
+          next.add(cat);
+          changed = true;
+        }
+      });
+      return changed ? Array.from(next) : prev;
+    });
+  }, [categoryOptions]);
+
+  useEffect(() => {
+    // Ensure latest data after navigation back from edits
+    const fetchLatest = async () => {
+      try {
+        setRefreshing(true);
+        const res = await fetch("/api/deliverables?includeInactive=true", { cache: "no-store" });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.deliverables)) {
+          setItems(data.deliverables as Row[]);
+        }
+      } catch {
+        // ignore and keep existing data
+      } finally {
+        setRefreshing(false);
+      }
+    };
+    fetchLatest();
+  }, []);
+
+  const filteredItems = useMemo(() => {
+    if (enabledCategories.length === 0) return [];
+    const enabled = new Set(enabledCategories);
+    return items.filter((item) => {
+      const inCategory = enabled.has(item.category ?? UNCATEGORIZED_KEY);
+      const inStatus = item.active || showInactive;
+      return inCategory && inStatus;
+    });
+  }, [items, enabledCategories, showInactive]);
+
+  const sortedItems = useMemo(() => {
+    if (!sortColumn || !sortDirection) return filteredItems;
+    const compareStrings = (a?: string | null, b?: string | null) => {
+      const aVal = a?.toLowerCase() ?? "";
+      const bVal = b?.toLowerCase() ?? "";
+      return aVal.localeCompare(bVal, undefined, { numeric: true });
+    };
+    const compareNumbers = (a?: number | null, b?: number | null) => {
+      if (a == null && b == null) return 0;
+      if (a == null) return 1;
+      if (b == null) return -1;
+      return a - b;
+    };
+    return [...filteredItems].sort((a, b) => {
+      let result = 0;
+      if (sortColumn === "name") {
+        result = compareStrings(a.name, b.name);
+      } else if (sortColumn === "category") {
+        result = compareStrings(a.category, b.category);
+        if (result === 0) {
+          result = compareNumbers(a.points, b.points);
+        }
+      } else if (sortColumn === "points") {
+        result = compareNumbers(a.points, b.points);
+      }
+      return sortDirection === "asc" ? result : -result;
+    });
+  }, [filteredItems, sortColumn, sortDirection]);
+
+  const toggleSort = (column: SortColumn) => {
+    setSortColumn((prevCol) => {
+      if (prevCol !== column) {
+        setSortDirection("asc");
+        return column;
+      }
+      // same column: cycle asc -> desc -> none
+      setSortDirection((prevDir) => {
+        if (prevDir === "asc") return "desc";
+        if (prevDir === "desc") {
+          // clear sort
+          setSortColumn(null);
+          return null;
+        }
+        return "asc";
+      });
+      return column;
+    });
+  };
 
   function openDuplicate(item: Row) {
     setDuplicateTarget(item);
@@ -203,14 +250,15 @@ export default function DeliverablesClient({ rows }: Props) {
   }
 
   function handleDownloadCsv() {
-    const headers = ["Name", "Category", "Points", "Active", "Format", "Scope"];
+    const headers = ["Name", "Category", "Points", "Hours", "Active", "Format", "Tags"];
     const rows = sortedItems.map((item) => [
       item.name,
       item.category ?? "",
       formatPoints(item.points),
+      formatHours(item.points),
       item.active ? "Active" : "Inactive",
       item.format ?? "",
-      item.scope ?? "",
+      item.tags?.join("; ") ?? "",
     ]);
     const csv = [headers, ...rows]
       .map((row) => row.map((cell) => escapeCsv(String(cell))).join(","))
@@ -230,116 +278,22 @@ export default function DeliverablesClient({ rows }: Props) {
         <Typography as="h1" scale="h2">
           Deliverables
         </Typography>
-        <Link
-          href="/dashboard"
-          className={`${buttonTextClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition`}
-        >
-          Back to dashboard
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/deliverables/new"
+            className={`${buttonTextClass} inline-flex items-center rounded-md bg-black text-white px-4 py-2 hover:bg-gray-800 transition`}
+          >
+            New Deliverable
+          </Link>
+          <Link
+            href="/dashboard"
+            className={`${buttonTextClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+          >
+            Back to dashboard
+          </Link>
+        </div>
       </div>
 
-      <section className="rounded-lg border border-black/10 dark:border-white/15 p-5 space-y-4">
-        <Typography as="h2" scale="h3">
-          Add deliverable
-        </Typography>
-        {error && (
-          <div className={`${getTypographyClassName("body-sm")} rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700`}>
-            {error}
-          </div>
-        )}
-        <form className="grid gap-3 sm:grid-cols-2" onSubmit={handleCreate}>
-          <div className="sm:col-span-1">
-            <label className={`${labelClass} mb-1 block`} htmlFor="name">
-              Name
-            </label>
-            <input
-              id="name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={`${inputTextClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-              placeholder="e.g. Product spec doc"
-            />
-          </div>
-          <div className="sm:col-span-1">
-            <label className={`${labelClass} mb-1 block`} htmlFor="category">
-              Category
-            </label>
-            <select
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className={`${inputTextClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-            >
-              <option value="">Select category</option>
-              <option value="Branding">Branding</option>
-              <option value="Product">Product</option>
-              <option value="Strategy">Strategy</option>
-            </select>
-          </div>
-          <div className="sm:col-span-2">
-            <label className={`${labelClass} mb-1 block`} htmlFor="description">
-              Description (when to use this)
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className={`${inputTextClass} w-full rounded-md border border-black/15 px-2 py-1.5 min-h-[60px] bg-white text-black`}
-              placeholder="When to use this deliverable..."
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={`${labelClass} mb-1 block`} htmlFor="scope">
-              Scope (what&apos;s included)
-            </label>
-            <textarea
-              id="scope"
-              value={scope}
-              onChange={(e) => setScope(e.target.value)}
-              className={`${inputTextClass} w-full rounded-md border border-black/15 px-2 py-1.5 min-h-[80px] bg-white text-black`}
-              placeholder="• Item 1&#10;• Item 2&#10;• Item 3"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={`${labelClass} mb-1 block`} htmlFor="format">
-              Format (what we deliver)
-            </label>
-            <input
-              id="format"
-              value={format}
-              onChange={(e) => setFormat(e.target.value)}
-              className={`${inputTextClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-              placeholder="e.g. Flow diagram (Figma) + annotations"
-            />
-          </div>
-          <div className="sm:col-span-1">
-            <label className={`${labelClass} mb-1 block`} htmlFor="points">
-              Complexity (points)
-            </label>
-            <input
-              id="points"
-              type="number"
-              step="0.1"
-              min="0.1"
-              max="3"
-              value={points}
-              onChange={(e) => setPoints(e.target.value)}
-              className={`${inputTextClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-              placeholder="e.g. 2.5"
-            />
-          </div>
-          <div className="sm:col-span-2 flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={submitting}
-              className={`${buttonTextClass} inline-flex items-center rounded-md bg-black text-white px-4 py-2 disabled:opacity-60`}
-            >
-              {submitting ? "Saving…" : "Add deliverable"}
-            </button>
-          </div>
-        </form>
-      </section>
 
       <section>
         <div className="mb-2 flex items-center justify-between gap-3">
@@ -356,36 +310,153 @@ export default function DeliverablesClient({ rows }: Props) {
             </button>
           )}
         </div>
+
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <span className={helperTextClass}>Filter by category:</span>
+          {categoryOptions.length > 0 &&
+            categoryOptions.map((category) => {
+              const label = getCategoryLabel(category === UNCATEGORIZED_KEY ? null : category);
+              const checked = enabledCategories.includes(category);
+              return (
+                <label
+                  key={category}
+                  className={`${getTypographyClassName(
+                    "body-sm"
+                  )} inline-flex items-center gap-2 rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-white/5 px-3 py-1.5`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() =>
+                      setEnabledCategories((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(category)) {
+                          next.delete(category);
+                        } else {
+                          next.add(category);
+                        }
+                        return Array.from(next);
+                      })
+                    }
+                    className="h-4 w-4 accent-black"
+                  />
+                  <span>{label}</span>
+                </label>
+              );
+            })}
+          <label
+            className={`${getTypographyClassName(
+              "body-sm"
+            )} inline-flex items-center gap-2 rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-white/5 px-3 py-1.5`}
+          >
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={() => setShowInactive((prev) => !prev)}
+              className="h-4 w-4 accent-black"
+            />
+            <span>Show inactive</span>
+          </label>
+        </div>
+
         {items.length === 0 ? (
           <p className={helperTextClass}>No deliverables yet.</p>
+        ) : sortedItems.length === 0 ? (
+          <p className={helperTextClass}>No deliverables match the selected filters.</p>
         ) : (
           <div className="rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead className="bg-black/5 dark:bg-white/5">
                   <tr>
-                    <th className={`${tableHeadingClass} px-4 py-2`}>Name</th>
-                    <th className={`${tableHeadingClass} px-4 py-2`}>Category</th>
                     <th
                       className={`${tableHeadingClass} px-4 py-2`}
-                      aria-sort={pointSort === "asc" ? "ascending" : pointSort === "desc" ? "descending" : "none"}
+                      aria-sort={
+                        sortColumn === "name"
+                          ? sortDirection === "asc"
+                            ? "ascending"
+                            : sortDirection === "desc"
+                              ? "descending"
+                              : "none"
+                          : "none"
+                      }
                     >
-                      <button type="button" onClick={togglePointSort} className="inline-flex items-center gap-1">
-                        <span>Points</span>
+                      <button type="button" onClick={() => toggleSort("name")} className="inline-flex items-center gap-1">
+                        <span>Name</span>
                         <span className="text-xs opacity-70">
-                          {pointSort === "asc" ? "▲" : pointSort === "desc" ? "▼" : ""}
+                          {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : sortDirection === "desc" ? "▼" : "") : ""}
                         </span>
                       </button>
                     </th>
+                    <th
+                      className={`${tableHeadingClass} px-4 py-2`}
+                      aria-sort={
+                        sortColumn === "category"
+                          ? sortDirection === "asc"
+                            ? "ascending"
+                            : sortDirection === "desc"
+                              ? "descending"
+                              : "none"
+                          : "none"
+                      }
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("category")}
+                        className="inline-flex items-center gap-1"
+                      >
+                        <span>Category</span>
+                        <span className="text-xs opacity-70">
+                          {sortColumn === "category"
+                            ? sortDirection === "asc"
+                              ? "▲"
+                              : sortDirection === "desc"
+                                ? "▼"
+                                : ""
+                            : ""}
+                        </span>
+                      </button>
+                    </th>
+                    <th
+                      className={`${tableHeadingClass} px-4 py-2`}
+                      aria-sort={
+                        sortColumn === "points"
+                          ? sortDirection === "asc"
+                            ? "ascending"
+                            : sortDirection === "desc"
+                              ? "descending"
+                              : "none"
+                          : "none"
+                      }
+                    >
+                      <button type="button" onClick={() => toggleSort("points")} className="inline-flex items-center gap-1">
+                        <span>Points</span>
+                        <span className="text-xs opacity-70">
+                          {sortColumn === "points"
+                            ? sortDirection === "asc"
+                              ? "▲"
+                              : sortDirection === "desc"
+                                ? "▼"
+                                : ""
+                            : ""}
+                        </span>
+                      </button>
+                    </th>
+                    <th className={`${tableHeadingClass} px-4 py-2`}>Hours</th>
                     <th className={`${tableHeadingClass} px-4 py-2`}>Active</th>
                     <th className={`${tableHeadingClass} px-4 py-2`}>Format</th>
-                    <th className={`${tableHeadingClass} px-4 py-2`}>Scope</th>
+                    <th className={`${tableHeadingClass} px-4 py-2`}>Tags</th>
                     <th className={`${tableHeadingClass} px-4 py-2`}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedItems.map((item) => (
-                    <tr key={item.id} className="border-t border-black/10 dark:border-white/10">
+                    <tr
+                      key={item.id}
+                      className={`border-t border-black/10 dark:border-white/10 ${
+                        item.active ? "" : "bg-gray-50 dark:bg-white/5 text-black/60 dark:text-white/60"
+                      }`}
+                    >
                       <td className={`${tableCellClass} px-4 py-2`}>{item.name}</td>
                       <td className={`${tableCellClass} px-4 py-2`}>
                         {item.category || <span className="opacity-50">—</span>}
@@ -393,6 +464,13 @@ export default function DeliverablesClient({ rows }: Props) {
                       <td className={`${tableCellClass} px-4 py-2`}>
                         {item.points != null ? (
                           Number(item.points).toFixed(1).replace(/\.0$/, "")
+                        ) : (
+                          <span className="opacity-50">—</span>
+                        )}
+                      </td>
+                      <td className={`${tableCellClass} px-4 py-2`}>
+                        {item.points != null ? (
+                          hoursFromPoints(Number(item.points)).toFixed(1).replace(/\.0$/, "")
                         ) : (
                           <span className="opacity-50">—</span>
                         )}
@@ -415,8 +493,23 @@ export default function DeliverablesClient({ rows }: Props) {
                       <td className={`${tableCellClass} px-4 py-2 whitespace-pre-wrap max-w-xs`}>
                         {item.format || <span className="opacity-50">—</span>}
                       </td>
-                      <td className={`${tableCellClass} px-4 py-2 whitespace-pre-wrap max-w-xs`}>
-                        {item.scope || <span className="opacity-50">—</span>}
+                      <td className={`${tableCellClass} px-4 py-2`}>
+                        {item.tags && item.tags.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {item.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className={`${getTypographyClassName(
+                                  "body-xs"
+                                )} inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 px-2 py-0.5`}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="opacity-50">—</span>
+                        )}
                       </td>
                       <td className={`${tableCellClass} px-4 py-2`}>
                         <div className="flex flex-wrap gap-2">

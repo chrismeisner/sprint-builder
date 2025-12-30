@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
+import { typography } from "@/app/components/typography";
 
 type Deliverable = {
   id: string;
@@ -57,6 +59,14 @@ export default function DeliverablesEditor({
   const [editingComplexity, setEditingComplexity] = useState<string | null>(null);
   const [editingScope, setEditingScope] = useState<string | null>(null);
   const [scopeText, setScopeText] = useState<string>("");
+  const t = {
+    body: `${getTypographyClassName("body-sm")} text-text-secondary`,
+    heading: `${typography.headingCard}`,
+    subhead: `${getTypographyClassName("subtitle-sm")} text-text-primary`,
+    mono: `${getTypographyClassName("mono-sm")} text-text-muted`,
+    label: `${getTypographyClassName("subtitle-sm")} text-text-muted`,
+    button: getTypographyClassName("button-sm"),
+  };
 
   useEffect(() => {
     fetchAvailableDeliverables();
@@ -237,21 +247,23 @@ export default function DeliverablesEditor({
   const availableToAdd = availableDeliverables.filter((d) => !currentDeliverableIds.has(d.id));
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${t.body}`}>
       {error && (
-        <div className="rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 text-sm text-red-700 dark:text-red-300">
+        <div
+          className={`rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 ${getTypographyClassName("body-sm")} text-red-700 dark:text-red-300`}
+        >
           {error}
         </div>
       )}
 
       {/* Deliverables List */}
-      <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
+      <div className={`rounded-lg border border-black/10 dark:border-white/15 p-4 ${t.body}`}>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Deliverables</h2>
+          <h2 className={t.heading}>Deliverables</h2>
           <button
             onClick={() => setShowAddModal(true)}
             disabled={loading}
-            className="inline-flex items-center gap-2 rounded-md bg-black text-white dark:bg-white dark:text-black px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition"
+            className={`inline-flex items-center gap-2 rounded-md bg-black text-white dark:bg-white dark:text-black px-3 py-1.5 hover:opacity-90 disabled:opacity-50 transition ${t.button}`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -260,7 +272,7 @@ export default function DeliverablesEditor({
           </button>
         </div>
 
-        <ul className="space-y-3 text-sm">
+        <ul className="space-y-3">
           {currentDeliverables.map((d, i) => {
             const isWorkshop = d.deliverableType === "workshop";
             const isEditingThis = editingComplexity === d.deliverableId;
@@ -273,24 +285,26 @@ export default function DeliverablesEditor({
                   isWorkshop
                     ? "border-purple-300 bg-purple-50 dark:border-purple-700 dark:bg-purple-950/30"
                     : "border-black/10 dark:border-white/15"
-                }`}
+                } ${t.body}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       {isWorkshop && (
-                        <span className="inline-flex items-center rounded-full bg-purple-600 text-white px-2 py-0.5 text-[10px] font-semibold">
+                        <span
+                          className={`inline-flex items-center rounded-full bg-purple-600 text-white px-2 py-0.5 ${getTypographyClassName("button-sm")}`}
+                        >
                           📋 WORKSHOP
                         </span>
                       )}
-                      <div className="font-medium">{d.name}</div>
+                      <div className={getTypographyClassName("subtitle-md")}>{d.name}</div>
                     </div>
 
                     {/* Complexity Score Display/Edit */}
                     <div className="mt-3 space-y-2">
                       {isEditingThis ? (
                         <div className="rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-700 p-3">
-                          <label className="block text-xs font-medium mb-2">
+                          <label className={`block ${t.label} mb-2`}>
                             Complexity Score
                           </label>
                           <select
@@ -300,7 +314,7 @@ export default function DeliverablesEditor({
                               handleUpdateComplexity(d.deliverableId, newValue);
                             }}
                             disabled={loading}
-                            className="w-full px-3 py-2 rounded-md border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className={`w-full px-3 py-2 rounded-md border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 ${getTypographyClassName("body-sm")} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           >
                             <option value="0.75">0.75x - Simple</option>
                             <option value="1">1x - Normal</option>
@@ -310,7 +324,7 @@ export default function DeliverablesEditor({
                           <button
                             onClick={() => setEditingComplexity(null)}
                             disabled={loading}
-                            className="mt-2 text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                            className={`${getTypographyClassName("subtitle-sm")} text-blue-600 hover:text-blue-700 disabled:opacity-50`}
                           >
                             Done
                           </button>
@@ -318,8 +332,8 @@ export default function DeliverablesEditor({
                       ) : (
                         <div className="flex items-center gap-2">
                           <div className="inline-flex items-center gap-2 rounded-md bg-black/5 dark:bg-white/5 px-2 py-1">
-                            <span className="text-[10px] uppercase opacity-60">Complexity:</span>
-                            <span className="font-semibold">{complexity.toFixed(2)}x - {getComplexityLabel(complexity)}</span>
+                            <span className={`${getTypographyClassName("subtitle-sm")} uppercase opacity-60`}>Complexity:</span>
+                            <span className={`${getTypographyClassName("subtitle-sm")} text-text-primary`}>{complexity.toFixed(2)}x - {getComplexityLabel(complexity)}</span>
                           </div>
                           <button
                             onClick={() => setEditingComplexity(d.deliverableId)}
@@ -335,10 +349,10 @@ export default function DeliverablesEditor({
                       )}
 
                       {/* Display adjusted values */}
-                      <div className="flex items-center gap-4 text-xs">
+                      <div className={`flex items-center gap-4 ${getTypographyClassName("body-sm")}`}>
                         <div className="flex flex-col">
-                          <span className="opacity-60">Base</span>
-                          <div className="flex gap-2 font-mono">
+                          <span className="text-text-muted">Base</span>
+                          <div className={`flex gap-2 ${t.mono}`}>
                             {d.baseHours && <span>{d.baseHours}h</span>}
                             {d.basePrice && <span>${d.basePrice.toLocaleString()}</span>}
                             {d.basePoints && <span>{d.basePoints} pts</span>}
@@ -348,8 +362,8 @@ export default function DeliverablesEditor({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                         <div className="flex flex-col">
-                          <span className="opacity-60">Adjusted ({complexity.toFixed(2)}x - {getComplexityLabel(complexity)})</span>
-                          <div className="flex gap-2 font-mono font-semibold text-blue-600 dark:text-blue-400">
+                          <span className="text-text-muted">Adjusted ({complexity.toFixed(2)}x - {getComplexityLabel(complexity)})</span>
+                          <div className={`flex gap-2 ${t.mono} text-blue-600 dark:text-blue-400`}>
                             {d.customHours != null && <span>{d.customHours.toFixed(1)}h</span>}
                             {d.customPrice != null && <span>${d.customPrice.toLocaleString()}</span>}
                             {d.customPoints != null && <span>{d.customPoints} pts</span>}
@@ -361,7 +375,7 @@ export default function DeliverablesEditor({
                     {/* Deliverable Output/Scope */}
                     <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/10">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs font-semibold uppercase opacity-70">What You&apos;ll Get</h4>
+                        <h4 className={`${t.label} uppercase`}>What You&apos;ll Get</h4>
                         {editingScope !== d.deliverableId && (
                           <button
                             onClick={() => {
@@ -386,13 +400,13 @@ export default function DeliverablesEditor({
                             disabled={loading}
                             rows={6}
                             placeholder="Describe what will be delivered for this sprint..."
-                            className="w-full px-3 py-2 text-sm rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className={`w-full px-3 py-2 ${getTypographyClassName("body-sm")} rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           />
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleUpdateScope(d.deliverableId, scopeText)}
                               disabled={loading}
-                              className="px-3 py-1.5 text-xs rounded-md bg-black text-white dark:bg-white dark:text-black font-medium hover:opacity-90 disabled:opacity-50"
+                              className={`px-3 py-1.5 rounded-md bg-black text-white dark:bg-white dark:text-black hover:opacity-90 disabled:opacity-50 ${t.button}`}
                             >
                               {loading ? "Saving..." : "Save"}
                             </button>
@@ -402,14 +416,14 @@ export default function DeliverablesEditor({
                                 setScopeText("");
                               }}
                               disabled={loading}
-                              className="px-3 py-1.5 text-xs rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50"
+                              className={`px-3 py-1.5 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 ${t.button}`}
                             >
                               Cancel
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-sm opacity-80 whitespace-pre-wrap leading-relaxed">
+                        <p className={`${t.body} whitespace-pre-wrap leading-relaxed`}>
                           {d.customScope || (
                             <span className="opacity-50 italic">No scope defined yet. Click edit to add details about what will be delivered.</span>
                           )}
@@ -439,7 +453,7 @@ export default function DeliverablesEditor({
           })}
 
           {currentDeliverables.length === 0 && (
-            <li className="text-center py-8 opacity-50 text-sm">
+            <li className={`text-center py-8 opacity-50 ${t.body}`}>
               No deliverables yet. Click &quot;Add Deliverable&quot; to get started.
             </li>
           )}
@@ -449,9 +463,9 @@ export default function DeliverablesEditor({
       {/* Add Deliverable Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          <div className={`bg-white dark:bg-gray-900 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto ${t.body}`}>
             <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-black/10 dark:border-white/15 p-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">
+              <h3 className={t.heading}>
                 {selectedDeliverableId ? "Set Complexity" : "Add Deliverable"}
               </h3>
               <button
@@ -473,7 +487,7 @@ export default function DeliverablesEditor({
                 /* Step 1: Select Deliverable */
                 <div className="space-y-2">
                   {availableToAdd.length === 0 ? (
-                    <p className="text-center py-8 opacity-50 text-sm">
+                    <p className={`text-center py-8 opacity-50 ${t.body}`}>
                       All available deliverables have been added.
                     </p>
                   ) : (
@@ -486,12 +500,12 @@ export default function DeliverablesEditor({
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
-                            <div className="font-medium mb-1">{d.name}</div>
+                            <div className={`${getTypographyClassName("subtitle-md")} mb-1 text-text-primary`}>{d.name}</div>
                             {d.category && (
-                              <div className="text-xs opacity-60 mb-2">{d.category}</div>
+                              <div className={`${getTypographyClassName("subtitle-sm")} text-text-muted mb-2`}>{d.category}</div>
                             )}
-                            <div className="flex items-center gap-3 text-xs opacity-70">
-                              <span className="text-[10px] uppercase tracking-wide opacity-50">Base:</span>
+                            <div className={`flex items-center gap-3 ${getTypographyClassName("subtitle-sm")} text-text-muted`}>
+                              <span className="uppercase tracking-wide">Base:</span>
                               {d.fixedHours && <span>{d.fixedHours}h</span>}
                               {d.fixedPrice && <span>${d.fixedPrice.toLocaleString()}</span>}
                               {d.points && <span>{d.points} pts</span>}
@@ -518,21 +532,21 @@ export default function DeliverablesEditor({
                   return (
                     <div className="space-y-6">
                       <div className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-black/5 dark:bg-white/5">
-                        <div className="font-medium mb-1">{selected.name}</div>
+                        <div className={`${getTypographyClassName("subtitle-md")} mb-1 text-text-primary`}>{selected.name}</div>
                         {selected.category && (
-                          <div className="text-xs opacity-60">{selected.category}</div>
+                          <div className={`${getTypographyClassName("subtitle-sm")} text-text-muted`}>{selected.category}</div>
                         )}
                       </div>
 
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium mb-2">
+                          <label className={`block ${t.label} mb-2`}>
                             Complexity Score
                           </label>
                           <select
                             value={complexityScore}
                             onChange={(e) => setComplexityScore(parseFloat(e.target.value))}
-                            className="w-full px-3 py-2 rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className={`w-full px-3 py-2 rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-gray-800 ${getTypographyClassName("body-sm")} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           >
                             <option value="0.75">0.75x - Simple</option>
                             <option value="1">1x - Normal</option>
@@ -542,29 +556,29 @@ export default function DeliverablesEditor({
                         </div>
 
                         <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-4 space-y-3">
-                          <div className="flex items-center justify-between text-sm">
+                          <div className={`flex items-center justify-between ${getTypographyClassName("body-sm")} text-text-primary`}>
                             <span className="opacity-70">Base Hours:</span>
-                            <span className="font-medium">{selected.fixedHours || 0}h</span>
+                            <span className={getTypographyClassName("subtitle-sm")}>{selected.fixedHours || 0}h</span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
+                          <div className={`flex items-center justify-between ${getTypographyClassName("body-sm")} text-text-primary`}>
                             <span className="opacity-70">Base Price:</span>
-                            <span className="font-medium">${(selected.fixedPrice || 0).toLocaleString()}</span>
+                            <span className={getTypographyClassName("subtitle-sm")}>${(selected.fixedPrice || 0).toLocaleString()}</span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
+                          <div className={`flex items-center justify-between ${getTypographyClassName("body-sm")} text-text-primary`}>
                             <span className="opacity-70">Base Points:</span>
-                            <span className="font-medium">{selected.points || 0}</span>
+                            <span className={getTypographyClassName("subtitle-sm")}>{selected.points || 0}</span>
                           </div>
 
                           <div className="border-t border-blue-300 dark:border-blue-700 pt-3 space-y-2">
-                            <div className="flex items-center justify-between font-semibold">
+                            <div className={`flex items-center justify-between ${getTypographyClassName("subtitle-sm")} text-text-primary`}>
                               <span>Adjusted Hours:</span>
                               <span className="text-lg text-blue-600 dark:text-blue-400">{adjustedHours.toFixed(1)}h</span>
                             </div>
-                            <div className="flex items-center justify-between font-semibold">
+                            <div className={`flex items-center justify-between ${getTypographyClassName("subtitle-sm")} text-text-primary`}>
                               <span>Adjusted Price:</span>
                               <span className="text-lg text-blue-600 dark:text-blue-400">${adjustedPrice.toLocaleString()}</span>
                             </div>
-                            <div className="flex items-center justify-between font-semibold">
+                            <div className={`flex items-center justify-between ${getTypographyClassName("subtitle-sm")} text-text-primary`}>
                               <span>Adjusted Points:</span>
                               <span className="text-lg text-blue-600 dark:text-blue-400">{adjustedPoints}</span>
                             </div>
@@ -579,14 +593,14 @@ export default function DeliverablesEditor({
                             setComplexityScore(1.0);
                           }}
                           disabled={loading}
-                          className="flex-1 px-4 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5 transition disabled:opacity-50"
+                          className={`flex-1 px-4 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5 transition disabled:opacity-50 ${t.button}`}
                         >
                           Back
                         </button>
                         <button
                           onClick={handleAddDeliverable}
                           disabled={loading}
-                          className="flex-1 px-4 py-2 rounded-md bg-black text-white dark:bg-white dark:text-black font-medium hover:opacity-90 transition disabled:opacity-50"
+                          className={`flex-1 px-4 py-2 rounded-md bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-50 ${t.button}`}
                         >
                           {loading ? "Adding..." : "Add to Sprint"}
                         </button>

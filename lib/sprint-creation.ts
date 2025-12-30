@@ -648,12 +648,13 @@ export async function createSprintForDocument(
     const draftId = crypto.randomUUID();
     const sprintPackageId =
       typeof maybeObj.sprintPackageId === "string" ? maybeObj.sprintPackageId : null;
+    const today = new Date().toISOString().slice(0, 10);
     await pool.query(
       `
-      INSERT INTO sprint_drafts (id, document_id, ai_response_id, draft, status, title, sprint_package_id, updated_at)
-      VALUES ($1, $2, $3, $4::jsonb, 'draft', $5, $6, now())
+      INSERT INTO sprint_drafts (id, document_id, ai_response_id, draft, status, title, sprint_package_id, weeks, start_date, updated_at)
+      VALUES ($1, $2, $3, $4::jsonb, 'draft', $5, $6, 2, $7, now())
     `,
-      [draftId, documentId, responseId, JSON.stringify(maybeObj), title, sprintPackageId]
+      [draftId, documentId, responseId, JSON.stringify(maybeObj), title, sprintPackageId, today]
     );
     console.log("[AutoSprint] Stored sprint draft", {
       draftId,

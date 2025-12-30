@@ -11,13 +11,25 @@ export async function GET(_req: Request, { params }: Params) {
     if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
 
     const pool = getPool();
-    // Verify ownership
+    // Allow owners, admins, or project members to view documents
     const projectCheck = await pool.query(
-      `SELECT id FROM projects WHERE id = $1 AND account_id = $2 LIMIT 1`,
-      [params.id, user.accountId]
+      `SELECT account_id FROM projects WHERE id = $1`,
+      [params.id]
     );
     if (projectCheck.rowCount === 0) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    const projectAccountId = (projectCheck.rows[0] as { account_id: string | null }).account_id;
+    const isOwner = projectAccountId === user.accountId;
+    const isAdmin = Boolean(user.isAdmin);
+    const membershipRes = await pool.query(
+      `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
+      [params.id, user.email]
+    );
+    const isMember = membershipRes.rowCount > 0;
+
+    if (!isOwner && !isAdmin && !isMember) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
     const docs = await pool.query(
@@ -67,13 +79,25 @@ export async function POST(request: Request, { params }: Params) {
     if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
 
     const pool = getPool();
-    // Verify ownership
+    // Allow owners, admins, or project members to add documents
     const projectCheck = await pool.query(
-      `SELECT id FROM projects WHERE id = $1 AND account_id = $2 LIMIT 1`,
-      [params.id, user.accountId]
+      `SELECT account_id FROM projects WHERE id = $1`,
+      [params.id]
     );
     if (projectCheck.rowCount === 0) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    const projectAccountId = (projectCheck.rows[0] as { account_id: string | null }).account_id;
+    const isOwner = projectAccountId === user.accountId;
+    const isAdmin = Boolean(user.isAdmin);
+    const membershipRes = await pool.query(
+      `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
+      [params.id, user.email]
+    );
+    const isMember = membershipRes.rowCount > 0;
+
+    if (!isOwner && !isAdmin && !isMember) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
     const contentType = request.headers.get("content-type") || "";
@@ -165,11 +189,31 @@ export async function DELETE(request: Request, { params }: Params) {
     }
 
     const pool = getPool();
-    // ensure ownership and delete
+    // Allow owners, admins, or project members to delete project documents
+    const projectCheck = await pool.query(
+      `SELECT account_id FROM projects WHERE id = $1`,
+      [params.id]
+    );
+    if (projectCheck.rowCount === 0) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    const projectAccountId = (projectCheck.rows[0] as { account_id: string | null }).account_id;
+    const isOwner = projectAccountId === user.accountId;
+    const isAdmin = Boolean(user.isAdmin);
+    const membershipRes = await pool.query(
+      `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
+      [params.id, user.email]
+    );
+    const isMember = membershipRes.rowCount > 0;
+
+    if (!isOwner && !isAdmin && !isMember) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    }
+
     const result = await pool.query(
       `DELETE FROM documents
-       WHERE id = $1 AND project_id = $2 AND account_id = $3`,
-      [docId, params.id, user.accountId]
+       WHERE id = $1 AND project_id = $2`,
+      [docId, params.id]
     );
 
     if (result.rowCount === 0) {

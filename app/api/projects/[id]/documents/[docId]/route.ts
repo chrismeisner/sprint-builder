@@ -11,12 +11,33 @@ export async function GET(_req: Request, { params }: Params) {
     if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
 
     const pool = getPool();
+    // Allow owners, admins, or project members to view the document
+    const projectCheck = await pool.query(
+      `SELECT account_id FROM projects WHERE id = $1`,
+      [params.id]
+    );
+    if (projectCheck.rowCount === 0) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    const projectAccountId = (projectCheck.rows[0] as { account_id: string | null }).account_id;
+    const isOwner = projectAccountId === user.accountId;
+    const isAdmin = Boolean(user.isAdmin);
+    const membershipRes = await pool.query(
+      `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
+      [params.id, user.email]
+    );
+    const isMember = membershipRes.rowCount > 0;
+
+    if (!isOwner && !isAdmin && !isMember) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    }
+
     const result = await pool.query(
       `SELECT content, filename
        FROM documents
-       WHERE id = $1 AND project_id = $2 AND account_id = $3
+       WHERE id = $1 AND project_id = $2
        LIMIT 1`,
-      [params.docId, params.id, user.accountId]
+      [params.docId, params.id]
     );
 
     if (result.rowCount === 0) {

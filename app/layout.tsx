@@ -9,9 +9,11 @@ import Header from "./Header";
 import GoogleAnalytics from "./GoogleAnalytics";
 import WireframeModeHydrator from "./WireframeModeHydrator";
 import {
+  DEFAULT_THEME_MODE,
   normalizeThemeCookie,
   THEME_OVERRIDE_COOKIE,
 } from "@/lib/theme-mode";
+import { getCurrentUser } from "@/lib/auth";
 
 // The root layout reads cookies (via NavShell -> getCurrentUser), so force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -308,14 +310,19 @@ export const metadata: Metadata = {
   description: "Minimal landing for sprint builder",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getCurrentUser();
   const cookieStore = cookies();
-  const themeOverride = cookieStore.get(THEME_OVERRIDE_COOKIE)?.value ?? null;
-  const themeMode = normalizeThemeCookie(themeOverride);
+  const themeOverride =
+    user?.isAdmin ? cookieStore.get(THEME_OVERRIDE_COOKIE)?.value ?? null : null;
+  // Non-admins are always light mode; admins can opt into dark via the override cookie.
+  const themeMode = user?.isAdmin
+    ? normalizeThemeCookie(themeOverride)
+    : DEFAULT_THEME_MODE;
   const fontClasses = `${inter.variable} ${interTight.variable} ${gooper.variable} ${gooperCondensed.variable} ${gooperSemiCondensed.variable} ${gooperText.variable} ${gtAmerica.variable} ${gtAmericaCompressed.variable} ${akkuratLight.variable} ${akkurat.variable} ${akkuratMono.variable} ${generalGrotesque.variable} ${generalGrotesqueMono.variable} ${notoEmoji.variable}`;
   const htmlClassName = `${themeMode === "dark" ? "dark" : ""} ${fontClasses}`.trim();
 

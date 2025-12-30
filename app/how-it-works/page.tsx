@@ -15,7 +15,7 @@ export default function HowItWorksPage() {
           </div>
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight">How we work</h1>
           <p className="text-xl sm:text-2xl opacity-80 max-w-3xl mx-auto">
-            Every sprint is a focused 2-week engagement with Great Work Studio. Week 1: explore and decide. Week 2: execute and deliver. Then rest, reflect, and schedule the next one when you&apos;re ready.
+            Every sprint is a focused 2-week engagement with Meisner Design. Week 1: explore and decide. Week 2: execute and deliver. Then rest, reflect, and schedule the next one when you&apos;re ready.
           </p>
           <p className="text-base sm:text-lg opacity-70 max-w-3xl mx-auto">
             Every engagement starts with a Brand or Product Foundation Sprint (preset workshops + deliverables). Once delivered, you can stack Expansion Sprints from the Deliverable Library using the exact same cadence—no re-onboarding, no spin-up.
@@ -103,7 +103,7 @@ export default function HowItWorksPage() {
               <p className="text-xs uppercase tracking-wide opacity-60">Week 1 (Days 1-5)</p>
               <h3 className="text-2xl font-semibold">Go uphill</h3>
               <p className="text-sm opacity-80">
-                Workshop, divergent exploration, Decision Day Thursday, execution plan on Friday. Async updates + Loom recaps keep you in the loop without daily standups.
+                Workshop, divergent exploration, Ingredient Review Thursday, direction locked on Friday. Async updates + Loom recaps keep you in the loop without daily standups.
               </p>
               <div className="space-y-2 pt-2">
                 <p className="text-xs font-semibold uppercase tracking-wide opacity-60">Daily themes</p>
@@ -111,8 +111,8 @@ export default function HowItWorksPage() {
                   <li><span className="font-medium">Day 1:</span> Kickoff workshop to align on strategy, goals, and vision</li>
                   <li><span className="font-medium">Day 2:</span> Exploration phase begins—studio researches and generates options</li>
                   <li><span className="font-medium">Day 3:</span> Divergent thinking continues with work-in-progress sharing</li>
-                  <li><span className="font-medium">Day 4:</span> Decision Day—options presented, feedback gathered, direction chosen</li>
-                  <li><span className="font-medium">Day 5:</span> Execution plan finalized and prepped for Week 2 delivery</li>
+                  <li><span className="font-medium">Day 4:</span> Ingredient Review—grouped solutions evaluated, direction shaped together</li>
+                  <li><span className="font-medium">Day 5:</span> Direction locked—async outline confirms the solution for Week 2</li>
                 </ul>
               </div>
             </div>
@@ -120,14 +120,14 @@ export default function HowItWorksPage() {
               <p className="text-xs uppercase tracking-wide opacity-60">Week 2 (Days 6-10)</p>
               <h3 className="text-2xl font-semibold">Go downhill</h3>
               <p className="text-sm opacity-80">
-                Heads-down build, Work-in-Progress Wednesday, polish Thursday, final delivery Friday with Loom walkthrough + optional live demo.
+                Direction check Monday, heads-down build, Work-in-Progress Wednesday, polish Thursday, final delivery Friday with Loom walkthrough + optional live demo.
               </p>
               <div className="space-y-2 pt-2">
                 <p className="text-xs font-semibold uppercase tracking-wide opacity-60">Daily themes</p>
                 <ul className="text-sm opacity-80 space-y-1.5">
-                  <li><span className="font-medium">Day 6:</span> Align on execution plan and begin building the chosen solution</li>
+                  <li><span className="font-medium">Day 6:</span> Direction check—confirm alignment, answer last questions, no changes after today</li>
                   <li><span className="font-medium">Day 7:</span> Heads-down build mode—studio focused on implementation</li>
-                  <li><span className="font-medium">Day 8:</span> Work-in-Progress Wednesday—live feedback and course corrections</li>
+                  <li><span className="font-medium">Day 8:</span> Work-in-Progress Wednesday—see it coming together, early testing, request tweaks</li>
                   <li><span className="font-medium">Day 9:</span> Polish, refinement, and final quality checks</li>
                   <li><span className="font-medium">Day 10:</span> Final delivery with Loom walkthrough and optional live demo</li>
                 </ul>
@@ -235,11 +235,11 @@ export default function HowItWorksPage() {
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="text-center space-y-2">
             <h2 className="text-3xl font-bold">One sprint or many—your pace</h2>
-            <p className="text-lg opacity-70">How the Great Work Studio cadence scales with your ambition</p>
+            <p className="text-lg opacity-70">How the Meisner Design cadence scales with your ambition</p>
           </div>
           <div className="bg-white dark:bg-black rounded-lg p-8 space-y-6">
             <p className="text-base opacity-80">
-              Most founders have bigger visions than 2 weeks can solve. That&apos;s by design. The Great Work Studio cadence works for single sprints AND long-term product development.
+                Most founders have bigger visions than 2 weeks can solve. That&apos;s by design. The Meisner Design cadence works for single sprints AND long-term product development.
             </p>
             <div className="space-y-4">
               <h3 className="font-semibold text-lg">Example journey:</h3>

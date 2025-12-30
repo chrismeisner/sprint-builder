@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
+import { SHOW_FIRST_PROJECT_MODAL } from "@/lib/feature-flags";
 
 type Profile = {
   id: string;
@@ -141,6 +142,7 @@ export default function ProfileClient() {
   }, []);
 
   useEffect(() => {
+    if (!SHOW_FIRST_PROJECT_MODAL) return;
     if (data && data.projects.length === 0) {
       setShowProjectModal(true);
     }
@@ -666,7 +668,18 @@ export default function ProfileClient() {
                 Track the initiatives you’re running sprints for.
               </p>
             </div>
-            {/* Package selector removed per request */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setProjectName("");
+                  setProjectError(null);
+                  setShowProjectModal(true);
+                }}
+                className={`${getTypographyClassName("button-sm")} inline-flex items-center justify-center rounded-md bg-black text-white dark:bg-white dark:text-black px-4 py-2 hover:opacity-90 transition`}
+              >
+                New project
+              </button>
+            </div>
           </div>
           {deleteProjectError && (
             <div className={`${bodySmClass} text-red-700 dark:text-red-300 bg-red-600/10 dark:bg-red-900/30 border border-red-600/20 dark:border-red-900/30 rounded-md px-3 py-2`}>
@@ -727,19 +740,12 @@ export default function ProfileClient() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => openMemberModal(project)}
-                        className={`${getTypographyClassName("button-sm")} w-full mb-2 px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className={`${getTypographyClassName("button-sm")} w-full px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition text-center inline-block`}
                       >
-                        Manage access
-                      </button>
-                      <button
-                        onClick={() => handleDeleteProject(project.id)}
-                        disabled={deletingProjectId === project.id || !project.isOwner}
-                        className={`${getTypographyClassName("button-sm")} w-full px-3 py-2 rounded-md border border-red-200 text-red-700 dark:border-red-800 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50 disabled:cursor-not-allowed transition`}
-                      >
-                        {deletingProjectId === project.id ? "Deleting..." : "Delete project"}
-                      </button>
+                        Open project
+                      </Link>
                     </td>
                   </tr>
                 ))}

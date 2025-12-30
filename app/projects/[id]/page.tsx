@@ -5,7 +5,6 @@ import { getCurrentUser } from "@/lib/auth";
 import dynamicImport from "next/dynamic";
 import Typography from "@/components/ui/Typography";
 
-const AddSprintFromPackage = dynamicImport(() => import("../AddSprintFromPackage"), { ssr: false });
 const DeleteSprintButton = dynamicImport(() => import("../DeleteSprintButton"), { ssr: false });
 const ProjectDocuments = dynamicImport(() => import("../ProjectDocuments"), { ssr: false });
 
@@ -41,12 +40,21 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     updated_at: string | Date;
   };
 
-  if (project.account_id !== user.accountId) {
+  // Allow owners, admins, or explicit project members to view.
+  const isOwner = project.account_id === user.accountId;
+  const isAdmin = Boolean(user.isAdmin);
+  const membershipRes = await pool.query(
+    `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
+    [project.id, user.email]
+  );
+  const isMember = membershipRes.rowCount > 0;
+
+  if (!isOwner && !isAdmin && !isMember) {
     notFound();
   }
 
   const sprintsResult = await pool.query(
-    `SELECT id, title, status, total_estimate_points, total_fixed_hours, total_fixed_price, created_at
+    `SELECT id, title, status, total_estimate_points, total_fixed_hours, total_fixed_price, deliverable_count, created_at
      FROM sprint_drafts
      WHERE project_id = $1
      ORDER BY created_at DESC`,
@@ -60,6 +68,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     total_estimate_points: number | null;
     total_fixed_hours: number | null;
     total_fixed_price: number | null;
+    deliverable_count: number | null;
     created_at: string | Date;
   }>;
 
@@ -80,8 +89,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         </div>
         <div className="flex gap-2">
           <Link
-            href="/profile"
+            href={`/projects/${project.id}/settings`}
             className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
+          >
+            Settings
+          </Link>
+          <Link
+            href="/profile"
+            className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:hoverbg-white/10 transition"
           >
             Back to profile
           </Link>
@@ -98,12 +113,17 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               {sprints.length} total
             </Typography>
           </div>
-          <AddSprintFromPackage projectId={project.id} projectName={project.name} />
+          <Link
+            href={`/dashboard/sprint-builder?projectId=${project.id}`}
+            className="inline-flex items-center rounded-md bg-black text-white px-3 py-1.5 text-sm hover:bg-black/80 transition"
+          >
+            New sprint
+          </Link>
         </div>
 
         {sprints.length === 0 ? (
           <Typography as="div" scale="body-sm" className="opacity-70">
-            No sprints yet. Create one from the profile page.
+            No sprints yet. Click New sprint to create one.
           </Typography>
         ) : (
           <div className="overflow-x-auto">
@@ -112,8 +132,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 <tr>
                   <th className="text-left px-4 py-2 font-semibold">Title</th>
                   <th className="text-left px-4 py-2 font-semibold">Status</th>
-                  <th className="text-right px-4 py-2 font-semibold">Points</th>
-                  <th className="text-right px-4 py-2 font-semibold">Hours</th>
+                  <th className="text-right px-4 py-2 font-semibold">Deliverables</th>
                   <th className="text-right px-4 py-2 font-semibold">Price</th>
                   <th className="text-right px-4 py-2 font-semibold">Created</th>
                   <th className="text-right px-4 py-2 font-semibold">Actions</th>
@@ -132,10 +151,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                         {s.status || "draft"}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-right">{s.total_estimate_points ?? 0}</td>
-                    <td className="px-4 py-2 text-right">
-                      {s.total_fixed_hours != null ? `${Number(s.total_fixed_hours).toFixed(1)}h` : "—"}
-                    </td>
+                  <td className="px-4 py-2 text-right">
+                    {s.deliverable_count != null ? s.deliverable_count : 0}
+                  </td>
                     <td className="px-4 py-2 text-right">
                       {s.total_fixed_price != null ? `$${Number(s.total_fixed_price).toLocaleString()}` : "—"}
                     </td>
@@ -153,10 +171,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      {/* Documents */}
-      <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-4">
-        <ProjectDocuments projectId={project.id} />
-      </section>
+      {/* Documents (hidden for non-admins) */}
+      {isAdmin && (
+        <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-4">
+          <ProjectDocuments projectId={project.id} />
+        </section>
+      )}
     </main>
   );
 }

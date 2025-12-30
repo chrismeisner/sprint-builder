@@ -1,5 +1,5 @@
 /**
- * Great Work Studio - Messaging Constants
+ * Meisner Design - Messaging Constants
  * Single Source of Truth (SSOT) for all copy blocks
  * 
  * Based on the Copy & Messaging Guide
@@ -15,7 +15,7 @@ export const MESSAGING = {
   // Reusable Language Blocks
   foundationBlock: "Every founder begins with a Foundation Sprint—a structured intake followed by the strategic base your brand or product will build on.",
   
-  modelExplanation: "Each 2-week sprint is how Great Work Studio keeps momentum. Week 1 is Uphill (exploration, understanding, decision). Week 2 is Downhill (execution, refinement, delivery).",
+  modelExplanation: "Each 2-week sprint is how Meisner Design keeps momentum. Week 1 is Uphill (exploration, understanding, decision). Week 2 is Downhill (execution, refinement, delivery).",
   
   outcomeBlock: "Every sprint ends with a tangible, shareable deliverable.",
   
@@ -39,11 +39,11 @@ export const EMOTIONAL_ARC = [
   { day: 1, emotion: "Aligned", description: "Workshop brings clarity and shared understanding" },
   { day: 2, emotion: "Curious", description: "Exploration begins, possibilities emerge" },
   { day: 3, emotion: "Excited", description: "Direction takes shape, energy builds" },
-  { day: 4, emotion: "Decisive", description: "Decision Day locks in the winning path" },
-  { day: 5, emotion: "Clear", description: "Execution plan set, uncertainty eliminated" },
-  { day: 6, emotion: "Focused", description: "Build mode begins with clear direction" },
+  { day: 4, emotion: "Decisive", description: "Ingredient review shapes raw materials into direction" },
+  { day: 5, emotion: "Clear", description: "One direction locked, solution outline shared" },
+  { day: 6, emotion: "Focused", description: "Direction confirmed, downhill build begins" },
   { day: 7, emotion: "Inspired", description: "Progress visible, momentum building" },
-  { day: 8, emotion: "Confident", description: "WIP review confirms we're on track" },
+  { day: 8, emotion: "Confident", description: "WIP review shows it coming together, early testing" },
   { day: 9, emotion: "Meticulous", description: "Polish phase ensures quality" },
   { day: 10, emotion: "Satisfied", description: "Delivery complete, sprint accomplished" },
 ] as const;
@@ -64,7 +64,7 @@ export const APPROVED_HEADLINES = [
  * Always use these terms consistently
  */
 export const VOCABULARY = {
-  sprintSystem: "Great Work Studio sprint cadence",
+  sprintSystem: "Meisner Design sprint cadence",
   week1: "Uphill Week",
   week2: "Downhill Week",
   foundationSprint: "Foundation Sprint",

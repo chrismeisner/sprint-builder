@@ -190,8 +190,8 @@ export async function POST(request: Request, { params }: Params) {
         deliverables: deliverablesList.slice(0, Math.ceil(deliverablesList.length / 2)),
         milestones: [
           "Monday: Sprint kickoff workshop",
-          "Thursday: Decision Day - direction chosen",
-          "Friday: Execution plan documented",
+          "Thursday: Ingredient Review - direction shaped together",
+          "Friday: Direction locked - async outline shared",
         ],
       },
       week2: {
@@ -203,7 +203,7 @@ export async function POST(request: Request, { params }: Params) {
         ],
         deliverables: deliverablesList.slice(Math.ceil(deliverablesList.length / 2)),
         milestones: [
-          "Monday: Heads-down build begins",
+          "Monday: Direction check, then build begins",
           "Wednesday: Live work-in-progress review",
           "Friday: Delivery and handoff",
         ],
@@ -243,24 +243,24 @@ export async function POST(request: Request, { params }: Params) {
           dayOfWeek: "Wednesday",
           focus: "Work-in-progress share (ingredient/solution buckets)",
           items: [
-            "Send Loom or Figma walkthrough showing “ingredient/solution” buckets with a few variations",
-            "Collect inline comments (and optional live sync) to decide what continues into Decision Day",
+            "Send Loom or Figma walkthrough showing "ingredient/solution" buckets with grouped variations",
+            "Collect inline comments (and optional live sync) to steer what continues into Ingredient Review",
           ],
         },
         {
           day: 4,
           dayOfWeek: "Thursday",
-          focus: "Decision Day",
+          focus: "Ingredient Review",
           items: [
-            "Review 2-3 viable approaches together",
-            "Debate tradeoffs and confirm one confident direction",
-            "Document success criteria, inputs, and constraints",
+            "Review grouped solutions and categorized ingredients together",
+            "Decide which to keep, refine, discard, or combine",
+            "Shape raw materials into one clear direction",
           ],
         },
         {
           day: 5,
           dayOfWeek: "Friday",
-          focus: "Execution plan (optional sync)",
+          focus: "Direction locked (async outline)",
           items: [
             "Studio documents the downhill execution plan and deliverable checklist",
             "Confirm who gives feedback in Week 2 and what they need to review",
@@ -270,11 +270,11 @@ export async function POST(request: Request, { params }: Params) {
         {
           day: 6,
           dayOfWeek: "Monday",
-          focus: "Translate plan → build tasks (studio heads down)",
+          focus: "Direction check + build kickoff",
           items: [
-            "Break the plan into build tickets across design, product, and systems",
-            "Align deliverables with the locked direction and note dependencies",
-            "Stay heads down to keep momentum into execution",
+            "Quick sync to review the locked direction and answer any last questions",
+            "Confirm everyone is aligned before going downhill—no directional changes after today",
+            "Break the plan into build tickets and begin confident execution",
           ],
         },
         {
@@ -291,8 +291,9 @@ export async function POST(request: Request, { params }: Params) {
           dayOfWeek: "Wednesday",
           focus: "Work-in-progress review (client input)",
           items: [
-            "Live or Loom review so stakeholders can annotate and request tweaks",
-            "Capture decisions before the final polish sprint",
+            "Live or Loom review to see it all coming together—early testing of the build",
+            "Validate progress, annotate, and request tweaks before polish",
+            "Not complete yet, but the shape is clear",
           ],
         },
         {
@@ -331,11 +332,12 @@ export async function POST(request: Request, { params }: Params) {
       ],
     };
 
+    const startDate = new Date().toISOString().slice(0, 10);
     await pool.query(
       `INSERT INTO sprint_drafts 
        (id, document_id, sprint_package_id, draft, status, title, deliverable_count, 
-        total_estimate_points, total_fixed_hours, total_fixed_price, project_id, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())`,
+        total_estimate_points, total_fixed_hours, total_fixed_price, project_id, weeks, start_date, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, now())`,
       [
         sprintDraftId,
         documentId,
@@ -348,6 +350,8 @@ export async function POST(request: Request, { params }: Params) {
         finalHours,
         finalPrice,
         projectId,
+        2,
+        startDate,
       ]
     );
 

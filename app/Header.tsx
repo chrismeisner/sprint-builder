@@ -15,14 +15,14 @@ export default async function Header() {
           {user?.isAdmin ? <AdminMenuButton /> : null}
           <Link href="/" className="flex items-center space-x-2">
             <Typography as="span" scale="h3" className="tracking-tight">
-              Great Work Studio
+              Meisner Design
             </Typography>
           </Link>
         </div>
 
         {/* Right side actions */}
         <div className="flex items-center gap-4">
-          <ThemeToggle />
+          {user?.isAdmin ? <ThemeToggle /> : null}
           <div className="flex items-center gap-2">
             {user ? (
               <Button as={Link} href="/profile" variant="secondary" size="sm" className="normal-case tracking-normal">

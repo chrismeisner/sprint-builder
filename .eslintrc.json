@@ -2,5 +2,34 @@
   "extends": [
     "next/core-web-vitals",
     "next/typescript"
-  ]
+  ],
+  "rules": {
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "JSXAttribute[name.name='className'] Literal[value=/\\\\btext-(xs|sm|base|lg|xl|[2-9]xl)\\\\b/]",
+        "message": "Use Typography/design-system tokens for text size instead of raw text-* classes."
+      },
+      {
+        "selector": "JSXAttribute[name.name='className'] Literal[value=/\\\\btext-\\\\[[^\\\\]]+\\\\]/]",
+        "message": "Use Typography/design-system tokens for text size instead of raw text-[...] classes."
+      },
+      {
+        "selector": "JSXAttribute[name.name='className'] Literal[value=/\\\\bfont-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)\\\\b/]",
+        "message": "Use Typography/design-system tokens for font weight instead of raw font-* classes."
+      },
+      {
+        "selector": "JSXAttribute[name.name='className'] Literal[value=/\\\\bleading-[^\\\\s]+/]",
+        "message": "Use Typography/design-system tokens for line height instead of raw leading-* classes."
+      },
+      {
+        "selector": "JSXAttribute[name.name='className'] Literal[value=/\\\\btracking-[^\\\\s]+/]",
+        "message": "Use Typography/design-system tokens for letter spacing instead of raw tracking-* classes."
+      },
+      {
+        "selector": "JSXAttribute[name.name='className'] Literal[value=/\\\\bfont-gooper[^\\\\s]*/]",
+        "message": "Use the design-system Typography scale for font family."
+      }
+    ]
+  }
 }

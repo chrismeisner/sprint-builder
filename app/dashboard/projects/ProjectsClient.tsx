@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Typography from "@/components/ui/Typography";
+import Button from "@/components/ui/Button";
 
 type Project = {
   id: string;
@@ -85,57 +87,98 @@ export default function ProjectsClient({ initialProjects }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Past Projects</h1>
-        <Link
-          href="/dashboard/projects/new"
-          className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-2 text-sm font-medium hover:opacity-90"
-        >
+        <Typography as="h1" scale="h2">
+          Past Projects
+        </Typography>
+        <Button as={Link} href="/dashboard/projects/new" variant="primary">
           + New Project
-        </Link>
+        </Button>
       </div>
 
-      <div className="text-sm opacity-70 space-y-1">
-        <p>Manage your portfolio of past work to show potential clients.</p>
+      <div className="space-y-1">
+        <Typography as="p" scale="body-sm" className="text-black/70 dark:text-white/70">
+          Manage your portfolio of past work to show potential clients.
+        </Typography>
         <div className="flex items-center gap-4">
-          <Link href="/work" className="underline hover:opacity-80" target="_blank">
+          <Typography
+            as={Link}
+            href="/work"
+            target="_blank"
+            scale="body-sm"
+            className="underline hover:opacity-80"
+          >
             View public portfolio →
-          </Link>
+          </Typography>
         </div>
       </div>
 
       {projects.length === 0 ? (
         <div className="rounded-lg border border-black/10 dark:border-white/15 p-8 text-center">
-          <p className="text-sm opacity-70">No projects yet. Create your first one.</p>
+          <Typography as="p" scale="body-sm" className="text-black/70 dark:text-white/70">
+            No projects yet. Create your first one.
+          </Typography>
         </div>
       ) : (
         <div className="rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
-          <table className="min-w-full text-sm">
+          <table className="min-w-full">
             <thead className="bg-black/5 dark:bg-white/5 text-left">
               <tr>
-                <th className="px-4 py-3 font-semibold">Title</th>
-                <th className="px-4 py-3 font-semibold">Year</th>
-                <th className="px-4 py-3 font-semibold">Type</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-                <th className="px-4 py-3 font-semibold">Actions</th>
+                <th className="px-4 py-3">
+                  <Typography as="span" scale="subtitle-sm">
+                    Title
+                  </Typography>
+                </th>
+                <th className="px-4 py-3">
+                  <Typography as="span" scale="subtitle-sm">
+                    Year
+                  </Typography>
+                </th>
+                <th className="px-4 py-3">
+                  <Typography as="span" scale="subtitle-sm">
+                    Type
+                  </Typography>
+                </th>
+                <th className="px-4 py-3">
+                  <Typography as="span" scale="subtitle-sm">
+                    Status
+                  </Typography>
+                </th>
+                <th className="px-4 py-3">
+                  <Typography as="span" scale="subtitle-sm">
+                    Actions
+                  </Typography>
+                </th>
               </tr>
             </thead>
             <tbody>
               {projects.map((project) => (
                 <tr key={project.id} className="border-t border-black/10 dark:border-white/10">
                   <td className="px-4 py-3">
-                    <div>
-                      <div className="font-medium">{project.title}</div>
-                      <div className="text-xs opacity-60 font-mono">{project.slug}</div>
+                    <div className="space-y-1">
+                      <Typography as="div" scale="body-md">
+                        {project.title}
+                      </Typography>
+                      <Typography as="div" scale="body-sm" className="text-black/60 dark:text-white/60">
+                        {project.slug}
+                      </Typography>
                     </div>
                   </td>
-                  <td className="px-4 py-3">{project.year || "—"}</td>
+                  <td className="px-4 py-3">
+                    <Typography as="span" scale="body-sm">
+                      {project.year || "—"}
+                    </Typography>
+                  </td>
                   <td className="px-4 py-3">
                     {project.involvement_type ? (
-                      <span className="inline-flex items-center rounded-full bg-black/5 dark:bg-white/5 px-2 py-0.5 text-xs">
-                        {project.involvement_type}
+                      <span className="inline-flex items-center rounded-full bg-black/5 dark:bg-white/5 px-2 py-0.5">
+                        <Typography as="span" scale="subtitle-sm">
+                          {project.involvement_type}
+                        </Typography>
                       </span>
                     ) : (
-                      "—"
+                      <Typography as="span" scale="body-sm">
+                        —
+                      </Typography>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -143,49 +186,61 @@ export default function ProjectsClient({ initialProjects }: Props) {
                       <button
                         onClick={() => togglePublished(project.id, project.published)}
                         disabled={loading === project.id}
-                        className={`text-xs px-2 py-1 rounded ${
+                        className={`px-2 py-1 rounded ${
                           project.published
                             ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
                             : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
                         } disabled:opacity-50`}
                       >
-                        {project.published ? "Published" : "Draft"}
+                        <Typography as="span" scale="subtitle-sm">
+                          {project.published ? "Published" : "Draft"}
+                        </Typography>
                       </button>
                       {project.featured && (
-                        <span className="text-xs px-2 py-1 rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
-                          ⭐ Featured
+                        <span className="px-2 py-1 rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
+                          <Typography as="span" scale="subtitle-sm">
+                            ⭐ Featured
+                          </Typography>
                         </span>
                       )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Link
+                      <Typography
+                        as={Link}
                         href={`/dashboard/projects/${project.id}/edit`}
-                        className="text-xs underline hover:opacity-70"
+                        scale="body-sm"
+                        className="underline hover:opacity-70"
                       >
                         Edit
-                      </Link>
+                      </Typography>
                       <button
                         onClick={() => toggleFeatured(project.id, project.featured)}
                         disabled={loading === project.id}
-                        className="text-xs underline hover:opacity-70 disabled:opacity-50"
+                        className="underline hover:opacity-70 disabled:opacity-50"
                       >
-                        {project.featured ? "Unfeature" : "Feature"}
+                        <Typography as="span" scale="body-sm">
+                          {project.featured ? "Unfeature" : "Feature"}
+                        </Typography>
                       </button>
-                      <Link
+                      <Typography
+                        as={Link}
                         href={`/work/${project.slug}`}
                         target="_blank"
-                        className="text-xs underline hover:opacity-70"
+                        scale="body-sm"
+                        className="underline hover:opacity-70"
                       >
                         View
-                      </Link>
+                      </Typography>
                       <button
                         onClick={() => deleteProject(project.id, project.title)}
                         disabled={loading === project.id}
-                        className="text-xs text-red-600 dark:text-red-400 underline hover:opacity-70 disabled:opacity-50"
+                        className="text-red-600 dark:text-red-400 underline hover:opacity-70 disabled:opacity-50"
                       >
-                        Delete
+                        <Typography as="span" scale="body-sm">
+                          Delete
+                        </Typography>
                       </button>
                     </div>
                   </td>

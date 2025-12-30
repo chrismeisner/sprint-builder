@@ -46,22 +46,22 @@ export const SPRINT_WEEKS: SprintWeek[] = [
         day: "Day 3 · Wednesday",
         title: "Work-in-progress share",
         detail:
-          "Explorations shared via Loom/Figma with “ingredient”/“solution” buckets—categories with a few variations. React inline to steer which buckets we’ll carry into Decision Day. Optional live sync if helpful. You'll feel: Excited.",
+          "Explorations shared via Loom/Figma with 'ingredient'/'solution' buckets—categories with grouped variations. React inline to steer which buckets we'll carry into Ingredient Review. Optional live sync if helpful. You'll feel: Excited.",
         engagement: { label: "Optional sync share", variant: "optional" },
       },
       {
         day: "Day 4 · Thursday",
-        title: "Decision Day",
+        title: "Ingredient review",
         detail:
-          "Review 2–3 viable paths, debate tradeoffs, and commit to one direction + success criteria. You'll feel: Decisive.",
+          "Review grouped solutions and categorized ingredients together. Decide which to keep, refine, discard, or combine—shaping the raw materials into a clear direction. You'll feel: Decisive.",
         engagement: { label: "Client input required", variant: "required" },
       },
       {
         day: "Day 5 · Friday",
-        title: "Execution plan",
+        title: "Direction locked",
         detail:
-          "Studio documents the build plan, deliverables, dependencies, and next steps. Optional quick sync to walk through it. You'll feel: Clear.",
-        engagement: { label: "Optional sync share", variant: "optional" },
+          "Studio compiles Day 4 feedback into one clear direction and shares an async outline. You see the solution shape and think: 'Yes, this solves it.' You'll feel: Clear.",
+        engagement: { label: "Async outline shared", variant: "optional" },
       },
     ],
   },
@@ -75,10 +75,10 @@ export const SPRINT_WEEKS: SprintWeek[] = [
     days: [
       {
         day: "Day 6 · Monday",
-        title: "Translate plan → build tasks",
+        title: "Direction check + build kickoff",
         detail:
-          "Direction is locked; we break the plan into concrete execution tasks and confirm any inputs. You'll feel: Focused.",
-        engagement: { label: "Studio heads down", variant: "studio" },
+          "Quick sync to review the locked direction, answer last questions, and confirm we're all aligned before going downhill. No directional changes after today—just confident execution. You'll feel: Focused.",
+        engagement: { label: "Optional sync", variant: "optional" },
       },
       {
         day: "Day 7 · Tuesday",
@@ -91,7 +91,7 @@ export const SPRINT_WEEKS: SprintWeek[] = [
         day: "Day 8 · Wednesday",
         title: "Work-in-progress review",
         detail:
-          "Live or Loom review to validate progress and request tweaks before polish. You'll feel: Confident.",
+          "Live or Loom review to see it all coming together—early testing, validate progress, and request tweaks before polish. Not complete yet, but the shape is clear. You'll feel: Confident.",
         engagement: { label: "Client input required", variant: "required" },
       },
       {

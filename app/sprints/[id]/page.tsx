@@ -1,12 +1,15 @@
 import { ensureSchema, getPool } from "@/lib/db";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { hoursFromPoints } from "@/lib/pricing";
 import DeliverablesEditor from "./DeliverablesEditor";
 import SprintTotals from "./SprintTotals";
 import AdminStatusChanger from "./AdminStatusChanger";
-import { SPRINT_WEEKS, ENGAGEMENT_BADGES } from "@/lib/sprintProcess";
+import DeleteSprintButton from "./DeleteSprintButton";
+import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
+import { typography } from "@/app/components/typography";
+import SprintPlaybook from "./SprintPlaybook";
 
 export const dynamic = "force-dynamic";
 
@@ -20,13 +23,17 @@ export default async function SprintDetailPage({ params }: PageProps) {
   
   // Get current user if logged in
   const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    redirect(`/login?redirect=${encodeURIComponent(`/sprints/${params.id}`)}`);
+  }
   
   // Fetch sprint with document info including account_id and email
   const result = await pool.query(
     `SELECT sd.id, sd.document_id, sd.ai_response_id, sd.draft, sd.status, sd.title,
             sd.deliverable_count, sd.total_estimate_points, sd.total_fixed_hours, sd.total_fixed_price, 
-            sd.created_at, sd.updated_at,
-            d.email, d.account_id
+            sd.created_at, sd.updated_at, sd.weeks, sd.start_date, sd.due_date,
+            sd.project_id,
+            d.email, d.account_id, d.project_id AS document_project_id
      FROM sprint_drafts sd
      JOIN documents d ON sd.document_id = d.id
      WHERE sd.id = $1`,
@@ -50,10 +57,29 @@ export default async function SprintDetailPage({ params }: PageProps) {
     updated_at: string | Date | null;
     email: string | null;
     account_id: string | null;
+    project_id: string | null;
+    document_project_id: string | null;
+    weeks: number | null;
+    start_date: string | Date | null;
+    due_date: string | Date | null;
   };
   
-  // Check if current user owns this sprint
-  const isOwner = currentUser && row.account_id === currentUser.accountId;
+  // Check if current user owns this sprint or is a member of the linked project
+  const isOwner = row.account_id === currentUser.accountId;
+  const projectId = row.project_id || row.document_project_id;
+  const memberRes =
+    projectId
+      ? await pool.query(
+          `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
+          [projectId, currentUser.email]
+        )
+      : null;
+  const isProjectMember = Boolean(memberRes?.rowCount && memberRes.rowCount > 0);
+  const isAdmin = currentUser?.isAdmin === true;
+
+  if (!isOwner && !isAdmin && !isProjectMember) {
+    redirect(`/login?redirect=${encodeURIComponent(`/sprints/${params.id}`)}`);
+  }
 
   // Fetch deliverables from junction table with complexity scores and custom scope
   const deliverablesResult = await pool.query(
@@ -63,6 +89,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
       spd.custom_hours,
       spd.custom_estimate_points,
       spd.custom_scope,
+      spd.notes,
       spd.deliverable_name,
       spd.deliverable_description,
       spd.deliverable_category,
@@ -88,9 +115,9 @@ export default async function SprintDetailPage({ params }: PageProps) {
     deliverableType: null,
     complexityScore: row.complexity_score != null ? Number(row.complexity_score) : 1.0,
     customHours: row.custom_hours != null ? Number(row.custom_hours) : null,
-    customPrice: row.custom_price != null ? Number(row.custom_price) : null,
     customPoints: row.custom_estimate_points != null ? Number(row.custom_estimate_points) : null,
     customScope: (row.custom_scope as string | null) ?? (row.deliverable_scope as string | null) ?? (row.base_scope as string | null),
+    note: (row.notes as string | null) ?? null,
     baseHours:
       row.base_points != null
         ? hoursFromPoints(Number(row.base_points))
@@ -109,6 +136,20 @@ export default async function SprintDetailPage({ params }: PageProps) {
             ? Number(row.points)
             : null,
   }));
+
+  // Check for attached deferred comp / budget
+  const budgetRes = await pool.query(
+    `SELECT id, label, created_at
+     FROM deferred_comp_plans
+     WHERE sprint_id = $1
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [params.id]
+  );
+  const budgetPlan =
+    budgetRes.rowCount > 0
+      ? (budgetRes.rows[0] as { id: string; label: string | null; created_at: string | Date })
+      : null;
 
   function isObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -208,10 +249,19 @@ export default async function SprintDetailPage({ params }: PageProps) {
     };
   })();
 
-  const isAdmin = currentUser?.isAdmin === true;
+  const t = {
+    pageTitle: `${typography.headingSection}`,
+    subhead: `${getTypographyClassName("body-sm")} text-text-secondary`,
+    body: `${getTypographyClassName("body-md")} text-text-secondary`,
+    bodySm: `${getTypographyClassName("body-sm")} text-text-secondary`,
+    label: `${getTypographyClassName("subtitle-sm")} text-text-muted`,
+    monoLabel: `${getTypographyClassName("mono-sm")} text-text-muted`,
+    sectionHeading: `${getTypographyClassName("h3")} text-text-primary`,
+    cardHeading: `${typography.headingCard}`,
+  };
 
   return (
-    <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6 font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen max-w-6xl mx-auto p-6 space-y-6">
       {/* Admin Mode Banner */}
       {isAdmin && (
         <div className="sticky top-0 z-50 -mx-6 -mt-6 mb-6 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg">
@@ -221,9 +271,9 @@ export default async function SprintDetailPage({ params }: PageProps) {
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
                 </svg>
-                <span className="font-semibold text-sm">Admin Mode</span>
+                <span className={getTypographyClassName("subtitle-sm")}>Admin Mode</span>
               </div>
-              <span className="text-xs opacity-90 hidden sm:inline">
+              <span className={`${getTypographyClassName("body-sm")} opacity-90 hidden sm:inline`}>
                 Viewing as administrator • Extended permissions active
               </span>
             </div>
@@ -234,318 +284,183 @@ export default async function SprintDetailPage({ params }: PageProps) {
 
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold">
+          <h1 className={t.pageTitle} data-typography-id="h2">
             {row.title || plan.sprintTitle?.trim() || "Sprint draft"}
           </h1>
-          {isOwner && (
-            <div className="mt-2 inline-flex items-center gap-2 text-xs text-green-700 dark:text-green-300">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>Your sprint</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {(isOwner || isAdmin) && (
+            <Link
+              href={`/dashboard/sprint-builder?sprintId=${row.id}`}
+              className={`inline-flex items-center rounded-md bg-black text-white dark:bg-white dark:text-black px-3 py-1.5 hover:opacity-90 transition ${getTypographyClassName("button-sm")}`}
+            >
+              Edit in builder
+            </Link>
+          )}
+        {(row.total_fixed_price != null || row.total_estimate_points != null) && (
+          <Link
+            href={`/deferred-compensation?sprintId=${row.id}&amount=${Number(row.total_fixed_price ?? 0)}`}
+            className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
+          >
+            Open deferred comp
+          </Link>
+        )}
+        </div>
+      </div>
+
+      {/* Sprint Setup Checklist */}
+      {/* SprintSetupChecklist intentionally kept in codebase for future use but hidden from UI */}
+
+      <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-4 bg-white/40 dark:bg-black/40`}>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="space-y-1">
+            <p className={t.subhead}>
+              {row.weeks || 2} week sprint
+              {row.start_date ? ` · Starts ${new Date(row.start_date).toLocaleDateString()}` : ""}
+              {row.due_date ? ` · Ends ${new Date(row.due_date).toLocaleDateString()}` : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-0.5 ${getTypographyClassName("subtitle-sm")}`}
+            >
+              {row.status || "draft"}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {row.email && (
+            <div>
+              <span className={t.monoLabel}>email:</span> {row.email}
+            </div>
+          )}
+          {row.deliverable_count != null && row.deliverable_count > 0 && (
+            <div>
+              <span className={t.monoLabel}>deliverables:</span> {row.deliverable_count}
+            </div>
+          )}
+          <div>
+            <span className={t.monoLabel}>created:</span>{" "}
+            {new Date(row.created_at).toLocaleString()}
+          </div>
+          {row.updated_at && (
+            <div>
+              <span className={t.monoLabel}>updated:</span>{" "}
+              {new Date(row.updated_at).toLocaleString()}
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/documents/${row.document_id}`}
-            className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition text-sm"
-          >
-            Back to document
-          </Link>
-          <Link
-            href="/documents"
-            className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition text-sm"
-          >
-            Documents
-          </Link>
-        </div>
-      </div>
 
-      {row.status === "draft" && isOwner && (
-        <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4 text-sm">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 flex-shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-            <div>
-              <div className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                Draft Mode - Sprint is Editable
-              </div>
-              <p className="text-blue-800 dark:text-blue-200 opacity-90">
-                You can add or remove deliverables below. The totals will update automatically.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sprint Setup Checklist */}
-      {row.status === "draft" && isOwner && (
-        <div className="rounded-lg border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 p-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">✅</span>
-              <h2 className="text-xl font-bold">Sprint Setup Checklist</h2>
-            </div>
-            <p className="text-sm opacity-80">
-              Complete these 5 steps to activate your sprint. Most clients complete this in under 10 minutes.
-            </p>
-
-            <div className="space-y-3">
-              {/* Step 1 */}
-              <div className="rounded-lg bg-white dark:bg-black/40 p-4 border border-green-200 dark:border-green-800">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-400 dark:border-gray-600 mt-0.5"></div>
-                  <div className="flex-1 space-y-1">
-                    <h3 className="font-semibold text-base">1. Review Draft Sprint Deliverables</h3>
-                    <p className="text-sm opacity-80">
-                      Check that the scope, prices, and timeline match your needs. You can edit deliverables below.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="rounded-lg bg-white dark:bg-black/40 p-4 border border-gray-200 dark:border-gray-700 opacity-60">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-700 mt-0.5"></div>
-                  <div className="flex-1 space-y-1">
-                    <h3 className="font-semibold text-base">2. Confirm Deliverables with Studio</h3>
-                    <p className="text-sm opacity-80">
-                      Approve the draft sprint or request an optional 15-min discovery call.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="rounded-lg bg-white dark:bg-black/40 p-4 border border-gray-200 dark:border-gray-700 opacity-60">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-700 mt-0.5"></div>
-                  <div className="flex-1 space-y-1">
-                    <h3 className="font-semibold text-base">3. Choose Your Kickoff Monday</h3>
-                    <p className="text-sm opacity-80">
-                      Select your preferred start date from the studio&apos;s available Mondays.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 4 */}
-              <div className="rounded-lg bg-white dark:bg-black/40 p-4 border border-gray-200 dark:border-gray-700 opacity-60">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-700 mt-0.5"></div>
-                  <div className="flex-1 space-y-1">
-                    <h3 className="font-semibold text-base">4. Sign Sprint Agreement</h3>
-                    <p className="text-sm opacity-80">
-                      Agreement auto-generated with your deliverables, pricing, and schedule.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 5 */}
-              <div className="rounded-lg bg-white dark:bg-black/40 p-4 border border-gray-200 dark:border-gray-700 opacity-60">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-700 mt-0.5"></div>
-                  <div className="flex-1 space-y-1">
-                    <h3 className="font-semibold text-base">5. Pay 50% Deposit</h3>
-                    <p className="text-sm opacity-80">
-                      Secure your sprint slot (Stripe link provided automatically).
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-green-200 dark:border-green-800 text-center">
-              <p className="text-sm font-medium">
-                🎉 Once these 5 steps are complete → Your Sprint Is Locked In
-              </p>
-              <p className="text-xs opacity-70 mt-1">
-                Kickoff starts on your scheduled Monday.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-2 text-sm">
-        <div>
-          <span className="font-mono opacity-70">id:</span> {row.id}
-        </div>
-        <div>
-          <span className="font-mono opacity-70">status:</span>{" "}
-          <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-0.5 text-xs">
-            {row.status || "draft"}
-          </span>
-        </div>
-        {row.email && (
-          <div>
-            <span className="font-mono opacity-70">email:</span> {row.email}
-          </div>
+        {(row.total_estimate_points != null || row.total_fixed_hours != null || row.total_fixed_price != null) && (
+          <SprintTotals
+            initialPoints={Number(row.total_estimate_points ?? 0)}
+            initialHours={
+              row.total_fixed_hours != null
+                ? Number(row.total_fixed_hours)
+                : hoursFromPoints(Number(row.total_estimate_points ?? 0))
+            }
+            initialPrice={Number(row.total_fixed_price ?? 0)}
+            isEditable={row.status === "draft" && Boolean(isOwner)}
+            showPointsAndHours={Boolean(isAdmin)}
+            variant="inline"
+            hideHeading
+            className="pt-2 border-t border-black/10 dark:border-white/10"
+          />
         )}
-        {row.deliverable_count != null && row.deliverable_count > 0 && (
-          <div>
-            <span className="font-mono opacity-70">deliverables:</span> {row.deliverable_count}
-          </div>
-        )}
-        <div>
-          <span className="font-mono opacity-70">document:</span> {row.document_id}
-        </div>
-        <div>
-          <span className="font-mono opacity-70">ai response:</span>{" "}
-          {row.ai_response_id ?? <span className="opacity-50">—</span>}
-        </div>
-        <div>
-          <span className="font-mono opacity-70">created:</span>{" "}
-          {new Date(row.created_at).toLocaleString()}
-        </div>
-        {row.updated_at && (
-          <div>
-            <span className="font-mono opacity-70">updated:</span>{" "}
-            {new Date(row.updated_at).toLocaleString()}
-          </div>
-        )}
-      </div>
-
-      {(row.total_estimate_points != null || row.total_fixed_hours != null || row.total_fixed_price != null) && (
-        <SprintTotals
-          initialPoints={Number(row.total_estimate_points ?? 0)}
-          initialHours={Number(row.total_fixed_hours ?? 0)}
-          initialPrice={Number(row.total_fixed_price ?? 0)}
-          isEditable={row.status === "draft" && Boolean(isOwner)}
-        />
-      )}
-
-      <section className="rounded-lg border border-black/10 dark:border-white/15 p-5 space-y-8 bg-black/5 dark:bg-white/5">
-        <div className="space-y-2">
-          <div className="inline-flex items-center rounded-full bg-black/10 dark:bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-black/70 dark:text-white/60">
-            Same 10-day sprint playbook
-          </div>
-          <h2 className="text-xl font-bold">Uphill → Downhill cadence</h2>
-          <p className="text-sm opacity-80">
-            Every sprint we run follows this exact cadence so you always know when we need you live, when feedback is optional, and when the studio
-            is heads down making progress.
-          </p>
-        </div>
-
-        <div className="space-y-10">
-          {SPRINT_WEEKS.map((week) => (
-            <div key={week.id} className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <div className="text-2xl">{week.icon}</div>
-                  <div>
-                    <h3 className="text-lg font-semibold">{week.title}</h3>
-                    <p className="text-sm opacity-70 mt-0.5">{week.summary}</p>
-                  </div>
-                </div>
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 rounded-full px-3 py-1 self-start">
-                  {week.highlight}
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-3">
-                {week.days.map((day) => {
-                  const badge = day.engagement ? ENGAGEMENT_BADGES[day.engagement.variant] : null;
-                  return (
-                    <div
-                      key={day.day}
-                      className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-gray-950 p-4 space-y-2 shadow-sm"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-black/60 dark:text-white/60">
-                          {day.day}
-                        </p>
-                        {badge && (
-                          <span
-                            className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wide rounded-full px-3 py-1 border ${badge.classes}`}
-                          >
-                            <span className="mr-1">{badge.icon}</span>
-                            {day.engagement!.label}
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="text-base font-semibold">{day.title}</h4>
-                      <p className="text-sm opacity-80">{day.detail}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
       </section>
 
-
-      <section className="space-y-6">
-        {/* Show editable deliverables if draft and owned by user */}
-        {row.status === "draft" && isOwner ? (
-          <DeliverablesEditor
-            sprintId={row.id}
-            currentDeliverables={sprintDeliverables}
-            totalHours={row.total_fixed_hours || 0}
-            totalPrice={row.total_fixed_price || 0}
-            totalPoints={row.total_estimate_points || 0}
-          />
-        ) : (
-          /* Show read-only deliverables if not editable */
-          plan.deliverables && plan.deliverables.length > 0 && (
-            <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-              <h2 className="text-lg font-semibold mb-3">Deliverables</h2>
-              <ul className="space-y-3 text-sm">
-                {plan.deliverables.map((d, i) => {
-                  const isWorkshop = d.name?.toLowerCase().includes('workshop');
-                  return (
-                    <li 
-                      key={d.deliverableId || d.name || i} 
-                      className={`border rounded-md p-3 ${
-                        isWorkshop 
-                          ? 'border-purple-300 bg-purple-50 dark:border-purple-700 dark:bg-purple-950/30' 
-                          : 'border-black/10 dark:border-white/15'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-2">
-                          {isWorkshop && (
-                            <span className="inline-flex items-center rounded-full bg-purple-600 text-white px-2 py-0.5 text-[10px] font-semibold">
-                              📋 WORKSHOP
-                            </span>
-                          )}
-                          <div className="font-medium">
-                            {d.name || <span className="opacity-50">Unnamed deliverable</span>}
-                          </div>
-                        </div>
-                        {d.deliverableId && (
-                          <div className="text-[11px] font-mono opacity-60">
-                            id: {d.deliverableId}
-                          </div>
-                        )}
-                      </div>
-                      {isWorkshop && (
-                        <p className="text-xs text-purple-700 dark:text-purple-300 mb-2 font-medium">
-                          📅 Monday 9:00 AM - Sprint kickoff and alignment session
-                        </p>
-                      )}
-                      {d.reason && (
-                        <p className="text-xs opacity-80 whitespace-pre-wrap">
-                          {d.reason}
-                        </p>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+      <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-3 bg-white/40 dark:bg-black/40 ${t.bodySm}`}>
+        <div className="flex items-center justify-between">
+          <h2 className={t.cardHeading}>Budget Status</h2>
+          {budgetPlan ? (
+            <span className={`${getTypographyClassName("body-sm")} text-green-700 dark:text-green-300`}>
+              Attached
+            </span>
+          ) : (
+            <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>Not attached</span>
+          )}
+        </div>
+        {budgetPlan ? (
+          <div className="space-y-1">
+            {budgetPlan.label && <div className={t.bodySm}>Label: {budgetPlan.label}</div>}
+            <div className={t.bodySm}>
+              Saved: {new Date(budgetPlan.created_at).toLocaleString()}
             </div>
-          )
+            <div>
+              <Link
+                href={`/deferred-compensation?sprintId=${row.id}&amount=${Number(row.total_fixed_price ?? 0)}`}
+                className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
+              >
+                View / Update budget
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <span className={t.bodySm}>No budget attached to this sprint.</span>
+            <Link
+              href={`/deferred-compensation?sprintId=${row.id}&amount=${Number(row.total_fixed_price ?? 0)}`}
+              className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
+            >
+              Add budget
+            </Link>
+          </div>
+        )}
+      </section>
+
+      <section className={`space-y-6 ${t.bodySm}`}>
+        {/* Show editable deliverables if draft and owned by user */}
+        {sprintDeliverables.length > 0 && (
+          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className={t.cardHeading}>Deliverables Table</h2>
+              <span className={t.subhead}>Live sprint deliverables</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border border-black/10 dark:border-white/15 rounded-lg overflow-hidden">
+                <thead className="bg-black/5 dark:bg-white/5">
+                  <tr className={getTypographyClassName("body-sm")}>
+                    <th className="text-left px-3 py-2 text-text-muted">Name</th>
+                    <th className="text-left px-3 py-2 text-text-muted">Category</th>
+                    <th className="text-left px-3 py-2 text-text-muted">Adjusted Points</th>
+                    <th className="text-left px-3 py-2 text-text-muted">Scope</th>
+                    <th className="text-left px-3 py-2 text-text-muted">Notes</th>
+                  </tr>
+                </thead>
+                <tbody className={getTypographyClassName("body-sm")}>
+                  {sprintDeliverables.map((d, i) => (
+                    <tr
+                      key={d.deliverableId || `${d.name}-${i}`}
+                      className="border-t border-black/10 dark:border-white/10 bg-white dark:bg-gray-950/40"
+                    >
+                      <td className="px-3 py-3 align-top">
+                        <div className={getTypographyClassName("body-sm")}>{d.name || "Untitled"}</div>
+                      </td>
+                      <td className="px-3 py-3 align-top">{d.category ?? "—"}</td>
+                      <td className="px-3 py-3 align-top">
+                        {d.customPoints != null ? `${d.customPoints} pts` : "—"}
+                      </td>
+                      <td className="px-3 py-3 align-top whitespace-pre-wrap">
+                        {d.customScope ?? "—"}
+                      </td>
+                      <td className="px-3 py-3 align-top whitespace-pre-wrap">
+                        {d.note ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
 
+        <SprintPlaybook />
+
         {plan.goals && plan.goals.length > 0 && (
-          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-            <h2 className="text-lg font-semibold mb-3">Goals</h2>
-            <ul className="list-disc pl-5 space-y-1 text-sm">
+          <div className={`rounded-lg border border-black/10 dark:border-white/15 p-4 ${t.bodySm}`}>
+            <h2 className={`${t.cardHeading} mb-3`}>Goals</h2>
+            <ul className="list-disc pl-5 space-y-1">
               {plan.goals.map((g, i) => (
                 <li key={`${g}-${i}`}>{g}</li>
               ))}
@@ -554,18 +469,18 @@ export default async function SprintDetailPage({ params }: PageProps) {
         )}
 
         {plan.timeline && plan.timeline.length > 0 && (
-          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-            <h2 className="text-lg font-semibold mb-3">Timeline</h2>
+          <div className={`rounded-lg border border-black/10 dark:border-white/15 p-4 ${t.bodySm}`}>
+            <h2 className={`${t.cardHeading} mb-3`}>Timeline</h2>
             <ol className="space-y-3">
               {plan.timeline.map((t, i) => (
                 <li key={`${t.day || i}`} className="rounded border border-black/10 dark:border-white/15 p-3">
-                  <div className="text-sm">
-                    <div className="font-medium flex items-baseline gap-2">
+                  <div className={t.bodySm}>
+                    <div className={`${getTypographyClassName("subtitle-sm")} flex items-baseline gap-2 text-text-primary`}>
                       <span>Day {typeof t.day === "number" ? t.day : t.day || i + 1}</span>
                       {t.dayOfWeek && (
-                        <span className="text-xs font-normal opacity-60">({t.dayOfWeek})</span>
+                        <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>({t.dayOfWeek})</span>
                       )}
-                      {t.focus && <span className="opacity-70">— {t.focus}</span>}
+                      {t.focus && <span className="text-text-secondary">— {t.focus}</span>}
                     </div>
                     {t.items && t.items.length > 0 ? (
                       <ul className="list-disc pl-5 mt-2 space-y-1">
@@ -581,10 +496,36 @@ export default async function SprintDetailPage({ params }: PageProps) {
           </div>
         )}
 
+        {(plan.approach || plan.week1?.overview || plan.week2?.overview) && (
+          <div className={`rounded-lg border border-black/10 dark:border-white/15 p-4 ${t.bodySm}`}>
+            <h2 className={`${t.cardHeading} mb-3`}>Approach & Weekly Overview</h2>
+            <div className="space-y-3">
+              {plan.approach && (
+                <div>
+                  <div className={`${getTypographyClassName("subtitle-sm")} text-text-primary mb-1`}>Approach</div>
+                  <p className={t.bodySm}>{plan.approach}</p>
+                </div>
+              )}
+              {plan.week1?.overview && (
+                <div>
+                  <div className={`${getTypographyClassName("subtitle-sm")} text-text-primary mb-1`}>Week 1 Overview</div>
+                  <p className={t.bodySm}>{plan.week1.overview}</p>
+                </div>
+              )}
+              {plan.week2?.overview && (
+                <div>
+                  <div className={`${getTypographyClassName("subtitle-sm")} text-text-primary mb-1`}>Week 2 Overview</div>
+                  <p className={t.bodySm}>{plan.week2.overview}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {plan.assumptions && plan.assumptions.length > 0 && (
-          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-            <h2 className="text-lg font-semibold mb-2">Assumptions</h2>
-            <ul className="list-disc pl-5 space-y-1 text-sm">
+          <div className={`rounded-lg border border-black/10 dark:border-white/15 p-4 ${t.bodySm}`}>
+            <h2 className={`${t.cardHeading} mb-2`}>Assumptions</h2>
+            <ul className="list-disc pl-5 space-y-1">
               {plan.assumptions.map((a, i) => (
                 <li key={`${a}-${i}`}>{a}</li>
               ))}
@@ -593,9 +534,9 @@ export default async function SprintDetailPage({ params }: PageProps) {
         )}
 
         {plan.risks && plan.risks.length > 0 && (
-          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-            <h2 className="text-lg font-semibold mb-2">Risks</h2>
-            <ul className="list-disc pl-5 space-y-1 text-sm">
+          <div className={`rounded-lg border border-black/10 dark:border-white/15 p-4 ${t.bodySm}`}>
+            <h2 className={`${t.cardHeading} mb-2`}>Risks</h2>
+            <ul className="list-disc pl-5 space-y-1">
               {plan.risks.map((r, i) => (
                 <li key={`${r}-${i}`}>{r}</li>
               ))}
@@ -604,9 +545,9 @@ export default async function SprintDetailPage({ params }: PageProps) {
         )}
 
         {plan.notes && plan.notes.length > 0 && (
-          <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-            <h2 className="text-lg font-semibold mb-2">Notes</h2>
-            <ul className="list-disc pl-5 space-y-1 text-sm">
+          <div className={`rounded-lg border border-black/10 dark:border-white/15 p-4 ${t.bodySm}`}>
+            <h2 className={`${t.cardHeading} mb-2`}>Notes</h2>
+            <ul className="list-disc pl-5 space-y-1">
               {plan.notes.map((n, i) => (
                 <li key={`${n}-${i}`}>{n}</li>
               ))}
@@ -615,12 +556,8 @@ export default async function SprintDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      <section>
-        <h2 className="text-lg font-semibold mb-2">Draft JSON</h2>
-        <pre className="text-xs overflow-x-auto bg-black/5 dark:bg-white/5 rounded p-3">
-{JSON.stringify(row.draft, null, 2)}
-        </pre>
-      </section>
+      {/* Danger zone */}
+      <DeleteSprintButton sprintId={row.id} visible={Boolean(isOwner)} />
     </main>
   );
 }

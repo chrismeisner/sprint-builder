@@ -102,6 +102,8 @@ export async function GET() {
         sd.deliverable_count,
         sd.total_fixed_price,
         sd.total_fixed_hours,
+        sd.weeks,
+        sd.start_date,
         sd.project_id,
         sd.created_at,
         sd.updated_at,

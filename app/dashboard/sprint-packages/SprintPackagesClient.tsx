@@ -175,24 +175,36 @@ export default function SprintPackagesClient({ rows }: Props) {
                   </div>
 
                   <div>
-                    <div className="text-xs opacity-70 mb-1">
+                    <div className="text-xs opacity-70 mb-2">
                       Deliverables ({item.deliverables.length})
                     </div>
-                    <div className="flex flex-wrap gap-1">
-                      {item.deliverables.length === 0 ? (
-                        <span className="text-xs opacity-50">No deliverables</span>
-                      ) : (
-                        item.deliverables.map((d, i) => (
-                          <span
-                            key={`${d.deliverableId}-${i}`}
-                            className="inline-flex items-center rounded bg-black/10 dark:bg-white/10 px-2 py-0.5 text-xs"
-                          >
-                            {d.name}
-                            {d.quantity > 1 && ` (×${d.quantity})`}
-                          </span>
-                        ))
-                      )}
-                    </div>
+                    {item.deliverables.length === 0 ? (
+                      <span className="text-xs opacity-50">No deliverables</span>
+                    ) : (
+                      <div className="rounded-md border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 overflow-hidden">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-2 text-[11px] uppercase tracking-[0.02em] text-black/60 dark:text-white/60 bg-black/5 dark:bg-white/10">
+                          <span>Deliverable</span>
+                          <span className="text-right">Points</span>
+                        </div>
+                        <div className="divide-y divide-black/10 dark:divide-white/10 max-h-48 overflow-auto">
+                          {item.deliverables.map((d, i) => {
+                            const qty = d.quantity ?? 1;
+                            const points = d.points ?? 0;
+                            return (
+                              <div
+                                key={`${d.deliverableId}-${i}`}
+                                className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-1.5 text-xs items-center"
+                              >
+                                <span className="truncate" title={d.name}>
+                                  {d.name}
+                                </span>
+                                <span className="text-right font-mono font-semibold">{(points * qty).toFixed(1)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 pt-2 border-t border-black/10 dark:border-white/10">

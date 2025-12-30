@@ -14,6 +14,7 @@ export default async function NavShell({ children }: { children: ReactNode }) {
 
   const nav: NavItem[] = [
     { href: "/dashboard", label: "🏠 Admin Home" },
+    { href: "/dashboard/index", label: "🔎 Index" },
     { href: "/dashboard/style-guide", label: "🎨 Style Guide" },
     { href: "/dashboard/components", label: "🧩 Components" },
     { href: "/dashboard/projects", label: "🗂️ Past Projects" },
@@ -30,6 +31,7 @@ export default async function NavShell({ children }: { children: ReactNode }) {
     { href: "/dashboard/storage-test", label: "💾 Storage Test" },
     { href: "/dashboard/email-test", label: "✉️ Email Test" },
     { href: "/ai-test", label: "🧠 OpenAI Test" },
+    { href: "/deferred-compensation", label: "🔮 Deferred Compensation Calculator" },
   ];
 
   return <AdminNavShellClient nav={nav}>{children}</AdminNavShellClient>;

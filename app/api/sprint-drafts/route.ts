@@ -32,6 +32,33 @@ export async function POST(request: Request) {
     } catch {
       // ignore if already correct / no-op
     }
+    // Force sprint_deliverables numeric columns to accept decimals
+    try {
+      await pool.query(
+        `ALTER TABLE sprint_deliverables
+         ALTER COLUMN base_points TYPE numeric(10,2) USING base_points::numeric(10,2),
+         ALTER COLUMN custom_estimate_points TYPE numeric(10,2) USING custom_estimate_points::numeric(10,2),
+         ALTER COLUMN complexity_score TYPE numeric(10,2) USING complexity_score::numeric(10,2)`
+      );
+    } catch {
+      // ignore if already correct
+    }
+    // Defensive: legacy DBs may still have integer totals; normalize to numeric
+    try {
+      await pool.query(
+        `ALTER TABLE sprint_drafts
+         ALTER COLUMN total_estimate_points TYPE numeric(10,2)
+         USING total_estimate_points::numeric(10,2)`
+      );
+    } catch {
+      // ignore if already correct / no-op
+    }
+    // Ensure sprint_deliverables numeric columns accept decimals (defensive, enforced)
+    await pool.query(
+      `ALTER TABLE sprint_deliverables
+       ALTER COLUMN base_points TYPE numeric(10,2) USING base_points::numeric(10,2),
+       ALTER COLUMN custom_estimate_points TYPE numeric(10,2) USING custom_estimate_points::numeric(10,2);`
+    );
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
@@ -42,7 +69,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const { title, sprintPackageId, deliverables, customContent, status, projectId, startDate, dueDate } = body as {
+    const { title, sprintPackageId, deliverables, customContent, status, projectId, startDate, dueDate, weeks } = body as {
       title?: unknown;
       sprintPackageId?: unknown;
       deliverables?: unknown;
@@ -51,6 +78,7 @@ export async function POST(request: Request) {
       projectId?: unknown;
       startDate?: unknown;
       dueDate?: unknown;
+      weeks?: unknown;
     };
 
     // Validate
@@ -62,6 +90,10 @@ export async function POST(request: Request) {
     const requestedProjectId = typeof projectId === "string" && projectId.trim() ? projectId.trim() : null;
     const startDateValue = typeof startDate === "string" && startDate.trim() ? startDate.trim() : null;
     const dueDateValue = typeof dueDate === "string" && dueDate.trim() ? dueDate.trim() : null;
+    const weeksNumber = Number(weeks);
+    const weeksValue = Number.isFinite(weeksNumber) && weeksNumber >= 1 && weeksNumber <= 52
+      ? Math.round(weeksNumber)
+      : 2;
 
     const ensureProjectForAccount = async (): Promise<string> => {
       if (requestedProjectId) {
@@ -86,7 +118,7 @@ export async function POST(request: Request) {
 
       const existing = await pool.query(
         `
-        SELECT DISTINCT p.id
+        SELECT p.id
         FROM projects p
         LEFT JOIN project_members pm
           ON pm.project_id = p.id
@@ -168,11 +200,11 @@ export async function POST(request: Request) {
     await pool.query(
       `INSERT INTO sprint_drafts (
          id, document_id, draft, status, title, sprint_package_id,
-         project_id, start_date, due_date,
+         project_id, start_date, due_date, weeks,
          package_name_snapshot, package_description_snapshot,
          updated_at
        )
-       VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10, $11, now())`,
+       VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())`,
       [
         sprintDraftId,
         documentId,
@@ -183,6 +215,7 @@ export async function POST(request: Request) {
         projectIdValue,
         startDateValue,
         dueDateValue,
+        weeksValue,
         packageNameSnapshot,
         packageDescriptionSnapshot,
       ]
@@ -247,12 +280,13 @@ export async function POST(request: Request) {
       for (const d of deliverables) {
         if (d && typeof d === "object" && "deliverableId" in d) {
           const deliverableId = (d as { deliverableId?: unknown }).deliverableId;
-          const qty = (d as { quantity?: unknown }).quantity;
+          const multiplierRaw = (d as { complexityMultiplier?: unknown }).complexityMultiplier;
+          const multiplierNumber = Number(multiplierRaw);
+          const multiplier = Number.isFinite(multiplierNumber) && multiplierNumber > 0 ? multiplierNumber : 1;
+          const noteRaw = (d as { note?: unknown }).note;
+          const noteValue = typeof noteRaw === "string" && noteRaw.trim() ? noteRaw.trim() : null;
           
           if (typeof deliverableId === "string" && deliverableId.trim()) {
-            const quantityNumber = Number(qty);
-            const quantity = Number.isFinite(quantityNumber) && quantityNumber > 0 ? Math.round(quantityNumber) : 1;
-
             // Fetch deliverable details
             const delRes = await pool.query(
               `SELECT id, name, description, category, scope, points
@@ -271,30 +305,35 @@ export async function POST(request: Request) {
                 points: number | null;
               };
 
-              const basePoints = parseFloat((delRow.points as number | string | null)?.toString() || "0");
-              const complexity = basePoints * quantity;
+              const basePointsRaw = parseFloat((delRow.points as number | string | null)?.toString() || "0");
+              const basePoints = Number.isFinite(basePointsRaw) ? Math.round(basePointsRaw * 100) / 100 : 0;
+              const adjustedPointsRaw = basePoints * multiplier;
+              const adjustedPoints = Number.isFinite(adjustedPointsRaw)
+                ? Math.round(adjustedPointsRaw * 100) / 100
+                : 0;
 
-              totalComplexity += complexity;
-              deliverablesCount += quantity;
+              totalComplexity += adjustedPoints;
+              deliverablesCount += 1;
 
               const junctionId = randomUUID();
               await pool.query(
                 `INSERT INTO sprint_deliverables (
                    id, sprint_draft_id, deliverable_id, quantity,
-                   deliverable_name, deliverable_description, deliverable_category, deliverable_scope, base_points
+                   deliverable_name, deliverable_description, deliverable_category, deliverable_scope, base_points, custom_estimate_points, notes
                  )
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                 VALUES ($1, $2, $3, 1, $4, $5, $6, $7, $8::numeric(10,2), $9::numeric(10,2), $10)
                  ON CONFLICT (sprint_draft_id, deliverable_id) DO NOTHING`,
                 [
                   junctionId,
                   sprintDraftId,
                   deliverableId,
-                  quantity,
                   delRow.name ?? null,
                   delRow.description ?? null,
                   delRow.category ?? null,
                   delRow.scope ?? null,
                   basePoints,
+                  adjustedPoints,
+                  noteValue,
                 ]
               );
             }

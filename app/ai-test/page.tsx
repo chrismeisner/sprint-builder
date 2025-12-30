@@ -20,25 +20,8 @@ export default async function AdminAiToolsPage() {
     redirect("/dashboard");
   }
 
-  await ensureSchema();
-  const pool = getPool();
-
-  // Fetch documents with sprint draft status
-  const result = await pool.query<Document>(`
-    SELECT 
-      d.id,
-      d.filename,
-      d.email,
-      d.created_at,
-      EXISTS(SELECT 1 FROM sprint_drafts sd WHERE sd.document_id = d.id) as has_sprint
-    FROM documents d
-    ORDER BY d.created_at DESC
-    LIMIT 50
-  `);
-
-  const documents = result.rows;
-
-  return <AdminAiToolsClient documents={documents} />;
+  // AI generation disabled; no data needed
+  return <AdminAiToolsClient documents={[]} />;
 }
 
 

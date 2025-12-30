@@ -22,8 +22,8 @@ type Option = {
 const OPTIONS: Option[] = [
   {
     value: "default",
-    title: "Use default (Dark)",
-    description: "Follow the global site setting. This keeps the experience identical to what customers see.",
+    title: "Use default (Light)",
+    description: "Follow the global site setting (now light) so the experience matches what customers see.",
   },
   {
     value: "dark",

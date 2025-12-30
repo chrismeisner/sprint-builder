@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
+import { typography } from "@/app/components/typography";
 
 type Props = {
   sprintId: string;
@@ -21,6 +23,10 @@ export default function AdminStatusChanger({ sprintId, currentStatus }: Props) {
   const [isChanging, setIsChanging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const t = {
+    label: `${getTypographyClassName("subtitle-sm")} text-white/90`,
+    body: `${getTypographyClassName("body-sm")} text-white/90`,
+  };
 
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === status) return;
@@ -59,14 +65,14 @@ export default function AdminStatusChanger({ sprintId, currentStatus }: Props) {
   };
 
   return (
-    <div className="space-y-2">
+    <div className={`space-y-2 ${t.body}`}>
       <div className="flex items-center gap-3">
-        <label className="text-sm font-semibold opacity-70">Change Status:</label>
+        <label className={t.label}>Change Status:</label>
         <select
           value={status}
           onChange={(e) => handleStatusChange(e.target.value)}
           disabled={isChanging}
-          className="px-3 py-1.5 rounded-md border border-white/20 bg-white/10 text-white text-sm backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white/30"
+          className={`px-3 py-1.5 rounded-md border border-white/20 bg-white/10 text-white ${getTypographyClassName("body-sm")} backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white/30`}
         >
           {STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value} className="text-black">
@@ -83,13 +89,13 @@ export default function AdminStatusChanger({ sprintId, currentStatus }: Props) {
       </div>
 
       {success && (
-        <div className="text-xs bg-green-500/20 text-green-100 px-3 py-1.5 rounded">
+        <div className={`${getTypographyClassName("subtitle-sm")} bg-green-500/20 text-green-100 px-3 py-1.5 rounded`}>
           ✓ Status updated successfully
         </div>
       )}
 
       {error && (
-        <div className="text-xs bg-red-500/20 text-red-100 px-3 py-1.5 rounded">
+        <div className={`${getTypographyClassName("subtitle-sm")} bg-red-500/20 text-red-100 px-3 py-1.5 rounded`}>
           ✗ {error}
         </div>
       )}

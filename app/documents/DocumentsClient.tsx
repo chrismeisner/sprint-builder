@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import CreateSprintButton from "./CreateSprintButton";
 
 type DocumentRow = {
   id: string;
@@ -28,23 +27,7 @@ export default function DocumentsClient({ rows }: Props) {
     <main className="min-h-screen max-w-5xl mx-auto p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl sm:text-3xl font-bold">Stored Typeform submissions</h1>
-        <div className="flex items-center gap-2">
-          <label htmlFor="model" className="text-sm opacity-80">
-            Model
-          </label>
-          <select
-            id="model"
-            className="text-sm rounded-md border border-black/10 dark:border-white/15 px-2 py-1 bg-transparent"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-          >
-            {MODEL_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <div className="text-sm opacity-70">AI generation disabled</div>
       </div>
 
       {rows.length === 0 ? (
@@ -91,12 +74,12 @@ export default function DocumentsClient({ rows }: Props) {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Link
-                          className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition"
+                          className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hoverbg-white/10 transition"
                           href={`/documents/${row.id}`}
                         >
                           View
                         </Link>
-                        <CreateSprintButton documentId={row.id} model={model} />
+                        <span className="text-xs text-text-muted">AI disabled</span>
                       </div>
                     </td>
                   </tr>

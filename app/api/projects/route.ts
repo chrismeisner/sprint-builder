@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
-import { priceFromPoints } from "@/lib/pricing";
 import { getCurrentUser } from "@/lib/auth";
-import { randomBytes, randomUUID } from "crypto";
+import { randomUUID } from "crypto";
 
 type ProjectRow = {
   id: string;
@@ -100,142 +99,6 @@ export async function POST(request: Request) {
       console.error("[ProjectsAPI] failed to add creator as member:", memberErr);
     }
 
-    // Auto-create a Foundation sprint draft for this project (best effort)
-    try {
-      const pkgResult = await pool.query(
-        `
-        SELECT sp.id, sp.name, sp.slug
-        FROM sprint_packages sp
-        WHERE sp.slug = 'foundation' AND sp.active = true
-        LIMIT 1
-        `
-      );
-
-      const pkgRowCount = pkgResult.rowCount ?? 0;
-      if (pkgRowCount > 0) {
-        const pkg = pkgResult.rows[0] as { id: string; name: string; slug: string };
-
-        // Fetch deliverables for the package (with complexity)
-        const delRes = await pool.query(
-          `
-          SELECT 
-            spd.deliverable_id,
-            spd.quantity,
-            COALESCE(spd.complexity_score, 1.0) as complexity_score,
-            d.name,
-            d.description,
-            d.category,
-            d.scope,
-            COALESCE(d.points, 0) as points
-          FROM sprint_package_deliverables spd
-          JOIN deliverables d ON spd.deliverable_id = d.id
-          WHERE spd.sprint_package_id = $1
-          ORDER BY spd.sort_order ASC
-          `,
-          [pkg.id]
-        );
-
-        const deliverables = delRes.rows as Array<{
-          deliverable_id: string;
-          quantity: number | null;
-          complexity_score: number;
-          name: string | null;
-          description: string | null;
-          category: string | null;
-          scope: string | null;
-          points: number;
-        }>;
-
-        // Create a minimal document record
-        const documentId = `doc-${randomBytes(12).toString("hex")}`;
-        await pool.query(
-          `INSERT INTO documents (id, content, filename, email, account_id, project_id, created_at)
-           VALUES ($1, $2::jsonb, $3, $4, $5, $6, now())`,
-          [
-            documentId,
-            JSON.stringify({ source: "auto-project-foundation", projectId: id, packageSlug: pkg.slug }),
-            `auto-${pkg.slug}`,
-            user.email,
-            user.accountId,
-            id,
-          ]
-        );
-
-        // Calculate totals
-        let totalPoints = 0;
-        let deliverableCount = 0;
-
-        const sprintDraftId = `sprint-${randomBytes(12).toString("hex")}`;
-
-        // Insert sprint_draft
-        await pool.query(
-          `INSERT INTO sprint_drafts (
-             id, document_id, draft, status, title, sprint_package_id, project_id,
-             deliverable_count, total_estimate_points, total_fixed_hours, total_fixed_price, updated_at
-           )
-           VALUES ($1, $2, $3::jsonb, 'draft', $4, $5, $6, 0, 0, 0, 0, now())`,
-          [
-            sprintDraftId,
-            documentId,
-            JSON.stringify({ source: "auto-project-foundation", sprintTitle: pkg.name }),
-            pkg.name,
-            pkg.id,
-            id,
-          ]
-        );
-
-        // Insert deliverables into sprint_deliverables
-        for (const d of deliverables) {
-          const qty = d.quantity ?? 1;
-          const complexity = d.complexity_score ?? 1.0;
-          const basePoints = Number(d.points ?? 0);
-          const adjustedPoints = basePoints * complexity * qty;
-          totalPoints += adjustedPoints;
-          deliverableCount += qty;
-
-          await pool.query(
-            `INSERT INTO sprint_deliverables (
-               id, sprint_draft_id, deliverable_id, quantity,
-               deliverable_name, deliverable_description, deliverable_category, deliverable_scope,
-               base_points, custom_estimate_points, custom_hours, complexity_score
-             )
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-            [
-              `sd-${randomBytes(8).toString("hex")}`,
-              sprintDraftId,
-              d.deliverable_id,
-              qty,
-              d.name,
-              d.description,
-              d.category,
-              d.scope,
-              basePoints,
-              adjustedPoints,
-              adjustedPoints * 10,
-              complexity,
-            ]
-          );
-        }
-
-        // Update totals on sprint_draft
-        const totalHours = totalPoints * 10;
-        const totalPrice = priceFromPoints(totalPoints);
-        await pool.query(
-          `UPDATE sprint_drafts
-           SET deliverable_count = $1,
-               total_estimate_points = $2,
-               total_fixed_hours = $3,
-               total_fixed_price = $4,
-               updated_at = now()
-           WHERE id = $5`,
-          [deliverableCount, totalPoints, totalHours, totalPrice, sprintDraftId]
-        );
-      }
-    } catch (autoErr) {
-      console.error("[ProjectsAPI] auto-foundation sprint failed:", autoErr);
-      // Do not fail project creation; proceed
-    }
-
     return NextResponse.json(
       {
         project: {
@@ -251,6 +114,68 @@ export async function POST(request: Request) {
     console.error("Error creating project:", error);
     return NextResponse.json(
       { error: (error as Error).message ?? "Failed to create project" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const { id, name } = body as { id?: unknown; name?: unknown };
+
+    if (typeof id !== "string" || !id.trim()) {
+      return NextResponse.json({ error: "Project id is required" }, { status: 400 });
+    }
+    if (typeof name !== "string" || !name.trim()) {
+      return NextResponse.json({ error: "Project name is required" }, { status: 400 });
+    }
+
+    await ensureSchema();
+    const pool = getPool();
+
+    // Ensure ownership
+    const ownerCheck = await pool.query(
+      `SELECT account_id FROM projects WHERE id = $1 LIMIT 1`,
+      [id.trim()]
+    );
+    if (ownerCheck.rowCount === 0) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    const accountId = (ownerCheck.rows[0] as { account_id: string | null }).account_id;
+    if (!accountId || accountId !== user.accountId) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    }
+
+    const result = await pool.query(
+      `UPDATE projects
+       SET name = $1,
+           updated_at = now()
+       WHERE id = $2
+       RETURNING id, name, created_at, updated_at, account_id`,
+      [name.trim(), id.trim()]
+    );
+
+    const row = result.rows[0] as ProjectRow & { account_id: string | null };
+
+    return NextResponse.json({
+      project: {
+        id: row.id,
+        name: row.name,
+        createdAt: new Date(row.created_at).toISOString(),
+        updatedAt: new Date(row.updated_at).toISOString(),
+        accountId: row.account_id,
+      },
+    });
+  } catch (error: unknown) {
+    console.error("Error updating project:", error);
+    return NextResponse.json(
+      { error: (error as Error).message ?? "Failed to update project" },
       { status: 500 }
     );
   }

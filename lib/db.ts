@@ -95,6 +95,7 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS status text DEFAULT 'draft',
     ADD COLUMN IF NOT EXISTS title text,
     ADD COLUMN IF NOT EXISTS deliverable_count integer DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS weeks integer NOT NULL DEFAULT 2,
     ADD COLUMN IF NOT EXISTS total_estimate_points numeric(10,2) DEFAULT 0,
     ADD COLUMN IF NOT EXISTS total_fixed_hours numeric(10,2),
     ADD COLUMN IF NOT EXISTS total_fixed_price numeric(10,2),
@@ -105,6 +106,18 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS package_name_snapshot text,
     ADD COLUMN IF NOT EXISTS package_description_snapshot text;
   `);
+  // Defensive: older databases may still have total_estimate_points as integer
+  await pool.query(`
+    ALTER TABLE sprint_drafts
+    ALTER COLUMN total_estimate_points TYPE numeric(10,2)
+    USING total_estimate_points::numeric(10,2)
+  `);
+  await pool.query(`UPDATE sprint_drafts SET weeks = 2 WHERE weeks IS NULL`);
+  await pool.query(`
+    ALTER TABLE sprint_drafts
+    ALTER COLUMN weeks SET DEFAULT 2,
+    ALTER COLUMN weeks SET NOT NULL
+  `);
   
   // Add indexes for common queries
   await pool.query(`
@@ -112,6 +125,19 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sprint_drafts_created ON sprint_drafts(created_at DESC);
   `);
   
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS deferred_comp_plans (
+      id text PRIMARY KEY,
+      sprint_id text NOT NULL REFERENCES sprint_drafts(id) ON DELETE CASCADE,
+      inputs jsonb NOT NULL,
+      outputs jsonb NOT NULL,
+      label text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_deferred_comp_plans_sprint_id ON deferred_comp_plans(sprint_id);
+  `);
+
   // Add constraint to validate status values
   // Workflow: draft -> studio_review -> pending_client -> in_progress -> completed/cancelled
   await pool.query(`
@@ -195,6 +221,23 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     ALTER TABLE deliverables
     ADD COLUMN IF NOT EXISTS format text
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS deliverable_tags (
+      id text PRIMARY KEY,
+      name text NOT NULL UNIQUE,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS deliverable_tag_links (
+      deliverable_id text NOT NULL REFERENCES deliverables(id) ON DELETE CASCADE,
+      tag_id text NOT NULL REFERENCES deliverable_tags(id) ON DELETE CASCADE,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY (deliverable_id, tag_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_deliverable_tag_links_tag ON deliverable_tag_links(tag_id);
+    CREATE INDEX IF NOT EXISTS idx_deliverable_tag_links_deliverable ON deliverable_tag_links(deliverable_id);
   `);
   // Pricing + resourcing columns used across the app
   await pool.query(`
@@ -392,7 +435,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Work-in-progress share",
         subtitle: "Day 3 · Wednesday",
         client_copy:
-          "Explorations shared via Loom/Figma with “ingredient”/“solution” buckets—categories with a few variations. React inline to steer which buckets we’ll carry into Decision Day. Optional live sync if helpful. You'll feel: Excited.",
+          "Explorations shared via Loom/Figma with 'ingredient'/'solution' buckets—categories with grouped variations. React inline to steer which buckets we'll carry into Ingredient Review. Optional live sync if helpful. You'll feel: Excited.",
         internal_notes: "Engagement: optional sync share",
         deliverable_examples: { engagement: "optional", feel: "Excited" },
         links: null,
@@ -400,10 +443,10 @@ export async function ensureSchema(): Promise<void> {
       {
         id: "process-day-4",
         day_number: 4,
-        title: "Decision Day",
+        title: "Ingredient review",
         subtitle: "Day 4 · Thursday",
         client_copy:
-          "Review 2–3 viable paths, debate tradeoffs, and commit to one direction + success criteria. You'll feel: Decisive.",
+          "Review grouped solutions and categorized ingredients together. Decide which to keep, refine, discard, or combine—shaping the raw materials into a clear direction. You'll feel: Decisive.",
         internal_notes: "Engagement: client input required",
         deliverable_examples: { engagement: "client_required", feel: "Decisive" },
         links: null,
@@ -411,23 +454,23 @@ export async function ensureSchema(): Promise<void> {
       {
         id: "process-day-5",
         day_number: 5,
-        title: "Execution plan",
+        title: "Direction locked",
         subtitle: "Day 5 · Friday",
         client_copy:
-          "Studio documents the build plan, deliverables, dependencies, and next steps. Optional quick sync to walk through it. You'll feel: Clear.",
-        internal_notes: "Engagement: optional sync share",
+          "Studio compiles Day 4 feedback into one clear direction and shares an async outline. You see the solution shape and think: 'Yes, this solves it.' You'll feel: Clear.",
+        internal_notes: "Engagement: async outline shared",
         deliverable_examples: { engagement: "optional", feel: "Clear" },
         links: null,
       },
       {
         id: "process-day-6",
         day_number: 6,
-        title: "Translate plan → build tasks",
+        title: "Direction check + build kickoff",
         subtitle: "Day 6 · Monday",
         client_copy:
-          "Direction is locked; we break the plan into concrete execution tasks and confirm any inputs. You'll feel: Focused.",
-        internal_notes: "Engagement: studio heads down",
-        deliverable_examples: { engagement: "studio", feel: "Focused" },
+          "Quick sync to review the locked direction, answer last questions, and confirm we're all aligned before going downhill. No directional changes after today—just confident execution. You'll feel: Focused.",
+        internal_notes: "Engagement: optional sync",
+        deliverable_examples: { engagement: "optional", feel: "Focused" },
         links: null,
       },
       {
@@ -447,7 +490,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Work-in-progress review",
         subtitle: "Day 8 · Wednesday",
         client_copy:
-          "Live or Loom review to validate progress and request tweaks before polish. You'll feel: Confident.",
+          "Live or Loom review to see it all coming together—early testing, validate progress, and request tweaks before polish. Not complete yet, but the shape is clear. You'll feel: Confident.",
         internal_notes: "Engagement: client input required",
         deliverable_examples: { engagement: "client_required", feel: "Confident" },
         links: null,

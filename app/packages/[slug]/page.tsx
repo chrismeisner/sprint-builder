@@ -360,7 +360,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
           <div className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-gray-950 p-6 text-center space-y-2">
             <p className="text-base font-semibold">Only four live moments across two weeks</p>
             <p className="text-sm opacity-80">
-              Kickoff Monday, Decision Day Thursday, Work-in-Progress Wednesday, and final delivery on Day 10. Everything else happens async inside
+              Kickoff Monday, Ingredient Review Thursday, Work-in-Progress Wednesday, and final delivery on Day 10. Everything else happens async inside
               your sprint portal so you can focus on running the business.
             </p>
           </div>

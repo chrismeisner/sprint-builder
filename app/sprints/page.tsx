@@ -37,12 +37,12 @@ const methodologySteps = [
   {
     number: "02",
     title: "Week 1 · Go uphill",
-    body: "Day 1 is the workshop, Days 2–3 are divergence, Day 4 is Decision Day, and Day 5 locks the execution plan. You get async updates and Looms the entire week.",
+    body: "Day 1 is the workshop, Days 2–3 are divergence, Day 4 is Ingredient Review where you shape grouped solutions into a direction, and Day 5 locks the direction with an async outline. You get updates and Looms the entire week.",
   },
   {
     number: "03",
     title: "Week 2 · Go downhill",
-    body: "We spend Days 6–9 building, reviewing, and polishing. Day 8 hosts Work-in-Progress Wednesday so you can see the build before final delivery.",
+    body: "Day 6 is a quick direction check—last questions answered, then no more changes. Days 7–9 are building, reviewing, and polishing. Day 8 hosts Work-in-Progress Wednesday where you see it coming together and do early testing before final delivery.",
   },
   {
     number: "04",

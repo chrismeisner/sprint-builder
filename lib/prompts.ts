@@ -191,20 +191,20 @@ Purpose: Reduce uncertainty, build confidence, find direction
 - Day 2 (Tuesday): Research + divergence
   - Studio heads down exploring options; no live touchpoints, client leaves async comments only
 - Day 3 (Wednesday): Work-in-progress share
-  - Async Loom/Figma review with OPTIONAL sync, showing “ingredient”/“solution” buckets—categories with a few variations so the client can steer what to carry into Decision Day
-- Day 4 (Thursday): Decision Day
-  - Client input REQUIRED - review 2-3 viable paths and commit to one confident direction
-- Day 5 (Friday): Execution plan
-  - Studio documents the downhill build plan and offers an OPTIONAL sync to walk through the locked direction
+  - Async Loom/Figma review with OPTIONAL sync, showing "ingredient"/"solution" buckets—categories with grouped variations so the client can react and steer what to carry into Ingredient Review
+- Day 4 (Thursday): Ingredient Review
+  - Client input REQUIRED - review grouped solutions and categorized ingredients together; decide which to keep, refine, discard, or combine to shape the raw materials into one clear direction
+- Day 5 (Friday): Direction locked
+  - Studio compiles Day 4 feedback into one clear direction and shares an async outline; the client should see it and think "Yes, this is the solution we want to refine"
 
 **DOWNHILL PHASE (Days 6-10): Confident Execution**
 Purpose: Execute with locked direction, no major changes
-- Day 6 (Monday): Translate plan → build tasks
-  - Studio heads down mapping the plan to execution tasks (no meetings)
+- Day 6 (Monday): Direction check + build kickoff
+  - OPTIONAL sync to review the locked direction, answer last questions, and confirm alignment before going downhill; no directional changes after today
 - Day 7 (Tuesday): Deep build day
   - Production continues with OPTIONAL sync share if the client wants another peek
 - Day 8 (Wednesday): Work-in-progress review
-  - Client input REQUIRED - live or Loom review to catch issues before polish days
+  - Client input REQUIRED - live or Loom review to see it coming together; early testing, validate progress, request tweaks before polish
 - Day 9 (Thursday): Polish + stress test
   - Studio heads down refining assets, QA flows, prepping exports
 - Day 10 (Friday): Delivery + handoff

@@ -15,7 +15,7 @@ export default function ProcessSection() {
           aria-expanded={isProcessExpanded}
         >
           <div className="flex items-center justify-center gap-3 hover:opacity-80 transition">
-            <h2 className="text-3xl font-bold">A Great Work Studio 2-week sprint in 4 moves</h2>
+            <h2 className="text-3xl font-bold">A Meisner Design 2-week sprint in 4 moves</h2>
             <svg
               className={`w-6 h-6 transition-transform duration-300 ${isProcessExpanded ? 'rotate-180' : ''}`}
               fill="none"
@@ -77,7 +77,7 @@ export default function ProcessSection() {
             </div>
             <div className="pl-16 space-y-4">
               <p className="text-base opacity-80">
-                Monday starts with a 3-hour Google-inspired workshop. The rest of the week is divergence + alignment—exploring options, sharing WIP, and locking one solution on <span className="font-semibold">Decision Day Thursday</span>.
+                Monday starts with a 3-hour Google-inspired workshop. The rest of the week is divergence + alignment—exploring options, sharing WIP, and shaping grouped ingredients into one direction on <span className="font-semibold">Ingredient Review Thursday</span>.
               </p>
               <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 space-y-2">
                 <div className="flex items-center gap-2">
@@ -87,8 +87,8 @@ export default function ProcessSection() {
                 <ul className="text-sm space-y-1.5 opacity-80">
                   <li>• Day 1 (Monday): Kickoff workshop (Brand/Product)</li>
                   <li>• Day 2–3: Studio explores and shares WIP</li>
-                  <li>• Day 4 (Thursday): Decision Day — options presented, solution selected</li>
-                  <li>• Day 5 (Friday): Execution plan locked for Week 2</li>
+                  <li>• Day 4 (Thursday): Ingredient review — grouped solutions evaluated, direction shaped</li>
+                  <li>• Day 5 (Friday): Direction locked — async outline confirms the solution</li>
                 </ul>
               </div>
               <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-4 text-sm space-y-2">
@@ -120,9 +120,9 @@ export default function ProcessSection() {
                   <h4 className="font-semibold">Week 2 cadence</h4>
                 </div>
                 <ul className="text-sm space-y-1.5 opacity-80">
-                  <li>• Day 6 (Monday): Align execution plan to deliverables</li>
+                  <li>• Day 6 (Monday): Direction check — confirm alignment, answer last questions, then build begins</li>
                   <li>• Day 7 (Tuesday): Studio heads down building</li>
-                  <li>• Day 8 (Wednesday): Work-in-Progress review, live feedback</li>
+                  <li>• Day 8 (Wednesday): Work-in-Progress review — see it coming together, early testing</li>
                   <li>• Day 9 (Thursday): Refinement + polish</li>
                   <li>• Day 10 (Friday): Final delivery, Loom walkthrough, and optional live demo</li>
                 </ul>
@@ -157,7 +157,7 @@ export default function ProcessSection() {
                   <ul className="list-disc pl-5 space-y-1 opacity-80">
                     <li>Test deliverables with users or your team</li>
                     <li>Pick new deliverables from the library</li>
-                    <li>Book another 2-week sprint (same kickoff → Decision Day → WIP Wednesday → delivery cadence)</li>
+                    <li>Book another 2-week sprint (same kickoff → Ingredient Review → WIP Wednesday → delivery cadence)</li>
                   </ul>
                 </div>
               </div>
