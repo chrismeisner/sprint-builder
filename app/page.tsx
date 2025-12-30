@@ -6,18 +6,22 @@ export const dynamic = "force-dynamic";
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center space-y-4 text-center">
-      <Typography as="h3" scale="h3">
-        Have a nice day
-      </Typography>
-      <div className="space-y-2">
-        <Link href="http://localhost:3000/sprint-builder" className="underline underline-offset-2">
-          Sprint Builder
-        </Link>
-        <br />
-        <Link href="http://localhost:3000/deferred-compensation" className="underline underline-offset-2">
-          Deferred Compensation Calculator
-        </Link>
+    <main className="min-h-screen flex items-center justify-center">
+      <div className="flex flex-col items-center gap-6 text-center">
+        <Typography as="h3" scale="h3">
+          Have a nice day
+        </Typography>
+        <div className="flex flex-col gap-2 text-lg">
+          <Link href="/sprint-builder" className="underline underline-offset-4">
+            Sprint Builder
+          </Link>
+          <Link
+            href="/deferred-compensation"
+            className="underline underline-offset-4"
+          >
+            Deferred Compensation Calculator
+          </Link>
+        </div>
       </div>
     </main>
   );
