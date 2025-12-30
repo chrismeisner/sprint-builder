@@ -20,7 +20,7 @@ export default function DeleteSprintButton({ sprintId, visible }: Props) {
         return;
       }
       window.location.href = "/dashboard/sprint-builder";
-    } catch (_error) {
+    } catch {
       alert("Failed to delete sprint");
     }
   };

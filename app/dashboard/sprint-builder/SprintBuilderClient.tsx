@@ -656,7 +656,11 @@ export default function SprintBuilderClient({ deliverables, projects }: Props) {
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" || e.key === " ") {
                                   e.preventDefault();
-                                  isSelected ? removeDeliverable(d.id) : addDeliverable(d.id);
+                                if (isSelected) {
+                                  removeDeliverable(d.id);
+                                } else {
+                                  addDeliverable(d.id);
+                                }
                                 }
                               }}
                               className={
