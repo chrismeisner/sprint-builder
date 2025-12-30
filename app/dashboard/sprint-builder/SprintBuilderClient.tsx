@@ -513,13 +513,13 @@ export default function SprintBuilderClient({
 
       {/* Main layout */}
       <form onSubmit={handleSubmit} id="sprint-form" className="space-y-6">
-          {/* Basic Info */}
-          {isAuthenticated && (
-            <section className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
-              <h2 className={sectionHeadingClass}>Sprint Details</h2>
-            
-            <div className="grid gap-4 lg:grid-cols-3">
-              <div className="space-y-2">
+          {/* Basic Info — always visible; project selection only for authenticated users */}
+          <section className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
+            <h2 className={sectionHeadingClass}>Sprint Details</h2>
+          
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="space-y-2">
+              {isAuthenticated && (
                 <div>
                   <label className={`${labelClass} block mb-1`} htmlFor="project">
                     Project
@@ -542,89 +542,89 @@ export default function SprintBuilderClient({
                     <option value="new">+ New project</option>
                   </select>
                 </div>
-                {projectId === "new" && (
-                  <div className="space-y-1">
-                    <label className={`${labelClass} block mb-1`} htmlFor="new-project-name">
-                      New project name
-                    </label>
-                    <input
-                      id="new-project-name"
-                      type="text"
-                      value={newProjectName}
-                      onChange={(e) => setNewProjectName(e.target.value)}
-                      className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-                      placeholder="e.g. Apollo launch"
-                      disabled={creatingProject || submitting}
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className={`${labelClass} block mb-1`} htmlFor="title">
-                    Sprint Title *
+              )}
+              {isAuthenticated && projectId === "new" && (
+                <div className="space-y-1">
+                  <label className={`${labelClass} block mb-1`} htmlFor="new-project-name">
+                    New project name
                   </label>
                   <input
-                    id="title"
-                    required
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    id="new-project-name"
+                    type="text"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
                     className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-                    placeholder="e.g. Q1 2024 MVP Development"
+                    placeholder="e.g. Apollo launch"
+                    disabled={creatingProject || submitting}
                   />
                 </div>
+              )}
+              <div>
+                <label className={`${labelClass} block mb-1`} htmlFor="title">
+                  Sprint Title *
+                </label>
+                <input
+                  id="title"
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+                  placeholder="e.g. Q1 2024 MVP Development"
+                />
               </div>
-
-              <div className="space-y-2">
-                <div>
-                  <label className={`${labelClass} block mb-1`} htmlFor="start-date">
-                    Start Date
-                  </label>
-                  <select
-                    id="start-date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-                  >
-                    {upcomingMondays.map((d) => (
-                      <option key={d} value={d}>
-                        {formatFriendly(d) || d}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className={`${labelClass} block mb-1`} htmlFor="weeks">
-                    Weeks
-                  </label>
-                  <input
-                    id="weeks"
-                    type="number"
-                    min={1}
-                    max={52}
-                    value={weeks}
-                    onChange={(e) => setWeeks(Number(e.target.value) || 2)}
-                    className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-                  />
-                </div>
-
-                <div>
-                  <label className={`${labelClass} block mb-1`} htmlFor="end-date">
-                    End Date (auto)
-                  </label>
-                  <input
-                    id="end-date"
-                    readOnly
-                    value={endFriendly || ""}
-                    className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-gray-100 text-black`}
-                  />
-                </div>
-              </div>
-
-              {/* Spacer column for desktop alignment */}
-              <div className="hidden lg:block" aria-hidden="true" />
             </div>
-            </section>
-          )}
+
+            <div className="space-y-2">
+              <div>
+                <label className={`${labelClass} block mb-1`} htmlFor="start-date">
+                  Start Date
+                </label>
+                <select
+                  id="start-date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+                >
+                  {upcomingMondays.map((d) => (
+                    <option key={d} value={d}>
+                      {formatFriendly(d) || d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className={`${labelClass} block mb-1`} htmlFor="weeks">
+                  Weeks
+                </label>
+                <input
+                  id="weeks"
+                  type="number"
+                  min={1}
+                  max={52}
+                  value={weeks}
+                  onChange={(e) => setWeeks(Number(e.target.value) || 2)}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+                />
+              </div>
+
+              <div>
+                <label className={`${labelClass} block mb-1`} htmlFor="end-date">
+                  End Date (auto)
+                </label>
+                <input
+                  id="end-date"
+                  readOnly
+                  value={endFriendly || ""}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-gray-100 text-black`}
+                />
+              </div>
+            </div>
+
+            {/* Spacer column for desktop alignment */}
+            <div className="hidden lg:block" aria-hidden="true" />
+          </div>
+          </section>
 
           {/* Deliverables layout and totals */}
           <div className="grid gap-6 lg:grid-cols-3 items-start">
