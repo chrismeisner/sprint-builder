@@ -214,28 +214,23 @@ export default function DeferredCompensationClient({
         : [{ id: 0, summary: "—", date: "—", multiplier: "—" as unknown as number }];
 
     milestoneRows.forEach((m) => {
-      const multiplier = Number.isFinite(m.multiplier) ? m.multiplier : "—";
-      const deferredPayout =
-        Number.isFinite(m.multiplier) && typeof m.multiplier === "number"
-          ? deferredAmount * m.multiplier
-          : "—";
-      const equityPayout =
-        Number.isFinite(m.multiplier) && typeof m.multiplier === "number"
-          ? equityAmount * m.multiplier
-          : "—";
+      const isNumberMultiplier = Number.isFinite(m.multiplier) && typeof m.multiplier === "number";
+      const multiplier = isNumberMultiplier ? m.multiplier : "—";
+      const deferredPayout = isNumberMultiplier ? deferredAmount * m.multiplier : null;
+      const equityPayout = isNumberMultiplier ? equityAmount * m.multiplier : null;
       const totalCost =
-        Number.isFinite(m.multiplier) && typeof m.multiplier === "number"
+        isNumberMultiplier && deferredPayout != null && equityPayout != null
           ? upfrontAmount + equityPayout + deferredPayout
-          : "—";
+          : null;
       rows.push([
         "",
         m.summary || "—",
         m.date || "—",
         multiplier,
         upfrontAmount,
-        equityPayout,
-        deferredPayout,
-        totalCost,
+        equityPayout ?? "—",
+        deferredPayout ?? "—",
+        totalCost ?? "—",
       ]);
     });
 
