@@ -1,10 +1,5 @@
 "use client";
 
-type Props = {
-  documentId: string;
-  model?: string;
-};
-
 export default function CreateSprintButton() {
   return (
     <div className="inline-flex items-center gap-2">
