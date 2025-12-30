@@ -47,7 +47,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
     [project.id, user.email]
   );
-  const isMember = membershipRes.rowCount > 0;
+  const isMember = (membershipRes?.rowCount ?? 0) > 0;
 
   if (!isOwner && !isAdmin && !isMember) {
     notFound();
