@@ -23,22 +23,39 @@ type Project = {
 type Props = {
   deliverables: Deliverable[];
   projects: Project[];
+  isAuthenticated?: boolean;
+  loginRedirectPath?: string;
 };
 
-export default function SprintBuilderClient({ deliverables, projects }: Props) {
+export default function SprintBuilderClient({
+  deliverables,
+  projects,
+  isAuthenticated = true,
+  loginRedirectPath = "/dashboard/sprint-builder",
+}: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedProjectId = searchParams.get("projectId");
   const sprintIdFromQuery = searchParams.get("sprintId");
-  
+
+  const loginHref = useMemo(
+    () => `/login?redirect=${encodeURIComponent(loginRedirectPath)}`,
+    [loginRedirectPath]
+  );
+
   // Form state
   const [title, setTitle] = useState("");
-  const [projectId, setProjectId] = useState(() => {
+  const defaultProjectId = useMemo(() => {
+    if (!isAuthenticated) return "";
     if (preselectedProjectId && projects.some((p) => p.id === preselectedProjectId)) {
       return preselectedProjectId;
     }
     return projects[0]?.id ? projects[0].id : "new";
-  });
+  }, [isAuthenticated, preselectedProjectId, projects]);
+  const [projectId, setProjectId] = useState(defaultProjectId);
+  useEffect(() => {
+    setProjectId(defaultProjectId);
+  }, [defaultProjectId]);
   const [newProjectName, setNewProjectName] = useState("");
   const [creatingProject, setCreatingProject] = useState(false);
   function toLocalISO(date: Date): string {
@@ -98,10 +115,10 @@ export default function SprintBuilderClient({ deliverables, projects }: Props) {
   const [editingNote, setEditingNote] = useState<string>("");
   const [infoDeliverable, setInfoDeliverable] = useState<Deliverable | null>(null);
   useEffect(() => {
-    if (preselectedProjectId && projects.some((p) => p.id === preselectedProjectId)) {
+    if (isAuthenticated && preselectedProjectId && projects.some((p) => p.id === preselectedProjectId)) {
       setProjectId(preselectedProjectId);
     }
-  }, [preselectedProjectId, projects]);
+  }, [isAuthenticated, preselectedProjectId, projects]);
   const categoryNames = useMemo(
     () => Array.from(new Set(deliverables.map((d) => d.category || "Uncategorized"))),
     [deliverables]
@@ -121,9 +138,10 @@ export default function SprintBuilderClient({ deliverables, projects }: Props) {
   const metricLabelClass = `${getTypographyClassName("subtitle-sm")} text-text-secondary`;
   const metricValueClass = `${getTypographyClassName("h3")} text-text-primary`;
   const totalValueClass = `${getTypographyClassName("h2")} text-text-primary`;
-  const canQuickCreate = Boolean(title.trim() && projectId);
+  const canQuickCreate = isAuthenticated && Boolean(title.trim() && projectId);
   const primaryCtaLabel = isEditing ? "Update sprint" : "Create sprint";
   const primaryCtaBusy = isEditing ? "Updating..." : "Creating...";
+  const showSprintDetailsSection = false; // Hide optional sprint details UI for now
 
   // Prefill from existing sprint
   useEffect(() => {
@@ -275,7 +293,13 @@ export default function SprintBuilderClient({ deliverables, projects }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
+
+    if (!isAuthenticated) {
+      setError("Please sign in to create a sprint");
+      router.push(loginHref);
+      return;
+    }
+
     if (selectedDeliverables.length === 0) {
       setError("Please select at least one deliverable");
       return;
@@ -458,22 +482,26 @@ export default function SprintBuilderClient({ deliverables, projects }: Props) {
           <p className={pageSubtitleClass}>Manually create a sprint with selected deliverables</p>
         </div>
         <div className="flex items-center gap-2">
-          {canQuickCreate && (
-            <button
-              type="submit"
-              form="sprint-form"
-              disabled={submitting || loadingExisting}
-              className={`${bodySmClass} inline-flex items-center rounded-md bg-black text-white px-3 py-1.5 hover:bg-black/80 disabled:opacity-60 transition`}
-            >
-              {submitting ? primaryCtaBusy : primaryCtaLabel}
-            </button>
-          )}
-          <Link
-            href="/dashboard"
-            className={`${bodySmClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition`}
-          >
-            Back to dashboard
-          </Link>
+          {isAuthenticated ? (
+            <>
+              {canQuickCreate && (
+                <button
+                  type="submit"
+                  form="sprint-form"
+                  disabled={submitting || loadingExisting}
+                  className={`${bodySmClass} inline-flex items-center rounded-md bg-black text-white px-3 py-1.5 hover:bg-black/80 disabled:opacity-60 transition`}
+                >
+                  {submitting ? primaryCtaBusy : primaryCtaLabel}
+                </button>
+              )}
+              <Link
+                href="/dashboard"
+                className={`${bodySmClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+              >
+                Back to dashboard
+              </Link>
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -486,115 +514,117 @@ export default function SprintBuilderClient({ deliverables, projects }: Props) {
       {/* Main layout */}
       <form onSubmit={handleSubmit} id="sprint-form" className="space-y-6">
           {/* Basic Info */}
-          <section className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
-            <h2 className={sectionHeadingClass}>Sprint Details</h2>
-          
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="space-y-2">
-              <div>
-                <label className={`${labelClass} block mb-1`} htmlFor="project">
-                  Project
-                </label>
-                <select
-                  id="project"
-                  required
-                  value={projectId}
-                  onChange={(e) => {
-                    setProjectId(e.target.value);
-                    setError(null);
-                  }}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-                >
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                  <option value="new">+ New project</option>
-                </select>
-              </div>
-              {projectId === "new" && (
-                <div className="space-y-1">
-                  <label className={`${labelClass} block mb-1`} htmlFor="new-project-name">
-                    New project name
+          {isAuthenticated && (
+            <section className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
+              <h2 className={sectionHeadingClass}>Sprint Details</h2>
+            
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="space-y-2">
+                <div>
+                  <label className={`${labelClass} block mb-1`} htmlFor="project">
+                    Project
+                  </label>
+                  <select
+                    id="project"
+                    required
+                    value={projectId}
+                    onChange={(e) => {
+                      setProjectId(e.target.value);
+                      setError(null);
+                    }}
+                    className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                    <option value="new">+ New project</option>
+                  </select>
+                </div>
+                {projectId === "new" && (
+                  <div className="space-y-1">
+                    <label className={`${labelClass} block mb-1`} htmlFor="new-project-name">
+                      New project name
+                    </label>
+                    <input
+                      id="new-project-name"
+                      type="text"
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+                      placeholder="e.g. Apollo launch"
+                      disabled={creatingProject || submitting}
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className={`${labelClass} block mb-1`} htmlFor="title">
+                    Sprint Title *
                   </label>
                   <input
-                    id="new-project-name"
-                    type="text"
-                    value={newProjectName}
-                    onChange={(e) => setNewProjectName(e.target.value)}
+                    id="title"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
                     className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-                    placeholder="e.g. Apollo launch"
-                    disabled={creatingProject || submitting}
+                    placeholder="e.g. Q1 2024 MVP Development"
                   />
                 </div>
-              )}
-              <div>
-                <label className={`${labelClass} block mb-1`} htmlFor="title">
-                  Sprint Title *
-                </label>
-                <input
-                  id="title"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-                  placeholder="e.g. Q1 2024 MVP Development"
-                />
               </div>
+
+              <div className="space-y-2">
+                <div>
+                  <label className={`${labelClass} block mb-1`} htmlFor="start-date">
+                    Start Date
+                  </label>
+                  <select
+                    id="start-date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+                  >
+                    {upcomingMondays.map((d) => (
+                      <option key={d} value={d}>
+                        {formatFriendly(d) || d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`${labelClass} block mb-1`} htmlFor="weeks">
+                    Weeks
+                  </label>
+                  <input
+                    id="weeks"
+                    type="number"
+                    min={1}
+                    max={52}
+                    value={weeks}
+                    onChange={(e) => setWeeks(Number(e.target.value) || 2)}
+                    className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`${labelClass} block mb-1`} htmlFor="end-date">
+                    End Date (auto)
+                  </label>
+                  <input
+                    id="end-date"
+                    readOnly
+                    value={endFriendly || ""}
+                    className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-gray-100 text-black`}
+                  />
+                </div>
+              </div>
+
+              {/* Spacer column for desktop alignment */}
+              <div className="hidden lg:block" aria-hidden="true" />
             </div>
-
-            <div className="space-y-2">
-              <div>
-                <label className={`${labelClass} block mb-1`} htmlFor="start-date">
-                  Start Date
-                </label>
-                <select
-                  id="start-date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-                >
-                  {upcomingMondays.map((d) => (
-                    <option key={d} value={d}>
-                      {formatFriendly(d) || d}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className={`${labelClass} block mb-1`} htmlFor="weeks">
-                  Weeks
-                </label>
-                <input
-                  id="weeks"
-                  type="number"
-                  min={1}
-                  max={52}
-                  value={weeks}
-                  onChange={(e) => setWeeks(Number(e.target.value) || 2)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-                />
-              </div>
-
-              <div>
-                <label className={`${labelClass} block mb-1`} htmlFor="end-date">
-                  End Date (auto)
-                </label>
-                <input
-                  id="end-date"
-                  readOnly
-                  value={endFriendly || ""}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-gray-100 text-black`}
-                />
-              </div>
-            </div>
-
-            {/* Spacer column for desktop alignment */}
-            <div className="hidden lg:block" aria-hidden="true" />
-          </div>
-          </section>
+            </section>
+          )}
 
           {/* Deliverables layout and totals */}
           <div className="grid gap-6 lg:grid-cols-3 items-start">
@@ -832,20 +862,31 @@ export default function SprintBuilderClient({ deliverables, projects }: Props) {
               </section>
 
               <section className="space-y-2">
-                <button
-                  type="submit"
-                  disabled={submitting || selectedDeliverables.length === 0 || loadingExisting}
-                  className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md bg-black text-white px-4 py-3 disabled:opacity-60 hover:bg-black/80 transition`}
-                >
-                  {submitting ? primaryCtaBusy : primaryCtaLabel}
-                </button>
-                
-                <Link
-                  href="/dashboard"
-                  className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition`}
-                >
-                  Cancel
-                </Link>
+                {isAuthenticated ? (
+                  <>
+                    <button
+                      type="submit"
+                      disabled={submitting || selectedDeliverables.length === 0 || loadingExisting}
+                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md bg-black text-white px-4 py-3 disabled:opacity-60 hover:bg-black/80 transition`}
+                    >
+                      {submitting ? primaryCtaBusy : primaryCtaLabel}
+                    </button>
+                    
+                    <Link
+                      href="/dashboard"
+                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                    >
+                      Cancel
+                    </Link>
+                  </>
+                ) : (
+                  <Link
+                    href="/"
+                    className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                  >
+                    Back to home
+                  </Link>
+                )}
               </section>
 
               {selectedDeliverables.length === 0 && (
@@ -856,50 +897,52 @@ export default function SprintBuilderClient({ deliverables, projects }: Props) {
             </div>
           </div>
 
-          {/* Custom Content (moved to bottom) */}
-          <section className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
-            <h2 className={sectionHeadingClass}>Sprint Details (Optional)</h2>
-            <p className={sectionHelperClass}>Add custom context and planning notes for this sprint</p>
-            
-            <div>
-              <label className={`${labelClass} block mb-1`} htmlFor="approach">
-                Sprint Approach
-              </label>
-              <textarea
-                id="approach"
-                value={approach}
-                onChange={(e) => setApproach(e.target.value)}
-                className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 min-h-[80px] bg-white text-black`}
-                placeholder="Explain the overall approach and methodology for this sprint..."
-              />
-            </div>
+          {/* Custom Content (hidden for now) */}
+          {showSprintDetailsSection && (
+            <section className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
+              <h2 className={sectionHeadingClass}>Sprint Details (Optional)</h2>
+              <p className={sectionHelperClass}>Add custom context and planning notes for this sprint</p>
+              
+              <div>
+                <label className={`${labelClass} block mb-1`} htmlFor="approach">
+                  Sprint Approach
+                </label>
+                <textarea
+                  id="approach"
+                  value={approach}
+                  onChange={(e) => setApproach(e.target.value)}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 min-h-[80px] bg-white text-black`}
+                  placeholder="Explain the overall approach and methodology for this sprint..."
+                />
+              </div>
 
-            <div>
-              <label className={`${labelClass} block mb-1`} htmlFor="week1">
-                Week 1 Overview
-              </label>
-              <textarea
-                id="week1"
-                value={week1Overview}
-                onChange={(e) => setWeek1Overview(e.target.value)}
-                className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 min-h-[80px] bg-white text-black`}
-                placeholder="Describe Week 1's focus, activities, and expected outcomes..."
-              />
-            </div>
+              <div>
+                <label className={`${labelClass} block mb-1`} htmlFor="week1">
+                  Week 1 Overview
+                </label>
+                <textarea
+                  id="week1"
+                  value={week1Overview}
+                  onChange={(e) => setWeek1Overview(e.target.value)}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 min-h-[80px] bg-white text-black`}
+                  placeholder="Describe Week 1's focus, activities, and expected outcomes..."
+                />
+              </div>
 
-            <div>
-              <label className={`${labelClass} block mb-1`} htmlFor="week2">
-                Week 2 Overview
-              </label>
-              <textarea
-                id="week2"
-                value={week2Overview}
-                onChange={(e) => setWeek2Overview(e.target.value)}
-                className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 min-h-[80px] bg-white text-black`}
-                placeholder="Describe Week 2's focus, completion activities, and final deliverables..."
-              />
-            </div>
-          </section>
+              <div>
+                <label className={`${labelClass} block mb-1`} htmlFor="week2">
+                  Week 2 Overview
+                </label>
+                <textarea
+                  id="week2"
+                  value={week2Overview}
+                  onChange={(e) => setWeek2Overview(e.target.value)}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 min-h-[80px] bg-white text-black`}
+                  placeholder="Describe Week 2's focus, completion activities, and final deliverables..."
+                />
+              </div>
+            </section>
+          )}
         </form>
 
       {/* Export */}
