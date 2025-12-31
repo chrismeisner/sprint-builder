@@ -393,6 +393,9 @@ export default function SprintBuilderClient({
 
   const { totalComplexity, totalPrice, totalHours } = calculateTotals();
   const hoursPerDay = totalDays > 0 ? Number(totalHours || 0) / totalDays : 0;
+  const totalPriceCents = Math.max(0, Math.round(Number(totalPrice || 0) * 100));
+  const canBudget = selectedDeliverables.length > 0 && totalPriceCents > 0;
+  const budgetHref = canBudget ? `/deferred-compensation?amount=${totalPriceCents}` : "#";
 
   function escapeCsv(val: unknown) {
     if (val === null || val === undefined) return "";
@@ -877,6 +880,22 @@ export default function SprintBuilderClient({
                       className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition`}
                     >
                       Cancel
+                    </Link>
+                    <Link
+                      prefetch={false}
+                      href={budgetHref}
+                      aria-disabled={!canBudget}
+                      tabIndex={canBudget ? 0 : -1}
+                      onClick={(e) => {
+                        if (!canBudget) {
+                          e.preventDefault();
+                        }
+                      }}
+                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition ${
+                        canBudget ? "" : "opacity-60 cursor-not-allowed"
+                      }`}
+                    >
+                      Budget this sprint
                     </Link>
                   </>
                 ) : (
