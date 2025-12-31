@@ -223,6 +223,15 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS format text
   `);
   await pool.query(`
+    ALTER TABLE deliverables
+    ADD COLUMN IF NOT EXISTS default_estimate_points numeric(10,2)
+  `);
+  await pool.query(`
+    UPDATE deliverables
+    SET default_estimate_points = points
+    WHERE default_estimate_points IS NULL
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS deliverable_tags (
       id text PRIMARY KEY,
       name text NOT NULL UNIQUE,

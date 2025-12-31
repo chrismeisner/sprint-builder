@@ -69,7 +69,7 @@ export async function POST(request: Request, { params }: Params) {
               'scope', d.scope,
               'fixedHours', d.fixed_hours,
               'fixedPrice', d.fixed_price,
-              'defaultEstimatePoints', d.default_estimate_points,
+              'defaultEstimatePoints', COALESCE(d.default_estimate_points, d.points),
               'category', d.category,
               'quantity', spd.quantity,
               'complexityScore', COALESCE(spd.complexity_score, 2.5)

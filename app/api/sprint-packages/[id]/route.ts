@@ -41,7 +41,7 @@ export async function GET(request: Request, { params }: Params) {
               'scope', d.scope,
               'fixedHours', d.fixed_hours,
               'fixedPrice', d.fixed_price,
-              'defaultEstimatePoints', d.default_estimate_points,
+              'defaultEstimatePoints', COALESCE(d.default_estimate_points, d.points),
               'quantity', spd.quantity,
               'notes', spd.notes,
               'sortOrder', spd.sort_order

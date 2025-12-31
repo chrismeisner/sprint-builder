@@ -21,7 +21,7 @@ export async function GET() {
             'name', d.name,
             'fixedHours', d.fixed_hours,
             'fixedPrice', d.fixed_price,
-            'points', d.default_estimate_points,
+            'points', COALESCE(d.default_estimate_points, d.points),
             'quantity', spd.quantity,
             'complexityScore', COALESCE(spd.complexity_score, 1.0)
           ) ORDER BY spd.sort_order ASC
