@@ -916,18 +916,6 @@ export default function SprintBuilderClient({
                     >
                       Budget this sprint
                     </Link>
-                    <Link
-                      href={loginHref}
-                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md bg-black text-white px-4 py-3 hover:bg-black/80 transition`}
-                    >
-                      Log in to save sprint
-                    </Link>
-                    <Link
-                      href="/"
-                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition`}
-                    >
-                      Back to home
-                    </Link>
                   </>
                 )}
               </section>
