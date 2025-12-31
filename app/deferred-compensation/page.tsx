@@ -35,15 +35,41 @@ type DeferredCompSearchParams = {
   sprintId?: string;
   amount?: string;
   projectValue?: string;
+  amountCents?: string;
+  projectValueCents?: string;
 };
+
+function parseAmount(searchParams?: DeferredCompSearchParams): number | null {
+  if (!searchParams) return null;
+
+  // Highest priority: explicit cents params
+  const centsParam = searchParams.projectValueCents ?? searchParams.amountCents;
+  if (typeof centsParam === "string") {
+    const cents = Number(centsParam);
+    if (Number.isFinite(cents)) {
+      return cents / 100;
+    }
+  }
+
+  // Next: dollar params (projectValue preferred over amount)
+  const dollarParam = searchParams.projectValue ?? searchParams.amount;
+  if (typeof dollarParam === "string") {
+    const isCentsLike = /^\d+$/.test(dollarParam);
+    const num = Number(dollarParam);
+    if (Number.isFinite(num)) {
+      // If it's an integer with no decimal point, interpret as cents for backwards-compatible support of ?amount=848750 -> $8,487.50
+      return isCentsLike ? num / 100 : num;
+    }
+  }
+
+  return null;
+}
 
 export default async function DeferredCompensationPage({ searchParams }: { searchParams?: DeferredCompSearchParams }) {
   const user = await getCurrentUser();
   const sprintOptions = user ? await loadSprintOptions(user.accountId) : [];
   const sprintIdFromQuery = searchParams?.sprintId || null;
-  const amountParam = searchParams?.projectValue ?? searchParams?.amount ?? null;
-  const parsedAmount = amountParam != null ? Number(amountParam) : NaN;
-  const amountFromQuery = Number.isFinite(parsedAmount) ? parsedAmount : null;
+  const amountFromQuery = parseAmount(searchParams);
 
   return (
     <DeferredCompensationClient

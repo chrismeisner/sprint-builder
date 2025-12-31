@@ -18,6 +18,8 @@ type DeferredCompensationProps = {
 // Constants (guardrails)
 const UPFRONT_MIN = 0.20; // 20%
 const UPFRONT_MAX = 1.0;  // 100%
+const REMAINING_SPLIT_MIN = 0.10; // 10% min to either side
+const REMAINING_SPLIT_MAX = 0.90; // 90% max to either side
 
 // Default values
 const DEFAULT_PROJECT_VALUE = 10000; // $10,000
@@ -26,15 +28,15 @@ function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 
 function formatNumberInput(value: number): string {
   return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 
@@ -90,12 +92,10 @@ export default function DeferredCompensationClient({
     () => new Map(resolvedSprintOptions.map((option) => [option.id, option.label])),
     [resolvedSprintOptions]
   );
-  const allowSprintAttach = isLoggedIn && Boolean(defaultSprintId);
   const selectedSprintLabel =
     selectedSprint && sprintLabelById.get(selectedSprint)
       ? sprintLabelById.get(selectedSprint)!
       : selectedSprint || "";
-  const shouldShowSprintSelect = allowSprintAttach && resolvedSprintOptions.length > 0;
 
   // Calculated values
   const remainingPercent = 1 - upfrontPayment;
@@ -349,56 +349,26 @@ export default function DeferredCompensationClient({
         <Typography as="h2" scale="h3" className="text-text-primary">
           Project Budget
         </Typography>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-lg bg-surface-subtle p-4 space-y-2">
-            <label htmlFor="totalProjectValue">
-              <Typography as="span" scale="subtitle-sm" className="text-text-secondary">
-                Total Project Value
-              </Typography>
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">$</span>
-              <input
-                id="totalProjectValue"
-                type="text"
-                inputMode="numeric"
-                value={formatNumberInput(totalProjectValue)}
-                onChange={(e) => {
-                  const numeric = Number(e.target.value.replace(/,/g, ""));
-                  setTotalProjectValue(Math.max(0, Number.isFinite(numeric) ? numeric : 0));
-                }}
-                className="w-full rounded-md border border-stroke-muted bg-background pl-7 pr-3 py-2 text-lg font-semibold text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
-              />
-            </div>
+        <div className="rounded-lg bg-surface-subtle p-4 space-y-2">
+          <label htmlFor="totalProjectValue">
+            <Typography as="span" scale="subtitle-sm" className="text-text-secondary">
+              Total Project Value
+            </Typography>
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">$</span>
+            <input
+              id="totalProjectValue"
+              type="text"
+              inputMode="numeric"
+              value={formatNumberInput(totalProjectValue)}
+              onChange={(e) => {
+                const numeric = Number(e.target.value.replace(/,/g, ""));
+                setTotalProjectValue(Math.max(0, Number.isFinite(numeric) ? numeric : 0));
+              }}
+              className="w-full rounded-md border border-stroke-muted bg-background pl-7 pr-3 py-2 text-lg font-semibold text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            />
           </div>
-          {allowSprintAttach && (
-            <div className="rounded-lg bg-surface-subtle p-4 space-y-2">
-              <label htmlFor="selectedSprint">
-                <Typography as="span" scale="subtitle-sm" className="text-text-secondary">
-                  Sprint (optional)
-                </Typography>
-              </label>
-              {shouldShowSprintSelect ? (
-                <select
-                  id="selectedSprint"
-                  value={selectedSprint}
-                  onChange={(e) => setSelectedSprint(e.target.value)}
-                  className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                >
-                  <option value="">Select your sprint</option>
-                  {resolvedSprintOptions.map((sprint) => (
-                    <option key={sprint.id} value={sprint.id}>
-                      {sprint.label}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <div className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-sm text-text-secondary">
-                  No sprint drafts found for your account yet.
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </section>
 
@@ -591,7 +561,7 @@ export default function DeferredCompensationClient({
               Remaining Split: Equity ↔ Deferred
             </Typography>
             <Typography as="span" scale="body-sm" className="text-text-secondary">
-              {formatPercent(remainingPercent)} to allocate
+              {formatPercent(remainingPercent)} to allocate ({formatPercent(REMAINING_SPLIT_MIN)} – {formatPercent(REMAINING_SPLIT_MAX)} allowed)
             </Typography>
           </div>
 
@@ -601,11 +571,18 @@ export default function DeferredCompensationClient({
             </Typography>
             <input
               type="range"
-              min={0}
-              max={1}
+              min={REMAINING_SPLIT_MIN}
+              max={REMAINING_SPLIT_MAX}
               step={0.01}
               value={equitySplit}
-              onChange={(e) => setEquitySplit(Number(e.target.value))}
+              onChange={(e) =>
+                setEquitySplit(
+                  Math.min(
+                    REMAINING_SPLIT_MAX,
+                    Math.max(REMAINING_SPLIT_MIN, Number(e.target.value))
+                  )
+                )
+              }
               disabled={calculatorDisabled}
               className="flex-1 h-2 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
               style={{
@@ -841,46 +818,76 @@ export default function DeferredCompensationClient({
       </section>
 
       {/* Save / Update */}
-      <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="space-y-1">
-            <Typography as="h2" scale="h3" className="text-text-primary">
-              Budget save
-            </Typography>
-            {lastSavedAt ? (
-              <Typography as="p" scale="body-sm" className="text-text-secondary">
-                Last modified: {lastSavedAt}
+      {isLoggedIn && (
+        <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="space-y-1">
+              <Typography as="h2" scale="h3" className="text-text-primary">
+                Budget save
               </Typography>
-            ) : (
-              <Typography as="p" scale="body-sm" className="text-text-secondary">
-                Not saved yet.
-              </Typography>
+              {lastSavedAt ? (
+                <Typography as="p" scale="body-sm" className="text-text-secondary">
+                  Last modified: {lastSavedAt}
+                </Typography>
+              ) : (
+                <Typography as="p" scale="body-sm" className="text-text-secondary">
+                  Not saved yet.
+                </Typography>
+              )}
+            </div>
+            {selectedSprint && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving || !selectedSprint}
+                  className="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm font-medium hover:bg-black/80 disabled:opacity-60"
+                >
+                  {saving ? "Saving..." : "Save budget"}
+                </button>
+              </div>
             )}
           </div>
-          {isLoggedIn && selectedSprint && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving || !selectedSprint}
-                className="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm font-medium hover:bg-black/80 disabled:opacity-60"
+
+          <div className="space-y-2">
+            <label htmlFor="selectedSprintSave">
+              <Typography as="span" scale="subtitle-sm" className="text-text-secondary">
+                Project to attach budget
+              </Typography>
+            </label>
+            {resolvedSprintOptions.length > 0 ? (
+              <select
+                id="selectedSprintSave"
+                value={selectedSprint}
+                onChange={(e) => setSelectedSprint(e.target.value)}
+                className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
               >
-                {saving ? "Saving..." : "Save budget"}
-              </button>
+                <option value="">Select your project</option>
+                {resolvedSprintOptions.map((sprint) => (
+                  <option key={sprint.id} value={sprint.id}>
+                    {sprint.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-sm text-text-secondary">
+                No projects found for your account yet.
+              </div>
+            )}
+          </div>
+
+          {saveError && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {saveError}
             </div>
           )}
-        </div>
-        {saveError && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {saveError}
-          </div>
-        )}
-        {saveSuccess && (
-          <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-            {saveSuccess}
-          </div>
-        )}
-      </section>
+          {saveSuccess && (
+            <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+              {saveSuccess}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -895,6 +902,19 @@ export default function DeferredCompensationClient({
             >
               Export CSV
             </button>
+          </div>
+        </div>
+        <Typography as="p" scale="body-sm" className="text-text-secondary">
+          Download a CSV snapshot of the current calculation and milestones.
+        </Typography>
+      </section>
+
+      <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <Typography as="h2" scale="h3" className="text-text-primary">
+            Email
+          </Typography>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleEmail}
@@ -906,7 +926,7 @@ export default function DeferredCompensationClient({
           </div>
         </div>
         <Typography as="p" scale="body-sm" className="text-text-secondary">
-          Download a CSV snapshot of the current calculation and milestones, or email the current state to yourself or others.
+          Email the current calculator state to yourself or others.
         </Typography>
         <div className="space-y-2">
           <label htmlFor="emailRecipients">
