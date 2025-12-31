@@ -19,7 +19,7 @@ type DeferredCompensationProps = {
 const UPFRONT_MIN = 0.20; // 20%
 const UPFRONT_MAX = 1.0;  // 100%
 const EQUITY_SPLIT_MIN = 0; // allow 0% equity (100% of remaining deferred)
-const EQUITY_SPLIT_MAX = 0.90; // cap equity at 90% (leave at least 10% deferred)
+const EQUITY_SPLIT_MAX = 0.80; // cap equity at 80% (leave at least 20% deferred)
 
 // Default values
 const DEFAULT_PROJECT_VALUE = 10000; // $10,000
@@ -329,7 +329,7 @@ export default function DeferredCompensationClient({
   const pieSegments = [
     { label: "Upfront", percent: upfrontPayment, color: COLORS.upfront },
     { label: "Equity", percent: equityPercent, color: COLORS.equity },
-    { label: "Deferred", percent: deferredPercent, color: COLORS.deferred },
+    { label: "Deferred (base/1x)", percent: deferredPercent, color: COLORS.deferred },
   ];
 
   return (
@@ -598,7 +598,7 @@ export default function DeferredCompensationClient({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg p-3 flex items-center justify-between" style={{ backgroundColor: `${COLORS.deferred}1a` }}>
               <Typography as="span" scale="body-sm" style={{ color: COLORS.deferred }}>
-                Deferred ({formatPercent(deferredPercent)})
+                Deferred (base/1x) ({formatPercent(deferredPercent)})
               </Typography>
               <Typography as="span" scale="body-sm" className="font-medium" style={{ color: COLORS.deferred }}>
                 {formatCurrency(deferredAmount)}
@@ -735,6 +735,72 @@ export default function DeferredCompensationClient({
             ))}
           </div>
         </div>
+
+        {/* Numeric breakdown table */}
+        <div className="overflow-hidden rounded-lg border border-stroke-muted">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-surface-subtle text-text-secondary">
+              <tr>
+                <th className="px-4 py-3 font-medium">Type</th>
+                <th className="px-4 py-3 font-medium text-right">Percent</th>
+                <th className="px-4 py-3 font-medium text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stroke-muted">
+              <tr>
+                <td className="px-4 py-3">
+                  <Typography as="span" scale="body-sm" className="text-text-primary">
+                    Upfront
+                  </Typography>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
+                    {formatPercent(upfrontPayment)}
+                  </Typography>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
+                    {formatCurrency(upfrontAmount)}
+                  </Typography>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3">
+                  <Typography as="span" scale="body-sm" className="text-text-primary">
+                    Equity
+                  </Typography>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
+                    {formatPercent(equityPercent)}
+                  </Typography>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
+                    {formatCurrency(equityAmount)}
+                  </Typography>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3">
+                  <Typography as="span" scale="body-sm" className="text-text-primary">
+                    Deferred (base/1x)
+                  </Typography>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
+                    {formatPercent(deferredPercent)}
+                  </Typography>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
+                    {formatCurrency(deferredAmount)}
+                  </Typography>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       {/* Milestones Readout */}
@@ -817,6 +883,72 @@ export default function DeferredCompensationClient({
         )}
       </section>
 
+      <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <Typography as="h2" scale="h3" className="text-text-primary">
+            Export
+          </Typography>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              className="rounded-md bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            >
+              Export CSV
+            </button>
+          </div>
+        </div>
+        <Typography as="p" scale="body-sm" className="text-text-secondary">
+          Download a CSV snapshot of the current calculation and milestones.
+        </Typography>
+      </section>
+
+      <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <Typography as="h2" scale="h3" className="text-text-primary">
+            Email
+          </Typography>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleEmail}
+              disabled={emailSending}
+              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/80 disabled:opacity-60"
+            >
+              {emailSending ? "Sending..." : "Email this"}
+            </button>
+          </div>
+        </div>
+        <Typography as="p" scale="body-sm" className="text-text-secondary">
+          Email the current calculator state to yourself or others.
+        </Typography>
+        <div className="space-y-2">
+          <label htmlFor="emailRecipients">
+            <Typography as="span" scale="subtitle-sm" className="text-text-secondary">
+              Email recipients
+            </Typography>
+          </label>
+          <input
+            id="emailRecipients"
+            type="text"
+            placeholder="name@example.com, team@company.com"
+            value={emailTo}
+            onChange={(e) => setEmailTo(e.target.value)}
+            className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+          />
+          {emailError && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {emailError}
+            </div>
+          )}
+          {emailSuccess && (
+            <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+              {emailSuccess}
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Save / Update */}
       {isLoggedIn && (
         <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
@@ -888,72 +1020,6 @@ export default function DeferredCompensationClient({
           )}
         </section>
       )}
-
-      <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <Typography as="h2" scale="h3" className="text-text-primary">
-            Export
-          </Typography>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              className="rounded-md bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-            >
-              Export CSV
-            </button>
-          </div>
-        </div>
-        <Typography as="p" scale="body-sm" className="text-text-secondary">
-          Download a CSV snapshot of the current calculation and milestones.
-        </Typography>
-      </section>
-
-      <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <Typography as="h2" scale="h3" className="text-text-primary">
-            Email
-          </Typography>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleEmail}
-              disabled={emailSending}
-              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/80 disabled:opacity-60"
-            >
-              {emailSending ? "Sending..." : "Email this"}
-            </button>
-          </div>
-        </div>
-        <Typography as="p" scale="body-sm" className="text-text-secondary">
-          Email the current calculator state to yourself or others.
-        </Typography>
-        <div className="space-y-2">
-          <label htmlFor="emailRecipients">
-            <Typography as="span" scale="subtitle-sm" className="text-text-secondary">
-              Email recipients
-            </Typography>
-          </label>
-          <input
-            id="emailRecipients"
-            type="text"
-            placeholder="name@example.com, team@company.com"
-            value={emailTo}
-            onChange={(e) => setEmailTo(e.target.value)}
-            className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
-          />
-          {emailError && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {emailError}
-            </div>
-          )}
-          {emailSuccess && (
-            <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-              {emailSuccess}
-            </div>
-          )}
-        </div>
-      </section>
     </main>
   );
 }
