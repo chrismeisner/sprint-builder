@@ -18,8 +18,8 @@ type DeferredCompensationProps = {
 // Constants (guardrails)
 const UPFRONT_MIN = 0.20; // 20%
 const UPFRONT_MAX = 1.0;  // 100%
-const REMAINING_SPLIT_MIN = 0.10; // 10% min to either side
-const REMAINING_SPLIT_MAX = 0.90; // 90% max to either side
+const EQUITY_SPLIT_MIN = 0; // allow 0% equity (100% of remaining deferred)
+const EQUITY_SPLIT_MAX = 0.90; // cap equity at 90% (leave at least 10% deferred)
 
 // Default values
 const DEFAULT_PROJECT_VALUE = 10000; // $10,000
@@ -561,7 +561,7 @@ export default function DeferredCompensationClient({
               Remaining Split: Equity ↔ Deferred
             </Typography>
             <Typography as="span" scale="body-sm" className="text-text-secondary">
-              {formatPercent(remainingPercent)} to allocate ({formatPercent(REMAINING_SPLIT_MIN)} – {formatPercent(REMAINING_SPLIT_MAX)} allowed)
+              {formatPercent(remainingPercent)} to allocate ({formatPercent(EQUITY_SPLIT_MIN)} equity – {formatPercent(EQUITY_SPLIT_MAX)} equity allowed, at least {formatPercent(1 - EQUITY_SPLIT_MAX)} deferred)
             </Typography>
           </div>
 
@@ -571,15 +571,15 @@ export default function DeferredCompensationClient({
             </Typography>
             <input
               type="range"
-              min={REMAINING_SPLIT_MIN}
-              max={REMAINING_SPLIT_MAX}
+              min={EQUITY_SPLIT_MIN}
+              max={EQUITY_SPLIT_MAX}
               step={0.01}
               value={equitySplit}
               onChange={(e) =>
                 setEquitySplit(
                   Math.min(
-                    REMAINING_SPLIT_MAX,
-                    Math.max(REMAINING_SPLIT_MIN, Number(e.target.value))
+                    EQUITY_SPLIT_MAX,
+                    Math.max(EQUITY_SPLIT_MIN, Number(e.target.value))
                   )
                 )
               }
