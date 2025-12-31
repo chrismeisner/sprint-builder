@@ -31,18 +31,26 @@ async function loadSprintOptions(accountId: string): Promise<SprintOption[]> {
   }));
 }
 
-export default async function DeferredCompensationPage({ searchParams }: { searchParams?: { sprintId?: string; amount?: string } }) {
+type DeferredCompSearchParams = {
+  sprintId?: string;
+  amount?: string;
+  projectValue?: string;
+};
+
+export default async function DeferredCompensationPage({ searchParams }: { searchParams?: DeferredCompSearchParams }) {
   const user = await getCurrentUser();
   const sprintOptions = user ? await loadSprintOptions(user.accountId) : [];
   const sprintIdFromQuery = searchParams?.sprintId || null;
-  const amountFromQuery = searchParams?.amount || null;
+  const amountParam = searchParams?.projectValue ?? searchParams?.amount ?? null;
+  const parsedAmount = amountParam != null ? Number(amountParam) : NaN;
+  const amountFromQuery = Number.isFinite(parsedAmount) ? parsedAmount : null;
 
   return (
     <DeferredCompensationClient
       sprintOptions={sprintOptions}
       isLoggedIn={Boolean(user)}
       defaultSprintId={sprintIdFromQuery || undefined}
-      defaultAmount={amountFromQuery ? Number(amountFromQuery) : undefined}
+      defaultAmount={amountFromQuery ?? undefined}
     />
   );
 }

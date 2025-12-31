@@ -116,6 +116,10 @@ export default function DeferredCompensationClient({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailSuccess, setEmailSuccess] = useState<string | null>(null);
 
   const handleSave = async () => {
     try {
@@ -162,6 +166,54 @@ export default function DeferredCompensationClient({
       setSaveError(err instanceof Error ? err.message : "Failed to save budget");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleEmail = async () => {
+    try {
+      setEmailSending(true);
+      setEmailError(null);
+      setEmailSuccess(null);
+
+      const recipients = emailTo
+        .split(/[,;\s]+/)
+        .map((e) => e.trim())
+        .filter((e) => e.length > 0);
+
+      if (recipients.length === 0) {
+        throw new Error("Add at least one email address.");
+      }
+
+      const payload = {
+        to: recipients,
+        calculator: {
+          totalProjectValue,
+          upfrontPayment,
+          equitySplit,
+          milestones,
+          milestoneMissOutcome,
+          upfrontAmount,
+          equityAmount,
+          deferredAmount,
+        },
+      };
+
+      const res = await fetch("/api/deferred-comp-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to send email");
+      }
+
+      setEmailSuccess("Email sent");
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : "Failed to send email");
+    } finally {
+      setEmailSending(false);
     }
   };
 
@@ -805,16 +857,18 @@ export default function DeferredCompensationClient({
               </Typography>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving || !selectedSprint}
-              className="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm font-medium hover:bg-black/80 disabled:opacity-60"
-            >
-              {saving ? "Saving..." : "Save budget"}
-            </button>
-          </div>
+          {isLoggedIn && selectedSprint && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving || !selectedSprint}
+                className="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm font-medium hover:bg-black/80 disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Save budget"}
+              </button>
+            </div>
+          )}
         </div>
         {saveError && (
           <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -829,21 +883,56 @@ export default function DeferredCompensationClient({
       </section>
 
       <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <Typography as="h2" scale="h3" className="text-text-primary">
             Export
           </Typography>
-          <button
-            type="button"
-            onClick={handleExportCsv}
-            className="rounded-md bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-          >
-            Export CSV
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              className="rounded-md bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            >
+              Export CSV
+            </button>
+            <button
+              type="button"
+              onClick={handleEmail}
+              disabled={emailSending}
+              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/80 disabled:opacity-60"
+            >
+              {emailSending ? "Sending..." : "Email this"}
+            </button>
+          </div>
         </div>
         <Typography as="p" scale="body-sm" className="text-text-secondary">
-          Download a CSV snapshot of the current calculation and milestones.
+          Download a CSV snapshot of the current calculation and milestones, or email the current state to yourself or others.
         </Typography>
+        <div className="space-y-2">
+          <label htmlFor="emailRecipients">
+            <Typography as="span" scale="subtitle-sm" className="text-text-secondary">
+              Email recipients
+            </Typography>
+          </label>
+          <input
+            id="emailRecipients"
+            type="text"
+            placeholder="name@example.com, team@company.com"
+            value={emailTo}
+            onChange={(e) => setEmailTo(e.target.value)}
+            className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+          />
+          {emailError && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {emailError}
+            </div>
+          )}
+          {emailSuccess && (
+            <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+              {emailSuccess}
+            </div>
+          )}
+        </div>
       </section>
     </main>
   );
