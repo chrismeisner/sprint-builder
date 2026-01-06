@@ -177,7 +177,7 @@ export default async function DeliverableDetailPage({ params }: PageProps) {
         
         {scopeLines.length > 0 && (
           <div className="space-y-2">
-            <p className={t.label}>What's Included</p>
+            <p className={t.label}>What&apos;s Included</p>
             <ul className="space-y-2">
               {scopeLines.map((line, i) => (
                 <li key={i} className={`flex items-start gap-2 ${t.bodySm}`}>
@@ -222,7 +222,7 @@ export default async function DeliverableDetailPage({ params }: PageProps) {
         ) : (
           <div className="rounded-lg bg-black/5 dark:bg-white/5 p-6 text-center space-y-2">
             <p className={t.bodySm}>
-              Presentation guidelines for this deliverable haven't been documented yet.
+              Presentation guidelines for this deliverable haven&apos;t been documented yet.
             </p>
             {isAdmin && (
               <Link

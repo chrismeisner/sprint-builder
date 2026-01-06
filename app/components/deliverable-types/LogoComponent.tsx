@@ -172,7 +172,7 @@ export default function LogoComponent({
       {/* Do Nots */}
       {logoData.doNots && logoData.doNots.length > 0 && (
         <div className="space-y-3">
-          <h4 className={t.heading}>Logo Don'ts</h4>
+          <h4 className={t.heading}>Logo Don&apos;ts</h4>
           <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 p-4">
             <ul className="space-y-2">
               {logoData.doNots.map((doNot, index) => (

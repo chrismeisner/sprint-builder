@@ -8,7 +8,6 @@ type Props = {
   sprintDeliverableId: string;
   sprintId: string;
   initialContent: string | null;
-  initialNotes: string | null;
   canEdit: boolean;
   sprintStatus: string | null;
 };
@@ -17,7 +16,6 @@ export default function SprintDeliverableContent({
   sprintDeliverableId,
   sprintId,
   initialContent,
-  initialNotes,
   canEdit,
   sprintStatus,
 }: Props) {

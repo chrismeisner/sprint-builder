@@ -213,7 +213,6 @@ export default async function SprintDeliverableDetailPage({ params }: PageProps)
         sprintDeliverableId={deliverable.sprintDeliverableId}
         sprintId={params.id}
         initialContent={deliverable.content}
-        initialNotes={deliverable.notes}
         canEdit={isOwner || isAdmin}
         sprintStatus={sprint.status}
       />

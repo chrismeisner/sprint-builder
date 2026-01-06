@@ -268,7 +268,7 @@ export default async function SprintProcessPage({ params }: PageProps) {
               <span>{ENGAGEMENT_BADGES.studio.icon}</span>
               <span>Studio heads down</span>
             </span>
-            <span className={t.bodySm}>— No meetings, we're building</span>
+            <span className={t.bodySm}>— No meetings, we&apos;re building</span>
           </div>
         </div>
       </section>
