@@ -22,6 +22,7 @@ export default async function DashboardPage() {
 
   // Add admin-only links
   if (isAdmin) {
+    links.push({ href: "/dashboard/deliverable-templates", label: "Deliverable Templates (Admin)" });
     links.push({ href: "/ai-test", label: "AI Sprint Generation (Admin)" });
     links.push({ href: "/dashboard/sprint-drafts", label: "Sprint Drafts (Admin)" });
     links.push({ href: "/dashboard/users", label: "User Management" });

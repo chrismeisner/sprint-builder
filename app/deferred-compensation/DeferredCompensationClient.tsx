@@ -120,6 +120,8 @@ export default function DeferredCompensationClient({
   const [emailSending, setEmailSending] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailSuccess, setEmailSuccess] = useState<string | null>(null);
+  const [csvUploadError, setCsvUploadError] = useState<string | null>(null);
+  const [csvUploadSuccess, setCsvUploadSuccess] = useState<string | null>(null);
 
   const handleSave = async () => {
     try {
@@ -233,6 +235,165 @@ export default function DeferredCompensationClient({
     link.download = fileName;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const parseCsvContent = (content: string): Map<string, string> => {
+    const lines = content.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    const data = new Map<string, string>();
+    
+    for (const line of lines) {
+      // Simple CSV parsing - handle quoted values
+      const match = line.match(/^"?([^",]+)"?,\s*"?([^"]*)"?$/);
+      if (match) {
+        data.set(match[1].trim(), match[2].trim());
+      }
+    }
+    return data;
+  };
+
+  const handleCsvUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setCsvUploadError(null);
+    setCsvUploadSuccess(null);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        if (!content) {
+          throw new Error("Failed to read file");
+        }
+
+        const lines = content.split(/\r?\n/).filter((line) => line.trim().length > 0);
+        const data = parseCsvContent(content);
+
+        // Parse Total Project Value
+        const projectValueStr = data.get("Total Project Value");
+        if (projectValueStr) {
+          const projectValue = Number(projectValueStr.replace(/[$,]/g, ""));
+          if (Number.isFinite(projectValue) && projectValue > 0) {
+            setTotalProjectValue(projectValue);
+          }
+        }
+
+        // Parse Upfront Percent
+        const upfrontPercentStr = data.get("Upfront Percent");
+        if (upfrontPercentStr) {
+          const upfrontPct = Number(upfrontPercentStr.replace(/%/g, "")) / 100;
+          if (Number.isFinite(upfrontPct) && upfrontPct >= UPFRONT_MIN && upfrontPct <= UPFRONT_MAX) {
+            setUpfrontPayment(upfrontPct);
+          }
+        }
+
+        // Parse Equity Percent (to calculate equity split)
+        const equityPercentStr = data.get("Equity Percent");
+        const deferredPercentStr = data.get("Deferred Percent");
+        if (equityPercentStr && deferredPercentStr) {
+          const equityPct = Number(equityPercentStr.replace(/%/g, "")) / 100;
+          const deferredPct = Number(deferredPercentStr.replace(/%/g, "")) / 100;
+          const remaining = equityPct + deferredPct;
+          if (remaining > 0) {
+            const newEquitySplit = equityPct / remaining;
+            if (Number.isFinite(newEquitySplit) && newEquitySplit >= EQUITY_SPLIT_MIN && newEquitySplit <= EQUITY_SPLIT_MAX) {
+              setEquitySplit(newEquitySplit);
+            }
+          }
+        }
+
+        // Parse Milestone Miss Outcome
+        const missOutcome = data.get("Milestone Miss Outcome");
+        if (missOutcome) {
+          const outcomeMap: Record<string, string> = {
+            "forgiven": "forgiven",
+            "reduced to 50%": "reduced-50",
+            "reduced-50": "reduced-50",
+            "reduced to 20%": "reduced-20",
+            "reduced-20": "reduced-20",
+            "100% deferred still owed": "still-owed",
+            "still-owed": "still-owed",
+            "renegotiate": "renegotiate",
+          };
+          const mapped = outcomeMap[missOutcome.toLowerCase()];
+          if (mapped) {
+            setMilestoneMissOutcome(mapped);
+          }
+        }
+
+        // Parse Milestones from the CSV
+        // Find the milestone header row
+        let milestonesStartIndex = -1;
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].toLowerCase().includes("milestones") && lines[i].toLowerCase().includes("summary")) {
+            milestonesStartIndex = i + 1;
+            break;
+          }
+        }
+
+        if (milestonesStartIndex > 0) {
+          const newMilestones: { id: number; summary: string; multiplier: number; date: string }[] = [];
+          
+          for (let i = milestonesStartIndex; i < lines.length; i++) {
+            const line = lines[i];
+            // Parse CSV row - handle quoted values
+            const cells: string[] = [];
+            let current = "";
+            let inQuotes = false;
+            
+            for (let j = 0; j < line.length; j++) {
+              const char = line[j];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === "," && !inQuotes) {
+                cells.push(current.trim());
+                current = "";
+              } else {
+                current += char;
+              }
+            }
+            cells.push(current.trim());
+
+            // Expected format: "", Summary, Date, Multiplier, ...
+            if (cells.length >= 4) {
+              const summary = cells[1] || "";
+              const date = cells[2] || "";
+              const multiplierStr = cells[3] || "";
+              
+              if (summary && summary !== "—") {
+                const multiplier = Number(multiplierStr.replace(/x/g, ""));
+                if (Number.isFinite(multiplier) && multiplier > 0) {
+                  newMilestones.push({
+                    id: Date.now() + i,
+                    summary,
+                    date: date === "—" ? "" : date,
+                    multiplier,
+                  });
+                }
+              }
+            }
+          }
+
+          if (newMilestones.length > 0) {
+            setMilestones(newMilestones);
+          }
+        }
+
+        setCsvUploadSuccess("CSV imported successfully");
+        setTimeout(() => setCsvUploadSuccess(null), 3000);
+      } catch (err) {
+        setCsvUploadError(err instanceof Error ? err.message : "Failed to parse CSV");
+      }
+    };
+
+    reader.onerror = () => {
+      setCsvUploadError("Failed to read file");
+    };
+
+    reader.readAsText(file);
+    
+    // Reset the input so the same file can be uploaded again
+    event.target.value = "";
   };
 
   const handleExportCsv = () => {
@@ -886,9 +1047,18 @@ export default function DeferredCompensationClient({
       <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <Typography as="h2" scale="h3" className="text-text-primary">
-            Export
+            Import / Export
           </Typography>
           <div className="flex items-center gap-2">
+            <label className="rounded-md border border-stroke-muted bg-background px-4 py-2 text-sm font-medium text-text-primary hover:border-text-secondary cursor-pointer">
+              Upload CSV
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleCsvUpload}
+                className="hidden"
+              />
+            </label>
             <button
               type="button"
               onClick={handleExportCsv}
@@ -899,8 +1069,18 @@ export default function DeferredCompensationClient({
           </div>
         </div>
         <Typography as="p" scale="body-sm" className="text-text-secondary">
-          Download a CSV snapshot of the current calculation and milestones.
+          Upload a previously exported CSV to restore settings, or download a snapshot of the current calculation.
         </Typography>
+        {csvUploadError && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
+            {csvUploadError}
+          </div>
+        )}
+        {csvUploadSuccess && (
+          <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300">
+            {csvUploadSuccess}
+          </div>
+        )}
       </section>
 
       <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">

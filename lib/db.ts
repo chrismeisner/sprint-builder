@@ -139,7 +139,7 @@ export async function ensureSchema(): Promise<void> {
   `);
 
   // Add constraint to validate status values
-  // Workflow: draft -> studio_review -> pending_client -> in_progress -> completed/cancelled
+  // Workflow: draft -> negotiating -> scheduled -> in_progress -> complete
   await pool.query(`
     DO $$ 
     BEGIN
@@ -153,8 +153,14 @@ export async function ensureSchema(): Promise<void> {
       -- Add updated constraint with new statuses
       ALTER TABLE sprint_drafts 
       ADD CONSTRAINT sprint_drafts_status_check 
-      CHECK (status IN ('draft', 'studio_review', 'pending_client', 'in_progress', 'completed', 'cancelled'));
+      CHECK (status IN ('draft', 'negotiating', 'scheduled', 'in_progress', 'complete'));
     END $$;
+  `);
+  
+  // Migrate old statuses to new statuses
+  await pool.query(`
+    UPDATE sprint_drafts SET status = 'complete' WHERE status = 'completed';
+    UPDATE sprint_drafts SET status = 'draft' WHERE status IN ('studio_review', 'pending_client', 'cancelled');
   `);
   
   // Create minimal junction table for sprint → deliverables relationship
@@ -181,8 +187,44 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS custom_estimate_points numeric(10,2),
     ADD COLUMN IF NOT EXISTS complexity_score numeric(3,1),
     ADD COLUMN IF NOT EXISTS custom_scope text,
-    ADD COLUMN IF NOT EXISTS notes text
+    ADD COLUMN IF NOT EXISTS notes text,
+    ADD COLUMN IF NOT EXISTS content text,
+    ADD COLUMN IF NOT EXISTS attachments jsonb,
+    ADD COLUMN IF NOT EXISTS type_data jsonb,
+    ADD COLUMN IF NOT EXISTS current_version text DEFAULT '0.0'
   `);
+
+  // Create sprint_deliverable_versions table for version history
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sprint_deliverable_versions (
+      id text PRIMARY KEY,
+      sprint_deliverable_id text NOT NULL REFERENCES sprint_deliverables(id) ON DELETE CASCADE,
+      version_number text NOT NULL,
+      type_data jsonb,
+      content text,
+      notes text,
+      saved_by text,
+      saved_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE(sprint_deliverable_id, version_number)
+    );
+    CREATE INDEX IF NOT EXISTS idx_sdv_sprint_deliverable ON sprint_deliverable_versions(sprint_deliverable_id);
+  `);
+  
+  // Migrate existing integer versions to text format
+  await pool.query(`
+    ALTER TABLE sprint_deliverables 
+    ALTER COLUMN current_version TYPE text USING 
+      CASE 
+        WHEN current_version IS NULL OR current_version = 0 THEN '0.0'
+        ELSE current_version::text || '.0'
+      END
+  `).catch(() => {});
+  
+  await pool.query(`
+    ALTER TABLE sprint_deliverable_versions 
+    ALTER COLUMN version_number TYPE text USING version_number::text || '.0'
+  `).catch(() => {});
+
   // Ensure base_points supports decimals (some DBs may still have integer type)
   await pool.query(`
     ALTER TABLE sprint_deliverables
@@ -221,6 +263,20 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     ALTER TABLE deliverables
     ADD COLUMN IF NOT EXISTS format text
+  `);
+  // Add presentation content for "how we present this deliverable" template
+  await pool.query(`
+    ALTER TABLE deliverables
+    ADD COLUMN IF NOT EXISTS presentation_content text,
+    ADD COLUMN IF NOT EXISTS example_images jsonb,
+    ADD COLUMN IF NOT EXISTS slug text,
+    ADD COLUMN IF NOT EXISTS template_data jsonb UNIQUE
+  `);
+  // Generate slugs for existing deliverables that don't have one
+  await pool.query(`
+    UPDATE deliverables 
+    SET slug = LOWER(REGEXP_REPLACE(REGEXP_REPLACE(name, '[^a-zA-Z0-9\\s-]', '', 'g'), '\\s+', '-', 'g'))
+    WHERE slug IS NULL
   `);
   await pool.query(`
     ALTER TABLE deliverables
@@ -422,7 +478,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Kickoff workshop",
         subtitle: "Day 1 · Monday",
         client_copy:
-          "3-hour brand/product workshop to align on goals, constraints, audience, and success metrics. You'll feel: Aligned.",
+          "3-hour brand/product workshop to align on goals, constraints, audience, and success metrics. Frame: Aligned.",
         internal_notes: "Engagement: client input required",
         deliverable_examples: { engagement: "client_required", feel: "Aligned" },
         links: null,
@@ -433,7 +489,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Research + divergence",
         subtitle: "Day 2 · Tuesday",
         client_copy:
-          "Studio audits existing materials, gathers references, and explores broadly. Async only so we stay heads down. You'll feel: Curious.",
+          "Studio audits existing materials, gathers references, and explores broadly. Async only so we stay heads down. Frame: Curious.",
         internal_notes: "Engagement: studio heads down",
         deliverable_examples: { engagement: "studio", feel: "Curious" },
         links: null,
@@ -444,7 +500,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Work-in-progress share",
         subtitle: "Day 3 · Wednesday",
         client_copy:
-          "Explorations shared via Loom/Figma with 'ingredient'/'solution' buckets—categories with grouped variations. React inline to steer which buckets we'll carry into Ingredient Review. Optional live sync if helpful. You'll feel: Excited.",
+          "Explorations shared via Loom/Figma with 'ingredient'/'solution' buckets—categories with grouped variations. React inline to steer which buckets we'll carry into Ingredient Review. Optional live sync if helpful. Frame: Excited.",
         internal_notes: "Engagement: optional sync share",
         deliverable_examples: { engagement: "optional", feel: "Excited" },
         links: null,
@@ -455,7 +511,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Ingredient review",
         subtitle: "Day 4 · Thursday",
         client_copy:
-          "Review grouped solutions and categorized ingredients together. Decide which to keep, refine, discard, or combine—shaping the raw materials into a clear direction. You'll feel: Decisive.",
+          "Review grouped solutions and categorized ingredients together. Decide which to keep, refine, discard, or combine—shaping the raw materials into a clear direction. Frame: Decisive.",
         internal_notes: "Engagement: client input required",
         deliverable_examples: { engagement: "client_required", feel: "Decisive" },
         links: null,
@@ -466,7 +522,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Direction locked",
         subtitle: "Day 5 · Friday",
         client_copy:
-          "Studio compiles Day 4 feedback into one clear direction and shares an async outline. You see the solution shape and think: 'Yes, this solves it.' You'll feel: Clear.",
+          "Studio compiles Day 4 feedback into one clear direction and shares an async outline. You see the solution shape and think: 'Yes, this solves it.' Frame: Clear.",
         internal_notes: "Engagement: async outline shared",
         deliverable_examples: { engagement: "optional", feel: "Clear" },
         links: null,
@@ -477,7 +533,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Direction check + build kickoff",
         subtitle: "Day 6 · Monday",
         client_copy:
-          "Quick sync to review the locked direction, answer last questions, and confirm we're all aligned before going downhill. No directional changes after today—just confident execution. You'll feel: Focused.",
+          "Quick sync to review the locked direction, answer last questions, and confirm we're all aligned before going downhill. No directional changes after today—just confident execution. Frame: Focused.",
         internal_notes: "Engagement: optional sync",
         deliverable_examples: { engagement: "optional", feel: "Focused" },
         links: null,
@@ -488,7 +544,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Deep build day",
         subtitle: "Day 7 · Tuesday",
         client_copy:
-          "Heads-down execution across design/copy/systems/product. Mostly async updates; optional sync share. You'll feel: Inspired.",
+          "Heads-down execution across design/copy/systems/product. Mostly async updates; optional sync share. Frame: Inspired.",
         internal_notes: "Engagement: optional sync share",
         deliverable_examples: { engagement: "optional", feel: "Inspired" },
         links: null,
@@ -499,7 +555,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Work-in-progress review",
         subtitle: "Day 8 · Wednesday",
         client_copy:
-          "Live or Loom review to see it all coming together—early testing, validate progress, and request tweaks before polish. Not complete yet, but the shape is clear. You'll feel: Confident.",
+          "Live or Loom review to see it all coming together—early testing, validate progress, and request tweaks before polish. Not complete yet, but the shape is clear. Frame: Confident.",
         internal_notes: "Engagement: client input required",
         deliverable_examples: { engagement: "client_required", feel: "Confident" },
         links: null,
@@ -510,7 +566,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Polish + stress test",
         subtitle: "Day 9 · Thursday",
         client_copy:
-          "QA, refinement, exports, and internal demo rehearsals. No meetings so we can polish. You'll feel: Meticulous.",
+          "QA, refinement, exports, and internal demo rehearsals. No meetings so we can polish. Frame: Meticulous.",
         internal_notes: "Engagement: studio heads down",
         deliverable_examples: { engagement: "studio", feel: "Meticulous" },
         links: null,
@@ -521,7 +577,7 @@ export async function ensureSchema(): Promise<void> {
         title: "Delivery + handoff",
         subtitle: "Day 10 · Friday",
         client_copy:
-          "Final deliverables, Loom walkthrough, optional live demo, and next-sprint recommendations. You'll feel: Satisfied.",
+          "Final deliverables, Loom walkthrough, optional live demo, and next-sprint recommendations. Frame: Satisfied.",
         internal_notes: "Engagement: optional sync share",
         deliverable_examples: { engagement: "optional", feel: "Satisfied" },
         links: null,

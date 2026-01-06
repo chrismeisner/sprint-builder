@@ -345,9 +345,10 @@ export default function ProfileClient() {
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       draft: "bg-black/10 dark:bg-white/10 text-black dark:text-white",
-      in_progress: "bg-blue-600/10 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300",
-      completed: "bg-green-600/10 dark:bg-green-400/10 text-green-700 dark:text-green-300",
-      cancelled: "bg-red-600/10 dark:bg-red-400/10 text-red-700 dark:text-red-300",
+      negotiating: "bg-amber-600/10 dark:bg-amber-400/10 text-amber-700 dark:text-amber-300",
+      scheduled: "bg-blue-600/10 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300",
+      in_progress: "bg-green-600/10 dark:bg-green-400/10 text-green-700 dark:text-green-300",
+      complete: "bg-purple-600/10 dark:bg-purple-400/10 text-purple-700 dark:text-purple-300",
     };
 
     return (

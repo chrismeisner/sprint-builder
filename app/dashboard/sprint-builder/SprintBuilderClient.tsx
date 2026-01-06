@@ -383,8 +383,10 @@ export default function SprintBuilderClient({
         throw new Error(data?.error || "Failed to create sprint");
       }
 
-      // Redirect to sprint detail page
-      router.push(`/sprints/${data.sprintDraftId || sprintIdFromQuery}`);
+      // Redirect to sprint detail page and force a fresh fetch (avoid stale router cache)
+      const sprintDetailPath = `/sprints/${data.sprintDraftId || sprintIdFromQuery}`;
+      router.push(sprintDetailPath);
+      router.refresh();
     } catch (e) {
       setError((e as Error).message || "Failed to create sprint");
       setSubmitting(false);
@@ -395,7 +397,10 @@ export default function SprintBuilderClient({
   const hoursPerDay = totalDays > 0 ? Number(totalHours || 0) / totalDays : 0;
   const totalPriceCents = Math.max(0, Math.round(Number(totalPrice || 0) * 100));
   const canBudget = selectedDeliverables.length > 0 && totalPriceCents > 0;
-  const budgetHref = canBudget ? `/deferred-compensation?amount=${totalPriceCents}` : "#";
+  // Pass cents explicitly so the deferred comp page can render dollars accurately
+  const budgetHref = canBudget
+    ? `/deferred-compensation?amountCents=${totalPriceCents}&sprintId=${sprintIdFromQuery ?? ""}`
+    : "#";
 
   function escapeCsv(val: unknown) {
     if (val === null || val === undefined) return "";

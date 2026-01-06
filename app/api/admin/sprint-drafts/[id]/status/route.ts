@@ -6,7 +6,7 @@ type Params = {
   params: { id: string };
 };
 
-const VALID_STATUSES = ["draft", "studio_review", "pending_client", "in_progress", "completed", "cancelled"];
+const VALID_STATUSES = ["draft", "negotiating", "scheduled", "in_progress", "complete"];
 
 /**
  * PATCH /api/admin/sprint-drafts/[id]/status

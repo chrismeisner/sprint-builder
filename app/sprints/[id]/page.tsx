@@ -8,7 +8,6 @@ import AdminStatusChanger from "./AdminStatusChanger";
 import DeleteSprintButton from "./DeleteSprintButton";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { typography } from "@/app/components/typography";
-import SprintPlaybook from "./SprintPlaybook";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +82,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
   // Fetch deliverables from junction table with complexity scores and custom scope
   const deliverablesResult = await pool.query(
     `SELECT 
+      spd.id AS sprint_deliverable_id,
       spd.deliverable_id,
       spd.complexity_score,
       spd.custom_hours,
@@ -94,6 +94,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
       spd.deliverable_category,
       spd.deliverable_scope,
       spd.base_points,
+      spd.current_version,
       d.name AS base_name,
       d.category AS base_category,
       d.scope AS base_scope,
@@ -108,6 +109,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
   );
 
   const sprintDeliverables = deliverablesResult.rows.map((row) => ({
+    sprintDeliverableId: row.sprint_deliverable_id as string,
     deliverableId: row.deliverable_id as string,
     name: (row.deliverable_name as string | null) ?? (row.base_name as string | null) ?? "",
     category: (row.deliverable_category as string | null) ?? (row.base_category as string | null),
@@ -117,6 +119,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
     customPoints: row.custom_estimate_points != null ? Number(row.custom_estimate_points) : null,
     customScope: (row.custom_scope as string | null) ?? (row.deliverable_scope as string | null) ?? (row.base_scope as string | null),
     note: (row.notes as string | null) ?? null,
+    currentVersion: (row.current_version as string | null) ?? "0.0",
     baseHours:
       row.base_points != null
         ? hoursFromPoints(Number(row.base_points))
@@ -263,17 +266,17 @@ export default async function SprintDetailPage({ params }: PageProps) {
     <main className="min-h-screen max-w-6xl mx-auto p-6 space-y-6">
       {/* Admin Mode Banner */}
       {isAdmin && (
-        <div className="sticky top-0 z-50 -mx-6 -mt-6 mb-6 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg">
+        <div className="sticky top-0 z-50 -mx-6 -mt-6 mb-6 px-6 py-2.5 bg-black/90 dark:bg-white/10 border-b border-black/10 dark:border-white/10 backdrop-blur-sm">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <div className="flex items-center gap-2 text-white/80 dark:text-white/70">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
                 </svg>
-                <span className={getTypographyClassName("subtitle-sm")}>Admin Mode</span>
+                <span className={`${getTypographyClassName("mono-sm")} uppercase tracking-wide`}>Admin</span>
               </div>
-              <span className={`${getTypographyClassName("body-sm")} opacity-90 hidden sm:inline`}>
-                Viewing as administrator • Extended permissions active
+              <span className={`${getTypographyClassName("body-sm")} text-white/50 dark:text-white/40 hidden sm:inline`}>
+                Extended permissions active
               </span>
             </div>
             <AdminStatusChanger sprintId={row.id} currentStatus={row.status || "draft"} />
@@ -288,7 +291,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          {(isOwner || isAdmin) && (
+          {(isOwner || isAdmin) && (row.status ?? "draft") === "draft" && (
             <Link
               href={`/dashboard/sprint-builder?sprintId=${row.id}`}
               className={`inline-flex items-center rounded-md bg-black text-white dark:bg-white dark:text-black px-3 py-1.5 hover:opacity-90 transition ${getTypographyClassName("button-sm")}`}
@@ -296,14 +299,6 @@ export default async function SprintDetailPage({ params }: PageProps) {
               Edit in builder
             </Link>
           )}
-        {(row.total_fixed_price != null || row.total_estimate_points != null) && (
-          <Link
-            href={`/deferred-compensation?sprintId=${row.id}&amount=${Number(row.total_fixed_price ?? 0)}`}
-            className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
-          >
-            Open deferred comp
-          </Link>
-        )}
         </div>
       </div>
 
@@ -388,7 +383,9 @@ export default async function SprintDetailPage({ params }: PageProps) {
             </div>
             <div>
               <Link
-                href={`/deferred-compensation?sprintId=${row.id}&amount=${Number(row.total_fixed_price ?? 0)}`}
+                href={`/deferred-compensation?sprintId=${row.id}&amountCents=${Math.round(
+                  Number(row.total_fixed_price ?? 0) * 100
+                )}`}
                 className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
               >
                 View / Update budget
@@ -399,7 +396,9 @@ export default async function SprintDetailPage({ params }: PageProps) {
           <div className="flex items-center justify-between">
             <span className={t.bodySm}>No budget attached to this sprint.</span>
             <Link
-              href={`/deferred-compensation?sprintId=${row.id}&amount=${Number(row.total_fixed_price ?? 0)}`}
+              href={`/deferred-compensation?sprintId=${row.id}&amountCents=${Math.round(
+                Number(row.total_fixed_price ?? 0) * 100
+              )}`}
               className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
             >
               Add budget
@@ -423,28 +422,44 @@ export default async function SprintDetailPage({ params }: PageProps) {
                     <th className="text-left px-3 py-2 text-text-muted">Name</th>
                     <th className="text-left px-3 py-2 text-text-muted">Category</th>
                     <th className="text-left px-3 py-2 text-text-muted">Adjusted Points</th>
-                    <th className="text-left px-3 py-2 text-text-muted">Scope</th>
-                    <th className="text-left px-3 py-2 text-text-muted">Notes</th>
+                    <th className="text-center px-3 py-2 text-text-muted">Version</th>
+                    <th className="text-center px-3 py-2 text-text-muted">Actions</th>
                   </tr>
                 </thead>
                 <tbody className={getTypographyClassName("body-sm")}>
                   {sprintDeliverables.map((d, i) => (
                     <tr
-                      key={d.deliverableId || `${d.name}-${i}`}
-                      className="border-t border-black/10 dark:border-white/10 bg-white dark:bg-gray-950/40"
+                      key={d.sprintDeliverableId || `${d.name}-${i}`}
+                      className="border-t border-black/10 dark:border-white/10 bg-white dark:bg-gray-950/40 hover:bg-black/5 dark:hover:bg-white/5 transition"
                     >
                       <td className="px-3 py-3 align-top">
-                        <div className={getTypographyClassName("body-sm")}>{d.name || "Untitled"}</div>
+                        <Link
+                          href={`/sprints/${params.id}/deliverables/${d.sprintDeliverableId}`}
+                          className={`${getTypographyClassName("body-sm")} font-medium hover:underline text-text-primary`}
+                        >
+                          {d.name || "Untitled"}
+                        </Link>
                       </td>
                       <td className="px-3 py-3 align-top">{d.category ?? "—"}</td>
                       <td className="px-3 py-3 align-top">
                         {d.customPoints != null ? `${d.customPoints} pts` : "—"}
                       </td>
-                      <td className="px-3 py-3 align-top whitespace-pre-wrap">
-                        {d.customScope ?? "—"}
+                      <td className="px-3 py-3 align-top text-center">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-mono ${
+                          d.currentVersion === "0.0"
+                            ? "bg-black/5 dark:bg-white/5 text-text-muted"
+                            : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                        }`}>
+                          v{d.currentVersion}
+                        </span>
                       </td>
-                      <td className="px-3 py-3 align-top whitespace-pre-wrap">
-                        {d.note ?? "—"}
+                      <td className="px-3 py-3 align-top text-center">
+                        <Link
+                          href={`/sprints/${params.id}/deliverables/${d.sprintDeliverableId}`}
+                          className={`${getTypographyClassName("button-sm")} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                        >
+                          View
+                        </Link>
                       </td>
                     </tr>
                   ))}
@@ -454,7 +469,13 @@ export default async function SprintDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        <SprintPlaybook />
+        {/* Process Link */}
+        <Link
+          href={`/sprints/${params.id}/process`}
+          className={`${t.bodySm} text-text-secondary hover:text-text-primary hover:underline transition`}
+        >
+          View sprint process →
+        </Link>
 
         {plan.goals && plan.goals.length > 0 && (
           <div className={`rounded-lg border border-black/10 dark:border-white/15 p-4 ${t.bodySm}`}>
