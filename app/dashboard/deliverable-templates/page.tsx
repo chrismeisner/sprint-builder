@@ -52,8 +52,14 @@ export default async function DeliverableTemplatesPage() {
     updatedAt: row.updated_at as string,
   }));
 
-  // Group by category
-  const categories = [...new Set(deliverables.map((d) => d.category || "Uncategorized"))];
+  // Group by category without relying on Set iteration (avoids downlevel iteration issues)
+  const categories: string[] = [];
+  for (const d of deliverables) {
+    const category = d.category || "Uncategorized";
+    if (!categories.includes(category)) {
+      categories.push(category);
+    }
+  }
 
   return (
     <DeliverableTemplatesClient 
