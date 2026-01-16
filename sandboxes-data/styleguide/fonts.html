@@ -1,0 +1,1634 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Typography – Type Scale</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inter+Tight:wght@100..900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --brand-primary-500: #3B82F6;
+      --brand-primary-100: #EBF2FE;
+      --neutral-0:   #FFFFFF;
+      --neutral-50:  #F9FAFB;
+      --neutral-100: #F3F4F6;
+      --neutral-200: #E5E7EB;
+      --neutral-300: #D1D5DB;
+      --neutral-500: #6B7280;
+      --neutral-700: #374151;
+      --neutral-900: #111827;
+
+      --font-family-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      --font-family-tight: "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      --font-family-acme: "Acme Gothic Condensed", "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --font-size-h1: 36px;
+      --font-size-h2: 30px;
+      --font-size-h3: 24px;
+      --font-size-subtitle-lg: 20px;
+      --font-size-subtitle-md: 18px;
+      --font-size-subtitle-sm: 16px;
+      --font-size-overline: 12px;
+      --font-size-body-lg: 16px;
+      --font-size-body: 15px;
+      --font-size-body-sm: 14px;
+      --font-size-caption: 12px;
+      --font-size-label: 14px;
+      --font-size-button-md: 15px;
+      --font-size-button-sm: 14px;
+      --font-size-mono-lg: 15px;
+      --font-size-mono-md: 14px;
+      --font-size-mono-sm: 13px;
+      --radius: 14px;
+      --shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
+    }
+
+    @font-face {
+      font-family: "Acme Gothic Condensed";
+      src: url("fonts/Acme-Gothic-Condensed-Semi-Bold.otf") format("opentype");
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: auto;
+      padding: 32px 20px 64px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--neutral-700);
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-300);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--neutral-200);
+      border-radius: 12px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      font-size: 13px;
+      color: var(--neutral-900);
+    }
+
+    .table thead th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--neutral-100);
+      border-bottom: 1px solid var(--neutral-200);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .table tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--neutral-200);
+      vertical-align: top;
+      color: var(--neutral-700);
+    }
+
+    .table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table .mono {
+      font-family: var(--font-family-mono);
+      color: var(--neutral-900);
+    }
+
+    .table .subtle {
+      color: var(--neutral-700);
+    }
+
+    .table .sample {
+      color: var(--neutral-900);
+      letter-spacing: inherit;
+      max-width: 520px;
+    }
+
+    .action-btn {
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--neutral-300);
+      border-radius: 8px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      cursor: pointer;
+      transition: border-color 120ms ease, box-shadow 120ms ease, transform 80ms ease;
+      white-space: nowrap;
+    }
+
+    .action-btn:hover {
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
+    }
+
+    .action-btn:active {
+      transform: translateY(1px);
+    }
+
+    .button-set {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .button-card {
+      border: 1px solid var(--neutral-200);
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: var(--neutral-0);
+      display: grid;
+      gap: 8px;
+    }
+
+    .btn-demo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--neutral-300);
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      font-weight: 600;
+      cursor: default;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .btn-demo.primary {
+      background: var(--brand-primary-500);
+      color: #fff;
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 8px 18px rgba(59, 130, 246, 0.25);
+    }
+
+    .btn-demo.secondary {
+      background: var(--neutral-900);
+      color: #fff;
+      border-color: var(--neutral-900);
+    }
+
+    .btn-demo.ghost {
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      border-color: var(--neutral-300);
+    }
+
+    .button-meta {
+      margin: 0;
+      color: var(--neutral-700);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .samples-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    .sample-card {
+      border: 1px solid var(--neutral-200);
+      border-radius: 12px;
+      padding: 16px 16px 18px;
+      background: var(--neutral-0);
+      display: grid;
+      gap: 10px;
+    }
+
+    .sample-kicker {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--neutral-700);
+    }
+
+    .sample-heading {
+      margin: 0;
+      color: var(--neutral-900);
+      letter-spacing: -0.01em;
+    }
+
+    .sample-body {
+      margin: 0;
+      color: var(--neutral-700);
+      line-height: 1.6;
+    }
+
+    .sample-blog {
+      border: 1px solid var(--neutral-200);
+      border-radius: 12px;
+      padding: 18px 18px 20px;
+      background: var(--neutral-0);
+      display: grid;
+      gap: 12px;
+    }
+
+    .sample-subheading {
+      margin: 0;
+      color: var(--neutral-700);
+      line-height: 1.6;
+    }
+
+    .sample-list {
+      margin: 0 0 4px 20px;
+      padding: 0;
+      color: var(--neutral-700);
+      line-height: 1.6;
+    }
+
+    .sample-list li {
+      margin-bottom: 4px;
+    }
+
+    .sample-quote {
+      margin: 0;
+      padding-left: 12px;
+      border-left: 3px solid var(--neutral-200);
+      color: var(--neutral-900);
+      line-height: 1.6;
+    }
+
+    .sample-caption {
+      margin: 0;
+      color: var(--neutral-600);
+      line-height: 1.4;
+    }
+
+    .sample-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--neutral-0);
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(17, 24, 39, 0.25);
+      max-width: 640px;
+      width: 100%;
+      border: 1px solid var(--neutral-200);
+      overflow: hidden;
+      animation: pop 160ms ease;
+    }
+
+    @keyframes pop {
+      from { transform: scale(0.98) translateY(6px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--neutral-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    .modal-close {
+      border: none;
+      background: transparent;
+      font-size: 18px;
+      cursor: pointer;
+      color: var(--neutral-700);
+      padding: 4px 6px;
+      border-radius: 8px;
+      line-height: 1;
+    }
+
+    .modal-close:hover {
+      background: var(--neutral-100);
+      color: var(--neutral-900);
+    }
+
+    .modal-body {
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .sample-block {
+      padding: 14px 16px;
+      border: 1px solid var(--neutral-200);
+      border-radius: 10px;
+      background: var(--neutral-50);
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px 12px;
+      font-size: 12px;
+      color: var(--neutral-700);
+    }
+
+    .meta-grid dt {
+      margin: 0;
+      font-weight: 700;
+      color: var(--neutral-900);
+    }
+
+    .meta-grid dd {
+      margin: 0;
+      color: var(--neutral-700);
+      font-family: var(--font-family-mono);
+    }
+
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--neutral-900);
+      letter-spacing: -0.01em;
+    }
+
+    .type-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    .type {
+      border: 1px solid var(--neutral-300);
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: var(--neutral-0);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .type .sample {
+      margin: 0;
+      color: var(--neutral-900);
+      letter-spacing: -0.01em;
+    }
+
+    .type .label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--neutral-700);
+      letter-spacing: 0;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 12px;
+      font-size: 12px;
+      color: var(--neutral-700);
+    }
+
+    .meta dt {
+      margin: 0;
+      font-weight: 600;
+      color: var(--neutral-900);
+    }
+
+    .meta dd {
+      margin: 0;
+      color: var(--neutral-700);
+      font-family: var(--font-family-mono);
+    }
+
+    .notes {
+      font-size: 13px;
+      color: var(--neutral-700);
+      line-height: 1.5;
+    }
+
+    .notes strong {
+      color: var(--neutral-900);
+    }
+
+    .family-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    .family-card {
+      border: 1px solid var(--neutral-200);
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: var(--neutral-0);
+    }
+
+    .family-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .family-name {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--neutral-900);
+    }
+
+    .family-var {
+      font-family: var(--font-family-mono);
+      font-size: 12px;
+      color: var(--neutral-700);
+      white-space: nowrap;
+    }
+
+    .family-sample {
+      padding: 10px 12px;
+      border: 1px solid var(--neutral-200);
+      border-radius: 10px;
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      margin: 0 0 10px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0 0 10px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .chip {
+      font-family: var(--font-family-mono);
+      font-size: 12px;
+      padding: 4px 8px;
+      border: 1px solid var(--neutral-200);
+      border-radius: 999px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+    }
+
+    .family-meta {
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--neutral-700);
+      line-height: 1.45;
+    }
+
+    .family-meta strong {
+      color: var(--neutral-900);
+    }
+
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .table-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mode-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--neutral-700);
+      white-space: nowrap;
+    }
+
+    .mode-toggle select {
+      border: 1px solid var(--neutral-300);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 13px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+
+    .controls-bar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+    }
+
+    .switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--neutral-700);
+      user-select: none;
+      cursor: pointer;
+    }
+
+    .switch input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .switch-track {
+      width: 40px;
+      height: 22px;
+      border-radius: 999px;
+      background: var(--neutral-200);
+      border: 1px solid var(--neutral-300);
+      display: inline-flex;
+      align-items: center;
+      padding: 2px;
+      transition: background 140ms ease, border-color 140ms ease;
+      position: relative;
+    }
+
+    .switch-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+      transform: translateX(0);
+      transition: transform 140ms ease;
+    }
+
+    .switch input:checked + .switch-track {
+      background: var(--brand-primary-500);
+      border-color: var(--brand-primary-500);
+    }
+
+    .switch input:checked + .switch-track .switch-thumb {
+      transform: translateX(18px);
+    }
+
+    .switch-label {
+      color: var(--neutral-900);
+      font-weight: 600;
+    }
+
+    .cursor-label {
+      position: fixed;
+      top: 0;
+      left: 0;
+      transform: translate(-9999px, -9999px);
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(17, 24, 39, 0.9);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      pointer-events: none;
+      box-shadow: 0 6px 18px rgba(17, 24, 39, 0.22);
+      opacity: 0;
+      transition: opacity 120ms ease;
+      z-index: 1200;
+      white-space: nowrap;
+    }
+
+    .cursor-label.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Typography</h1>
+    <p class="subtitle">A compact type scale for marketing and product surfaces.</p>
+
+    <div class="controls-bar">
+      <label class="switch" for="showStyleToggle">
+        <input id="showStyleToggle" type="checkbox" checked />
+        <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+        <span class="switch-label">Show page fonts</span>
+      </label>
+    </div>
+
+    <div class="card">
+      <div class="table-header">
+        <h2 class="section-title" style="margin: 0;">Type scale</h2>
+          <div class="table-actions">
+            <label class="mode-toggle" for="typeMode">
+              <span>View:</span>
+              <select id="typeMode" name="typeMode">
+                <option value="desktop">Desktop</option>
+                <option value="mobile">Mobile</option>
+              </select>
+            </label>
+            <button type="button" class="action-btn" id="uploadTypeCsv">Upload CSV</button>
+            <button type="button" class="action-btn" id="downloadTypeCsv">Download CSV</button>
+          </div>
+      </div>
+      <div class="table-wrap">
+        <table class="table" aria-label="Type scale table">
+          <thead>
+            <tr>
+              <th>Style</th>
+              <th>Sample</th>
+              <th>Family</th>
+              <th>Size</th>
+              <th>Weight</th>
+              <th>Line Height</th>
+              <th>Tracking</th>
+              <th>Usage</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="typeTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Font families</h2>
+      <div id="fontFamilies" class="family-grid" aria-live="polite"></div>
+    </div>
+
+  </div>
+
+  <input id="uploadTypeCsvInput" type="file" accept=".csv,text/csv" aria-label="Upload type scale CSV" style="display:none;" />
+
+  <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">Preview</h2>
+        <button class="modal-close" type="button" aria-label="Close modal" id="modalClose">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="modalSample" class="sample-block"></div>
+        <dl class="meta-grid" id="modalMeta"></dl>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="editModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="editModalTitle">Edit style</h2>
+        <button class="modal-close" type="button" aria-label="Close edit modal" id="editModalClose">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="editForm" class="sample-block" style="display:grid; gap:10px;">
+          <div class="meta-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px 12px;">
+            <div>
+              <label class="section-title" style="font-size:13px; margin:0 0 4px;">Family</label>
+              <select id="editFamily" name="family" style="width:100%; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px; background:var(--neutral-0); color:var(--neutral-900);">
+                <option value="var(--font-family-acme)">Acme Gothic Condensed</option>
+                <option value="var(--font-family-tight)">Inter Tight</option>
+                <option value="var(--font-family-sans)">Inter</option>
+                <option value="var(--font-family-mono)">Mono</option>
+              </select>
+            </div>
+            <div>
+              <label class="section-title" style="font-size:13px; margin:0 0 4px;">Weight</label>
+              <input id="editWeight" name="weight" type="number" step="1" min="100" max="900" style="width:100%; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px;" />
+            </div>
+            <div>
+              <label class="section-title" style="font-size:13px; margin:0 0 4px;">Tracking</label>
+              <input id="editTracking" name="tracking" type="text" placeholder="-0.01em" style="width:100%; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px;" />
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:18px;">
+              <input id="editAllCaps" name="allCaps" type="checkbox" />
+              <label for="editAllCaps" style="font-size:13px; color:var(--neutral-900);">All caps</label>
+            </div>
+          </div>
+
+          <div class="meta-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px 12px;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px 12px;">
+              <div>
+                <label class="section-title" style="font-size:13px; margin:0 0 4px;">Size (Desktop)</label>
+                <input id="editSizeDesktop" name="sizeDesktop" type="text" placeholder="48px" style="width:100%; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px;" />
+              </div>
+              <div>
+                <label class="section-title" style="font-size:13px; margin:0 0 4px;">Line-height (Desktop)</label>
+                <input id="editLineHeightDesktop" name="lineHeightDesktop" type="number" step="0.01" placeholder="1.2" style="width:100%; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px;" />
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px 12px;">
+              <div>
+                <label class="section-title" style="font-size:13px; margin:0 0 4px;">Size (Mobile)</label>
+                <input id="editSizeMobile" name="sizeMobile" type="text" placeholder="36px" style="width:100%; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px;" />
+              </div>
+              <div>
+                <label class="section-title" style="font-size:13px; margin:0 0 4px;">Line-height (Mobile)</label>
+                <input id="editLineHeightMobile" name="lineHeightMobile" type="number" step="0.01" placeholder="1.2" style="width:100%; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px;" />
+              </div>
+            </div>
+          </div>
+
+          <div class="meta-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px 12px;">
+            <div>
+              <label class="section-title" style="font-size:13px; margin:0 0 4px;">Sample text</label>
+              <input id="editSample" name="sample" type="text" style="width:100%; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px;" />
+            </div>
+            <div>
+              <label class="section-title" style="font-size:13px; margin:0 0 4px;">Usage</label>
+              <input id="editUsage" name="usage" type="text" style="width:100%; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px;" />
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+            <button type="button" class="action-btn" id="editCancel">Close</button>
+            <button type="submit" class="action-btn" style="border-color: var(--brand-primary-500); color: var(--brand-primary-500);">Apply</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Add 1–4 families here. Keep blurbs short and opinionated (what it feels like + best use).
+    const fontFamilies = [
+      {
+        name: "Acme Gothic Condensed",
+        css: "var(--font-family-acme)",
+        variable: "--font-family-acme",
+        weights: [600],
+        sample: "CONDENSED PUNCH FOR HERO HEADLINES",
+        sampleTransform: "uppercase",
+        blurb: "Tall, condensed display face with strong presence. Always use in ALL CAPS.",
+        references: "Local font: Acme Gothic Condensed Semi Bold.",
+        bestFor: "Hero H1 headlines and bold marketing statements.",
+        resourceUrl: "fonts/Acme-Gothic-Condensed-Semi-Bold.otf",
+        isDownload: true
+      },
+      {
+        name: "Inter",
+        css: "var(--font-family-sans)",
+        variable: "--font-family-sans",
+        weights: [300, 400, 500, 600, 700, 800],
+        sample: "The quick brown fox jumps over the lazy dog.",
+        blurb: "Neutral, highly readable sans-serif with a modern UI feel.",
+        references: "Google Fonts: Inter.",
+        bestFor: "Body text, UI copy, buttons, labels, and general-purpose headings.",
+        resourceUrl: "https://rsms.me/inter/download/"
+      },
+      {
+        name: "Inter Tight",
+        css: "var(--font-family-tight)",
+        variable: "--font-family-tight",
+        weights: [300, 400, 500, 600, 700, 800],
+        sample: "Inter Tight — slightly more compact for headlines.",
+        blurb: "A tighter-width companion to Inter for punchier display copy.",
+        references: "Google Fonts: Inter Tight.",
+        bestFor: "Hero headlines, section titles, and compact headings.",
+        resourceUrl: "https://fonts.google.com/specimen/Inter+Tight"
+      }
+    ];
+
+    const typeCatalog = [
+      {
+        title: "Headings",
+        items: [
+          { name: "H1", sizeDesktop: "60px", sizeMobile: "60px", lineHeight: 1.0667, weight: 600, letterSpacing: "0em", sample: "HEADING 1 — PAGE TITLE", usage: "Page / document title", fontFamily: "var(--font-family-acme)", transform: "uppercase" },
+          { name: "H2", sizeDesktop: "48px", sizeMobile: "48px", lineHeight: 1, weight: 600, letterSpacing: "0em", sample: "HEADING 2 — SECTION HEADING", usage: "Section heading", fontFamily: "var(--font-family-acme)", transform: "uppercase" },
+          { name: "H3", sizeDesktop: "22px", sizeMobile: "22px", lineHeight: 1.18, weight: 600, letterSpacing: "0em", sample: "Heading 3 — Subsection heading", usage: "Subsection heading", fontFamily: "var(--font-family-tight)" }
+        ]
+      },
+      {
+        title: "Subheadings",
+        items: [
+          { name: "H4", sizeDesktop: "18px", sizeMobile: "18px", lineHeight: 1.444, weight: 500, letterSpacing: "-0.2px", sample: "H4 — Prominent subheading", usage: "Prominent subheading", fontFamily: "var(--font-family-sans)" },
+          { name: "Subtitle", sizeDesktop: "21px", sizeMobile: "21px", lineHeight: 1.429, weight: 400, letterSpacing: "-0.1px", sample: "Subtitle — Standard subheading", usage: "Standard subheading", fontFamily: "var(--font-family-sans)" },
+          { name: "Overline", sizeDesktop: "14px", sizeMobile: "18px", lineHeight: 1.4, weight: 500, letterSpacing: "0.3px", sample: "OVERLINE — SECTION LABEL", usage: "Optional; section labels / metadata", fontFamily: "var(--font-family-sans)", transform: "uppercase" }
+        ]
+      },
+      {
+        title: "Body",
+        items: [
+          { name: "Body / L", sizeDesktop: "20px", sizeMobile: "20px", lineHeight: 1.3, lineHeightMobile: 1.2, weight: 400, letterSpacing: "-0.4px", sample: "When your teen starts driving, everything changes. Miles helps families stay calm, informed, and prepared — without constant check-ins or invasive tracking.", usage: "Intro / lead text", fontFamily: "var(--font-family-sans)" },
+          { name: "Body / M", sizeDesktop: "16px", sizeMobile: "16px", lineHeight: 1.5, weight: 400, letterSpacing: "-0.015em", sample: "Body Medium — Default body text", usage: "Default body text", fontFamily: "var(--font-family-sans)" },
+          { name: "Body / M Bold", sizeDesktop: "16px", sizeMobile: "16px", lineHeight: 1.5, weight: 600, letterSpacing: "-0.015em", sample: "Body Medium Bold — Emphasis text", usage: "Emphasis within body copy", fontFamily: "var(--font-family-sans)" },
+          { name: "Body / S", sizeDesktop: "14px", sizeMobile: "14px", lineHeight: 1.55, weight: 400, letterSpacing: "0.005em", sample: "Body Small — Secondary or dense content", usage: "Secondary or dense content", fontFamily: "var(--font-family-sans)" },
+          { name: "Body / S Bold", sizeDesktop: "14px", sizeMobile: "14px", lineHeight: 1.55, weight: 600, letterSpacing: "0.005em", sample: "Body Small Bold — Compact emphasis", usage: "Emphasis in dense content", fontFamily: "var(--font-family-sans)" },
+          { name: "Caption", sizeDesktop: "12px", sizeMobile: "12px", lineHeight: 1.5, weight: 500, letterSpacing: "0.01em", sample: "Caption — Helper text or footnotes", usage: "Captions, helper text, footnotes", fontFamily: "var(--font-family-sans)" }
+        ]
+      },
+      {
+        title: "UI Text",
+        items: [
+          { name: "Label", sizeDesktop: "13px", sizeMobile: "13px", lineHeight: 1.4, weight: 400, letterSpacing: "0.01em", sample: "Label — Form labels and table headers", usage: "Form labels, table headers", fontFamily: "var(--font-family-sans)" },
+          { name: "Button", sizeDesktop: "16px", sizeMobile: "16px", lineHeight: 1.5, weight: 600, letterSpacing: "0.01em", sample: "Button — Primary CTA", usage: "Primary button text", fontFamily: "var(--font-family-sans)" }
+        ]
+      },
+      {
+        title: "Technical",
+        items: []
+      }
+    ];
+
+    const familyLabels = new Map([
+      ["var(--font-family-acme)", "Acme Gothic Condensed"],
+      ["var(--font-family-tight)", "Inter Tight"],
+      ["var(--font-family-mono)", "Mono"],
+      ["var(--font-family-sans)", "Inter"]
+    ]);
+
+    const familyLabelToVar = new Map([
+      ["Acme Gothic Condensed", "var(--font-family-acme)"],
+      ["Inter Tight", "var(--font-family-tight)"],
+      ["Mono", "var(--font-family-mono)"],
+      ["Inter", "var(--font-family-sans)"]
+    ]);
+
+    const familyValueByVar = new Map([
+      ["var(--font-family-acme)", `"Acme Gothic Condensed","Inter Tight","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`],
+      ["var(--font-family-tight)", `"Inter Tight","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`],
+      ["var(--font-family-sans)", `"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`],
+      ["var(--font-family-mono)", `ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace`]
+    ]);
+
+    function getFamilyLabel(value) {
+      return familyLabels.get(value) || "Inter";
+    }
+
+    function findStyleByName(name) {
+      for (const group of typeCatalog) {
+        for (const item of group.items) {
+          if (item.name === name) return item;
+        }
+      }
+      return null;
+    }
+
+    let typeMode = "desktop";
+    let tableRows = [];
+    const hasFinePointer = window.matchMedia("(pointer: fine)").matches;
+    let showStyleLabels = hasFinePointer;
+
+    const cursorLabel = document.createElement("div");
+    cursorLabel.id = "cursorLabel";
+    cursorLabel.className = "cursor-label";
+    cursorLabel.setAttribute("aria-hidden", "true");
+    document.body.appendChild(cursorLabel);
+
+    function hideCursorLabel() {
+      cursorLabel.classList.remove("show");
+      cursorLabel.style.transform = "translate(-9999px, -9999px)";
+    }
+
+    function positionCursorLabel(event) {
+      const offset = 16;
+      const bounds = cursorLabel.getBoundingClientRect();
+      let left = event.clientX + offset;
+      let top = event.clientY + offset;
+      const maxLeft = window.innerWidth - bounds.width - 8;
+      const maxTop = window.innerHeight - bounds.height - 8;
+
+      if (left > maxLeft) left = event.clientX - bounds.width - offset;
+      if (top > maxTop) top = event.clientY - bounds.height - offset;
+
+      cursorLabel.style.transform = `translate(${left}px, ${top}px)`;
+    }
+
+    document.addEventListener("mousemove", (event) => {
+      if (!hasFinePointer || !showStyleLabels) return;
+      const target = event.target.closest("[data-style-name]");
+      if (!target) {
+        hideCursorLabel();
+        return;
+      }
+
+      const label = target.getAttribute("data-style-name") || "";
+      if (!label) {
+        hideCursorLabel();
+        return;
+      }
+
+      cursorLabel.textContent = label;
+      positionCursorLabel(event);
+      cursorLabel.classList.add("show");
+    });
+
+    const toggle = document.getElementById("showStyleToggle");
+    if (toggle) {
+      toggle.checked = showStyleLabels;
+      toggle.addEventListener("change", (event) => {
+        showStyleLabels = !!event.target.checked;
+        if (!showStyleLabels) hideCursorLabel();
+      });
+    }
+
+    function buildInlineStyle(style, mode = typeMode) {
+      const sizeDesktop = style.sizeDesktop || style.size;
+      const sizeMobile = style.sizeMobile || sizeDesktop;
+      const lineHeightDesktop = style.lineHeight;
+      const lineHeightMobile = style.lineHeightMobile || lineHeightDesktop;
+      const size = mode === "mobile" ? sizeMobile : sizeDesktop;
+      const lineHeight = mode === "mobile" ? lineHeightMobile : lineHeightDesktop;
+
+      return [
+        `font-family: ${style.fontFamily || "var(--font-family-sans)"}`,
+        `font-size: ${size}`,
+        `line-height: ${lineHeight}`,
+        `font-weight: ${style.weight}`,
+        `letter-spacing: ${style.letterSpacing}`,
+        style.transform ? `text-transform: ${style.transform}` : ""
+      ].filter(Boolean).join("; ");
+    }
+
+    function buildCssBlock(style) {
+      const sizeDesktop = style.sizeDesktop || style.size;
+      const sizeMobile = style.sizeMobile || sizeDesktop;
+      const lineHeightDesktop = style.lineHeight;
+      const lineHeightMobile = style.lineHeightMobile || lineHeightDesktop;
+
+      const block = [
+        `font-family: ${style.fontFamily || "var(--font-family-sans)"};`,
+        `font-size: ${sizeDesktop};`,
+        `line-height: ${lineHeightDesktop};`,
+        `font-weight: ${style.weight};`,
+        `letter-spacing: ${style.letterSpacing};`,
+        style.transform ? `text-transform: ${style.transform};` : ""
+      ].filter(Boolean);
+
+      if (sizeMobile && (sizeMobile !== sizeDesktop || lineHeightMobile !== lineHeightDesktop)) {
+        block.push(`@media (max-width: 640px) {`);
+        block.push(`  font-size: ${sizeMobile};`);
+        block.push(`  line-height: ${lineHeightMobile};`);
+        block.push(`}`);
+      }
+
+      return block.join("\n");
+    }
+
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        // Fallback for older browsers / restricted contexts
+        const el = document.createElement("textarea");
+        el.value = text;
+        el.setAttribute("readonly", "");
+        el.style.position = "fixed";
+        el.style.top = "-9999px";
+        document.body.appendChild(el);
+        el.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(el);
+        return ok;
+      }
+    }
+
+    function renderFontFamilies() {
+      const container = document.getElementById("fontFamilies");
+      if (!container) return;
+
+      container.innerHTML = fontFamilies.map((family) => {
+        const weightChips = (family.weights || [])
+          .map(w => `<li class="chip">${w}</li>`)
+          .join("");
+
+        let resourceBtn;
+        if (family.resourceUrl && family.isDownload) {
+          // Direct download link
+          resourceBtn = `<a href="${family.resourceUrl}" download class="action-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Download font
+            </a>`;
+        } else if (family.resourceUrl) {
+          // External resource link
+          resourceBtn = `<a href="${family.resourceUrl}" target="_blank" rel="noopener noreferrer" class="action-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+              Get font
+            </a>`;
+        } else {
+          resourceBtn = `<span class="action-btn" style="opacity: 0.5; cursor: default;">No resource available</span>`;
+        }
+
+        return `
+          <section class="family-card" aria-label="Font family ${family.name}">
+            <div class="family-header">
+              <h3 class="family-name">${family.name}</h3>
+              <div class="family-var">${family.variable}</div>
+            </div>
+            <p class="family-sample" style="font-family: ${family.css};${family.sampleTransform ? ` text-transform: ${family.sampleTransform};` : ''}">${family.sample || ""}</p>
+            <ul class="chips" aria-label="${family.name} available weights">
+              ${weightChips}
+            </ul>
+            <div class="family-meta">
+              <div><strong>Style:</strong> ${family.blurb || ""}</div>
+              <div><strong>Referencing:</strong> ${family.references || ""}</div>
+              <div><strong>Used best for:</strong> ${family.bestFor || ""}</div>
+            </div>
+            <div class="family-actions" style="margin-top: 8px;">
+              ${resourceBtn}
+            </div>
+          </section>
+        `;
+      }).join("");
+    }
+
+    function renderTypeTable() {
+      const tbody = document.getElementById("typeTableBody");
+      if (!tbody) return;
+
+      let idx = 0;
+      const rows = typeCatalog.flatMap(group =>
+        group.items.map(item => ({
+          ...item,
+          __index: idx++
+        }))
+      );
+
+      tableRows = rows;
+
+      tbody.innerHTML = rows
+        .map((row) => {
+          const sizeDesktop = row.sizeDesktop || row.size || "";
+          const sizeMobile = row.sizeMobile || sizeDesktop;
+          const size = typeMode === "mobile" ? sizeMobile : sizeDesktop;
+          const lineHeight = typeMode === "mobile" ? (row.lineHeightMobile || row.lineHeight) : row.lineHeight;
+          const familyLabel = getFamilyLabel(row.fontFamily);
+
+          return `
+          <tr>
+            <td>${row.name}</td>
+            <td><div class="sample" data-style-name="${row.name}" style="${buildInlineStyle(row)}">${row.sample || row.name}</div></td>
+            <td class="mono">${familyLabel}</td>
+            <td class="mono">${size}</td>
+            <td class="mono">${row.weight}</td>
+            <td class="mono">${lineHeight}</td>
+            <td class="mono">${row.letterSpacing}</td>
+            <td class="subtle">${row.usage || ""}</td>
+            <td>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button
+                  type="button"
+                  class="action-btn"
+                  data-copy-css="${encodeURIComponent(buildCssBlock(row))}"
+                  aria-label="Copy CSS style for ${row.name}"
+                >Copy CSS</button>
+                <button
+                  type="button"
+                  class="action-btn"
+                  data-preview-index="${row.__index}"
+                  aria-label="Preview ${row.name}"
+                >Preview</button>
+                <button
+                  type="button"
+                  class="action-btn"
+                  data-edit-index="${row.__index}"
+                  aria-label="Edit ${row.name}"
+                >Edit</button>
+                <button
+                  type="button"
+                  class="action-btn"
+                  data-popout-index="${row.__index}"
+                  aria-label="Pop out ${row.name}"
+                >Pop out</button>
+              </div>
+            </td>
+          </tr>
+        `;
+        })
+        .join("");
+    }
+
+    document.addEventListener("click", async (event) => {
+      const btn = event.target.closest("[data-copy-css]");
+      if (!btn) return;
+
+      const css = decodeURIComponent(btn.getAttribute("data-copy-css") || "");
+      if (!css) return;
+
+      const ok = await copyToClipboard(css);
+      const original = btn.textContent;
+      btn.textContent = ok ? "Copied" : "Copy failed";
+      btn.disabled = true;
+      window.setTimeout(() => {
+        btn.textContent = original;
+        btn.disabled = false;
+      }, 900);
+    });
+
+    function openPreview(index) {
+      const row = tableRows.find(r => r.__index === index);
+      if (!row) return;
+
+      const modal = document.getElementById("modal");
+      const titleEl = document.getElementById("modalTitle");
+      const sampleEl = document.getElementById("modalSample");
+      const metaEl = document.getElementById("modalMeta");
+      if (!modal || !titleEl || !sampleEl || !metaEl) return;
+
+      const sizeDesktop = row.sizeDesktop || row.size || "";
+      const sizeMobile = row.sizeMobile || sizeDesktop;
+      const lineHeightDesktop = row.lineHeight;
+      const lineHeightMobile = row.lineHeightMobile || lineHeightDesktop;
+      const size = typeMode === "mobile" ? sizeMobile : sizeDesktop;
+      const lineHeight = typeMode === "mobile" ? lineHeightMobile : lineHeightDesktop;
+      const familyLabel = getFamilyLabel(row.fontFamily);
+
+      titleEl.textContent = `${row.name} • ${familyLabel}`;
+      sampleEl.textContent = row.sample || row.name;
+      sampleEl.setAttribute("style", buildInlineStyle(row));
+
+      metaEl.innerHTML = `
+        <div><dt>Family</dt><dd>${familyLabel}</dd></div>
+        <div><dt>Mode</dt><dd>${typeMode === "mobile" ? "Mobile" : "Desktop"}</dd></div>
+        <div><dt>Size</dt><dd>${size}</dd></div>
+        <div><dt>Weight</dt><dd>${row.weight}</dd></div>
+        <div><dt>Line-height</dt><dd>${lineHeight}</dd></div>
+        <div><dt>Tracking</dt><dd>${row.letterSpacing}</dd></div>
+        <div><dt>Usage</dt><dd>${row.usage || ""}</dd></div>
+      `;
+
+      modal.setAttribute("aria-hidden", "false");
+      modal.classList.add("show");
+    }
+
+    function closeModal() {
+      const modal = document.getElementById("modal");
+      if (!modal) return;
+      modal.classList.remove("show");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    document.addEventListener("click", (event) => {
+      const previewBtn = event.target.closest("[data-preview-index]");
+      if (previewBtn) {
+        const index = Number(previewBtn.getAttribute("data-preview-index"));
+        openPreview(index);
+        return;
+      }
+      if (event.target.id === "modal") {
+        closeModal();
+        return;
+      }
+      if (event.target.id === "editModal") {
+        closeEditModal();
+      }
+    });
+
+    document.getElementById("modalClose")?.addEventListener("click", closeModal);
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeModal();
+        closeEditModal();
+      }
+    });
+
+    const modeSelect = document.getElementById("typeMode");
+
+    document.getElementById("typeMode")?.addEventListener("change", (event) => {
+      const value = event.target.value === "mobile" ? "mobile" : "desktop";
+      typeMode = value;
+      renderTypeTable();
+    });
+
+    function buildTypeCsv() {
+      const headers = ["Style", "Sample", "Family", "Size", "Weight", "Line Height", "Tracking", "Usage", "All Caps"];
+      const rows = tableRows.map((row) => {
+        const sizeDesktop = row.sizeDesktop || row.size || "";
+        const sizeMobile = row.sizeMobile || sizeDesktop;
+        const size = typeMode === "mobile" ? sizeMobile : sizeDesktop;
+        const lineHeight = typeMode === "mobile" ? (row.lineHeightMobile || row.lineHeight) : row.lineHeight;
+        const familyLabel = getFamilyLabel(row.fontFamily);
+        const allCaps = (row.transform || "").toLowerCase() === "uppercase" ? "TRUE" : "FALSE";
+        return [
+          row.name,
+          row.sample || "",
+          familyLabel,
+          size,
+          row.weight,
+          lineHeight,
+          row.letterSpacing,
+          row.usage || "",
+          allCaps
+        ];
+      });
+
+      const escapeCell = (value) => {
+        const text = value == null ? "" : String(value);
+        const escaped = text.replace(/"/g, '""');
+        return `"${escaped}"`;
+      };
+
+      return [headers, ...rows]
+        .map(cells => cells.map(escapeCell).join(","))
+        .join("\n");
+    }
+
+    function downloadTypeScaleCsv() {
+      const csv = buildTypeCsv();
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `type-scale-${typeMode}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById("downloadTypeCsv")?.addEventListener("click", downloadTypeScaleCsv);
+
+    function parseCsv(text) {
+      const rows = [];
+      let current = [];
+      let value = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const next = text[i + 1];
+
+        if (inQuotes) {
+          if (char === '"' && next === '"') {
+            value += '"';
+            i++;
+          } else if (char === '"') {
+            inQuotes = false;
+          } else {
+            value += char;
+          }
+        } else {
+          if (char === '"') {
+            inQuotes = true;
+          } else if (char === ",") {
+            current.push(value.trim());
+            value = "";
+          } else if (char === "\n" || char === "\r") {
+            if (char === "\r" && next === "\n") i++;
+            current.push(value.trim());
+            if (current.some(c => c.length > 0)) rows.push(current);
+            current = [];
+            value = "";
+          } else {
+            value += char;
+          }
+        }
+      }
+
+      if (value.length || current.length) {
+        current.push(value.trim());
+        rows.push(current);
+      }
+
+      return rows;
+    }
+
+    function importTypeRows(records) {
+      const existing = new Map(
+        typeCatalog.flatMap(group => group.items).map(item => [item.name, item])
+      );
+
+      let updatedCount = 0;
+
+      records.forEach((row) => {
+        const target = existing.get(row.name);
+        if (!target) return;
+
+        target.sample = row.sample || target.sample;
+        target.usage = row.usage || target.usage;
+        target.fontFamily = familyLabelToVar.get(row.family) || target.fontFamily || "var(--font-family-sans)";
+        target.weight = Number(row.weight) || row.weight || target.weight;
+        target.letterSpacing = row.tracking ?? target.letterSpacing;
+        const capsValue = String(row.allCaps || "").trim().toLowerCase();
+        const isCaps = capsValue === "true" || capsValue === "yes" || capsValue === "1" || capsValue === "uppercase";
+        target.transform = isCaps ? "uppercase" : "";
+
+        const size = row.size || target.sizeDesktop || target.size;
+        const lineHeight = row.lineHeight ?? target.lineHeight;
+
+        target.sizeDesktop = size;
+        target.sizeMobile = size;
+        target.size = size;
+        target.lineHeight = lineHeight;
+        target.lineHeightMobile = lineHeight;
+
+        if (target.transform) {
+          // keep existing transform (e.g., Overline uppercase) if present
+          target.transform = target.transform;
+        }
+
+        updatedCount += 1;
+      });
+
+      return updatedCount;
+    }
+
+    function handleCsvText(text) {
+      const rows = parseCsv(text);
+      if (!rows.length) {
+        alert("CSV appears empty.");
+        return;
+      }
+
+      const headers = rows[0].map(h => h.toLowerCase());
+      const required = ["style", "sample", "family", "size", "weight", "line height", "tracking", "usage", "all caps"];
+      const missing = required.filter(h => !headers.includes(h));
+      if (missing.length) {
+        alert(`CSV missing required columns: ${missing.join(", ")}`);
+        return;
+      }
+
+      const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
+      const records = rows.slice(1).map((cols) => ({
+        name: cols[idx["style"]] || "",
+        sample: cols[idx["sample"]] || "",
+        family: cols[idx["family"]] || "",
+        size: cols[idx["size"]] || "",
+        weight: cols[idx["weight"]] || "",
+        lineHeight: cols[idx["line height"]] || "",
+        tracking: cols[idx["tracking"]] || "",
+        usage: cols[idx["usage"]] || "",
+        allCaps: cols[idx["all caps"]] || ""
+      })).filter(r => r.name);
+
+      if (!records.length) {
+        alert("No data rows found in CSV.");
+        return;
+      }
+
+      const updated = importTypeRows(records);
+      if (!updated) {
+        alert("No matching styles were updated. Ensure names match the table.");
+        return;
+      }
+
+      renderTypeTable();
+      alert(`Updated ${updated} style${updated === 1 ? "" : "s"} from CSV.`);
+    }
+
+    const uploadBtn = document.getElementById("uploadTypeCsv");
+    const uploadInput = document.getElementById("uploadTypeCsvInput");
+
+    uploadBtn?.addEventListener("click", () => uploadInput?.click());
+
+    uploadInput?.addEventListener("change", (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result;
+        if (typeof text === "string") {
+          handleCsvText(text);
+        } else {
+          alert("Could not read CSV file.");
+        }
+      };
+      reader.onerror = () => alert("Error reading CSV file.");
+      reader.readAsText(file);
+
+      event.target.value = "";
+    });
+
+    let editIndex = null;
+    const editModal = document.getElementById("editModal");
+    const editModalTitle = document.getElementById("editModalTitle");
+    const editForm = document.getElementById("editForm");
+    const editFamily = document.getElementById("editFamily");
+    const editWeight = document.getElementById("editWeight");
+    const editTracking = document.getElementById("editTracking");
+    const editAllCaps = document.getElementById("editAllCaps");
+    const editSizeDesktop = document.getElementById("editSizeDesktop");
+    const editSizeMobile = document.getElementById("editSizeMobile");
+    const editLineHeightDesktop = document.getElementById("editLineHeightDesktop");
+    const editLineHeightMobile = document.getElementById("editLineHeightMobile");
+    const editSample = document.getElementById("editSample");
+    const editUsage = document.getElementById("editUsage");
+
+    function closeEditModal() {
+      if (!editModal) return;
+      editModal.classList.remove("show");
+      editModal.setAttribute("aria-hidden", "true");
+      editIndex = null;
+    }
+
+    function openPopout(index) {
+      const row = tableRows.find(r => r.__index === index);
+      if (!row) return;
+
+      const source = findStyleByName(row.name) || row;
+      const sizeDesktop = source.sizeDesktop || source.size || "";
+      const sizeMobile = source.sizeMobile || sizeDesktop;
+      const size = typeMode === "mobile" ? sizeMobile : sizeDesktop;
+      const lineHeightDesktop = source.lineHeight;
+      const lineHeightMobile = source.lineHeightMobile || lineHeightDesktop;
+      const lineHeight = typeMode === "mobile" ? lineHeightMobile : lineHeightDesktop;
+      const weight = source.weight;
+      const letterSpacing = source.letterSpacing;
+      const transform = source.transform ? `text-transform: ${source.transform};` : "";
+      const familyValue = familyValueByVar.get(source.fontFamily) || familyValueByVar.get("var(--font-family-sans)");
+
+      // Build absolute URL for local font
+      const fontUrl = new URL("fonts/Acme-Gothic-Condensed-Semi-Bold.otf", window.location.href).href;
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>${source.name} sample</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inter+Tight:wght@100..900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: "Acme Gothic Condensed";
+      src: url("${fontUrl}") format("opentype");
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      margin: 16px;
+      background: #ffffff;
+      color: #111827;
+      -webkit-font-smoothing: antialiased;
+    }
+    .sample {
+      font-family: ${familyValue};
+      font-size: ${size};
+      line-height: ${lineHeight};
+      font-weight: ${weight};
+      letter-spacing: ${letterSpacing};
+      ${transform}
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="sample" contenteditable="true" aria-label="${source.name} sample (editable)">${source.sample || source.name}</div>
+</body>
+</html>`;
+
+      const popup = window.open("", "_blank", "width=520,height=320");
+      if (!popup) {
+        alert("Pop-out blocked by browser. Allow pop-ups for this site.");
+        return;
+      }
+      popup.document.open();
+      popup.document.write(html);
+      popup.document.close();
+    }
+
+    function openEditModal(index) {
+      const row = tableRows.find(r => r.__index === index);
+      if (!row || !editModal) return;
+      const source = findStyleByName(row.name) || row;
+      editIndex = index;
+      editModalTitle.textContent = `Edit ${row.name}`;
+
+      editFamily.value = source.fontFamily || "var(--font-family-sans)";
+      editWeight.value = source.weight ?? "";
+      editTracking.value = source.letterSpacing ?? "";
+      editAllCaps.checked = (source.transform || "").toLowerCase() === "uppercase";
+      editSizeDesktop.value = source.sizeDesktop || source.size || "";
+      editSizeMobile.value = source.sizeMobile || source.sizeDesktop || source.size || "";
+      editLineHeightDesktop.value = source.lineHeight ?? "";
+      editLineHeightMobile.value = source.lineHeightMobile || source.lineHeight || "";
+      editSample.value = source.sample || "";
+      editUsage.value = source.usage || "";
+
+      editModal.classList.add("show");
+      editModal.setAttribute("aria-hidden", "false");
+    }
+
+    document.getElementById("editCancel")?.addEventListener("click", closeEditModal);
+    document.getElementById("editModalClose")?.addEventListener("click", closeEditModal);
+
+    editForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (editIndex == null) return;
+      const row = tableRows.find(r => r.__index === editIndex);
+      if (!row) return;
+
+      const style = findStyleByName(row.name) || row;
+      style.fontFamily = editFamily.value || style.fontFamily || "var(--font-family-sans)";
+      style.weight = Number(editWeight.value) || editWeight.value || style.weight;
+      style.letterSpacing = editTracking.value || style.letterSpacing;
+      style.transform = editAllCaps.checked ? "uppercase" : "";
+      style.sizeDesktop = editSizeDesktop.value || style.sizeDesktop || style.size || "";
+      style.sizeMobile = editSizeMobile.value || style.sizeMobile || style.sizeDesktop || style.size || "";
+      style.size = style.sizeDesktop;
+      style.lineHeight = Number(editLineHeightDesktop.value) || editLineHeightDesktop.value || style.lineHeight;
+      style.lineHeightMobile = Number(editLineHeightMobile.value) || editLineHeightMobile.value || style.lineHeightMobile || style.lineHeight;
+      style.sample = editSample.value || style.sample;
+      style.usage = editUsage.value || style.usage;
+
+      // keep tableRows in sync for immediate preview without re-render
+      Object.assign(row, style);
+
+      renderTypeTable();
+    });
+
+    editForm?.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) return;
+      event.preventDefault();
+      if (typeof editForm.requestSubmit === "function") {
+        editForm.requestSubmit();
+      } else {
+        editForm.submit();
+      }
+    });
+
+    document.addEventListener("click", (event) => {
+      const editBtn = event.target.closest("[data-edit-index]");
+      if (editBtn) {
+        const index = Number(editBtn.getAttribute("data-edit-index"));
+        openEditModal(index);
+        return;
+      }
+
+      const popoutBtn = event.target.closest("[data-popout-index]");
+      if (popoutBtn) {
+        const index = Number(popoutBtn.getAttribute("data-popout-index"));
+        openPopout(index);
+        return;
+      }
+    });
+
+    // Auto-select mode on load based on viewport.
+    (function initMode() {
+      const prefersMobile = window.matchMedia("(max-width: 640px)").matches;
+      typeMode = prefersMobile ? "mobile" : "desktop";
+      if (modeSelect) modeSelect.value = typeMode;
+    })();
+
+    renderFontFamilies();
+    renderTypeTable();
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Image Style – Creative Direction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --brand-primary-500: #3B82F6;
+      --neutral-0:   #FFFFFF;
+      --neutral-50:  #F9FAFB;
+      --neutral-100: #F3F4F6;
+      --neutral-200: #E5E7EB;
+      --neutral-300: #D1D5DB;
+      --neutral-500: #6B7280;
+      --neutral-700: #374151;
+      --neutral-900: #111827;
+      --radius: 14px;
+      --shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
+      --font-family-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: auto;
+      padding: 32px 20px 64px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--neutral-700);
+      margin: 0 0 28px;
+    }
+
+    .card {
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-300);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--neutral-900);
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px 14px;
+      font-size: 14px;
+      color: var(--neutral-700);
+      margin: 12px 0 0;
+    }
+
+    .meta-grid dt {
+      margin: 0;
+      font-weight: 700;
+      color: var(--neutral-900);
+    }
+
+    .meta-grid dd {
+      margin: 2px 0 0;
+    }
+
+    .prompt {
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--neutral-900);
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 12px;
+      white-space: pre-wrap;
+      position: static;
+    }
+
+    .prompt-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .prompt-btn {
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--neutral-300);
+      border-radius: 8px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      cursor: pointer;
+      transition: border-color 120ms ease, box-shadow 120ms ease, transform 80ms ease;
+      white-space: nowrap;
+    }
+
+    .prompt-btn:hover {
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
+    }
+
+    .prompt-btn:active {
+      transform: translateY(1px);
+    }
+
+    .img-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding: 8px 8px 10px;
+    }
+
+    .img-btn {
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--neutral-300);
+      border-radius: 8px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color 120ms ease, box-shadow 120ms ease, transform 80ms ease;
+    }
+
+    .img-btn:hover {
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
+    }
+
+    .img-btn:active {
+      transform: translateY(1px);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--neutral-100);
+      border: 1px solid var(--neutral-200);
+      font-size: 12px;
+      color: var(--neutral-700);
+      gap: 6px;
+    }
+
+    .pill .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--brand-primary-500);
+    }
+
+    .scene-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .scene {
+      border: 1px solid var(--neutral-200);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--neutral-0);
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 1fr;
+      gap: 12px;
+      padding: 12px;
+      align-items: start;
+    }
+
+    @media (max-width: 960px) {
+      .scene {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .scene-shot {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--neutral-200);
+      background: var(--neutral-100);
+    }
+
+    .scene-shot img {
+      width: 100%;
+      display: block;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      background: var(--neutral-100);
+    }
+
+    .scene-label {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(17, 24, 39, 0.82);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .scene-body {
+      display: grid;
+      gap: 6px;
+      padding: 6px 4px;
+    }
+
+    .scene-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--neutral-900);
+    }
+
+    .scene-desc {
+      margin: 0;
+      font-size: 13px;
+      color: var(--neutral-700);
+      line-height: 1.5;
+    }
+
+    .scene-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .scene-tag {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: var(--neutral-100);
+      border: 1px solid var(--neutral-200);
+      color: var(--neutral-700);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Image Style</h1>
+    <p class="subtitle">A concise guide for our shared image direction and example scenes.</p>
+
+    <div class="card">
+      <h2 class="section-title">Scenes</h2>
+      <div id="sceneGrid" class="scene-grid" aria-live="polite"></div>
+    </div>
+
+    <div class="card" id="promptCard">
+      <div class="card-header">
+        <h2 class="section-title">Prompt</h2>
+        <div class="prompt-actions">
+          <button type="button" class="prompt-btn" id="copyPrompt">Copy prompt</button>
+        </div>
+      </div>
+      <div class="prompt" id="promptBlock">
+        <div id="promptText"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const promptText = "Draw this image in a 50s illustration style (although we're aesthetically making retro references make sure all character clothes and styles are 2025 period appropriate) using a tightly controlled, realism-based approach while allowing the painting process to remain visible. Start with the precise pencil drawing you can see in the uploaded image as reference, then build form with opaque paint—traditionally gouache or oil—laying in mid tones first and developing shadows and highlights in deliberate, confident brushstrokes rather than fully blending them away. Use a natural, realistic yet optimistic color palette, avoiding straight black for shadows. Edges can remain softly handled in skin and fabric, but let brush marks describe form and direction, giving surfaces a subtly textured, hand-painted finish, while reserving cleaner, sharper edges and tighter control for focal points so the illustration still reads clearly when reproduced.";
+
+    const scenes = [
+      {
+        title: "Approaching the high school",
+        description: "A driver’s-eye view as a teen approaches a high school crosswalk where safety and normalcy quietly coexist.",
+        tags: ["approach", "crosswalk", "everyday"],
+        srcCore: "images/scene-01-core.png",
+        srcStyled: "images/scene-01.jpg",
+        altCore: "Teen driver approaching a high school crosswalk from the driver’s perspective.",
+        altStyled: "Stylized illustration of a teen approaching a high school crosswalk."
+      },
+      {
+        title: "Teen driving with Miles present",
+        description: "Inside the car, a focused teen drives with a subtle camera presence integrated into the vehicle, not dominating the moment.",
+        tags: ["interior", "driving", "focus"],
+        srcCore: "images/scene-02-core.png",
+        srcStyled: "images/scene-02.jpg",
+        altCore: "Interior view of a teen confidently driving with a discrete camera in the car.",
+        altStyled: "Stylized interior view of a teen driving with a subtle camera in-car."
+      },
+      {
+        title: "Parent handing over the keys",
+        description: "In a calm suburban setting, a parent hands keys to their teen—an easy, supportive handoff of trust and responsibility.",
+        tags: ["handoff", "trust", "suburban"],
+        srcCore: "images/scene-03-core.jpg",
+        srcStyled: "images/scene-03.jpg",
+        altCore: "Parent handing car keys to a teen in a quiet suburban setting.",
+        altStyled: "Stylized scene of a parent handing keys to a teen in suburbia."
+      },
+      {
+        title: "The keys, up close",
+        description: "A close-up of keys passed from one hand to another, distilling the moment into a symbol of earned independence.",
+        tags: ["detail", "keys", "symbol"],
+        srcCore: "images/scene-04-core.png",
+        srcStyled: "images/scene-04.jpg",
+        altCore: "Close-up of car keys being passed from one hand to another.",
+        altStyled: "Stylized close-up of car keys changing hands."
+      },
+      {
+        title: "Team Headshot, Matt",
+        description: "A professional team photo demonstrating how our illustration style applies to group portraits and headshots.",
+        tags: ["team", "headshot", "professional"],
+        srcCore: "images/scene-05-core.jpg",
+        srcStyled: "images/scene-05.jpg",
+        altCore: "Core reference image for team photo headshot.",
+        altStyled: "Stylized illustration of team headshot in our brand style."
+      },
+      {
+        title: "Team Headshot, Kit",
+        description: "A professional team photo demonstrating how our illustration style applies to group portraits and headshots.",
+        tags: ["team", "headshot", "professional"],
+        srcCore: "images/scene-06-core.jpg",
+        srcStyled: "images/scene-06.jpg",
+        altCore: "Core reference image for team photo headshot.",
+        altStyled: "Stylized illustration of team headshot in our brand style."
+      }
+    ];
+
+    function renderPrompt() {
+      const promptEl = document.getElementById("promptText");
+      if (promptEl) promptEl.textContent = promptText;
+    }
+
+    function renderScenes() {
+      const grid = document.getElementById("sceneGrid");
+      if (!grid) return;
+      grid.innerHTML = scenes
+        .map(scene => `
+          <article class="scene">
+            <div class="scene-body">
+              <h3 class="scene-title">${scene.title}</h3>
+              <p class="scene-desc">${scene.description}</p>
+              <div class="scene-tags">
+                ${scene.tags.map(tag => `<span class="scene-tag">${tag}</span>`).join("")}
+              </div>
+            </div>
+            <figure class="scene-shot">
+              <div class="scene-label">Core (wireframe)</div>
+              <img src="${scene.srcCore}" alt="${scene.altCore}" loading="lazy" />
+              <div class="img-actions">
+                <a class="img-btn" href="${scene.srcCore}" download>Download</a>
+              </div>
+            </figure>
+            <figure class="scene-shot">
+              <div class="scene-label">Asset render</div>
+              <img src="${scene.srcStyled}" alt="${scene.altStyled}" loading="lazy" />
+              <div class="img-actions">
+                <a class="img-btn" href="${scene.srcStyled}" download>Download</a>
+              </div>
+            </figure>
+          </article>
+        `)
+        .join("");
+    }
+
+    async function copyPrompt() {
+      const prompt = promptText || "";
+      if (!prompt) return;
+      try {
+        await navigator.clipboard.writeText(prompt);
+        return true;
+      } catch {
+        const el = document.createElement("textarea");
+        el.value = prompt;
+        el.setAttribute("readonly", "");
+        el.style.position = "fixed";
+        el.style.top = "-9999px";
+        document.body.appendChild(el);
+        el.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(el);
+        return ok;
+      }
+    }
+
+    document.addEventListener("click", async (event) => {
+      if (event.target.id === "copyPrompt") {
+        const btn = event.target;
+        const ok = await copyPrompt();
+        const original = btn.textContent;
+        btn.textContent = ok ? "Copied" : "Copy failed";
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.disabled = false;
+        }, 900);
+      }
+    });
+
+    renderPrompt();
+    renderScenes();
+  </script>
+</body>
+</html>
+

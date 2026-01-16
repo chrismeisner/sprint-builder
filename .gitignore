@@ -35,6 +35,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# sandboxes (client data - keep README only)
-/sandboxes-data/*
-!/sandboxes-data/README.md
+# sandboxes - include all but exclude node_modules within
+/sandboxes-data/**/node_modules
