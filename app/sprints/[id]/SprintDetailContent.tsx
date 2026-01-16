@@ -89,16 +89,16 @@ type Props = {
   hoursFromPoints: (points: number) => number;
 };
 
-export default function SprintDetailContent({
-  row,
-  plan,
-  sprintDeliverables,
-  budgetPlan,
-  isOwner,
-  isAdmin,
-  isProjectMember: _isProjectMember,
-  hoursFromPoints,
-}: Props) {
+export default function SprintDetailContent(props: Props) {
+  const {
+    row,
+    plan,
+    sprintDeliverables,
+    budgetPlan,
+    isOwner,
+    isAdmin,
+    hoursFromPoints,
+  } = props;
   const [viewAsAdmin, setViewAsAdmin] = useState(true);
   
   // Effective admin view: only true if user is actually admin AND viewing as admin
