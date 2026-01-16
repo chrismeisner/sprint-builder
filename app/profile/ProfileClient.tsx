@@ -44,6 +44,28 @@ type Project = {
   isOwner?: boolean | null;
 };
 
+type Sandbox = {
+  id: string;
+  project_id: string;
+  name: string;
+  folder_name: string;
+  description: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project_name: string;
+  hasIndex: boolean;
+  fileCount: number;
+  folderExists: boolean;
+};
+
+type UnregisteredFolder = {
+  folderName: string;
+  displayName: string;
+  hasIndex: boolean;
+  fileCount: number;
+};
+
 type ProfileData = {
   profile: Profile;
   documents: Document[];
@@ -80,6 +102,16 @@ export default function ProfileClient() {
   const [memberEmailInput, setMemberEmailInput] = useState("");
   const [memberSaving, setMemberSaving] = useState(false);
   const [memberRemovingEmail, setMemberRemovingEmail] = useState<string | null>(null);
+  const [sandboxes, setSandboxes] = useState<Sandbox[]>([]);
+  const [sandboxesLoading, setSandboxesLoading] = useState(false);
+  const [showSandboxModal, setShowSandboxModal] = useState(false);
+  const [unregisteredFolders, setUnregisteredFolders] = useState<UnregisteredFolder[]>([]);
+  const [unregisteredLoading, setUnregisteredLoading] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<string>("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [sandboxName, setSandboxName] = useState<string>("");
+  const [sandboxSaving, setSandboxSaving] = useState(false);
+  const [sandboxError, setSandboxError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageTitleClass = getTypographyClassName("h2");
@@ -137,9 +169,90 @@ export default function ProfileClient() {
     }
   };
 
+  const fetchSandboxes = async () => {
+    try {
+      setSandboxesLoading(true);
+      const res = await fetch("/api/sandboxes");
+      if (!res.ok) return;
+      const json = await res.json();
+      setSandboxes(json.sandboxes || []);
+    } catch {
+      // Silently fail - sandboxes are optional
+    } finally {
+      setSandboxesLoading(false);
+    }
+  };
+
+  const fetchUnregisteredFolders = async () => {
+    try {
+      setUnregisteredLoading(true);
+      const res = await fetch("/api/sandboxes?unregistered=true");
+      if (!res.ok) return;
+      const json = await res.json();
+      setUnregisteredFolders(json.unregistered || []);
+    } catch {
+      // Silently fail
+    } finally {
+      setUnregisteredLoading(false);
+    }
+  };
+
+  const handleRegisterSandbox = async () => {
+    if (!selectedFolder || !selectedProjectId) {
+      setSandboxError("Please select a folder and project");
+      return;
+    }
+
+    try {
+      setSandboxSaving(true);
+      setSandboxError(null);
+      const res = await fetch("/api/sandboxes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          folderName: selectedFolder,
+          projectId: selectedProjectId,
+          name: sandboxName || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to register sandbox");
+      }
+
+      // Reset and refresh
+      setShowSandboxModal(false);
+      setSelectedFolder("");
+      setSelectedProjectId("");
+      setSandboxName("");
+      await fetchSandboxes();
+    } catch (err) {
+      setSandboxError(err instanceof Error ? err.message : "Failed to register sandbox");
+    } finally {
+      setSandboxSaving(false);
+    }
+  };
+
+  const openSandboxModal = async () => {
+    setShowSandboxModal(true);
+    setSelectedFolder("");
+    setSelectedProjectId("");
+    setSandboxName("");
+    setSandboxError(null);
+    await fetchUnregisteredFolders();
+  };
+
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    // Fetch sandboxes for all logged-in users (access is filtered by API)
+    if (data) {
+      fetchSandboxes();
+    }
+  }, [data]);
 
   useEffect(() => {
     if (!SHOW_FIRST_PROJECT_MODAL) return;
@@ -775,93 +888,303 @@ export default function ProfileClient() {
         )}
       </div>
 
-      {/* Sprints */}
-      <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
-        <div className="px-6 py-4 border-b border-black/10 dark:border-white/15">
-          <h2 className={`${sectionTitleClass} text-text-primary`}>Sprints</h2>
-        </div>
-        {data.sprints.length === 0 ? (
-          <div className="p-6 text-center">
-            <p className={helperTextClass}>No sprint drafts yet. Create a sprint from your intake forms.</p>
+      {/* Sprints (Admin only) */}
+      {data.profile.isAdmin && (
+        <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
+          <div className="px-6 py-4 border-b border-black/10 dark:border-white/15">
+            <h2 className={`${sectionTitleClass} text-text-primary`}>Sprints</h2>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
-                <tr>
-                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
-                    Title
-                  </th>
-                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
-                    Status
-                  </th>
-                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
-                    Project
-                  </th>
-                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
-                    Deliverables
-                  </th>
-                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
-                    Price
-                  </th>
-                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
-                    Created
-                  </th>
-                  <th className={`px-6 py-3 ${tableHeadingClass}`}>
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-black divide-y divide-black/10 dark:divide-white/15">
-                {data.sprints.map((sprint) => (
-                  <tr key={sprint.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
-                    <td className="px-6 py-4">
-                      <div className={`${bodyClass} font-medium`}>
-                        {sprint.title || <span className="opacity-50 italic">Untitled Sprint</span>}
-                      </div>
-                      <div className={helperTextClass}>
-                        From: {sprint.document_filename || "Form submission"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(sprint.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={helperTextClass}>
-                        {sprint.project_id ? projectNameLookup[sprint.project_id] || sprint.project_id : "—"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={helperTextClass}>{sprint.deliverable_count}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={bodySmClass}>
-                        {sprint.total_fixed_price
-                          ? `$${sprint.total_fixed_price.toLocaleString()}`
-                          : "—"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={helperTextClass}>
-                        {new Date(sprint.created_at).toLocaleDateString()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Link
-                        href={`/sprints/${sprint.id}`}
-                        className={`${bodySmClass} font-medium hover:underline`}
-                      >
-                        View Sprint
-                      </Link>
-                    </td>
+          {data.sprints.length === 0 ? (
+            <div className="p-6 text-center">
+              <p className={helperTextClass}>No sprint drafts yet. Create a sprint from your intake forms.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
+                  <tr>
+                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                      Title
+                    </th>
+                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                      Status
+                    </th>
+                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                      Project
+                    </th>
+                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                      Deliverables
+                    </th>
+                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                      Price
+                    </th>
+                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                      Created
+                    </th>
+                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody className="bg-white dark:bg-black divide-y divide-black/10 dark:divide-white/15">
+                  {data.sprints.map((sprint) => (
+                    <tr key={sprint.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
+                      <td className="px-6 py-4">
+                        <div className={`${bodyClass} font-medium`}>
+                          {sprint.title || <span className="opacity-50 italic">Untitled Sprint</span>}
+                        </div>
+                        <div className={helperTextClass}>
+                          From: {sprint.document_filename || "Form submission"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(sprint.status)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={helperTextClass}>
+                          {sprint.project_id ? projectNameLookup[sprint.project_id] || sprint.project_id : "—"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={helperTextClass}>{sprint.deliverable_count}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={bodySmClass}>
+                          {sprint.total_fixed_price
+                            ? `$${sprint.total_fixed_price.toLocaleString()}`
+                            : "—"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={helperTextClass}>
+                          {new Date(sprint.created_at).toLocaleDateString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Link
+                          href={`/sprints/${sprint.id}`}
+                          className={`${bodySmClass} font-medium hover:underline`}
+                        >
+                          View Sprint
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
+      {/* Register Sandbox Modal (Admin only) */}
+      {showSandboxModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="w-full max-w-lg rounded-lg bg-white dark:bg-black border border-black/10 dark:border-white/15 shadow-xl">
+            <div className="flex items-start justify-between p-4 border-b border-black/10 dark:border-white/15">
+              <div>
+                <p className={`${getTypographyClassName("mono-sm")} uppercase tracking-wide opacity-70`}>Admin</p>
+                <h2 className={`${getTypographyClassName("h4")} mt-1`}>Register Sandbox</h2>
+              </div>
+              <button
+                onClick={() => setShowSandboxModal(false)}
+                className={`rounded-md p-1 ${bodySmClass} opacity-70 hover:opacity-100 transition`}
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {sandboxError && (
+                <div className={`${bodySmClass} text-red-700 dark:text-red-300 bg-red-600/10 dark:bg-red-900/30 border border-red-600/20 dark:border-red-900/30 rounded-md px-3 py-2`}>
+                  {sandboxError}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className={labelClass}>Folder</label>
+                {unregisteredLoading ? (
+                  <p className={helperTextClass}>Loading folders...</p>
+                ) : unregisteredFolders.length === 0 ? (
+                  <p className={helperTextClass}>
+                    No unregistered folders. Drop a folder into <code className="px-1 py-0.5 bg-black/5 dark:bg-white/10 rounded text-xs">/public/sandboxes/</code>
+                  </p>
+                ) : (
+                  <select
+                    value={selectedFolder}
+                    onChange={(e) => {
+                      setSelectedFolder(e.target.value);
+                      const folder = unregisteredFolders.find((f) => f.folderName === e.target.value);
+                      if (folder && !sandboxName) {
+                        setSandboxName(folder.displayName);
+                      }
+                    }}
+                    className={`w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 ${bodySmClass} focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white`}
+                    disabled={sandboxSaving}
+                  >
+                    <option value="">Select a folder...</option>
+                    {unregisteredFolders.map((folder) => (
+                      <option key={folder.folderName} value={folder.folderName}>
+                        {folder.folderName} ({folder.fileCount} files{folder.hasIndex ? ", has index.html" : ""})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className={labelClass}>Project</label>
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  className={`w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 ${bodySmClass} focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white`}
+                  disabled={sandboxSaving}
+                >
+                  <option value="">Select a project...</option>
+                  {data?.projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className={labelClass}>Display Name (optional)</label>
+                <input
+                  type="text"
+                  value={sandboxName}
+                  onChange={(e) => setSandboxName(e.target.value)}
+                  placeholder="Auto-generated from folder name"
+                  className={`w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 ${bodySmClass} focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white`}
+                  disabled={sandboxSaving}
+                />
+              </div>
+            </div>
+            <div className="px-5 pb-5 flex items-center gap-2">
+              <button
+                onClick={handleRegisterSandbox}
+                disabled={sandboxSaving || !selectedFolder || !selectedProjectId}
+                className={`${getTypographyClassName("button-md")} px-4 py-2 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
+              >
+                {sandboxSaving ? "Registering..." : "Register Sandbox"}
+              </button>
+              <button
+                onClick={() => setShowSandboxModal(false)}
+                disabled={sandboxSaving}
+                className={`${getTypographyClassName("button-sm")} px-4 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sandboxes */}
+      {(sandboxes.length > 0 || data.profile.isAdmin) && (
+        <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
+          <div className="px-6 py-4 border-b border-black/10 dark:border-white/15">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className={`${sectionTitleClass} text-text-primary`}>Sandboxes</h2>
+                <p className={helperTextClass}>
+                  Browser-based prototypes and sketches
+                </p>
+              </div>
+              {data.profile.isAdmin && (
+                <button
+                  onClick={openSandboxModal}
+                  className={`${getTypographyClassName("button-sm")} inline-flex items-center justify-center rounded-md bg-black text-white dark:bg-white dark:text-black px-4 py-2 hover:opacity-90 transition`}
+                >
+                  Register Sandbox
+                </button>
+              )}
+            </div>
+          </div>
+          {sandboxesLoading ? (
+            <div className="p-6 text-center">
+              <p className={helperTextClass}>Loading sandboxes...</p>
+            </div>
+          ) : sandboxes.length === 0 ? (
+            <div className="p-6 text-center">
+              <p className={helperTextClass}>
+                {data.profile.isAdmin 
+                  ? <>No sandboxes registered yet. Drop folders into <code className="px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded text-xs">/public/sandboxes/</code> then click &quot;Register Sandbox&quot;.</>
+                  : "No sandboxes available for your projects."
+                }
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
+                  <tr>
+                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                      Name
+                    </th>
+                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                      Project
+                    </th>
+                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                      Files
+                    </th>
+                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                      Status
+                    </th>
+                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-black divide-y divide-black/10 dark:divide-white/15">
+                  {sandboxes.map((sandbox) => (
+                    <tr key={sandbox.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
+                      <td className="px-6 py-4">
+                        <div className={`${bodyClass} font-medium`}>{sandbox.name}</div>
+                        <div className={monoMetaClass}>{sandbox.folder_name}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Link href={`/projects/${sandbox.project_id}`} className={`${helperTextClass} hover:underline`}>
+                          {sandbox.project_name}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={helperTextClass}>{sandbox.fileCount} files</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {!sandbox.folderExists ? (
+                          <span className={`px-2 py-1 inline-flex ${bodySmClass} leading-5 font-semibold rounded-full bg-red-600/10 dark:bg-red-400/10 text-red-700 dark:text-red-300`}>
+                            Missing
+                          </span>
+                        ) : sandbox.hasIndex ? (
+                          <span className={`px-2 py-1 inline-flex ${bodySmClass} leading-5 font-semibold rounded-full bg-green-600/10 dark:bg-green-400/10 text-green-700 dark:text-green-300`}>
+                            Ready
+                          </span>
+                        ) : (
+                          <span className={`px-2 py-1 inline-flex ${bodySmClass} leading-5 font-semibold rounded-full bg-amber-600/10 dark:bg-amber-400/10 text-amber-700 dark:text-amber-300`}>
+                            No index.html
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <a
+                          href={`/api/sandbox-files/${sandbox.folder_name}/index.html`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`${bodySmClass} font-medium hover:underline inline-flex items-center gap-1`}
+                        >
+                          View Sandbox <span className="opacity-50">↗</span>
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
     </div>
   );

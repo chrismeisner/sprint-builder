@@ -268,4 +268,3 @@ function cleanupAutoTypographyLabels() {
     element.removeAttribute("data-typography-auto");
   });
 }
-

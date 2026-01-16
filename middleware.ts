@@ -6,7 +6,17 @@ export function middleware(request: NextRequest) {
 
   // Security headers
   response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("X-Frame-Options", "DENY");
+  
+  // Allow sandbox files to be framed (for the sandbox viewer)
+  // Use SAMEORIGIN for sandbox paths, DENY for everything else
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith("/sandboxes/") && pathname.includes(".")) {
+    // Static sandbox files (e.g., /sandboxes/demo/index.html) can be framed from same origin
+    response.headers.set("X-Frame-Options", "SAMEORIGIN");
+  } else {
+    response.headers.set("X-Frame-Options", "DENY");
+  }
+  
   response.headers.set("X-XSS-Protection", "1; mode=block");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   

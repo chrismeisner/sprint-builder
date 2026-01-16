@@ -34,3 +34,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# sandboxes (client data - keep README only)
+/sandboxes-data/*
+!/sandboxes-data/README.md

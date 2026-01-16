@@ -683,6 +683,22 @@ export async function ensureSchema(): Promise<void> {
     DROP COLUMN IF EXISTS workshop_ai_response_id
   `);
   
+  // Sandboxes: Browser-based prototypes linked to projects
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sandboxes (
+      id text PRIMARY KEY,
+      project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      name text NOT NULL,
+      folder_name text NOT NULL UNIQUE,
+      description text,
+      created_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_sandboxes_project ON sandboxes(project_id);
+    CREATE INDEX IF NOT EXISTS idx_sandboxes_folder ON sandboxes(folder_name);
+  `);
+  
   global._schemaInitialized = true;
 }
 
