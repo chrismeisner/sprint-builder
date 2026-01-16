@@ -112,6 +112,13 @@ export default function ProfileClient() {
   const [sandboxName, setSandboxName] = useState<string>("");
   const [sandboxSaving, setSandboxSaving] = useState(false);
   const [sandboxError, setSandboxError] = useState<string | null>(null);
+  // Edit sandbox modal state
+  const [editingSandbox, setEditingSandbox] = useState<Sandbox | null>(null);
+  const [editSandboxName, setEditSandboxName] = useState<string>("");
+  const [editSandboxProjectId, setEditSandboxProjectId] = useState<string>("");
+  const [editSandboxSaving, setEditSandboxSaving] = useState(false);
+  const [editSandboxDeleting, setEditSandboxDeleting] = useState(false);
+  const [editSandboxError, setEditSandboxError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageTitleClass = getTypographyClassName("h2");
@@ -241,6 +248,83 @@ export default function ProfileClient() {
     setSandboxName("");
     setSandboxError(null);
     await fetchUnregisteredFolders();
+  };
+
+  const openEditSandboxModal = (sandbox: Sandbox) => {
+    setEditingSandbox(sandbox);
+    setEditSandboxName(sandbox.name);
+    setEditSandboxProjectId(sandbox.project_id);
+    setEditSandboxError(null);
+  };
+
+  const closeEditSandboxModal = () => {
+    setEditingSandbox(null);
+    setEditSandboxName("");
+    setEditSandboxProjectId("");
+    setEditSandboxError(null);
+  };
+
+  const handleUpdateSandbox = async () => {
+    if (!editingSandbox) return;
+    if (!editSandboxName.trim()) {
+      setEditSandboxError("Name is required");
+      return;
+    }
+    if (!editSandboxProjectId) {
+      setEditSandboxError("Project is required");
+      return;
+    }
+
+    try {
+      setEditSandboxSaving(true);
+      setEditSandboxError(null);
+      const res = await fetch("/api/sandboxes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingSandbox.id,
+          name: editSandboxName.trim(),
+          projectId: editSandboxProjectId,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update sandbox");
+      }
+
+      closeEditSandboxModal();
+      await fetchSandboxes();
+    } catch (err) {
+      setEditSandboxError(err instanceof Error ? err.message : "Failed to update sandbox");
+    } finally {
+      setEditSandboxSaving(false);
+    }
+  };
+
+  const handleDeleteSandbox = async () => {
+    if (!editingSandbox) return;
+    if (!confirm("Remove this sandbox registration? The files will remain on disk.")) return;
+
+    try {
+      setEditSandboxDeleting(true);
+      setEditSandboxError(null);
+      const res = await fetch(`/api/sandboxes?id=${editingSandbox.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to remove sandbox");
+      }
+
+      closeEditSandboxModal();
+      await fetchSandboxes();
+    } catch (err) {
+      setEditSandboxError(err instanceof Error ? err.message : "Failed to remove sandbox");
+    } finally {
+      setEditSandboxDeleting(false);
+    }
   };
 
   useEffect(() => {
@@ -1081,6 +1165,96 @@ export default function ProfileClient() {
         </div>
       )}
 
+      {/* Edit Sandbox Modal (Admin only) */}
+      {editingSandbox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="w-full max-w-lg rounded-lg bg-white dark:bg-black border border-black/10 dark:border-white/15 shadow-xl">
+            <div className="flex items-start justify-between p-4 border-b border-black/10 dark:border-white/15">
+              <div>
+                <p className={`${getTypographyClassName("mono-sm")} uppercase tracking-wide opacity-70`}>Admin</p>
+                <h2 className={`${getTypographyClassName("h4")} mt-1`}>Edit Sandbox</h2>
+              </div>
+              <button
+                onClick={closeEditSandboxModal}
+                className={`rounded-md p-1 ${bodySmClass} opacity-70 hover:opacity-100 transition`}
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {editSandboxError && (
+                <div className={`${bodySmClass} text-red-700 dark:text-red-300 bg-red-600/10 dark:bg-red-900/30 border border-red-600/20 dark:border-red-900/30 rounded-md px-3 py-2`}>
+                  {editSandboxError}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className={labelClass}>Folder</label>
+                <div className={`${bodySmClass} px-3 py-2 bg-black/5 dark:bg-white/5 rounded-md`}>
+                  <code>{editingSandbox.folder_name}</code>
+                </div>
+                <p className={`${helperTextClass} text-xs`}>Folder cannot be changed. Remove and re-register to use a different folder.</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className={labelClass}>Display Name</label>
+                <input
+                  type="text"
+                  value={editSandboxName}
+                  onChange={(e) => setEditSandboxName(e.target.value)}
+                  placeholder="Enter display name"
+                  className={`w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 ${bodySmClass} focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white`}
+                  disabled={editSandboxSaving || editSandboxDeleting}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className={labelClass}>Project</label>
+                <select
+                  value={editSandboxProjectId}
+                  onChange={(e) => setEditSandboxProjectId(e.target.value)}
+                  className={`w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 ${bodySmClass} focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white`}
+                  disabled={editSandboxSaving || editSandboxDeleting}
+                >
+                  <option value="">Select a project...</option>
+                  {data?.projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="px-5 pb-5 flex items-center justify-between">
+              <button
+                onClick={handleDeleteSandbox}
+                disabled={editSandboxSaving || editSandboxDeleting}
+                className={`${getTypographyClassName("button-sm")} px-4 py-2 rounded-md border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition`}
+              >
+                {editSandboxDeleting ? "Removing..." : "Remove Sandbox"}
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={closeEditSandboxModal}
+                  disabled={editSandboxSaving || editSandboxDeleting}
+                  className={`${getTypographyClassName("button-sm")} px-4 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateSandbox}
+                  disabled={editSandboxSaving || editSandboxDeleting || !editSandboxName.trim() || !editSandboxProjectId}
+                  className={`${getTypographyClassName("button-md")} px-4 py-2 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
+                >
+                  {editSandboxSaving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sandboxes */}
       {(sandboxes.length > 0 || data.profile.isAdmin) && (
         <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
@@ -1168,14 +1342,24 @@ export default function ProfileClient() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <a
-                          href={`/api/sandbox-files/${sandbox.folder_name}/index.html`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${bodySmClass} font-medium hover:underline inline-flex items-center gap-1`}
-                        >
-                          View Sandbox <span className="opacity-50">↗</span>
-                        </a>
+                        <div className="flex items-center gap-3">
+                          <a
+                            href={`/api/sandbox-files/${sandbox.folder_name}/index.html`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${bodySmClass} font-medium hover:underline inline-flex items-center gap-1`}
+                          >
+                            View <span className="opacity-50">↗</span>
+                          </a>
+                          {data.profile.isAdmin && (
+                            <button
+                              onClick={() => openEditSandboxModal(sandbox)}
+                              className={`${bodySmClass} font-medium hover:underline`}
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

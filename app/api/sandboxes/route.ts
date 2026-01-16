@@ -220,6 +220,76 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PATCH /api/sandboxes - Update a sandbox (admin only)
+// Body: { id, name?, projectId?, description? }
+export async function PATCH(request: NextRequest) {
+  try {
+    await ensureSchema();
+    await requireAdmin();
+
+    const body = await request.json();
+    const { id, name, projectId, description } = body;
+
+    if (!id || typeof id !== "string") {
+      return NextResponse.json({ error: "id is required" }, { status: 400 });
+    }
+
+    const pool = getPool();
+
+    // Check sandbox exists
+    const sandboxCheck = await pool.query(`SELECT id FROM sandboxes WHERE id = $1`, [id]);
+    if (sandboxCheck.rowCount === 0) {
+      return NextResponse.json({ error: "Sandbox not found" }, { status: 404 });
+    }
+
+    // If projectId is being updated, verify it exists
+    if (projectId) {
+      const projectCheck = await pool.query(`SELECT id FROM projects WHERE id = $1`, [projectId]);
+      if (projectCheck.rowCount === 0) {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      }
+    }
+
+    // Build update query dynamically
+    const updates: string[] = [];
+    const values: (string | null)[] = [];
+    let paramIndex = 1;
+
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(name);
+    }
+    if (projectId !== undefined) {
+      updates.push(`project_id = $${paramIndex++}`);
+      values.push(projectId);
+    }
+    if (description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(description || null);
+    }
+
+    if (updates.length === 0) {
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    }
+
+    updates.push(`updated_at = NOW()`);
+    values.push(id);
+
+    const result = await pool.query(
+      `UPDATE sandboxes SET ${updates.join(", ")} WHERE id = $${paramIndex} RETURNING *`,
+      values
+    );
+
+    return NextResponse.json({ sandbox: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating sandbox:", error);
+    if (error instanceof Error && error.message.includes("required")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    return NextResponse.json({ error: "Failed to update sandbox" }, { status: 500 });
+  }
+}
+
 // DELETE /api/sandboxes?id=xxx - Unregister a sandbox (admin only)
 // Note: This only removes the DB record, not the files
 export async function DELETE(request: NextRequest) {
