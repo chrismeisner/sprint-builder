@@ -96,7 +96,7 @@ export default function SprintDetailContent({
   budgetPlan,
   isOwner,
   isAdmin,
-  isProjectMember,
+  isProjectMember: _isProjectMember,
   hoursFromPoints,
 }: Props) {
   const [viewAsAdmin, setViewAsAdmin] = useState(true);
