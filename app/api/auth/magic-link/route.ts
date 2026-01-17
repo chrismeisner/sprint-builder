@@ -15,21 +15,38 @@ export async function POST(request: Request) {
     if (typeof email !== "string" || !email.includes("@")) {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
     }
+    
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    // Check if this email has been verified
+    const existingAccount = await pool.query(
+      `SELECT id, email_verified_at FROM accounts WHERE email = $1`,
+      [normalizedEmail]
+    );
+    
+    // If no account exists or email not verified, they need to use verification code flow
+    if (!existingAccount.rowCount || existingAccount.rowCount === 0) {
+      return NextResponse.json({ 
+        error: "Email not verified. Please sign up first.",
+        needsVerification: true
+      }, { status: 400 });
+    }
+    
+    const account = existingAccount.rows[0] as { id: string; email_verified_at: Date | null };
+    
+    if (!account.email_verified_at) {
+      return NextResponse.json({ 
+        error: "Email not verified. Please complete verification first.",
+        needsVerification: true
+      }, { status: 400 });
+    }
+    
+    // Email is verified - proceed with magic link
+    const accountId = account.id;
+    
     // Default to profile with flag so UI can show a welcome overlay
     const defaultRedirect = "/profile?from=magic-email";
     const redirect = typeof redirectUrl === "string" && redirectUrl.trim() ? redirectUrl.trim() : defaultRedirect;
-    const normalizedEmail = email.trim().toLowerCase();
-    const accountRes = await pool.query(
-      `
-        INSERT INTO accounts (id, email)
-        VALUES ($1, $2)
-        ON CONFLICT (email)
-        DO UPDATE SET email = EXCLUDED.email
-        RETURNING id
-      `,
-      [crypto.randomUUID(), normalizedEmail]
-    );
-    const accountId = (accountRes.rows[0] as { id: string }).id;
 
     const token = createLoginToken(accountId);
     

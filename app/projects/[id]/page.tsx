@@ -8,6 +8,7 @@ import Typography from "@/components/ui/Typography";
 const DeleteSprintButton = dynamicImport(() => import("../DeleteSprintButton"), { ssr: false });
 const ProjectDocuments = dynamicImport(() => import("../ProjectDocuments"), { ssr: false });
 const LinkSandboxButton = dynamicImport(() => import("../LinkSandboxButton"), { ssr: false });
+const EditSandboxButton = dynamicImport(() => import("../EditSandboxButton"), { ssr: false });
 
 type PageProps = { params: { id: string } };
 
@@ -75,7 +76,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
   // Fetch sandboxes for this project
   const sandboxesResult = await pool.query(
-    `SELECT id, name, folder_name, description, created_at
+    `SELECT id, name, folder_name, description, is_public, created_at
      FROM sandboxes
      WHERE project_id = $1
      ORDER BY created_at DESC`,
@@ -87,6 +88,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     name: string;
     folder_name: string;
     description: string | null;
+    is_public: boolean;
     created_at: string | Date;
   }>;
 
@@ -148,6 +150,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 <tr>
                   <th className="text-left px-4 py-2 font-semibold">Name</th>
                   <th className="text-left px-4 py-2 font-semibold">Description</th>
+                  <th className="text-left px-4 py-2 font-semibold">Visibility</th>
                   <th className="text-right px-4 py-2 font-semibold">Created</th>
                   <th className="text-right px-4 py-2 font-semibold">Actions</th>
                 </tr>
@@ -161,18 +164,34 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                     <td className="px-4 py-2">
                       <span className="opacity-70">{sandbox.description || "—"}</span>
                     </td>
+                    <td className="px-4 py-2">
+                      {sandbox.is_public ? (
+                        <span className="inline-flex items-center rounded-full bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 px-2 py-0.5 text-xs">
+                          Public
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-black/10 dark:bg-white/10 px-2 py-0.5 text-xs">
+                          Private
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2 text-right">
                       {new Date(sandbox.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-2 text-right">
-                      <a
-                        href={`/api/sandbox-files/${sandbox.folder_name}/index.html`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium hover:underline inline-flex items-center gap-1"
-                      >
-                        View Sandbox ↗
-                      </a>
+                      <div className="flex items-center justify-end gap-3">
+                        {isAdmin && (
+                          <EditSandboxButton sandbox={sandbox} projectId={project.id} />
+                        )}
+                        <a
+                          href={`/api/sandbox-files/${sandbox.folder_name}/index.html`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium hover:underline inline-flex items-center gap-1"
+                        >
+                          View ↗
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 ))}

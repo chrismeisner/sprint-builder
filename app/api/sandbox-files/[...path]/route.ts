@@ -6,6 +6,9 @@ import { getPool, ensureSchema } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+// Allowed files that can be written to (for security)
+const WRITABLE_FILES = ["changelog.json"];
+
 // Helper to create login redirect URL
 function loginRedirect(request: NextRequest): NextResponse {
   const currentPath = request.nextUrl.pathname;
@@ -66,47 +69,63 @@ export async function GET(
     // Rest is the file path within the sandbox
     const filePath = pathParts.slice(1).join("/") || "index.html";
 
-    // Check authentication - redirect to login if not authenticated
-    const user = await getCurrentUser();
-    if (!user) {
-      return loginRedirect(request);
-    }
-
     await ensureSchema();
     const pool = getPool();
 
-    // Check if sandbox is registered and user has access
-    let hasAccess = false;
+    // First check if sandbox is public
+    const sandboxCheck = await pool.query(`
+      SELECT s.id, s.is_public, s.project_id
+      FROM sandboxes s
+      WHERE s.folder_name = $1
+      LIMIT 1
+    `, [folderName]);
 
-    if (user.isAdmin) {
-      // Admins can access any sandbox (registered or not)
-      hasAccess = true;
+    const sandboxRecord = sandboxCheck.rows[0] as { id: string; is_public: boolean; project_id: string } | undefined;
+    const isPublic = sandboxRecord?.is_public === true;
+
+    // If sandbox is public, allow access without authentication
+    if (isPublic) {
+      // Public sandbox - no auth required, skip to serving the file
     } else {
-      // Check if sandbox is registered and linked to a project the user has access to
-      const accessCheck = await pool.query(`
-        SELECT s.id 
-        FROM sandboxes s
-        JOIN projects p ON s.project_id = p.id
-        WHERE s.folder_name = $1
-          AND (
-            p.account_id = $2
-            OR EXISTS (
-              SELECT 1 FROM project_members pm 
-              WHERE pm.project_id = p.id 
-                AND lower(pm.email) = lower($3)
+      // Private sandbox - require authentication
+      const user = await getCurrentUser();
+      if (!user) {
+        return loginRedirect(request);
+      }
+
+      // Check if user has access
+      let hasAccess = false;
+
+      if (user.isAdmin) {
+        // Admins can access any sandbox (registered or not)
+        hasAccess = true;
+      } else if (sandboxRecord) {
+        // Check if sandbox is linked to a project the user has access to
+        const accessCheck = await pool.query(`
+          SELECT s.id 
+          FROM sandboxes s
+          JOIN projects p ON s.project_id = p.id
+          WHERE s.id = $1
+            AND (
+              p.account_id = $2
+              OR EXISTS (
+                SELECT 1 FROM project_members pm 
+                WHERE pm.project_id = p.id 
+                  AND lower(pm.email) = lower($3)
+              )
             )
-          )
-        LIMIT 1
-      `, [folderName, user.accountId, user.email]);
+          LIMIT 1
+        `, [sandboxRecord.id, user.accountId, user.email]);
 
-      hasAccess = (accessCheck.rowCount ?? 0) > 0;
-    }
+        hasAccess = (accessCheck.rowCount ?? 0) > 0;
+      }
 
-    if (!hasAccess) {
-      // Redirect to profile with error message
-      const profileUrl = new URL("/profile", request.url);
-      profileUrl.searchParams.set("error", "sandbox_access_denied");
-      return NextResponse.redirect(profileUrl);
+      if (!hasAccess) {
+        // Redirect to profile with error message
+        const profileUrl = new URL("/profile", request.url);
+        profileUrl.searchParams.set("error", "sandbox_access_denied");
+        return NextResponse.redirect(profileUrl);
+      }
     }
 
     // Build the full file path
@@ -160,5 +179,115 @@ export async function GET(
   } catch (error) {
     console.error("Error serving sandbox file:", error);
     return NextResponse.json({ error: "Failed to serve file" }, { status: 500 });
+  }
+}
+
+// PUT /api/sandbox-files/[folder]/[filename]
+// Updates a writable sandbox file (e.g., changelog.json)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { path: string[] } }
+) {
+  try {
+    const pathParts = params.path;
+    
+    if (!pathParts || pathParts.length < 2) {
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    }
+
+    // First part is the sandbox folder name
+    const folderName = pathParts[0];
+    // Rest is the file path within the sandbox
+    const filePath = pathParts.slice(1).join("/");
+    const fileName = filePath.split("/").pop() || "";
+
+    // Security: Only allow specific files to be written
+    if (!WRITABLE_FILES.includes(fileName)) {
+      return NextResponse.json(
+        { error: "This file cannot be modified" },
+        { status: 403 }
+      );
+    }
+
+    // Check authentication
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await ensureSchema();
+    const pool = getPool();
+
+    // Check if user has write access (admin or project member with access)
+    let hasAccess = false;
+
+    if (user.isAdmin) {
+      hasAccess = true;
+    } else {
+      // Check if sandbox is registered and linked to a project the user has access to
+      const accessCheck = await pool.query(`
+        SELECT s.id 
+        FROM sandboxes s
+        JOIN projects p ON s.project_id = p.id
+        WHERE s.folder_name = $1
+          AND (
+            p.account_id = $2
+            OR EXISTS (
+              SELECT 1 FROM project_members pm 
+              WHERE pm.project_id = p.id 
+                AND lower(pm.email) = lower($3)
+            )
+          )
+        LIMIT 1
+      `, [folderName, user.accountId, user.email]);
+
+      hasAccess = (accessCheck.rowCount ?? 0) > 0;
+    }
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    // Build the full file path
+    const sandboxesDir = path.join(process.cwd(), "sandboxes-data");
+    const fullPath = path.join(sandboxesDir, folderName, filePath);
+
+    // Security: Ensure the path is within the sandboxes directory
+    const normalizedPath = path.normalize(fullPath);
+    if (!normalizedPath.startsWith(sandboxesDir)) {
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    }
+
+    // Get the request body
+    const body = await request.json();
+
+    // Validate JSON structure for changelog.json
+    if (fileName === "changelog.json") {
+      if (!body.entries || !Array.isArray(body.entries)) {
+        return NextResponse.json(
+          { error: "Invalid changelog format: entries array required" },
+          { status: 400 }
+        );
+      }
+
+      // Validate each entry
+      for (const entry of body.entries) {
+        if (!entry.version || !entry.date || !entry.title || !Array.isArray(entry.changes)) {
+          return NextResponse.json(
+            { error: "Invalid entry format: version, date, title, and changes required" },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // Write the file
+    const content = JSON.stringify(body, null, 2);
+    fs.writeFileSync(normalizedPath, content, "utf-8");
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error updating sandbox file:", error);
+    return NextResponse.json({ error: "Failed to update file" }, { status: 500 });
   }
 }

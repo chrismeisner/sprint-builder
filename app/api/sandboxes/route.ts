@@ -13,6 +13,7 @@ type SandboxRow = {
   name: string;
   folder_name: string;
   description: string | null;
+  is_public: boolean;
   created_by: string | null;
   created_at: string | Date;
   updated_at: string | Date;
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest) {
       // Admins see all sandboxes
       const result = await pool.query(`
         SELECT 
-          s.id, s.project_id, s.name, s.folder_name, s.description,
+          s.id, s.project_id, s.name, s.folder_name, s.description, s.is_public,
           s.created_by, s.created_at, s.updated_at,
           p.name AS project_name
         FROM sandboxes s
@@ -120,7 +121,7 @@ export async function GET(request: NextRequest) {
       // Non-admins see sandboxes for projects they own or are members of
       const result = await pool.query(`
         SELECT 
-          s.id, s.project_id, s.name, s.folder_name, s.description,
+          s.id, s.project_id, s.name, s.folder_name, s.description, s.is_public,
           s.created_by, s.created_at, s.updated_at,
           p.name AS project_name
         FROM sandboxes s
@@ -221,14 +222,14 @@ export async function POST(request: NextRequest) {
 }
 
 // PATCH /api/sandboxes - Update a sandbox (admin only)
-// Body: { id, name?, projectId?, description? }
+// Body: { id, name?, projectId?, description?, isPublic? }
 export async function PATCH(request: NextRequest) {
   try {
     await ensureSchema();
     await requireAdmin();
 
     const body = await request.json();
-    const { id, name, projectId, description } = body;
+    const { id, name, projectId, description, isPublic } = body;
 
     if (!id || typeof id !== "string") {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
@@ -252,7 +253,7 @@ export async function PATCH(request: NextRequest) {
 
     // Build update query dynamically
     const updates: string[] = [];
-    const values: (string | null)[] = [];
+    const values: (string | boolean | null)[] = [];
     let paramIndex = 1;
 
     if (name !== undefined) {
@@ -266,6 +267,10 @@ export async function PATCH(request: NextRequest) {
     if (description !== undefined) {
       updates.push(`description = $${paramIndex++}`);
       values.push(description || null);
+    }
+    if (isPublic !== undefined) {
+      updates.push(`is_public = $${paramIndex++}`);
+      values.push(Boolean(isPublic));
     }
 
     if (updates.length === 0) {

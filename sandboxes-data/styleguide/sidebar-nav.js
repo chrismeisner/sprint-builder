@@ -13,7 +13,8 @@
     { href: 'colors.html', label: 'Colors', icon: '🎨' },
     { href: 'fonts.html', label: 'Typography', icon: '🔤' },
     { href: 'image-style.html', label: 'Images', icon: '🖼️' },
-    { href: 'style-tiles.html', label: 'Style Tiles', icon: '📱' }
+    { href: 'style-tiles.html', label: 'Style Tiles', icon: '📱' },
+    { href: 'changelog.html', label: 'Changelog', icon: '📋' }
   ];
 
   function getCurrentPage() {

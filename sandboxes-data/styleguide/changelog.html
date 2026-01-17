@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Changelog – Brand Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="sidebar-nav.css" />
+  <style>
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 900px;
+      margin: auto;
+      padding: 32px 20px 64px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--neutral-700);
+      margin: 0 0 28px;
+    }
+
+    .current-version {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--brand-primary-100);
+      border: 1px solid var(--brand-primary-200);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--brand-primary-700);
+      margin-bottom: 24px;
+    }
+
+    .current-version .version-label {
+      font-weight: 400;
+      color: var(--brand-primary-600);
+    }
+
+    .changelog-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .changelog-entry {
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .changelog-entry.latest {
+      border-color: var(--brand-primary-300);
+    }
+
+    .changelog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 16px 20px;
+      background: var(--neutral-50);
+      border-bottom: 1px solid var(--neutral-200);
+    }
+
+    .changelog-entry.latest .changelog-header {
+      background: var(--brand-primary-50);
+      border-bottom-color: var(--brand-primary-200);
+    }
+
+    .changelog-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      background: var(--neutral-900);
+      color: var(--neutral-0);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+    }
+
+    .changelog-entry.latest .version-badge {
+      background: var(--brand-primary-500);
+    }
+
+    .changelog-date {
+      font-size: 13px;
+      color: var(--neutral-500);
+    }
+
+    .latest-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: var(--brand-primary-100);
+      color: var(--brand-primary-700);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .changelog-body {
+      padding: 20px;
+    }
+
+    .changelog-title {
+      margin: 0 0 12px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--neutral-900);
+    }
+
+    .changelog-changes {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .changelog-changes li {
+      position: relative;
+      padding-left: 20px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--neutral-700);
+    }
+
+    .changelog-changes li:last-child {
+      margin-bottom: 0;
+    }
+
+    .changelog-changes li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 8px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--neutral-400);
+    }
+
+    .change-type {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-right: 6px;
+    }
+
+    .change-type.added {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .change-type.changed {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .change-type.fixed {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .change-type.removed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      background: var(--neutral-0);
+      border: 1px dashed var(--neutral-300);
+      border-radius: var(--radius);
+      color: var(--neutral-500);
+    }
+
+    .empty-state-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .empty-state-text {
+      font-size: 14px;
+      margin: 0;
+    }
+
+    /* Admin note section */
+    .admin-note {
+      margin-top: 32px;
+      padding: 16px 20px;
+      background: var(--neutral-100);
+      border: 1px dashed var(--neutral-300);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--neutral-600);
+    }
+
+    .admin-note-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      color: var(--neutral-700);
+      margin-bottom: 8px;
+    }
+
+    .admin-note code {
+      background: var(--neutral-200);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    /* Page header with button */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+
+    .page-header h1 {
+      margin: 0;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-family-sans);
+      border: 1px solid var(--neutral-300);
+      border-radius: 8px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      cursor: pointer;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 4px 12px rgba(17, 24, 39, 0.08);
+    }
+
+    .btn-primary {
+      background: var(--neutral-900);
+      color: var(--neutral-0);
+      border-color: var(--neutral-900);
+    }
+
+    .btn-primary:hover {
+      background: var(--neutral-700);
+      border-color: var(--neutral-700);
+    }
+
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 200ms ease, visibility 200ms ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: var(--neutral-0);
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 540px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(20px);
+      transition: transform 200ms ease;
+    }
+
+    .modal-overlay.open .modal {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--neutral-200);
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: none;
+      color: var(--neutral-500);
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 120ms ease, color 120ms ease;
+    }
+
+    .modal-close:hover {
+      background: var(--neutral-100);
+      color: var(--neutral-900);
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 16px 20px;
+      border-top: 1px solid var(--neutral-200);
+      background: var(--neutral-50);
+    }
+
+    /* Form styles */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--neutral-700);
+      margin-bottom: 6px;
+    }
+
+    .form-input,
+    .form-select {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: var(--font-family-sans);
+      border: 1px solid var(--neutral-300);
+      border-radius: 8px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .form-input:focus,
+    .form-select:focus {
+      outline: none;
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* Changes list in form */
+    .changes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .change-item {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .change-item .form-select {
+      width: 110px;
+      flex-shrink: 0;
+    }
+
+    .change-item .form-input {
+      flex: 1;
+    }
+
+    .change-item .remove-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--neutral-200);
+      background: var(--neutral-0);
+      color: var(--neutral-500);
+      border-radius: 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color 120ms ease, color 120ms ease;
+    }
+
+    .change-item .remove-btn:hover {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    .add-change-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-family-sans);
+      border: 1px dashed var(--neutral-300);
+      border-radius: 6px;
+      background: none;
+      color: var(--neutral-600);
+      cursor: pointer;
+      transition: border-color 120ms ease, color 120ms ease;
+    }
+
+    .add-change-btn:hover {
+      border-color: var(--brand-primary-500);
+      color: var(--brand-primary-600);
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 16px;
+      background: var(--neutral-900);
+      color: var(--neutral-0);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      z-index: 1001;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 200ms ease, transform 200ms ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.success {
+      background: #166534;
+    }
+
+    .toast.error {
+      background: #991b1b;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="page-header">
+      <h1>Changelog</h1>
+      <button class="btn btn-primary" onclick="openModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Add Change
+      </button>
+    </div>
+    <p class="subtitle">History of updates and changes to the brand styleguide.</p>
+
+    <div id="currentVersion" class="current-version"></div>
+
+    <div id="changelogList" class="changelog-list"></div>
+  </div>
+
+  <!-- Add Change Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">Add Changelog Entry</h2>
+        <button class="modal-close" onclick="closeModal()" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="changelogForm" onsubmit="handleSubmit(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="version">Version</label>
+              <input type="text" id="version" class="form-input" placeholder="1.1.0" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="date">Date</label>
+              <input type="date" id="date" class="form-input" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="title">Title</label>
+            <input type="text" id="title" class="form-input" placeholder="Brief description of this release" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Changes</label>
+            <div class="changes-list" id="changesList">
+              <!-- Change items will be added here -->
+            </div>
+            <button type="button" class="add-change-btn" onclick="addChangeItem()" style="margin-top: 10px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              Add another change
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" form="changelogForm" id="submitBtn">Save Entry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Changelog entries loaded from JSON
+    let CHANGELOG_ENTRIES = [];
+    let changeItemCounter = 0;
+
+    // Get the sandbox folder name from the URL
+    function getSandboxFolder() {
+      const path = window.location.pathname;
+      const match = path.match(/\/api\/sandbox-files\/([^/]+)/);
+      return match ? match[1] : 'styleguide';
+    }
+
+    // Format date to readable string
+    function formatDate(dateStr) {
+      const date = new Date(dateStr + 'T00:00:00');
+      const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      };
+      return date.toLocaleDateString('en-US', options);
+    }
+
+    // Get today's date in YYYY-MM-DD format
+    function getTodayDate() {
+      const today = new Date();
+      return today.toISOString().split('T')[0];
+    }
+
+    // Suggest next version based on current version
+    function suggestNextVersion() {
+      if (CHANGELOG_ENTRIES.length === 0) return '1.0.0';
+      const current = CHANGELOG_ENTRIES[0].version;
+      const parts = current.split('.').map(Number);
+      parts[2] = (parts[2] || 0) + 1; // Increment patch version
+      return parts.join('.');
+    }
+
+    // Show toast notification
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast ' + type;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // Modal functions
+    function openModal() {
+      const modal = document.getElementById('modalOverlay');
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      
+      // Set default values
+      document.getElementById('version').value = suggestNextVersion();
+      document.getElementById('date').value = getTodayDate();
+      document.getElementById('title').value = '';
+      
+      // Reset changes list with one empty item
+      const changesList = document.getElementById('changesList');
+      changesList.innerHTML = '';
+      changeItemCounter = 0;
+      addChangeItem();
+      
+      // Focus on title
+      setTimeout(() => document.getElementById('title').focus(), 100);
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('modalOverlay');
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function handleOverlayClick(event) {
+      if (event.target === event.currentTarget) {
+        closeModal();
+      }
+    }
+
+    // Change items management
+    function addChangeItem(type = 'added', text = '') {
+      const changesList = document.getElementById('changesList');
+      const itemId = changeItemCounter++;
+      
+      const itemHTML = `
+        <div class="change-item" data-id="${itemId}">
+          <select class="form-select" name="change-type-${itemId}">
+            <option value="added" ${type === 'added' ? 'selected' : ''}>Added</option>
+            <option value="changed" ${type === 'changed' ? 'selected' : ''}>Changed</option>
+            <option value="fixed" ${type === 'fixed' ? 'selected' : ''}>Fixed</option>
+            <option value="removed" ${type === 'removed' ? 'selected' : ''}>Removed</option>
+          </select>
+          <input type="text" class="form-input" name="change-text-${itemId}" placeholder="Description of the change" value="${text}" required />
+          <button type="button" class="remove-btn" onclick="removeChangeItem(${itemId})" title="Remove">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      `;
+      
+      changesList.insertAdjacentHTML('beforeend', itemHTML);
+    }
+
+    function removeChangeItem(itemId) {
+      const item = document.querySelector(`.change-item[data-id="${itemId}"]`);
+      if (item) {
+        item.remove();
+      }
+      
+      // Ensure at least one item remains
+      const changesList = document.getElementById('changesList');
+      if (changesList.children.length === 0) {
+        addChangeItem();
+      }
+    }
+
+    // Collect changes from form
+    function collectChanges() {
+      const changes = [];
+      const items = document.querySelectorAll('.change-item');
+      
+      items.forEach(item => {
+        const id = item.dataset.id;
+        const type = item.querySelector(`select[name="change-type-${id}"]`).value;
+        const text = item.querySelector(`input[name="change-text-${id}"]`).value.trim();
+        
+        if (text) {
+          changes.push({ type, text });
+        }
+      });
+      
+      return changes;
+    }
+
+    // Handle form submission
+    async function handleSubmit(event) {
+      event.preventDefault();
+      
+      const version = document.getElementById('version').value.trim();
+      const date = document.getElementById('date').value;
+      const title = document.getElementById('title').value.trim();
+      const changes = collectChanges();
+      
+      if (changes.length === 0) {
+        showToast('Please add at least one change', 'error');
+        return;
+      }
+      
+      const newEntry = { version, date, title, changes };
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+      
+      try {
+        // Add new entry to the beginning
+        const updatedEntries = [newEntry, ...CHANGELOG_ENTRIES];
+        
+        // Try to save via API
+        const folder = getSandboxFolder();
+        const response = await fetch(`/api/sandbox-files/${folder}/changelog.json`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ entries: updatedEntries }, null, 2)
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to save');
+        }
+        
+        // Update local state
+        CHANGELOG_ENTRIES = updatedEntries;
+        renderCurrentVersion();
+        renderChangelog();
+        
+        closeModal();
+        showToast('Changelog entry added successfully!', 'success');
+      } catch (error) {
+        console.error('Error saving changelog:', error);
+        showToast('Failed to save. Check console for details.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save Entry';
+      }
+    }
+
+    // Keyboard handling
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('modalOverlay');
+        if (modal.classList.contains('open')) {
+          closeModal();
+        }
+      }
+    });
+
+    // Render the current version badge
+    function renderCurrentVersion() {
+      const container = document.getElementById('currentVersion');
+      if (!container || CHANGELOG_ENTRIES.length === 0) {
+        if (container) container.style.display = 'none';
+        return;
+      }
+
+      container.style.display = '';
+      const latest = CHANGELOG_ENTRIES[0];
+      container.innerHTML = `
+        <span class="version-label">Current Version:</span>
+        <strong>v${latest.version}</strong>
+      `;
+    }
+
+    // Render changelog entries
+    function renderChangelog() {
+      const container = document.getElementById('changelogList');
+      if (!container) return;
+
+      if (CHANGELOG_ENTRIES.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <p class="empty-state-text">No changelog entries yet. Click "Add Change" to create one.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = CHANGELOG_ENTRIES.map((entry, index) => {
+        const isLatest = index === 0;
+        const changesHTML = entry.changes.map(change => `
+          <li>
+            <span class="change-type ${change.type}">${change.type}</span>
+            ${change.text}
+          </li>
+        `).join('');
+
+        return `
+          <article class="changelog-entry ${isLatest ? 'latest' : ''}">
+            <div class="changelog-header">
+              <div class="changelog-meta">
+                <span class="version-badge">v${entry.version}</span>
+                <span class="changelog-date">${formatDate(entry.date)}</span>
+              </div>
+              ${isLatest ? '<span class="latest-tag">Latest</span>' : ''}
+            </div>
+            <div class="changelog-body">
+              <h2 class="changelog-title">${entry.title}</h2>
+              <ul class="changelog-changes">
+                ${changesHTML}
+              </ul>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    // Load changelog from JSON and initialize
+    async function init() {
+      try {
+        const response = await fetch('changelog.json');
+        if (!response.ok) {
+          throw new Error('Failed to load changelog');
+        }
+        const data = await response.json();
+        CHANGELOG_ENTRIES = data.entries || [];
+      } catch (error) {
+        console.error('Error loading changelog:', error);
+        CHANGELOG_ENTRIES = [];
+      }
+      
+      renderCurrentVersion();
+      renderChangelog();
+    }
+
+    init();
+  </script>
+  <script src="sidebar-nav.js"></script>
+</body>
+</html>

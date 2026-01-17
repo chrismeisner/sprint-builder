@@ -1,0 +1,46 @@
+{
+  "entries": [
+    {
+      "version": "1.0.1",
+      "date": "2026-01-17",
+      "title": "Change Log",
+      "changes": [
+        {
+          "type": "added",
+          "text": "Change Log"
+        }
+      ]
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-01-17",
+      "title": "Initial Release",
+      "changes": [
+        {
+          "type": "added",
+          "text": "Brand color palette with primary, secondary, and neutral colors"
+        },
+        {
+          "type": "added",
+          "text": "Typography scale with Inter and Acme Gothic fonts"
+        },
+        {
+          "type": "added",
+          "text": "Logo variants (badge, wordmark, icon) in multiple colors"
+        },
+        {
+          "type": "added",
+          "text": "Image style guidelines with scene examples"
+        },
+        {
+          "type": "added",
+          "text": "Style tiles showing brand elements in context"
+        },
+        {
+          "type": "added",
+          "text": "Changelog page for tracking styleguide updates"
+        }
+      ]
+    }
+  ]
+}

@@ -383,6 +383,28 @@ export async function ensureSchema(): Promise<void> {
     ALTER TABLE accounts
     ADD COLUMN IF NOT EXISTS workshop_completed_at timestamptz;
   `);
+  
+  // Add email verification tracking to accounts table
+  await pool.query(`
+    ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS email_verified_at timestamptz;
+  `);
+  
+  // Email verification codes for new account signup
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_verification_codes (
+      id text PRIMARY KEY,
+      email text NOT NULL,
+      code text NOT NULL,
+      expires_at timestamptz NOT NULL,
+      verified_at timestamptz,
+      attempts integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_email_verification_codes_email ON email_verification_codes(email);
+    CREATE INDEX IF NOT EXISTS idx_email_verification_codes_expires ON email_verification_codes(expires_at);
+  `);
+  
   await pool.query(`
     CREATE TABLE IF NOT EXISTS onboarding_tasks (
       account_id text NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
@@ -732,12 +754,19 @@ export async function ensureSchema(): Promise<void> {
       name text NOT NULL,
       folder_name text NOT NULL UNIQUE,
       description text,
+      is_public boolean NOT NULL DEFAULT true,
       created_by text REFERENCES accounts(id) ON DELETE SET NULL,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS idx_sandboxes_project ON sandboxes(project_id);
     CREATE INDEX IF NOT EXISTS idx_sandboxes_folder ON sandboxes(folder_name);
+  `);
+  
+  // Add is_public column if it doesn't exist (for existing databases)
+  // Defaults to true so existing sandboxes become public
+  await pool.query(`
+    ALTER TABLE sandboxes ADD COLUMN IF NOT EXISTS is_public boolean NOT NULL DEFAULT true
   `);
   
   global._schemaInitialized = true;
