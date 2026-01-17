@@ -13,10 +13,9 @@ interface Sandbox {
 
 interface EditSandboxButtonProps {
   sandbox: Sandbox;
-  projectId: string;
 }
 
-export default function EditSandboxButton({ sandbox, projectId }: EditSandboxButtonProps) {
+export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState(sandbox.name);
   const [description, setDescription] = useState(sandbox.description || "");
