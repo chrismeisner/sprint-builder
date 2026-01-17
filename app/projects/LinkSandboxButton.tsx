@@ -263,7 +263,7 @@ export default function LinkSandboxButton({ projectId }: LinkSandboxButtonProps)
                   <div className="space-y-2">
                     {sandboxes.map((sandbox) => {
                       const isLinkedToThisProject = sandbox.project_id === projectId;
-                      const isLinkedToOtherProject = sandbox.project_id && sandbox.project_id !== projectId;
+                      const isLinkedToOtherProject = !!(sandbox.project_id && sandbox.project_id !== projectId);
 
                       return (
                         <div
