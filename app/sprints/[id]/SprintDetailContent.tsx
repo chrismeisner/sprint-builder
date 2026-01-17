@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { typography } from "@/app/components/typography";
+import { hoursFromPoints } from "@/lib/pricing";
 import AdminStatusChanger from "./AdminStatusChanger";
 import DeleteSprintButton from "./DeleteSprintButton";
 import SprintTotals from "./SprintTotals";
@@ -21,7 +22,7 @@ type SprintDeliverable = {
   customPoints: number | null;
   customScope: string | null;
   note: string | null;
-  currentVersion: string;
+  deliveryUrl: string | null;
   baseHours: number | null;
   basePrice: number | null;
   basePoints: number | null;
@@ -86,23 +87,66 @@ type Props = {
   isOwner: boolean;
   isAdmin: boolean;
   isProjectMember: boolean;
-  hoursFromPoints: (points: number) => number;
 };
 
 export default function SprintDetailContent(props: Props) {
   const {
     row,
     plan,
-    sprintDeliverables,
+    sprintDeliverables: initialDeliverables,
     budgetPlan,
     isOwner,
     isAdmin,
-    hoursFromPoints,
   } = props;
   const [viewAsAdmin, setViewAsAdmin] = useState(true);
+  const [deliverables, setDeliverables] = useState(initialDeliverables);
+  const [editingUrlId, setEditingUrlId] = useState<string | null>(null);
+  const [editingUrlValue, setEditingUrlValue] = useState("");
+  const [savingUrl, setSavingUrl] = useState(false);
   
   // Effective admin view: only true if user is actually admin AND viewing as admin
   const showAdminContent = isAdmin && viewAsAdmin;
+
+  const handleEditUrl = (deliverable: SprintDeliverable) => {
+    setEditingUrlId(deliverable.sprintDeliverableId);
+    setEditingUrlValue(deliverable.deliveryUrl || "");
+  };
+
+  const handleCancelEditUrl = () => {
+    setEditingUrlId(null);
+    setEditingUrlValue("");
+  };
+
+  const handleSaveUrl = async (sprintDeliverableId: string) => {
+    try {
+      setSavingUrl(true);
+      const res = await fetch(`/api/sprint-drafts/${row.id}/deliverables/${sprintDeliverableId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deliveryUrl: editingUrlValue.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to save URL");
+      }
+      // Update local state
+      setDeliverables((prev) =>
+        prev.map((d) =>
+          d.sprintDeliverableId === sprintDeliverableId
+            ? { ...d, deliveryUrl: editingUrlValue.trim() || null }
+            : d
+        )
+      );
+      setEditingUrlId(null);
+      setEditingUrlValue("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save delivery URL");
+    } finally {
+      setSavingUrl(false);
+    }
+  };
 
   const t = {
     pageTitle: `${typography.headingSection}`,
@@ -117,17 +161,12 @@ export default function SprintDetailContent(props: Props) {
 
   return (
     <main className="min-h-screen max-w-6xl mx-auto p-6 space-y-6">
-      {/* Admin Mode Banner */}
+      {/* Admin Controls Section */}
       {isAdmin && (
-        <div className="sticky top-0 z-50 -mx-6 -mt-6 mb-6 px-6 py-2.5 bg-black/90 dark:bg-white/10 border-b border-black/10 dark:border-white/10 backdrop-blur-sm">
+        <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-black/5 dark:bg-white/5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-white/80 dark:text-white/70">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
-                </svg>
-                <span className={`${getTypographyClassName("mono-sm")} uppercase tracking-wide`}>Admin</span>
-              </div>
+              <span className={`${getTypographyClassName("mono-sm")} uppercase tracking-wide text-black dark:text-white`}>Admin Controls</span>
               <ViewModeToggle 
                 isAdminView={viewAsAdmin} 
                 onToggle={() => setViewAsAdmin(!viewAsAdmin)} 
@@ -137,7 +176,7 @@ export default function SprintDetailContent(props: Props) {
               <AdminStatusChanger sprintId={row.id} currentStatus={row.status || "draft"} />
             )}
           </div>
-        </div>
+        </section>
       )}
 
       <div className="flex items-center justify-between">
@@ -188,8 +227,8 @@ export default function SprintDetailContent(props: Props) {
           )}
         </div>
 
-        {/* Everyone sees total price (if available) */}
-        {row.total_fixed_price != null && row.total_fixed_price > 0 && (
+        {/* Total price (admin only) */}
+        {showAdminContent && row.total_fixed_price != null && row.total_fixed_price > 0 && (
           <SprintTotals
             initialPoints={Number(row.total_estimate_points ?? 0)}
             initialHours={
@@ -321,11 +360,11 @@ export default function SprintDetailContent(props: Props) {
       {/* EVERYONE SEES: Deliverables Table */}
       {/* ============================================ */}
       <section className={`space-y-6 ${t.bodySm}`}>
-        {sprintDeliverables.length > 0 && (
+        {deliverables.length > 0 && (
           <div className="rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className={t.cardHeading}>Deliverables</h2>
-              <span className={t.subhead}>{sprintDeliverables.length} items</span>
+              <span className={t.subhead}>{deliverables.length} items</span>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full border border-black/10 dark:border-white/15 rounded-lg overflow-hidden">
@@ -336,23 +375,20 @@ export default function SprintDetailContent(props: Props) {
                     {showAdminContent && (
                       <th className="text-left px-3 py-2 text-text-muted">Adjusted Points</th>
                     )}
-                    <th className="text-center px-3 py-2 text-text-muted">Version</th>
-                    <th className="text-center px-3 py-2 text-text-muted">Actions</th>
+                    <th className="text-left px-3 py-2 text-text-muted">Delivery</th>
+                    <th className="text-center px-3 py-2 text-text-muted">Template</th>
                   </tr>
                 </thead>
                 <tbody className={getTypographyClassName("body-sm")}>
-                  {sprintDeliverables.map((d, i) => (
+                  {deliverables.map((d, i) => (
                     <tr
                       key={d.sprintDeliverableId || `${d.name}-${i}`}
                       className="border-t border-black/10 dark:border-white/10 bg-white dark:bg-gray-950/40 hover:bg-black/5 dark:hover:bg-white/5 transition"
                     >
                       <td className="px-3 py-3 align-top">
-                        <Link
-                          href={`/sprints/${row.id}/deliverables/${d.sprintDeliverableId}`}
-                          className={`${getTypographyClassName("body-sm")} font-medium hover:underline text-text-primary`}
-                        >
+                        <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>
                           {d.name || "Untitled"}
-                        </Link>
+                        </span>
                       </td>
                       <td className="px-3 py-3 align-top">{d.category ?? "—"}</td>
                       {showAdminContent && (
@@ -360,22 +396,74 @@ export default function SprintDetailContent(props: Props) {
                           {d.customPoints != null ? `${d.customPoints} pts` : "—"}
                         </td>
                       )}
-                      <td className="px-3 py-3 align-top text-center">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-mono ${
-                          d.currentVersion === "0.0"
-                            ? "bg-black/5 dark:bg-white/5 text-text-muted"
-                            : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                        }`}>
-                          v{d.currentVersion}
-                        </span>
+                      <td className="px-3 py-3 align-top">
+                        {editingUrlId === d.sprintDeliverableId ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="url"
+                              value={editingUrlValue}
+                              onChange={(e) => setEditingUrlValue(e.target.value)}
+                              placeholder="https://..."
+                              className="flex-1 min-w-[200px] rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                              disabled={savingUrl}
+                            />
+                            <button
+                              onClick={() => handleSaveUrl(d.sprintDeliverableId)}
+                              disabled={savingUrl}
+                              className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
+                            >
+                              {savingUrl ? "..." : "Save"}
+                            </button>
+                            <button
+                              onClick={handleCancelEditUrl}
+                              disabled={savingUrl}
+                              className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : d.deliveryUrl ? (
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={d.deliveryUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+                            >
+                              View delivery <span className="opacity-50">↗</span>
+                            </a>
+                            {showAdminContent && (
+                              <button
+                                onClick={() => handleEditUrl(d)}
+                                className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="text-text-muted">—</span>
+                            {showAdminContent && (
+                              <button
+                                onClick={() => handleEditUrl(d)}
+                                className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                              >
+                                Add URL
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-3 align-top text-center">
-                        <Link
-                          href={`/sprints/${row.id}/deliverables/${d.sprintDeliverableId}`}
-                          className={`${getTypographyClassName("button-sm")} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition`}
-                        >
-                          View
-                        </Link>
+                        {d.deliverableId && (
+                          <Link
+                            href={`/deliverables/${d.deliverableId}`}
+                            className={`${getTypographyClassName("button-sm")} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                          >
+                            Template
+                          </Link>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -519,10 +607,10 @@ export default function SprintDetailContent(props: Props) {
       </section>
 
       {/* ============================================ */}
-      {/* ADMIN/OWNER ONLY: Danger zone */}
+      {/* ADMIN ONLY: Danger zone */}
       {/* ============================================ */}
-      {(isOwner || showAdminContent) && (
-        <AdminOnlySection label={isOwner ? "Owner Only" : "Admin Only"}>
+      {showAdminContent && (
+        <AdminOnlySection label="Admin Only">
           <div className="p-4">
             <DeleteSprintButton sprintId={row.id} visible={true} />
           </div>

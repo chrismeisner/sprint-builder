@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { typography } from "@/app/components/typography";
 import { getCurrentUser } from "@/lib/auth";
-import DeliverableTemplateSection from "./DeliverableTemplateSection";
 
 export const dynamic = "force-dynamic";
 
@@ -81,34 +80,6 @@ export default async function DeliverableDetailPage({ params }: PageProps) {
     created_at: string | Date;
     updated_at: string | Date;
   };
-
-  // Get recent sprints that include this deliverable
-  const recentSprintsResult = await pool.query(
-    `SELECT 
-      sd.id as sprint_id,
-      sd.title as sprint_title,
-      sd.status,
-      sd.created_at,
-      spd.id as sprint_deliverable_id,
-      spd.custom_scope,
-      spd.notes
-     FROM sprint_deliverables spd
-     JOIN sprint_drafts sd ON spd.sprint_draft_id = sd.id
-     WHERE spd.deliverable_id = $1
-     ORDER BY sd.created_at DESC
-     LIMIT 5`,
-    [deliverable.id]
-  );
-
-  const recentSprints = recentSprintsResult.rows as Array<{
-    sprint_id: string;
-    sprint_title: string | null;
-    status: string | null;
-    created_at: string | Date;
-    sprint_deliverable_id: string;
-    custom_scope: string | null;
-    notes: string | null;
-  }>;
 
   const complexity = getComplexityMeta(deliverable.points);
   const scopeLines = deliverable.scope
@@ -209,42 +180,6 @@ export default async function DeliverableDetailPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* How We Present This */}
-      <section className="rounded-xl border border-black/10 dark:border-white/15 p-6 space-y-4 bg-white/40 dark:bg-black/40">
-        <h2 className={t.sectionHeading}>How We Present This</h2>
-        
-        {deliverable.presentation_content ? (
-          <div className={`prose prose-sm dark:prose-invert max-w-none ${t.bodySm}`}>
-            {deliverable.presentation_content.split("\n\n").map((para, i) => (
-              <p key={i}>{para}</p>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-lg bg-black/5 dark:bg-white/5 p-6 text-center space-y-2">
-            <p className={t.bodySm}>
-              Presentation guidelines for this deliverable haven&apos;t been documented yet.
-            </p>
-            {isAdmin && (
-              <Link
-                href={`/dashboard/deliverables?edit=${deliverable.id}`}
-                className={`inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-2 hover:opacity-90 transition ${getTypographyClassName("button-sm")}`}
-              >
-                Add presentation content
-              </Link>
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* Deliverable Type-Specific Template Section */}
-      <DeliverableTemplateSection
-        deliverableId={deliverable.id}
-        deliverableName={deliverable.name}
-        deliverableSlug={deliverable.slug}
-        initialTemplateData={deliverable.template_data}
-        canEdit={isAdmin}
-      />
-
       {/* Example Images */}
       {deliverable.example_images && deliverable.example_images.length > 0 && (
         <section className="rounded-xl border border-black/10 dark:border-white/15 p-6 space-y-4 bg-white/40 dark:bg-black/40">
@@ -255,43 +190,6 @@ export default async function DeliverableDetailPage({ params }: PageProps) {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={url} alt={`${deliverable.name} example ${i + 1}`} className="w-full h-auto" />
               </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Recent Sprints Using This Deliverable */}
-      {recentSprints.length > 0 && (
-        <section className="rounded-xl border border-black/10 dark:border-white/15 p-6 space-y-4 bg-white/40 dark:bg-black/40">
-          <h2 className={t.sectionHeading}>Recent Sprints</h2>
-          <p className={t.bodySm}>
-            This deliverable has been included in {recentSprints.length} recent sprint{recentSprints.length !== 1 ? "s" : ""}.
-          </p>
-          <div className="space-y-3">
-            {recentSprints.map((sprint) => (
-              <Link
-                key={sprint.sprint_deliverable_id}
-                href={`/sprints/${sprint.sprint_id}/deliverables/${sprint.sprint_deliverable_id}`}
-                className="block rounded-lg border border-black/10 dark:border-white/10 p-4 hover:bg-black/5 dark:hover:bg-white/5 transition"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`${getTypographyClassName("subtitle-sm")} text-text-primary`}>
-                      {sprint.sprint_title || `Sprint ${sprint.sprint_id.slice(0, 8)}`}
-                    </p>
-                    <p className={t.bodySm}>
-                      {new Date(sprint.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
-                    sprint.status === "complete" 
-                      ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200"
-                      : "bg-black/10 dark:bg-white/10"
-                  }`}>
-                    {sprint.status || "draft"}
-                  </span>
-                </div>
-              </Link>
             ))}
           </div>
         </section>

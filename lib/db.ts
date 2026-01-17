@@ -7,6 +7,8 @@ declare global {
   var _schemaInitialized: boolean | undefined;
   // eslint-disable-next-line no-var
   var _basePointsPatched: boolean | undefined;
+  // eslint-disable-next-line no-var
+  var _deliveryUrlPatched: boolean | undefined;
 }
 
 function createPool(): Pool {
@@ -48,6 +50,21 @@ export async function ensureSchema(): Promise<void> {
     } catch {
       // Ignore if table/column doesn't exist yet; later schema creation will set type
       global._basePointsPatched = true;
+    }
+  }
+
+  // Hotfix: add delivery_url column to sprint_deliverables
+  if (!global._deliveryUrlPatched) {
+    try {
+      const pool = getPool();
+      await pool.query(`
+        ALTER TABLE sprint_deliverables
+        ADD COLUMN IF NOT EXISTS delivery_url text
+      `);
+      global._deliveryUrlPatched = true;
+    } catch {
+      // Ignore if table doesn't exist yet; later schema creation will add column
+      global._deliveryUrlPatched = true;
     }
   }
 
@@ -191,7 +208,8 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS content text,
     ADD COLUMN IF NOT EXISTS attachments jsonb,
     ADD COLUMN IF NOT EXISTS type_data jsonb,
-    ADD COLUMN IF NOT EXISTS current_version text DEFAULT '0.0'
+    ADD COLUMN IF NOT EXISTS current_version text DEFAULT '0.0',
+    ADD COLUMN IF NOT EXISTS delivery_url text
   `);
 
   // Create sprint_deliverable_versions table for version history

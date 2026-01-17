@@ -89,7 +89,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
       spd.deliverable_category,
       spd.deliverable_scope,
       spd.base_points,
-      spd.current_version,
+      spd.delivery_url,
       d.name AS base_name,
       d.category AS base_category,
       d.scope AS base_scope,
@@ -114,7 +114,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
     customPoints: row.custom_estimate_points != null ? Number(row.custom_estimate_points) : null,
     customScope: (row.custom_scope as string | null) ?? (row.deliverable_scope as string | null) ?? (row.base_scope as string | null),
     note: (row.notes as string | null) ?? null,
-    currentVersion: (row.current_version as string | null) ?? "0.0",
+    deliveryUrl: (row.delivery_url as string | null) ?? null,
     baseHours:
       row.base_points != null
         ? hoursFromPoints(Number(row.base_points))
@@ -296,7 +296,6 @@ export default async function SprintDetailPage({ params }: PageProps) {
       isOwner={isOwner}
       isAdmin={isAdmin}
       isProjectMember={isProjectMember}
-      hoursFromPoints={hoursFromPoints}
     />
   );
 }

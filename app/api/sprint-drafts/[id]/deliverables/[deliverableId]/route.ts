@@ -65,7 +65,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
     // Parse request body
     const body = await request.json();
-    const { content, notes, customScope, attachments } = body;
+    const { content, notes, customScope, attachments, deliveryUrl } = body;
 
     // Build update query
     const updates: string[] = [];
@@ -92,6 +92,11 @@ export async function PATCH(request: Request, { params }: Params) {
       values.push(JSON.stringify(attachments));
     }
 
+    if (deliveryUrl !== undefined) {
+      updates.push(`delivery_url = $${paramIndex++}`);
+      values.push(typeof deliveryUrl === "string" ? (deliveryUrl.trim() || null) : null);
+    }
+
     if (updates.length === 0) {
       return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
@@ -102,7 +107,7 @@ export async function PATCH(request: Request, { params }: Params) {
       `UPDATE sprint_deliverables 
        SET ${updates.join(", ")}
        WHERE id = $${paramIndex}
-       RETURNING id, content, notes, custom_scope, attachments`,
+       RETURNING id, content, notes, custom_scope, attachments, delivery_url`,
       values
     );
 
@@ -120,6 +125,7 @@ export async function PATCH(request: Request, { params }: Params) {
         notes: updateResult.rows[0].notes,
         customScope: updateResult.rows[0].custom_scope,
         attachments: updateResult.rows[0].attachments,
+        deliveryUrl: updateResult.rows[0].delivery_url,
       },
     });
   } catch (error: unknown) {
