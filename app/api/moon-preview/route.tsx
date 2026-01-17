@@ -1,5 +1,4 @@
 import { ImageResponse } from "next/og";
-import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
@@ -30,7 +29,7 @@ function getMoonEmoji(phase: number): string {
   return "🌑";
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const now = Date.now();
     const { phase, percent, waxing } = getMoonData(now);
