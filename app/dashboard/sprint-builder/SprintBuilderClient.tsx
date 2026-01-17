@@ -461,6 +461,103 @@ export default function SprintBuilderClient({
     URL.revokeObjectURL(url);
   }
 
+  function parseCsvLine(line: string): string[] {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      
+      if (char === '"' && inQuotes && nextChar === '"') {
+        current += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    result.push(current);
+    return result;
+  }
+
+  async function handleImportCsv(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const lines = text.split("\n").filter(line => line.trim());
+      
+      // Parse metadata section
+      const metadata: Record<string, string> = {};
+      let deliverableStartIndex = 0;
+      
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line === "" || line.startsWith("Type,Name,Category")) {
+          deliverableStartIndex = i + 1;
+          break;
+        }
+        const [key, ...valueParts] = parseCsvLine(line);
+        metadata[key] = valueParts.join(",");
+      }
+      
+      // Set metadata fields
+      if (metadata.Title) setTitle(metadata.Title);
+      if (metadata.Weeks) setWeeks(Number(metadata.Weeks) || 2);
+      if (metadata["Start Date"]) setStartDate(metadata["Start Date"]);
+      if (metadata.Approach) setApproach(metadata.Approach);
+      if (metadata["Week 1 Overview"]) setWeek1Overview(metadata["Week 1 Overview"]);
+      if (metadata["Week 2 Overview"]) setWeek2Overview(metadata["Week 2 Overview"]);
+      
+      // Parse deliverables section
+      const importedDeliverables: { deliverableId: string; multiplier: number; note: string }[] = [];
+      
+      for (let i = deliverableStartIndex; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        const parts = parseCsvLine(line);
+        if (parts[0] !== "Deliverable") continue;
+        
+        const name = parts[1];
+        const multiplier = parseFloat(parts[4]) || 1;
+        const note = parts[7] || "";
+        
+        // Find matching deliverable by name
+        const matchingDeliverable = deliverables.find(d => d.name === name);
+        if (matchingDeliverable) {
+          importedDeliverables.push({
+            deliverableId: matchingDeliverable.id,
+            multiplier,
+            note,
+          });
+        }
+      }
+      
+      setSelectedDeliverables(importedDeliverables);
+      setError(null);
+      
+      // Show success message
+      const matchedCount = importedDeliverables.length;
+      const totalCount = lines.length - deliverableStartIndex;
+      if (matchedCount < totalCount) {
+        setError(`Imported ${matchedCount} of ${totalCount} deliverables. Some deliverables could not be matched.`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to import CSV");
+    }
+    
+    // Reset file input
+    e.target.value = "";
+  }
+
   // Group deliverables by category
   const deliverablesByCategory = deliverables.reduce((acc, d) => {
     const cat = d.category || "Uncategorized";
@@ -497,7 +594,7 @@ export default function SprintBuilderClient({
                   type="submit"
                   form="sprint-form"
                   disabled={submitting || loadingExisting}
-                  className={`${bodySmClass} inline-flex items-center rounded-md bg-black text-white px-3 py-1.5 hover:bg-black/80 disabled:opacity-60 transition`}
+                  className={`${bodySmClass} inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 hover:bg-black/80 dark:hover:bg-white/80 disabled:opacity-60 transition`}
                 >
                   {submitting ? primaryCtaBusy : primaryCtaLabel}
                 </button>
@@ -514,7 +611,7 @@ export default function SprintBuilderClient({
       </div>
 
       {error && (
-        <div className={`${sectionHelperClass} rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700 mb-6`}>
+        <div className={`${sectionHelperClass} rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 px-3 py-2 text-red-700 dark:text-red-300 mb-6`}>
           {error}
         </div>
       )}
@@ -540,7 +637,7 @@ export default function SprintBuilderClient({
                       setProjectId(e.target.value);
                       setError(null);
                     }}
-                    className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+                    className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-[#111] text-black dark:text-white`}
                   >
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -561,7 +658,7 @@ export default function SprintBuilderClient({
                     type="text"
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
-                    className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+                    className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-[#111] text-black dark:text-white`}
                     placeholder="e.g. Apollo launch"
                     disabled={creatingProject || submitting}
                   />
@@ -576,7 +673,7 @@ export default function SprintBuilderClient({
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-[#111] text-black dark:text-white`}
                   placeholder="e.g. Q1 2024 MVP Development"
                 />
               </div>
@@ -591,7 +688,7 @@ export default function SprintBuilderClient({
                   id="start-date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-[#111] text-black dark:text-white`}
                 >
                   {upcomingMondays.map((d) => (
                     <option key={d} value={d}>
@@ -612,7 +709,7 @@ export default function SprintBuilderClient({
                   max={52}
                   value={weeks}
                   onChange={(e) => setWeeks(Number(e.target.value) || 2)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-[#111] text-black dark:text-white`}
                 />
               </div>
 
@@ -624,7 +721,7 @@ export default function SprintBuilderClient({
                   id="end-date"
                   readOnly
                   value={endFriendly || ""}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-gray-100 text-black`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-gray-100 dark:bg-gray-900 text-black dark:text-white`}
                 />
               </div>
             </div>
@@ -703,7 +800,7 @@ export default function SprintBuilderClient({
                               }}
                               className={
                                 isSelected
-                                  ? `${bodySmClass} group rounded border border-green-200 bg-green-50 dark:bg-green-950 p-2 text-left cursor-pointer`
+                                  ? `${bodySmClass} group rounded border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 p-2 text-left cursor-pointer`
                                   : `${bodySmClass} group rounded border border-black/10 dark:border-white/15 p-2 text-left hover:border-black/20 dark:hover:border-white/25 hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer`
                               }
                               aria-pressed={isSelected}
@@ -809,7 +906,7 @@ export default function SprintBuilderClient({
                             <button
                               type="button"
                               onClick={() => removeDeliverable(item.deliverableId)}
-                              className={`${bodySmClass} text-red-600 hover:text-red-800`}
+                              className={`${bodySmClass} text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300`}
                             >
                               Remove
                             </button>
@@ -875,7 +972,7 @@ export default function SprintBuilderClient({
                     <button
                       type="submit"
                       disabled={submitting || selectedDeliverables.length === 0 || loadingExisting}
-                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md bg-black text-white px-4 py-3 disabled:opacity-60 hover:bg-black/80 transition`}
+                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-3 disabled:opacity-60 hover:bg-black/80 dark:hover:bg-white/80 transition`}
                     >
                       {submitting ? primaryCtaBusy : primaryCtaLabel}
                     </button>
@@ -947,7 +1044,7 @@ export default function SprintBuilderClient({
                   id="approach"
                   value={approach}
                   onChange={(e) => setApproach(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 min-h-[80px] bg-white text-black`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 min-h-[80px] bg-white dark:bg-[#111] text-black dark:text-white`}
                   placeholder="Explain the overall approach and methodology for this sprint..."
                 />
               </div>
@@ -960,7 +1057,7 @@ export default function SprintBuilderClient({
                   id="week1"
                   value={week1Overview}
                   onChange={(e) => setWeek1Overview(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 min-h-[80px] bg-white text-black`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 min-h-[80px] bg-white dark:bg-[#111] text-black dark:text-white`}
                   placeholder="Describe Week 1's focus, activities, and expected outcomes..."
                 />
               </div>
@@ -973,7 +1070,7 @@ export default function SprintBuilderClient({
                   id="week2"
                   value={week2Overview}
                   onChange={(e) => setWeek2Overview(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-1.5 min-h-[80px] bg-white text-black`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 min-h-[80px] bg-white dark:bg-[#111] text-black dark:text-white`}
                   placeholder="Describe Week 2's focus, completion activities, and final deliverables..."
                 />
               </div>
@@ -981,8 +1078,8 @@ export default function SprintBuilderClient({
           )}
         </form>
 
-      {/* Export */}
-      <div className="mt-8">
+      {/* Import/Export */}
+      <div className="mt-8 flex items-center gap-3">
         <button
           type="button"
           onClick={exportCsv}
@@ -990,6 +1087,17 @@ export default function SprintBuilderClient({
         >
           Export CSV
         </button>
+        <label
+          className={`${bodySmClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer`}
+        >
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleImportCsv}
+            className="hidden"
+          />
+          Load CSV
+        </label>
       </div>
 
       {editingDeliverableId && (
@@ -1015,7 +1123,7 @@ export default function SprintBuilderClient({
                 id="complexity-multiplier"
                 value={editingMultiplier}
                 onChange={(e) => setEditingMultiplier(Number(e.target.value))}
-                className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-2 bg-white text-black`}
+                className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 bg-white dark:bg-[#111] text-black dark:text-white`}
               >
                 {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 2].map((val) => (
                   <option key={val} value={val}>
@@ -1042,7 +1150,7 @@ export default function SprintBuilderClient({
                 id="complexity-note"
                 value={editingNote}
                 onChange={(e) => setEditingNote(e.target.value)}
-                className={`${bodySmClass} w-full rounded-md border border-black/15 px-2 py-2 min-h-[80px] bg-white text-black`}
+                className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 min-h-[80px] bg-white dark:bg-[#111] text-black dark:text-white`}
                 placeholder="Why adjust this complexity?"
               />
             </div>
@@ -1072,7 +1180,7 @@ export default function SprintBuilderClient({
                   setEditingMultiplier(1);
                   setEditingNote("");
                 }}
-                className={`${bodySmClass} inline-flex items-center rounded-md bg-black text-white px-4 py-2`}
+                className={`${bodySmClass} inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-2`}
               >
                 Apply
               </button>

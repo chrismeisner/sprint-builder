@@ -28,7 +28,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
             sd.project_id, sd.contract_url, sd.contract_status,
             d.email, d.account_id, d.project_id AS document_project_id
      FROM sprint_drafts sd
-     JOIN documents d ON sd.document_id = d.id
+     LEFT JOIN documents d ON sd.document_id = d.id
      WHERE sd.id = $1`,
     [params.id]
   );
@@ -60,8 +60,24 @@ export default async function SprintDetailPage({ params }: PageProps) {
   };
   
   // Check if current user owns this sprint or is a member of the linked project
+  // For sprints without a document (from sprint builder), check project ownership/membership
   const isOwner = row.account_id === currentUser.accountId;
   const projectId = row.project_id || row.document_project_id;
+  
+  // Check project ownership
+  let isProjectOwner = false;
+  if (projectId) {
+    const projectRes = await pool.query(
+      `SELECT account_id FROM projects WHERE id = $1`,
+      [projectId]
+    );
+    if (projectRes.rowCount && projectRes.rowCount > 0) {
+      const projectRow = projectRes.rows[0] as { account_id: string | null };
+      isProjectOwner = projectRow.account_id === currentUser.accountId;
+    }
+  }
+  
+  // Check project membership
   const memberRes =
     projectId
       ? await pool.query(
@@ -72,7 +88,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
   const isProjectMember = Boolean(memberRes?.rowCount && memberRes.rowCount > 0);
   const isAdmin = currentUser?.isAdmin === true;
 
-  if (!isOwner && !isAdmin && !isProjectMember) {
+  if (!isOwner && !isProjectOwner && !isAdmin && !isProjectMember) {
     redirect(`/login?redirect=${encodeURIComponent(`/sprints/${params.id}`)}`);
   }
 

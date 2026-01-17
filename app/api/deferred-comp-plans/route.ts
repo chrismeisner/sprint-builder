@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const sprintRes = await pool.query(
       `SELECT sd.id, d.account_id
        FROM sprint_drafts sd
-       JOIN documents d ON sd.document_id = d.id
+       LEFT JOIN documents d ON sd.document_id = d.id
        WHERE sd.id = $1`,
       [sprintId]
     );
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
     const sprintRes = await pool.query(
       `SELECT sd.id, d.account_id
        FROM sprint_drafts sd
-       JOIN documents d ON sd.document_id = d.id
+       LEFT JOIN documents d ON sd.document_id = d.id
        WHERE sd.id = $1`,
       [sprintId]
     );

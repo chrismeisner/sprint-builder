@@ -110,11 +110,9 @@ export async function GET() {
         sd.document_id,
         d.filename as document_filename
       FROM sprint_drafts sd
-      JOIN documents d ON sd.document_id = d.id
-      WHERE d.email = $1 
-         OR d.account_id = $2
+      LEFT JOIN documents d ON sd.document_id = d.id
+      WHERE (d.email = $1 OR d.account_id = $2 OR d.project_id = ANY($3::text[]))
          OR (sd.project_id IS NOT NULL AND sd.project_id = ANY($3::text[]))
-         OR (d.project_id IS NOT NULL AND d.project_id = ANY($3::text[]))
       ORDER BY sd.created_at DESC`,
       [user.email, user.accountId, projectArrayParam]
     );

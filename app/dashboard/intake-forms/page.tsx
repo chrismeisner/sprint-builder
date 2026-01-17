@@ -49,11 +49,6 @@ function extractPreview(content: unknown): string | null {
   if (!content || typeof content !== "object") return null;
   const root = content as Record<string, unknown>;
 
-  // Check for manual sprint source
-  if (root.source === "manual") {
-    return root.title ? `Manual: ${root.title}` : "Manual sprint placeholder";
-  }
-
   // Typeform: try to extract project name or first text answer
   const formResponse = root.form_response as unknown;
   if (formResponse && typeof formResponse === "object") {

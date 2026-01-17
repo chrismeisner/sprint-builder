@@ -30,11 +30,6 @@ export default function IntakeFormsClient({ intakeForms }: Props) {
     );
   });
 
-  // Separate manual sprint placeholders from real intake forms
-  const realIntakeForms = filteredForms.filter(
-    (f) => !f.preview?.startsWith("Manual")
-  );
-
   return (
     <main className="min-h-screen max-w-6xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -55,12 +50,12 @@ export default function IntakeFormsClient({ intakeForms }: Props) {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-          <div className="text-2xl font-bold">{realIntakeForms.length}</div>
+          <div className="text-2xl font-bold">{filteredForms.length}</div>
           <div className="text-xs opacity-70">Intake Forms</div>
         </div>
         <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
           <div className="text-2xl font-bold">
-            {realIntakeForms.filter((f) => f.email).length}
+            {filteredForms.filter((f) => f.email).length}
           </div>
           <div className="text-xs opacity-70">With Email</div>
         </div>
@@ -83,7 +78,7 @@ export default function IntakeFormsClient({ intakeForms }: Props) {
 
       {/* Results count */}
       <div className="text-sm opacity-70">
-        Showing {realIntakeForms.length} intake forms
+        Showing {filteredForms.length} intake forms
         {searchTerm && ` matching "${searchTerm}"`}
       </div>
 
@@ -101,14 +96,14 @@ export default function IntakeFormsClient({ intakeForms }: Props) {
               </tr>
             </thead>
             <tbody>
-              {realIntakeForms.length === 0 ? (
+              {filteredForms.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center opacity-70">
                     No intake forms found.
                   </td>
                 </tr>
               ) : (
-                realIntakeForms.map((form) => (
+                filteredForms.map((form) => (
                   <tr
                     key={form.id}
                     className="border-t border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition"

@@ -46,7 +46,7 @@ export async function PATCH(request: Request, { params }: Params) {
     const sprintCheck = await pool.query(
       `SELECT sd.id, sd.status, d.account_id 
        FROM sprint_drafts sd
-       JOIN documents d ON sd.document_id = d.id
+       LEFT JOIN documents d ON sd.document_id = d.id
        WHERE sd.id = $1`,
       [params.id]
     );

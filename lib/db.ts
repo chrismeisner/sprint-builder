@@ -98,13 +98,34 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sprint_drafts (
       id text PRIMARY KEY,
-      document_id text NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+      document_id text REFERENCES documents(id) ON DELETE CASCADE,
       ai_response_id text REFERENCES ai_responses(id) ON DELETE SET NULL,
       draft jsonb NOT NULL,
       created_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS idx_sprint_drafts_document_id ON sprint_drafts(document_id);
   `);
+  
+  // Make document_id nullable for existing installations
+  await pool.query(`
+    ALTER TABLE sprint_drafts
+    ALTER COLUMN document_id DROP NOT NULL
+  `).catch(() => {
+    // Ignore error if already nullable
+  });
+
+  // Optional cleanup: Delete old "manual-sprint" placeholder documents
+  // These were created by the old sprint creation logic before we made document_id nullable
+  await pool.query(`
+    DELETE FROM documents
+    WHERE filename = 'manual-sprint'
+      AND content->>'source' = 'manual'
+      AND id NOT IN (
+        SELECT document_id FROM sprint_drafts WHERE document_id IS NOT NULL
+      )
+  `).catch((err) => {
+    console.log('[DB] Optional cleanup of old manual-sprint documents skipped:', err.message);
+  });
   
   // Add summary fields to sprint_drafts for easy querying
   await pool.query(`

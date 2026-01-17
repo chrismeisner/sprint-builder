@@ -569,7 +569,7 @@ export default function SprintDetailContent(props: Props) {
                             </span>
                           )}
                           {d.note && (
-                            <p className={`${getTypographyClassName("body-sm")} text-text-muted italic`}>
+                            <p className={`${getTypographyClassName("body-sm")} text-text-muted italic whitespace-pre-wrap`}>
                               {d.note}
                             </p>
                           )}

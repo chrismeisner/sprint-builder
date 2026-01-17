@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { SHOW_FIRST_PROJECT_MODAL } from "@/lib/feature-flags";
+import { useToast } from "@/lib/toast-context";
 
 type Profile = {
   id: string;
@@ -60,7 +61,6 @@ export default function ProfileClient() {
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showWelcome, setShowWelcome] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -81,6 +81,7 @@ export default function ProfileClient() {
   const [memberRemovingEmail, setMemberRemovingEmail] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { showToast } = useToast();
   const pageTitleClass = getTypographyClassName("h2");
   const pageSubtitleClass = getTypographyClassName("subtitle-sm");
   const sectionTitleClass = getTypographyClassName("h3");
@@ -140,19 +141,15 @@ export default function ProfileClient() {
   }, [data]);
 
   useEffect(() => {
-    // Show welcome modal when arriving from the magic link email
+    // Show toast when arriving from the magic link email
     if (searchParams.get("from") === "magic-email") {
-      setShowWelcome(true);
+      showToast("Logged in via magic link", "success");
+      // Clean up URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete("from");
+      router.replace(url.pathname + (url.search ? url.search : ""), { scroll: false });
     }
-  }, [searchParams]);
-
-  const dismissWelcome = () => {
-    setShowWelcome(false);
-    // Drop the query param so refresh doesn't re-open the modal
-    const url = new URL(window.location.href);
-    url.searchParams.delete("from");
-    router.replace(url.pathname + (url.search ? url.search : ""), { scroll: false });
-  };
+  }, [searchParams, router, showToast]);
 
   const handleSaveName = async () => {
     if (!data) return;
@@ -372,48 +369,6 @@ export default function ProfileClient() {
 
   return (
     <div className="container min-h-screen max-w-6xl space-y-8 py-6">
-      {showWelcome && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="w-full max-w-lg rounded-lg bg-white dark:bg-black border border-black/10 dark:border-white/15 shadow-xl">
-            <div className="flex items-start justify-between p-5 border-b border-black/10 dark:border-white/15">
-              <div>
-                <p className={`${getTypographyClassName("mono-sm")} uppercase tracking-wide opacity-70`}>Welcome</p>
-                <h2 className={`${getTypographyClassName("h3")} mt-1`}>Login successful</h2>
-              </div>
-              <button
-                onClick={dismissWelcome}
-                className={`rounded-md p-1 ${bodySmClass} opacity-70 hover:opacity-100 transition`}
-                aria-label="Close welcome message"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-5 space-y-3">
-              <p className={getTypographyClassName("body-md")}>
-                You’re logged in via your magic link. Here’s your dashboard to manage sprints, projects, and uploads.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href="/profile"
-                  className={`${getTypographyClassName("button-sm")} inline-flex items-center justify-center rounded-md bg-black text-white dark:bg-white dark:text-black px-4 py-2 hover:opacity-90 transition`}
-                  onClick={dismissWelcome}
-                >
-                  Go to profile
-                </Link>
-              </div>
-            </div>
-            <div className="px-5 pb-5">
-              <button
-                onClick={dismissWelcome}
-                className={`${getTypographyClassName("body-sm")} text-left w-full opacity-70 hover:opacity-100 underline`}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showProjectModal && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="w-full max-w-md rounded-lg bg-white dark:bg-black border border-black/10 dark:border-white/15 shadow-xl">

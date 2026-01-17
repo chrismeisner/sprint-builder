@@ -32,7 +32,7 @@ export async function PATCH(request: Request, { params }: Params) {
         sd.project_id
        FROM sprint_deliverables spd
        JOIN sprint_drafts sd ON spd.sprint_draft_id = sd.id
-       JOIN documents d ON sd.document_id = d.id
+       LEFT JOIN documents d ON sd.document_id = d.id
        WHERE spd.id = $1 AND sd.id = $2`,
       [params.deliverableId, params.id]
     );
@@ -204,7 +204,7 @@ export async function GET(request: Request, { params }: Params) {
        FROM sprint_deliverables spd
        LEFT JOIN deliverables d ON spd.deliverable_id = d.id
        JOIN sprint_drafts sd ON spd.sprint_draft_id = sd.id
-       JOIN documents doc ON sd.document_id = doc.id
+       LEFT JOIN documents doc ON sd.document_id = doc.id
        WHERE spd.id = $1 AND sd.id = $2`,
       [params.deliverableId, params.id]
     );

@@ -154,22 +154,7 @@ export async function POST(request: Request) {
 
     const projectIdValue = await ensureProjectForAccount();
 
-    // Create a "manual" document to maintain referential integrity
-    const documentId = randomUUID();
-    await pool.query(
-      `INSERT INTO documents (id, content, filename, email, account_id, project_id)
-       VALUES ($1, $2::jsonb, $3, $4, $5, $6)`,
-      [
-        documentId,
-        JSON.stringify({ source: "manual", title, created_at: new Date().toISOString() }),
-        "manual-sprint",
-        user.email,
-        user.accountId,
-        projectIdValue,
-      ]
-    );
-
-    // Create sprint draft
+    // Create sprint draft (no document needed for manual sprints)
     const sprintDraftId = randomUUID();
     const packageId = typeof sprintPackageId === "string" && sprintPackageId.trim()
       ? sprintPackageId.trim()
@@ -199,15 +184,14 @@ export async function POST(request: Request) {
 
     await pool.query(
       `INSERT INTO sprint_drafts (
-         id, document_id, draft, status, title, sprint_package_id,
+         id, draft, status, title, sprint_package_id,
          project_id, start_date, due_date, weeks,
          package_name_snapshot, package_description_snapshot,
          updated_at
        )
-       VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())`,
+       VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())`,
       [
         sprintDraftId,
-        documentId,
         JSON.stringify(draftContent),
         sprintStatus,
         title,
@@ -363,8 +347,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { 
-        sprintDraftId, 
-        documentId,
+        sprintDraftId,
         totalComplexity,
         totalPrice,
       },
@@ -422,6 +405,7 @@ export async function DELETE(request: Request) {
 
     await pool.query(`DELETE FROM sprint_deliverables WHERE sprint_draft_id = $1`, [id]);
     await pool.query(`DELETE FROM sprint_drafts WHERE id = $1`, [id]);
+    // Delete associated document if one exists (e.g., from intake form submissions)
     if (sprint.document_id) {
       await pool.query(`DELETE FROM documents WHERE id = $1`, [sprint.document_id]);
     }

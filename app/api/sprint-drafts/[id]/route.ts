@@ -56,7 +56,7 @@ export async function GET(request: Request, { params }: Params) {
       `SELECT sd.id, sd.title, sd.project_id, sd.start_date, sd.weeks, sd.due_date, sd.draft,
               d.account_id
        FROM sprint_drafts sd
-       JOIN documents d ON sd.document_id = d.id
+       LEFT JOIN documents d ON sd.document_id = d.id
        WHERE sd.id = $1`,
       [params.id]
     );
@@ -164,7 +164,7 @@ export async function PATCH(request: Request, { params }: Params) {
     const sprintRes = await pool.query(
       `SELECT sd.id, sd.project_id, d.account_id
        FROM sprint_drafts sd
-       JOIN documents d ON sd.document_id = d.id
+       LEFT JOIN documents d ON sd.document_id = d.id
        WHERE sd.id = $1`,
       [params.id]
     );

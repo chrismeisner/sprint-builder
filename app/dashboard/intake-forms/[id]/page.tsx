@@ -166,21 +166,6 @@ function extractTypeformData(content: unknown): {
 
   const root = content as Record<string, unknown>;
 
-  // Check if it's a manual sprint placeholder
-  if (root.source === "manual") {
-    answers.push({
-      question: "Type",
-      value: "Manual sprint placeholder",
-    });
-    if (root.title) {
-      answers.push({
-        question: "Title",
-        value: String(root.title),
-      });
-    }
-    return { answers };
-  }
-
   // Typeform format
   const formResponse = root.form_response as unknown;
   if (formResponse && typeof formResponse === "object") {

@@ -8,6 +8,8 @@ import NavShell from "./NavShell";
 import Header from "./Header";
 import GoogleAnalytics from "./GoogleAnalytics";
 import WireframeModeHydrator from "./WireframeModeHydrator";
+import { ToastProvider } from "@/lib/toast-context";
+import ToastContainer from "@/components/ui/ToastContainer";
 import {
   DEFAULT_THEME_MODE,
   normalizeThemeCookie,
@@ -332,11 +334,14 @@ export default async function RootLayout({
       className={htmlClassName}
     >
       <body className="antialiased">
-        <WireframeModeHydrator />
-        <GoogleAnalytics />
-        <Header />
-        <NavShell>{children}</NavShell>
-        <Footer />
+        <ToastProvider>
+          <WireframeModeHydrator />
+          <GoogleAnalytics />
+          <Header />
+          <NavShell>{children}</NavShell>
+          <Footer />
+          <ToastContainer />
+        </ToastProvider>
       </body>
     </html>
   );
