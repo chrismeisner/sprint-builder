@@ -1,8 +1,7 @@
 import { ImageResponse } from "next/og";
 import { NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
-import path from "path";
 import { getCurrentUser } from "@/lib/auth";
+import { uploadFile } from "@/lib/storage";
 
 // Moon phase calculation (same as in HTML)
 const SYNODIC_MONTH = 29.530588;
@@ -96,20 +95,21 @@ export async function POST() {
     // Get the image as array buffer
     const imageBuffer = await imageResponse.arrayBuffer();
 
-    // Save to sandboxes-data/moon-countdown/moon-preview.png
-    const outputPath = path.join(
-      process.cwd(),
-      "sandboxes-data",
-      "moon-countdown",
-      "moon-preview.png"
+    // Upload to Google Cloud Storage
+    const publicUrl = await uploadFile(
+      Buffer.from(imageBuffer),
+      "moon-preview.png",
+      "image/png",
+      {
+        prefix: "sandboxes/moon-countdown",
+        makePublic: true,
+      }
     );
-
-    await writeFile(outputPath, Buffer.from(imageBuffer));
 
     return NextResponse.json({
       success: true,
-      message: "Cover image generated successfully!",
-      path: "/api/sandbox-files/moon-countdown/moon-preview.png",
+      message: "Cover image generated and uploaded successfully!",
+      url: publicUrl,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

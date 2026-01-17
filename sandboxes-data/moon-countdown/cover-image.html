@@ -75,6 +75,41 @@
 	  color: #f87171;
 	}
 
+	.url-container {
+	  margin-top: 1rem;
+	  display: none;
+	  background: rgba(255, 255, 255, 0.05);
+	  padding: 1rem;
+	  border-radius: 0.5rem;
+	  word-break: break-all;
+	}
+
+	.url-container.show {
+	  display: block;
+	}
+
+	.url-text {
+	  font-size: 0.9rem;
+	  font-family: monospace;
+	  margin-bottom: 0.5rem;
+	  opacity: 0.9;
+	}
+
+	.copy-button {
+	  background: rgba(255, 255, 255, 0.1);
+	  color: #ffffff;
+	  border: 1px solid rgba(255, 255, 255, 0.2);
+	  padding: 0.5rem 1rem;
+	  font-size: 0.9rem;
+	  border-radius: 0.25rem;
+	  cursor: pointer;
+	  transition: all 0.2s ease;
+	}
+
+	.copy-button:hover {
+	  background: rgba(255, 255, 255, 0.2);
+	}
+
 	.preview {
 	  margin-top: 2rem;
 	  border: 2px solid rgba(255, 255, 255, 0.2);
@@ -105,17 +140,25 @@
 	  Create Cover Image
 	</button>
 	<div id="status" class="status"></div>
+	<div id="urlContainer" class="url-container">
+	  <div class="url-text" id="imageUrl"></div>
+	  <button class="copy-button" onclick="copyUrl()">Copy URL</button>
+	</div>
 	<div id="preview" class="preview">
 	  <img id="previewImg" alt="Generated cover image" />
 	</div>
   </div>
 
   <script>
+	let currentImageUrl = '';
+
 	async function generateCoverImage() {
 	  const button = document.getElementById('generateBtn');
 	  const status = document.getElementById('status');
 	  const preview = document.getElementById('preview');
 	  const previewImg = document.getElementById('previewImg');
+	  const urlContainer = document.getElementById('urlContainer');
+	  const imageUrl = document.getElementById('imageUrl');
 
 	  // Disable button and show loading
 	  button.disabled = true;
@@ -123,6 +166,7 @@
 	  status.textContent = '';
 	  status.className = 'status';
 	  preview.classList.remove('show');
+	  urlContainer.classList.remove('show');
 
 	  try {
 		const response = await fetch('/api/moon-cover-image', {
@@ -135,8 +179,13 @@
 		  status.textContent = `✓ ${result.message}`;
 		  status.className = 'status success';
 		  
-		  // Show preview with cache buster
-		  previewImg.src = `moon-preview.png?t=${Date.now()}`;
+		  // Store and display the URL
+		  currentImageUrl = result.url;
+		  imageUrl.textContent = currentImageUrl;
+		  urlContainer.classList.add('show');
+		  
+		  // Show preview
+		  previewImg.src = currentImageUrl;
 		  preview.classList.add('show');
 		} else {
 		  status.textContent = `✗ Error: ${result.error}`;
@@ -149,6 +198,20 @@
 		// Re-enable button
 		button.disabled = false;
 		button.textContent = 'Create Cover Image';
+	  }
+	}
+
+	async function copyUrl() {
+	  try {
+		await navigator.clipboard.writeText(currentImageUrl);
+		const button = event.target;
+		const originalText = button.textContent;
+		button.textContent = 'Copied!';
+		setTimeout(() => {
+		  button.textContent = originalText;
+		}, 2000);
+	  } catch (error) {
+		alert('Failed to copy URL');
 	  }
 	}
   </script>
