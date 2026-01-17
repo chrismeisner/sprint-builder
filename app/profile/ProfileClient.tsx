@@ -100,14 +100,6 @@ export default function ProfileClient() {
     });
     return map;
   }, [data?.projects]);
-  const projectSprintCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    data?.sprints.forEach((sprint) => {
-      if (!sprint.project_id) return;
-      counts[sprint.project_id] = (counts[sprint.project_id] || 0) + 1;
-    });
-    return counts;
-  }, [data?.sprints]);
   const projectById = useMemo(() => {
     const map: Record<string, Project> = {};
     data?.projects.forEach((p) => {
