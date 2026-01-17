@@ -7,23 +7,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inter+Tight:wght@100..900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="sidebar-nav.css" />
   <style>
     :root {
-      --brand-primary-500: #3B82F6;
-      --brand-primary-100: #EBF2FE;
-      --neutral-0:   #FFFFFF;
-      --neutral-50:  #F9FAFB;
-      --neutral-100: #F3F4F6;
-      --neutral-200: #E5E7EB;
-      --neutral-300: #D1D5DB;
-      --neutral-500: #6B7280;
-      --neutral-700: #374151;
-      --neutral-900: #111827;
-
-      --font-family-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-      --font-family-tight: "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-      --font-family-acme: "Acme Gothic Condensed", "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-      --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      /* Page-specific font size tokens */
       --font-size-h1: 36px;
       --font-size-h2: 30px;
       --font-size-h3: 24px;
@@ -41,16 +30,6 @@
       --font-size-mono-lg: 15px;
       --font-size-mono-md: 14px;
       --font-size-mono-sm: 13px;
-      --radius: 14px;
-      --shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
-    }
-
-    @font-face {
-      font-family: "Acme Gothic Condensed";
-      src: url("fonts/Acme-Gothic-Condensed-Semi-Bold.otf") format("opentype");
-      font-weight: 600;
-      font-style: normal;
-      font-display: swap;
     }
 
     * { box-sizing: border-box; }
@@ -1629,6 +1608,6 @@
     renderFontFamilies();
     renderTypeTable();
   </script>
+  <script src="sidebar-nav.js"></script>
 </body>
 </html>
-

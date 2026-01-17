@@ -7,6 +7,7 @@ import Typography from "@/components/ui/Typography";
 
 const DeleteSprintButton = dynamicImport(() => import("../DeleteSprintButton"), { ssr: false });
 const ProjectDocuments = dynamicImport(() => import("../ProjectDocuments"), { ssr: false });
+const LinkSandboxButton = dynamicImport(() => import("../LinkSandboxButton"), { ssr: false });
 
 type PageProps = { params: { id: string } };
 
@@ -121,17 +122,26 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       </div>
 
       {/* Sandboxes in this project */}
-      {sandboxes.length > 0 && (
-        <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
+      <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <Typography as="h2" scale="h3">
-              Sandboxes in this project
+              Sandboxes
             </Typography>
             <Typography as="span" scale="body-sm" className="opacity-60">
               {sandboxes.length} total
             </Typography>
           </div>
+          {isAdmin && (
+            <LinkSandboxButton projectId={project.id} />
+          )}
+        </div>
 
+        {sandboxes.length === 0 ? (
+          <Typography as="div" scale="body-sm" className="opacity-70">
+            None
+          </Typography>
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
@@ -169,8 +179,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               </tbody>
             </table>
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* Sprints in this project */}
       <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">

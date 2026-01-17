@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Moon Illumination</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+	body {
+	  margin: 0;
+	  height: 100vh;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  background: #0b0f1a;
+	  color: #ffffff;
+	  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+	}
+
+	.container {
+	  text-align: center;
+	}
+
+	.percent {
+	  font-size: 4rem;
+	  font-weight: 600;
+	  letter-spacing: 0.05em;
+	}
+
+	.emoji {
+	  font-size: 3rem;
+	  margin-left: 0.5rem;
+	  vertical-align: middle;
+	}
+
+	.label {
+	  margin-top: 0.5rem;
+	  font-size: 1.1rem;
+	  opacity: 0.8;
+	}
+
+	.sub {
+	  margin-top: 0.25rem;
+	  font-size: 0.9rem;
+	  opacity: 0.6;
+	}
+  </style>
+</head>
+<body>
+  <div class="container">
+	<div class="percent">
+	  <span id="moonPercent">---.---</span>
+	  <span class="emoji" id="moonEmoji">🌑</span>
+	</div>
+	<div class="label" id="moonDirection">Waxing</div>
+	<div class="sub">Moon illumination</div>
+  </div>
+
+  <script>
+	const SYNODIC_MONTH = 29.530588;
+	const REFERENCE_NEW_MOON = Date.UTC(2024, 0, 11, 11, 57, 0);
+
+	function getMoonData(now) {
+	  const msPerDay = 1000 * 60 * 60 * 24;
+	  const daysSinceNew =
+		(now - REFERENCE_NEW_MOON) / msPerDay;
+
+	  const phase =
+		((daysSinceNew % SYNODIC_MONTH) + SYNODIC_MONTH) % SYNODIC_MONTH;
+
+	  // Illumination fraction (0 = new, 1 = full)
+	  const illumination =
+		0.5 * (1 - Math.cos((2 * Math.PI * phase) / SYNODIC_MONTH));
+
+	  const percent = illumination * 100;
+
+	  // Waxing if before full moon, waning if after
+	  const waxing = phase < SYNODIC_MONTH / 2;
+
+	  return { phase, percent, waxing };
+	}
+
+	function getMoonEmoji(phase) {
+	  const f = phase / SYNODIC_MONTH;
+
+	  if (f < 0.0625) return "🌑";
+	  if (f < 0.1875) return "🌒";
+	  if (f < 0.3125) return "🌓";
+	  if (f < 0.4375) return "🌔";
+	  if (f < 0.5625) return "🌕";
+	  if (f < 0.6875) return "🌖";
+	  if (f < 0.8125) return "🌗";
+	  if (f < 0.9375) return "🌘";
+	  return "🌑";
+	}
+
+	function update() {
+	  const now = Date.now();
+	  const { phase, percent, waxing } = getMoonData(now);
+
+	  document.getElementById("moonPercent").textContent =
+		percent.toFixed(4) + "%";
+
+	  document.getElementById("moonEmoji").textContent =
+		getMoonEmoji(phase);
+
+	  document.getElementById("moonDirection").textContent =
+		waxing ? "Waxing" : "Waning";
+	}
+
+	update();
+	setInterval(update, 1000);
+  </script>
+</body>
+</html>
