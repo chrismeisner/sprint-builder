@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { writeFile } from "fs/promises";
 import path from "path";
 import { getCurrentUser } from "@/lib/auth";
@@ -31,7 +31,7 @@ function getMoonEmoji(phase: number): string {
   return "🌑";
 }
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Check authentication
     const user = await getCurrentUser();
