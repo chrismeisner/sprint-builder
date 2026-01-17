@@ -148,6 +148,7 @@ export async function PATCH(request: Request, { params }: Params) {
       deliverables,
       customContent,
       contract_url,
+      contract_status,
     } = body as {
       title?: string;
       projectId?: string;
