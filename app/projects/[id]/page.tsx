@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -20,7 +20,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
   const user = await getCurrentUser();
   if (!user) {
-    notFound();
+    redirect(`/login?redirect=${encodeURIComponent(`/projects/${params.id}`)}`);
   }
 
   const projectResult = await pool.query(
