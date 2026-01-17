@@ -30,7 +30,7 @@ function getMoonEmoji(phase: number): string {
   return "🌑";
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const now = Date.now();
     const { phase, percent, waxing } = getMoonData(now);
