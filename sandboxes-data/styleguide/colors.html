@@ -125,11 +125,12 @@
 
     .card h2 {
       margin: 0;
-      padding: 12px 16px;
+      padding: 16px 16px 12px;
       font-size: 13px;
+      font-weight: 600;
       color: var(--neutral-700);
-      background: var(--neutral-100);
-      border-bottom: 1px solid var(--neutral-300);
+      background: transparent;
+      border-bottom: none;
     }
 
     .section {
@@ -542,6 +543,196 @@
         font-size: 18px;
       }
     }
+
+    /* =====================================================
+       MODAL STYLES
+    ===================================================== */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+      position: relative;
+      background: var(--neutral-0);
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(17, 24, 39, 0.3);
+      max-width: 600px;
+      width: 90%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: modalSlideIn 200ms ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--neutral-300);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--neutral-900);
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 28px;
+      line-height: 1;
+      color: var(--neutral-500);
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 120ms ease, color 120ms ease;
+    }
+
+    .modal-close:hover {
+      background: var(--neutral-100);
+      color: var(--neutral-900);
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .color-name-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .field-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+      padding: 16px;
+      background: var(--neutral-50);
+      border-radius: 8px;
+      border: 1px solid var(--neutral-200);
+    }
+
+    .field-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--neutral-700);
+      margin-bottom: 4px;
+      grid-column: span 1;
+    }
+
+    .field-group label:first-child {
+      grid-column: 1 / -1;
+    }
+
+    .field-group label:nth-child(3) {
+      margin-top: 8px;
+    }
+
+    .field-group input[type="text"] {
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 1px solid var(--neutral-300);
+      border-radius: 6px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .field-group input[type="text"]:focus {
+      outline: none;
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    .field-group input[type="text"]:nth-child(2) {
+      grid-column: 1 / -1;
+    }
+
+    .field-group input[type="text"]:nth-child(4) {
+      grid-column: 2 / -1;
+      max-width: 120px;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--neutral-300);
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .button-secondary {
+      background: var(--neutral-100);
+      color: var(--neutral-700);
+      border-color: var(--neutral-300);
+    }
+
+    .button-secondary:hover {
+      background: var(--neutral-200);
+      border-color: var(--neutral-400);
+    }
+
+    @media (max-width: 768px) {
+      .modal-content {
+        width: 95%;
+        max-height: 95vh;
+      }
+      .field-group {
+        grid-template-columns: 1fr;
+      }
+      .field-group label:nth-child(3) {
+        margin-top: 12px;
+      }
+      .field-group input[type="text"]:nth-child(4) {
+        grid-column: 1 / -1;
+        max-width: none;
+      }
+    }
   </style>
 </head>
 
@@ -565,6 +756,7 @@
         <input type="checkbox" id="includeHash" checked />
         <span>Include # when copying</span>
       </label>
+      <button type="button" class="button" id="editColorNames">Edit Color Names</button>
       <button type="button" class="button" id="exportCsv">Export CSV</button>
       <button type="button" class="button" id="uploadCsv">Upload CSV</button>
       <input type="file" id="uploadInput" accept=".csv,text/csv" class="sr-only" />
@@ -572,14 +764,6 @@
 
     <div class="controls section-toggles">
       <span class="control-label">Show sections:</span>
-      <label class="control">
-        <input type="checkbox" class="section-toggle" data-section="buttonSamplesCard" checked />
-        <span>Button Samples</span>
-      </label>
-      <label class="control">
-        <input type="checkbox" class="section-toggle" data-section="colorPairingsCard" />
-        <span>Color Pairings</span>
-      </label>
       <label class="control">
         <input type="checkbox" class="section-toggle" data-section="brandPrimaryCard" checked />
         <span>Primary</span>
@@ -600,9 +784,52 @@
         <input type="checkbox" class="section-toggle" data-section="uiStatesCard" checked />
         <span>UI States</span>
       </label>
+      <label class="control">
+        <input type="checkbox" class="section-toggle" data-section="buttonSamplesCard" checked />
+        <span>Button Samples</span>
+      </label>
+      <label class="control">
+        <input type="checkbox" class="section-toggle" data-section="colorPairingsCard" />
+        <span>Color Pairings</span>
+      </label>
     </div>
 
     <div class="cards">
+      <div class="card" id="brandPrimaryCard">
+        <h2 id="brandPrimaryHeader">Brand · Primary (50 → 950)</h2>
+        <div class="section">
+          <div class="swatches" id="brandPrimary"></div>
+        </div>
+      </div>
+
+      <div class="card" id="brandSecondaryCard">
+        <h2 id="brandSecondaryHeader">Brand · Secondary (50 → 950)</h2>
+        <div class="section">
+          <div class="swatches" id="brandSecondary"></div>
+        </div>
+      </div>
+
+      <div class="card" id="brandTertiaryCard">
+        <h2 id="brandTertiaryHeader">Brand · Tertiary (50 → 950)</h2>
+        <div class="section">
+          <div class="swatches" id="brandTertiary"></div>
+        </div>
+      </div>
+
+      <div class="card" id="neutralsCard">
+        <h2 id="neutralsHeader">Neutrals (Light → Dark)</h2>
+        <div class="section">
+          <div class="swatches" id="neutrals"></div>
+        </div>
+      </div>
+
+      <div class="card" id="uiStatesCard">
+        <h2>UI States</h2>
+        <div class="section">
+          <div class="swatches" id="uiStates"></div>
+        </div>
+      </div>
+
       <div class="card" id="buttonSamplesCard">
         <h2>Button Samples</h2>
         <div class="section">
@@ -617,41 +844,6 @@
         </div>
       </div>
 
-      <div class="card" id="brandPrimaryCard">
-        <h2>Brand · Primary (50 → 950)</h2>
-        <div class="section">
-          <div class="swatches" id="brandPrimary"></div>
-        </div>
-      </div>
-
-      <div class="card" id="brandSecondaryCard">
-        <h2>Brand · Secondary (50 → 950)</h2>
-        <div class="section">
-          <div class="swatches" id="brandSecondary"></div>
-        </div>
-      </div>
-
-      <div class="card" id="brandTertiaryCard">
-        <h2>Brand · Tertiary (50 → 950)</h2>
-        <div class="section">
-          <div class="swatches" id="brandTertiary"></div>
-        </div>
-      </div>
-
-      <div class="card" id="neutralsCard">
-        <h2>Neutrals (Light → Dark)</h2>
-        <div class="section">
-          <div class="swatches" id="neutrals"></div>
-        </div>
-      </div>
-
-      <div class="card" id="uiStatesCard">
-        <h2>UI States</h2>
-        <div class="section">
-          <div class="swatches" id="uiStates"></div>
-        </div>
-      </div>
-
     </div>
 
     <footer>Rule of thumb: use 500 for defaults, lighter shades for surfaces, darker shades for hover, focus, and emphasis.</footer>
@@ -659,12 +851,75 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <!-- Edit Color Names Modal -->
+  <div id="colorNamesModal" class="modal" role="dialog" aria-labelledby="modalTitle" aria-hidden="true">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Edit Color Names & Abbreviations</h2>
+        <button type="button" class="modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="color-name-fields">
+          <div class="field-group">
+            <label for="primaryName">Primary Color Name</label>
+            <input type="text" id="primaryName" placeholder="e.g., Grass Green" />
+            <label for="primaryAbbr">Abbreviation</label>
+            <input type="text" id="primaryAbbr" placeholder="e.g., G" maxlength="3" />
+          </div>
+          <div class="field-group">
+            <label for="secondaryName">Secondary Color Name</label>
+            <input type="text" id="secondaryName" placeholder="e.g., Sand" />
+            <label for="secondaryAbbr">Abbreviation</label>
+            <input type="text" id="secondaryAbbr" placeholder="e.g., S" maxlength="3" />
+          </div>
+          <div class="field-group">
+            <label for="tertiaryName">Tertiary Color Name</label>
+            <input type="text" id="tertiaryName" placeholder="e.g., Sky Blue" />
+            <label for="tertiaryAbbr">Abbreviation</label>
+            <input type="text" id="tertiaryAbbr" placeholder="e.g., B" maxlength="3" />
+          </div>
+          <div class="field-group">
+            <label for="neutralName">Neutral Color Name</label>
+            <input type="text" id="neutralName" placeholder="e.g., Neutral" />
+            <label for="neutralAbbr">Abbreviation</label>
+            <input type="text" id="neutralAbbr" placeholder="e.g., N" maxlength="3" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="button button-secondary" id="cancelColorNames">Cancel</button>
+        <button type="button" class="button" id="saveColorNames">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const ramps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
     const recommendedRamp = [100, 500, 900];
     const neutralStops = ramps;
     const fullNeutrals = neutralStops.map(stop => `--neutral-${stop}`);
     const recommendedNeutrals = recommendedRamp.map(stop => `--neutral-${stop}`);
+
+    // Color ramp configurations with names and abbreviations
+    const colorRamps = {
+      'brand-primary': {
+        name: 'Grass Green',
+        abbr: 'G'
+      },
+      'brand-secondary': {
+        name: 'Sand',
+        abbr: 'S'
+      },
+      'brand-tertiary': {
+        name: 'Sky Blue',
+        abbr: 'B'
+      },
+      'neutral': {
+        name: 'Neutral',
+        abbr: 'N'
+      }
+    };
 
     const includeHashControl = document.getElementById("includeHash");
     const paletteModeSelect = document.getElementById("paletteMode");
@@ -680,14 +935,26 @@
       return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     }
 
-    function swatchHTML(tokenName, value) {
+    function swatchHTML(tokenName, value, abbreviation = null) {
       const safeValue = value || "";
       const label = tokenName.replace(/^--/, "");
+      // Extract just the number from the token name
+      const numberMatch = label.match(/\d+$/);
+      let displayLabel = label;
+      
+      if (numberMatch && abbreviation) {
+        // Use abbreviation + number (e.g., "G-400")
+        displayLabel = `${abbreviation}-${numberMatch[0]}`;
+      } else if (numberMatch) {
+        // Fallback to just the number
+        displayLabel = numberMatch[0];
+      }
+      
       return `
         <div class="swatch" data-hex="${safeValue}" data-token="${label}" data-var="${tokenName}" tabindex="0" aria-label="Copy ${label} (${safeValue})">
           <div class="color" style="background: var(${tokenName});"></div>
           <div class="meta">
-            <span class="token">${label}</span>
+            <span class="token">${displayLabel}</span>
             <span class="hex">${safeValue}</span>
           </div>
         </div>
@@ -696,18 +963,21 @@
 
     function renderRamp(containerId, prefix, stops = ramps) {
       const el = document.getElementById(containerId);
+      const config = colorRamps[prefix];
+      const abbreviation = config ? config.abbr : null;
+      
       el.innerHTML = stops
         .map(s => {
           const token = `--${prefix}-${s}`;
-          return swatchHTML(token, cssVar(token));
+          return swatchHTML(token, cssVar(token), abbreviation);
         })
         .join("");
     }
 
-    function renderList(containerId, tokens) {
+    function renderList(containerId, tokens, abbreviation = null) {
       const el = document.getElementById(containerId);
       el.innerHTML = tokens
-        .map(t => swatchHTML(t, cssVar(t)))
+        .map(t => swatchHTML(t, cssVar(t), abbreviation))
         .join("");
     }
 
@@ -720,7 +990,7 @@
       renderRamp("brandPrimary", "brand-primary", rampStops);
       renderRamp("brandSecondary", "brand-secondary", rampStops);
       renderRamp("brandTertiary", "brand-tertiary", rampStops);
-      renderList("neutrals", neutralTokens);
+      renderList("neutrals", neutralTokens, colorRamps['neutral'].abbr);
       renderList("uiStates", [
         "--success-primary",
         "--success-secondary",
@@ -870,8 +1140,21 @@
     exportButton?.addEventListener("click", () => {
       const rows = collectAllTokens().map(({ token, value }) => [token, value]);
       const title = exportTitleInput?.value?.trim() || "";
+      
+      // Add color names metadata rows at the beginning
+      const colorNamesRows = [
+        ['_color_name_primary', colorRamps['brand-primary'].name],
+        ['_color_abbr_primary', colorRamps['brand-primary'].abbr],
+        ['_color_name_secondary', colorRamps['brand-secondary'].name],
+        ['_color_abbr_secondary', colorRamps['brand-secondary'].abbr],
+        ['_color_name_tertiary', colorRamps['brand-tertiary'].name],
+        ['_color_abbr_tertiary', colorRamps['brand-tertiary'].abbr],
+        ['_color_name_neutral', colorRamps['neutral'].name],
+        ['_color_abbr_neutral', colorRamps['neutral'].abbr],
+      ];
+      
       const header = ["token", "value", "title"];
-      const csvRows = [header, ...rows.map(r => [...r, title])];
+      const csvRows = [header, ...colorNamesRows.map(r => [...r, title]), ...rows.map(r => [...r, title])];
       const csv = csvRows.map(cols => cols.map(csvEscape).join(",")).join("\n");
       downloadCsv(csv, `design-tokens-${numericTimestamp()}.csv`);
       showToast("Exported CSV");
@@ -891,6 +1174,7 @@
           const rows = parseCsv(String(text));
           applyTokensFromCsv(rows);
           renderAll();
+          updateCardHeaders();
           showToast("Imported CSV");
         } catch (err) {
           console.error(err);
@@ -901,6 +1185,26 @@
       };
       reader.readAsText(file);
     });
+
+    function updateCardHeaders() {
+      const primaryHeader = document.getElementById('brandPrimaryHeader');
+      const secondaryHeader = document.getElementById('brandSecondaryHeader');
+      const tertiaryHeader = document.getElementById('brandTertiaryHeader');
+      const neutralsHeader = document.getElementById('neutralsHeader');
+      
+      if (primaryHeader) {
+        primaryHeader.textContent = `${colorRamps['brand-primary'].name} · Primary (50 → 950)`;
+      }
+      if (secondaryHeader) {
+        secondaryHeader.textContent = `${colorRamps['brand-secondary'].name} · Secondary (50 → 950)`;
+      }
+      if (tertiaryHeader) {
+        tertiaryHeader.textContent = `${colorRamps['brand-tertiary'].name} · Tertiary (50 → 950)`;
+      }
+      if (neutralsHeader) {
+        neutralsHeader.textContent = `${colorRamps['neutral'].name} (Light → Dark)`;
+      }
+    }
 
     function collectAllTokens() {
       const tokens = [];
@@ -1000,10 +1304,21 @@
       if (exportTitleInput && titleFromCsv) {
         exportTitleInput.value = titleFromCsv;
       }
+      
+      // Extract color names from CSV if present
       rows.forEach(({ token, value }) => {
-        if (!token.startsWith("--")) return;
-        const normalized = normalizeHexInput(value) || value;
-        document.documentElement.style.setProperty(token, normalized);
+        if (token === '_color_name_primary') colorRamps['brand-primary'].name = value;
+        else if (token === '_color_abbr_primary') colorRamps['brand-primary'].abbr = value;
+        else if (token === '_color_name_secondary') colorRamps['brand-secondary'].name = value;
+        else if (token === '_color_abbr_secondary') colorRamps['brand-secondary'].abbr = value;
+        else if (token === '_color_name_tertiary') colorRamps['brand-tertiary'].name = value;
+        else if (token === '_color_abbr_tertiary') colorRamps['brand-tertiary'].abbr = value;
+        else if (token === '_color_name_neutral') colorRamps['neutral'].name = value;
+        else if (token === '_color_abbr_neutral') colorRamps['neutral'].abbr = value;
+        else if (token.startsWith("--")) {
+          const normalized = normalizeHexInput(value) || value;
+          document.documentElement.style.setProperty(token, normalized);
+        }
       });
     }
 
@@ -1302,6 +1617,7 @@
     renderAll();
     renderPairings();
     renderButtonSamples();
+    updateCardHeaders();
 
     paletteModeSelect?.addEventListener("change", () => {
       renderAll();
@@ -1319,6 +1635,82 @@
           card.classList.toggle("hidden", !toggle.checked);
         }
       });
+    });
+
+    // =====================================================
+    // MODAL FUNCTIONALITY - Edit Color Names
+    // =====================================================
+    const modal = document.getElementById('colorNamesModal');
+    const editColorNamesBtn = document.getElementById('editColorNames');
+    const modalClose = modal?.querySelector('.modal-close');
+    const modalOverlay = modal?.querySelector('.modal-overlay');
+    const cancelBtn = document.getElementById('cancelColorNames');
+    const saveBtn = document.getElementById('saveColorNames');
+    
+    const primaryNameInput = document.getElementById('primaryName');
+    const primaryAbbrInput = document.getElementById('primaryAbbr');
+    const secondaryNameInput = document.getElementById('secondaryName');
+    const secondaryAbbrInput = document.getElementById('secondaryAbbr');
+    const tertiaryNameInput = document.getElementById('tertiaryName');
+    const tertiaryAbbrInput = document.getElementById('tertiaryAbbr');
+    const neutralNameInput = document.getElementById('neutralName');
+    const neutralAbbrInput = document.getElementById('neutralAbbr');
+
+    function openModal() {
+      // Populate form with current values
+      primaryNameInput.value = colorRamps['brand-primary'].name;
+      primaryAbbrInput.value = colorRamps['brand-primary'].abbr;
+      secondaryNameInput.value = colorRamps['brand-secondary'].name;
+      secondaryAbbrInput.value = colorRamps['brand-secondary'].abbr;
+      tertiaryNameInput.value = colorRamps['brand-tertiary'].name;
+      tertiaryAbbrInput.value = colorRamps['brand-tertiary'].abbr;
+      neutralNameInput.value = colorRamps['neutral'].name;
+      neutralAbbrInput.value = colorRamps['neutral'].abbr;
+      
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      primaryNameInput.focus();
+    }
+
+    function closeModal() {
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    function saveColorNames() {
+      // Update color ramp configurations
+      colorRamps['brand-primary'].name = primaryNameInput.value.trim() || 'Primary';
+      colorRamps['brand-primary'].abbr = primaryAbbrInput.value.trim() || 'P';
+      colorRamps['brand-secondary'].name = secondaryNameInput.value.trim() || 'Secondary';
+      colorRamps['brand-secondary'].abbr = secondaryAbbrInput.value.trim() || 'S';
+      colorRamps['brand-tertiary'].name = tertiaryNameInput.value.trim() || 'Tertiary';
+      colorRamps['brand-tertiary'].abbr = tertiaryAbbrInput.value.trim() || 'T';
+      colorRamps['neutral'].name = neutralNameInput.value.trim() || 'Neutral';
+      colorRamps['neutral'].abbr = neutralAbbrInput.value.trim() || 'N';
+      
+      // Re-render all swatches with new abbreviations
+      renderAll();
+      renderPairings();
+      renderButtonSamples();
+      updateCardHeaders();
+      
+      closeModal();
+      showToast('Color names updated');
+    }
+
+    editColorNamesBtn?.addEventListener('click', openModal);
+    modalClose?.addEventListener('click', closeModal);
+    modalOverlay?.addEventListener('click', closeModal);
+    cancelBtn?.addEventListener('click', closeModal);
+    saveBtn?.addEventListener('click', saveColorNames);
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('show')) {
+        closeModal();
+      }
     });
   </script>
   <script src="sidebar-nav.js"></script>

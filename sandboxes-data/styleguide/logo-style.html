@@ -225,6 +225,36 @@
       border-color: var(--brand-primary-500);
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
+
+    .color-note {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--neutral-700);
+      margin: 0 0 16px;
+      padding: 12px 14px;
+      background: var(--neutral-50);
+      border-radius: 8px;
+      border: 1px solid var(--neutral-200);
+    }
+
+    .color-note code {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+      background: var(--neutral-100);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--neutral-900);
+    }
+
+    .color-swatch {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
   </style>
 </head>
 <body>
@@ -235,15 +265,11 @@
     <div class="card">
       <div class="section-header">
         <h2 class="section-title">Logo set</h2>
-        <button class="btn btn-primary" onclick="downloadFile('images/miles-logos.zip')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Download All (.zip)
-        </button>
       </div>
+      <p class="color-note">
+        <span class="color-swatch" style="background: #217535;"></span>
+        Logo green uses <strong>Green 800</strong> from our color palette <code>#217535</code>
+      </p>
       <div id="logoGrid" class="logo-grid" aria-live="polite"></div>
     </div>
   </div>
@@ -256,27 +282,21 @@
         colors: [
           {
             name: "Green",
-            png: "images/miles-badge-green.png",
-            svg: "images/miles-badge-green.svg",
-            preview: "images/miles-badge-green.png"
-          },
-          {
-            name: "Green Dark",
-            png: "images/miles-badge-green-dark.png",
-            svg: "images/miles-badge-green-dark.svg",
-            preview: "images/miles-badge-green-dark.png"
+            png: "images/miles-logos/miles-badge-green.png",
+            svg: "images/miles-logos/miles-badge-green.svg",
+            preview: "images/miles-logos/miles-badge-green.png"
           },
           {
             name: "Black",
-            png: "images/miles-badge-black.png",
-            svg: "images/miles-badge-black.svg",
-            preview: "images/miles-badge-black.png"
+            png: "images/miles-logos/miles-badge-black.png",
+            svg: "images/miles-logos/miles-badge-black.svg",
+            preview: "images/miles-logos/miles-badge-black.png"
           },
           {
             name: "White",
-            png: "images/miles-badge-white.png",
-            svg: "images/miles-badge-white.svg",
-            preview: "images/miles-badge-white.png"
+            png: "images/miles-logos/miles-badge-white.png",
+            svg: "images/miles-logos/miles-badge-white.svg",
+            preview: "images/miles-logos/miles-badge-white.png"
           }
         ]
       },
@@ -286,21 +306,21 @@
         colors: [
           {
             name: "Green",
-            png: "images/miles-wordmark-green.png",
-            svg: "images/miles-wordmark-green.svg",
-            preview: "images/miles-wordmark-green.png"
-          },
-          {
-            name: "Green Dark",
-            png: "images/miles-wordmark-green-dark.png",
-            svg: "images/miles-wordmark-green-dark.svg",
-            preview: "images/miles-wordmark-green-dark.png"
+            png: "images/miles-logos/miles-wordmark-green.png",
+            svg: "images/miles-logos/miles-wordmark-green.svg",
+            preview: "images/miles-logos/miles-wordmark-green.png"
           },
           {
             name: "Black",
-            png: "images/miles-wordmark-black.png",
-            svg: "images/miles-wordmark-black.svg",
-            preview: "images/miles-wordmark-black.png"
+            png: "images/miles-logos/miles-wordmark-black.png",
+            svg: "images/miles-logos/miles-wordmark-black.svg",
+            preview: "images/miles-logos/miles-wordmark-black.png"
+          },
+          {
+            name: "White",
+            png: "images/miles-logos/miles-wordmark-white.png",
+            svg: "images/miles-logos/miles-wordmark-white.svg",
+            preview: "images/miles-logos/miles-wordmark-white.png"
           }
         ]
       },
@@ -310,15 +330,27 @@
         colors: [
           {
             name: "Green",
-            png: "images/miles-icon-green.png",
-            svg: "images/miles-icon-green.svg",
-            preview: "images/miles-icon-green.png"
+            png: "images/miles-logos/miles-icon-arrow-green.png",
+            svg: "images/miles-logos/miles-icon-arrow-green.svg",
+            preview: "images/miles-logos/miles-icon-arrow-green.png"
           },
           {
             name: "Black",
-            png: "images/miles-icon-black.png",
-            svg: "images/miles-icon-black.svg",
-            preview: "images/miles-icon-black.png"
+            png: "images/miles-logos/miles-icon-arrow-black.png",
+            svg: "images/miles-logos/miles-icon-arrow-black.svg",
+            preview: "images/miles-logos/miles-icon-arrow-black.png"
+          },
+          {
+            name: "Green (No Arrow)",
+            png: "images/miles-logos/miles-icon-green.png",
+            svg: "images/miles-logos/miles-icon-green.svg",
+            preview: "images/miles-logos/miles-icon-green.png"
+          },
+          {
+            name: "Black (No Arrow)",
+            png: "images/miles-logos/miles-icon-black.png",
+            svg: "images/miles-logos/miles-icon-black.svg",
+            preview: "images/miles-logos/miles-icon-black.png"
           }
         ]
       }

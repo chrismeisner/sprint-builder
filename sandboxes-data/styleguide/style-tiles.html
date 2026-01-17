@@ -625,6 +625,10 @@
           <span class="toggle-indicator"></span>
           Hover labels
         </button>
+        <button id="toggleColorHoverBtn" class="toggle-switch" title="Show color info on mouse hover">
+          <span class="toggle-indicator"></span>
+          Color rollover
+        </button>
         <button id="toggleWireframeBtn" class="toggle-switch" title="Show wireframe outlines">
           <span class="toggle-indicator"></span>
           Wireframe mode
@@ -661,20 +665,9 @@
 
     <div class="card" id="colorsCard">
       <h2 class="section-title" data-style="H3">Colors used on this page</h2>
-      <p class="meta" data-style="Body / S">Tailwind palette colors used across the tiles.</p>
-      <div class="colors-grid">
-        <div class="color-item"><span class="color-chip" style="background:#FFFFFF"></span><span data-style="Body / S">White #FFFFFF</span></div>
-        <div class="color-item"><span class="color-chip" style="background:#F9FAFB"></span><span data-style="Body / S">Gray 50 #F9FAFB</span></div>
-        <div class="color-item"><span class="color-chip" style="background:#F3F4F6"></span><span data-style="Body / S">Gray 100 #F3F4F6</span></div>
-        <div class="color-item"><span class="color-chip" style="background:#E5E7EB"></span><span data-style="Body / S">Gray 200 #E5E7EB</span></div>
-        <div class="color-item"><span class="color-chip" style="background:#D1D5DB"></span><span data-style="Body / S">Gray 300 #D1D5DB</span></div>
-        <div class="color-item"><span class="color-chip" style="background:#9CA3AF"></span><span data-style="Body / S">Gray 400 #9CA3AF</span></div>
-        <div class="color-item"><span class="color-chip" style="background:#6B7280"></span><span data-style="Body / S">Gray 500 #6B7280</span></div>
-        <div class="color-item"><span class="color-chip" style="background:#4B5563"></span><span data-style="Body / S">Gray 600 #4B5563</span></div>
-        <div class="color-item"><span class="color-chip" style="background:#374151"></span><span data-style="Body / S">Gray 700 #374151</span></div>
-        <div class="color-item"><span class="color-chip" style="background:#1F2937"></span><span data-style="Body / S">Gray 800 #1F2937</span></div>
-        <div class="color-item"><span class="color-chip" style="background:#111827"></span><span data-style="Body / S">Gray 900 #111827</span></div>
-        <div class="color-item"><span class="color-chip" style="background:#4DBF70"></span><span data-style="Body / S">Green 500 #4DBF70</span></div>
+      <p class="meta" data-style="Body / S">Design system colors from tokens.css used across the tiles.</p>
+      <div class="colors-grid" id="colorsGridContainer">
+        <!-- Colors will be dynamically inserted here -->
       </div>
     </div>
     <div id="tilesContainer">
@@ -1249,6 +1242,238 @@
       });
 
       update();
+    })();
+
+    // Populate colors from CSS variables
+    (function initColorsDisplay() {
+      const container = document.getElementById('colorsGridContainer');
+      if (!container) return;
+
+      const rootStyles = getComputedStyle(document.documentElement);
+      
+      // Function to get CSS variable value
+      function getCSSVar(varName) {
+        return rootStyles.getPropertyValue(varName).trim();
+      }
+
+      // Function to format color name
+      function formatColorName(varName) {
+        // Remove -- prefix and split by dashes
+        const parts = varName.replace('--', '').split('-');
+        return parts.map((part, idx) => {
+          // Capitalize first letter of each word except numbers
+          return isNaN(part) ? part.charAt(0).toUpperCase() + part.slice(1) : part;
+        }).join(' ');
+      }
+
+      // Define colors to display (organized by category)
+      const colorGroups = [
+        {
+          title: 'Brand Primary',
+          colors: [
+            '--brand-primary-50',
+            '--brand-primary-100',
+            '--brand-primary-200',
+            '--brand-primary-300',
+            '--brand-primary-400',
+            '--brand-primary-500',
+            '--brand-primary-600',
+            '--brand-primary-700',
+            '--brand-primary-800',
+            '--brand-primary-900',
+            '--brand-primary-950'
+          ]
+        },
+        {
+          title: 'Neutrals',
+          colors: [
+            '--neutral-0',
+            '--neutral-50',
+            '--neutral-100',
+            '--neutral-200',
+            '--neutral-300',
+            '--neutral-400',
+            '--neutral-500',
+            '--neutral-600',
+            '--neutral-700',
+            '--neutral-800',
+            '--neutral-900',
+            '--neutral-950'
+          ]
+        }
+      ];
+
+      let html = '';
+      
+      colorGroups.forEach(group => {
+        group.colors.forEach(varName => {
+          const value = getCSSVar(varName);
+          if (value) {
+            const displayName = formatColorName(varName);
+            html += `
+              <div class="color-item">
+                <span class="color-chip" style="background: var(${varName})"></span>
+                <span data-style="Body / S">${displayName} ${value.toUpperCase()}</span>
+              </div>
+            `;
+          }
+        });
+      });
+
+      container.innerHTML = html;
+    })();
+
+    // Color hover tooltip
+    (function initColorHover() {
+      const labelEl = document.createElement("div");
+      labelEl.id = "colorHoverLabel";
+      labelEl.className = "cursor-label";
+      labelEl.setAttribute("aria-hidden", "true");
+      document.body.appendChild(labelEl);
+
+      let active = false;
+      let colorHoverEnabled = false;
+
+      const toggleBtn = document.getElementById("toggleColorHoverBtn");
+      if (toggleBtn) {
+        toggleBtn.addEventListener("click", () => {
+          colorHoverEnabled = !colorHoverEnabled;
+          toggleBtn.classList.toggle("active", colorHoverEnabled);
+          if (!colorHoverEnabled) {
+            labelEl.classList.remove("show");
+            active = false;
+          }
+        });
+      }
+
+      // Build a map of all CSS color variables and their values
+      const colorMap = {};
+      const rootStyles = getComputedStyle(document.documentElement);
+      
+      function buildColorMap() {
+        // Get all brand and neutral colors
+        const colorVars = [
+          '--brand-primary-50', '--brand-primary-100', '--brand-primary-200', '--brand-primary-300',
+          '--brand-primary-400', '--brand-primary-500', '--brand-primary-600', '--brand-primary-700',
+          '--brand-primary-800', '--brand-primary-900', '--brand-primary-950',
+          '--brand-secondary-50', '--brand-secondary-100', '--brand-secondary-200', '--brand-secondary-300',
+          '--brand-secondary-400', '--brand-secondary-500', '--brand-secondary-600', '--brand-secondary-700',
+          '--brand-secondary-800', '--brand-secondary-900', '--brand-secondary-950',
+          '--brand-tertiary-50', '--brand-tertiary-100', '--brand-tertiary-200', '--brand-tertiary-300',
+          '--brand-tertiary-400', '--brand-tertiary-500', '--brand-tertiary-600', '--brand-tertiary-700',
+          '--brand-tertiary-800', '--brand-tertiary-900', '--brand-tertiary-950',
+          '--neutral-0', '--neutral-50', '--neutral-100', '--neutral-200', '--neutral-300',
+          '--neutral-400', '--neutral-500', '--neutral-600', '--neutral-700',
+          '--neutral-800', '--neutral-900', '--neutral-950',
+          '--success-primary', '--success-secondary', '--fail-primary', '--fail-secondary'
+        ];
+
+        colorVars.forEach(varName => {
+          const value = rootStyles.getPropertyValue(varName).trim();
+          if (value) {
+            // Normalize to uppercase hex
+            const normalized = value.toUpperCase();
+            colorMap[normalized] = varName;
+          }
+        });
+      }
+
+      buildColorMap();
+
+      // Function to convert RGB to hex
+      function rgbToHex(rgb) {
+        const match = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)$/);
+        if (!match) return null;
+        
+        const hex = (r, g, b) => {
+          return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        };
+        
+        return hex(parseInt(match[1]), parseInt(match[2]), parseInt(match[3]));
+      }
+
+      // Function to get short name (e.g., "G-500" for brand-primary-500)
+      function getShortName(varName) {
+        if (varName.includes('brand-primary')) {
+          const num = varName.match(/\d+$/);
+          return num ? `G-${num[0]}` : varName;
+        }
+        if (varName.includes('brand-secondary')) {
+          const num = varName.match(/\d+$/);
+          return num ? `S-${num[0]}` : varName;
+        }
+        if (varName.includes('brand-tertiary')) {
+          const num = varName.match(/\d+$/);
+          return num ? `B-${num[0]}` : varName;
+        }
+        if (varName.includes('neutral')) {
+          const num = varName.match(/\d+$/);
+          return num ? `N-${num[0]}` : varName;
+        }
+        return varName.replace('--', '');
+      }
+
+      function updateColorLabel(event) {
+        if (!colorHoverEnabled) return;
+
+        const x = event.clientX;
+        const y = event.clientY;
+        const elements = document.elementsFromPoint(x, y);
+
+        let foundColor = null;
+        let hexValue = null;
+
+        for (const el of elements) {
+          if (!el || el.nodeType !== 1) continue;
+          if (el === labelEl) continue;
+
+          const computed = getComputedStyle(el);
+          
+          // Check color, background-color, and border-color
+          const props = ['color', 'backgroundColor', 'borderColor'];
+          
+          for (const prop of props) {
+            const colorValue = computed[prop];
+            if (!colorValue || colorValue === 'rgba(0, 0, 0, 0)' || colorValue === 'transparent') continue;
+            
+            const hex = rgbToHex(colorValue);
+            if (hex && colorMap[hex]) {
+              foundColor = colorMap[hex];
+              hexValue = hex;
+              break;
+            }
+          }
+          
+          if (foundColor) break;
+        }
+
+        if (foundColor && hexValue) {
+          const shortName = getShortName(foundColor);
+          const fullName = foundColor.replace('--', '');
+          
+          labelEl.innerHTML = `
+            <div class="cursor-label__style">${shortName}</div>
+            <div class="cursor-label__meta">${fullName}</div>
+            <div class="cursor-label__meta">${hexValue}</div>
+          `;
+          labelEl.style.top = `${y}px`;
+          labelEl.style.left = `${x}px`;
+          
+          if (!active) {
+            labelEl.classList.add("show");
+            active = true;
+          }
+        } else if (active) {
+          labelEl.classList.remove("show");
+          active = false;
+        }
+      }
+
+      document.addEventListener("mousemove", updateColorLabel);
+      document.addEventListener("mouseleave", () => {
+        labelEl.classList.remove("show");
+        active = false;
+      });
     })();
   </script>
   <script src="sidebar-nav.js"></script>

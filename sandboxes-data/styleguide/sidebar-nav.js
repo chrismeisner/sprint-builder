@@ -48,7 +48,7 @@
     const sidebarHTML = `
       <nav class="sidebar-nav ${isOpen ? '' : 'collapsed'}" id="sidebarNav" aria-label="Styleguide navigation">
         <div class="sidebar-header">
-          <img src="images/miles-badge-green.png" alt="Brand logo" class="sidebar-logo" />
+          <img src="images/miles-logos/miles-badge-green.png" alt="Brand logo" class="sidebar-logo" />
           <h2 class="sidebar-title">Styleguide</h2>
           <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

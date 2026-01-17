@@ -167,7 +167,8 @@ export async function GET(
     // Set appropriate headers
     const headers: Record<string, string> = {
       "Content-Type": mimeType,
-      "Cache-Control": "private, max-age=3600", // Cache for 1 hour, but only for authenticated users
+      // Don't cache CSS files to allow live updates during development
+      "Cache-Control": mimeType === "text/css" ? "no-cache, no-store, must-revalidate" : "private, max-age=3600",
     };
 
     // Allow HTML files to be framed (for the viewer)
