@@ -5,6 +5,11 @@
   <title>Moon Illumination</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
+	@font-face {
+	  font-family: 'Noto Color Emoji';
+	  src: url('NotoColorEmoji.ttf') format('truetype');
+	}
+
 	body {
 	  margin: 0;
 	  height: 100vh;
@@ -24,12 +29,12 @@
 	  font-size: 4rem;
 	  font-weight: 600;
 	  letter-spacing: 0.05em;
+	  margin-top: 0.5rem;
 	}
 
 	.emoji {
 	  font-size: 3rem;
-	  margin-left: 0.5rem;
-	  vertical-align: middle;
+	  font-family: 'Noto Color Emoji', sans-serif;
 	}
 
 	.label {
@@ -43,21 +48,78 @@
 	  font-size: 0.9rem;
 	  opacity: 0.6;
 	}
+
+	.zodiac {
+	  margin-top: 1.5rem;
+	  font-size: 1.5rem;
+	  opacity: 0.9;
+	  font-family: 'Noto Color Emoji', sans-serif;
+	  cursor: pointer;
+	  position: relative;
+	}
+
+	.tooltip {
+	  position: absolute;
+	  bottom: 100%;
+	  left: 50%;
+	  transform: translateX(-50%);
+	  background: rgba(255, 255, 255, 0.1);
+	  backdrop-filter: blur(10px);
+	  color: #ffffff;
+	  padding: 0.5rem 1rem;
+	  border-radius: 0.5rem;
+	  font-size: 1rem;
+	  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+	  white-space: nowrap;
+	  opacity: 0;
+	  pointer-events: none;
+	  transition: opacity 0.2s ease;
+	  margin-bottom: 0.5rem;
+	}
+
+	.zodiac:hover .tooltip,
+	.zodiac.active .tooltip {
+	  opacity: 1;
+	}
+
+	.zodiac-label {
+	  margin-top: 0.25rem;
+	  font-size: 0.9rem;
+	  opacity: 0.6;
+	}
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 </head>
 <body>
   <div class="container">
+	<div class="emoji" id="moonEmoji">🌑</div>
 	<div class="percent">
 	  <span id="moonPercent">---.---</span>
-	  <span class="emoji" id="moonEmoji">🌑</span>
 	</div>
-	<div class="label" id="moonDirection">Waxing</div>
-	<div class="sub">Moon illumination</div>
+	<div class="zodiac" id="moonZodiac">
+	  ♈
+	  <div class="tooltip" id="zodiacTooltip">Aries</div>
+	</div>
   </div>
 
   <script>
 	const SYNODIC_MONTH = 29.530588;
 	const REFERENCE_NEW_MOON = Date.UTC(2024, 0, 11, 11, 57, 0);
+
+	const ZODIAC_SIGNS = [
+	  { name: "Aries", symbol: "♈" },
+	  { name: "Taurus", symbol: "♉" },
+	  { name: "Gemini", symbol: "♊" },
+	  { name: "Cancer", symbol: "♋" },
+	  { name: "Leo", symbol: "♌" },
+	  { name: "Virgo", symbol: "♍" },
+	  { name: "Libra", symbol: "♎" },
+	  { name: "Scorpio", symbol: "♏" },
+	  { name: "Sagittarius", symbol: "♐" },
+	  { name: "Capricorn", symbol: "♑" },
+	  { name: "Aquarius", symbol: "♒" },
+	  { name: "Pisces", symbol: "♓" }
+	];
 
 	function getMoonData(now) {
 	  const msPerDay = 1000 * 60 * 60 * 24;
@@ -79,6 +141,25 @@
 	  return { phase, percent, waxing };
 	}
 
+	function getMoonZodiac(now) {
+	  // Use astronomy-engine library for accurate ecliptic longitude
+	  const date = new Date(now);
+	  const moon = Astronomy.EclipticGeoMoon(date);
+	  
+	  // Ecliptic longitude in degrees (0-360)
+	  let longitude = moon.lon;
+	  
+	  // Normalize to 0-360 range
+	  while (longitude < 0) longitude += 360;
+	  while (longitude >= 360) longitude -= 360;
+	  
+	  // Each zodiac sign is 30 degrees
+	  // Aries starts at 0°, Taurus at 30°, etc.
+	  const signIndex = Math.floor(longitude / 30);
+	  
+	  return ZODIAC_SIGNS[signIndex];
+	}
+
 	function getMoonEmoji(phase) {
 	  const f = phase / SYNODIC_MONTH;
 
@@ -96,6 +177,7 @@
 	function update() {
 	  const now = Date.now();
 	  const { phase, percent, waxing } = getMoonData(now);
+	  const zodiac = getMoonZodiac(now);
 
 	  document.getElementById("moonPercent").textContent =
 		percent.toFixed(4) + "%";
@@ -103,9 +185,30 @@
 	  document.getElementById("moonEmoji").textContent =
 		getMoonEmoji(phase);
 
-	  document.getElementById("moonDirection").textContent =
-		waxing ? "Waxing" : "Waning";
+	  document.getElementById("moonZodiac").innerHTML =
+		`${zodiac.symbol}<div class="tooltip" id="zodiacTooltip">${zodiac.name}</div>`;
 	}
+
+	// Add touch support for mobile
+	document.addEventListener('DOMContentLoaded', () => {
+	  const zodiacEl = document.getElementById('moonZodiac');
+	  let touchTimeout;
+
+	  zodiacEl.addEventListener('touchstart', (e) => {
+		e.preventDefault();
+		zodiacEl.classList.add('active');
+		
+		// Auto-hide after 2 seconds on mobile
+		clearTimeout(touchTimeout);
+		touchTimeout = setTimeout(() => {
+		  zodiacEl.classList.remove('active');
+		}, 2000);
+	  });
+
+	  zodiacEl.addEventListener('touchend', () => {
+		// Keep tooltip visible for 2 seconds after tap
+	  });
+	});
 
 	update();
 	setInterval(update, 1000);
