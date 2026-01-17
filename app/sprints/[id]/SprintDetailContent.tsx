@@ -732,7 +732,7 @@ export default function SprintDetailContent(props: Props) {
                     {showAdminContent && (
                       <th className="text-left px-3 py-2 text-text-muted">Points</th>
                     )}
-                    <th className="text-left px-3 py-2 text-text-muted">Delivery</th>
+                    <th className="text-left px-3 py-2 text-text-muted">Link</th>
                     {showAdminContent && (
                       <th className="text-center px-3 py-2 text-text-muted">Edit</th>
                     )}
@@ -749,6 +749,8 @@ export default function SprintDetailContent(props: Props) {
                           {d.deliverableId ? (
                             <Link
                               href={`/deliverables/${d.deliverableId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className={`${getTypographyClassName("body-sm")} font-medium text-text-primary hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition`}
                             >
                               {d.name || "Untitled"}
