@@ -4,6 +4,9 @@ import { getPool } from "./db";
 
 const SESSION_SECRET = process.env.SESSION_SECRET || "dev-secret-change-me";
 
+// Superadmin email that can always log in (safety backdoor)
+export const SUPERADMIN_EMAIL = "chris@chrismeisner.com";
+
 function sign(payload: string): string {
   const h = createHmac("sha256", SESSION_SECRET);
   h.update(payload);

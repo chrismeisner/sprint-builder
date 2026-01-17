@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomInt } from "crypto";
 import { ensureSchema, getPool } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
+import { SUPERADMIN_EMAIL } from "@/lib/auth";
 
 // Generate a 6-digit numeric code
 function generateCode(): string {
@@ -24,6 +25,14 @@ export async function POST(request: Request) {
     }
     
     const normalizedEmail = email.trim().toLowerCase();
+
+    // Superadmin bypass: Always allow magic link for superadmin email
+    if (normalizedEmail === SUPERADMIN_EMAIL) {
+      return NextResponse.json({ 
+        verified: true,
+        message: "Superadmin email - using magic link."
+      });
+    }
 
     // Check if this email is already verified (existing account)
     const existingAccount = await pool.query(

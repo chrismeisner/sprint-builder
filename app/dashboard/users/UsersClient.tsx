@@ -7,7 +7,10 @@ type User = {
   email: string;
   is_admin: boolean;
   created_at: string;
+  email_verified_at: string | null;
   document_count: number;
+  owned_projects_count: number;
+  member_projects_count: number;
 };
 
 type UsersResponse = {
@@ -119,7 +122,13 @@ export default function UsersClient() {
                   Email
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
+                  Verified
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
                   Admin
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
+                  Projects
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
                   Documents
@@ -133,51 +142,85 @@ export default function UsersClient() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-black divide-y divide-black/10 dark:divide-white/15">
-              {data.users.map((user) => (
-                <tr key={user.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="text-sm font-medium">
-                        {user.email}
+              {data.users.map((user) => {
+                const totalProjects = user.owned_projects_count + user.member_projects_count;
+                return (
+                  <tr key={user.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="text-sm font-medium">
+                          {user.email}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {user.is_admin ? (
-                      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-600/10 dark:bg-green-400/10 text-green-700 dark:text-green-300">
-                        Admin
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-black/10 dark:bg-white/10">
-                        User
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm opacity-70">
-                    {user.document_count}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm opacity-70">
-                    {new Date(user.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => toggleAdminStatus(user.id, user.is_admin)}
-                      disabled={updatingUserId === user.id}
-                      className={`${
-                        user.is_admin
-                          ? "text-red-700 dark:text-red-300 hover:underline"
-                          : "hover:underline"
-                      } disabled:opacity-50 disabled:cursor-not-allowed transition`}
-                    >
-                      {updatingUserId === user.id
-                        ? "Updating..."
-                        : user.is_admin
-                        ? "Remove Admin"
-                        : "Make Admin"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {user.email_verified_at ? (
+                        <span 
+                          className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-600/10 dark:bg-green-400/10 text-green-700 dark:text-green-300"
+                          title={`Verified on ${new Date(user.email_verified_at).toLocaleDateString()}`}
+                        >
+                          ✓ Verified
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-600/10 dark:bg-yellow-400/10 text-yellow-700 dark:text-yellow-300">
+                          Unverified
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {user.is_admin ? (
+                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-600/10 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300">
+                          Admin
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-black/10 dark:bg-white/10">
+                          User
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {totalProjects > 0 ? (
+                        <span 
+                          className="opacity-70"
+                          title={`${user.owned_projects_count} owned, ${user.member_projects_count} member`}
+                        >
+                          {totalProjects}
+                          {user.owned_projects_count > 0 && user.member_projects_count > 0 && (
+                            <span className="text-xs opacity-50 ml-1">
+                              ({user.owned_projects_count}/{user.member_projects_count})
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="opacity-50">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm opacity-70">
+                      {user.document_count}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm opacity-70">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => toggleAdminStatus(user.id, user.is_admin)}
+                        disabled={updatingUserId === user.id}
+                        className={`${
+                          user.is_admin
+                            ? "text-red-700 dark:text-red-300 hover:underline"
+                            : "hover:underline"
+                        } disabled:opacity-50 disabled:cursor-not-allowed transition`}
+                      >
+                        {updatingUserId === user.id
+                          ? "Updating..."
+                          : user.is_admin
+                          ? "Remove Admin"
+                          : "Make Admin"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

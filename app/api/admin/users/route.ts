@@ -18,15 +18,18 @@ export async function GET(request: NextRequest) {
     const countResult = await pool.query(`SELECT COUNT(*) FROM accounts`);
     const totalCount = parseInt(countResult.rows[0].count);
 
-    // Get paginated users
+    // Get paginated users with verification and project info
     const result = await pool.query(
       `
       SELECT 
-        id,
-        email,
-        is_admin,
-        created_at,
-        (SELECT COUNT(*) FROM documents WHERE account_id = accounts.id) as document_count
+        accounts.id,
+        accounts.email,
+        accounts.is_admin,
+        accounts.created_at,
+        accounts.email_verified_at,
+        (SELECT COUNT(*) FROM documents WHERE account_id = accounts.id) as document_count,
+        (SELECT COUNT(*) FROM projects WHERE account_id = accounts.id) as owned_projects_count,
+        (SELECT COUNT(*) FROM project_members WHERE lower(email) = lower(accounts.email)) as member_projects_count
       FROM accounts
       ORDER BY created_at DESC
       LIMIT $1 OFFSET $2

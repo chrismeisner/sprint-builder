@@ -9,6 +9,14 @@ type SprintOption = {
   label: string;
 };
 
+type SavedPlanInputs = {
+  totalProjectValue?: number;
+  upfrontPayment?: number;
+  equitySplit?: number;
+  milestones?: Array<{ id: number; summary: string; multiplier: number; date: string }>;
+  milestoneMissOutcome?: string;
+};
+
 async function loadSprintOptions(accountId: string): Promise<SprintOption[]> {
   await ensureSchema();
   const pool = getPool();
@@ -29,6 +37,24 @@ async function loadSprintOptions(accountId: string): Promise<SprintOption[]> {
     id: row.id as string,
     label: row.label as string,
   }));
+}
+
+async function loadSavedPlan(sprintId: string): Promise<SavedPlanInputs | null> {
+  const pool = getPool();
+  const result = await pool.query(
+    `SELECT inputs FROM deferred_comp_plans
+     WHERE sprint_id = $1
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [sprintId]
+  );
+  
+  if (result.rowCount === 0) {
+    return null;
+  }
+  
+  const inputs = result.rows[0].inputs as SavedPlanInputs | null;
+  return inputs;
 }
 
 type DeferredCompSearchParams = {
@@ -66,10 +92,14 @@ function parseAmount(searchParams?: DeferredCompSearchParams): number | null {
 }
 
 export default async function DeferredCompensationPage({ searchParams }: { searchParams?: DeferredCompSearchParams }) {
+  await ensureSchema();
   const user = await getCurrentUser();
   const sprintOptions = user ? await loadSprintOptions(user.accountId) : [];
   const sprintIdFromQuery = searchParams?.sprintId || null;
   const amountFromQuery = parseAmount(searchParams);
+  
+  // Load saved plan if sprintId is provided
+  const savedPlan = sprintIdFromQuery ? await loadSavedPlan(sprintIdFromQuery) : null;
 
   return (
     <DeferredCompensationClient
@@ -77,6 +107,7 @@ export default async function DeferredCompensationPage({ searchParams }: { searc
       isLoggedIn={Boolean(user)}
       defaultSprintId={sprintIdFromQuery || undefined}
       defaultAmount={amountFromQuery ?? undefined}
+      savedPlan={savedPlan}
     />
   );
 }

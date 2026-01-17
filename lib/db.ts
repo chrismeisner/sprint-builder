@@ -144,7 +144,11 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS package_name_snapshot text,
     ADD COLUMN IF NOT EXISTS package_description_snapshot text,
     ADD COLUMN IF NOT EXISTS contract_url text,
-    ADD COLUMN IF NOT EXISTS contract_status text DEFAULT 'not_linked';
+    ADD COLUMN IF NOT EXISTS contract_status text DEFAULT 'not_linked',
+    ADD COLUMN IF NOT EXISTS invoice_url text,
+    ADD COLUMN IF NOT EXISTS invoice_status text DEFAULT 'not_sent',
+    ADD COLUMN IF NOT EXISTS budget_status text DEFAULT 'draft',
+    ADD COLUMN IF NOT EXISTS contract_pdf_url text;
   `);
   // Defensive: older databases may still have total_estimate_points as integer
   await pool.query(`

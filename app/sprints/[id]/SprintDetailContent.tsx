@@ -79,6 +79,10 @@ type SprintRow = {
   due_date: string | Date | null;
   contract_url: string | null;
   contract_status: string | null;
+  invoice_url: string | null;
+  invoice_status: string | null;
+  budget_status: string | null;
+  contract_pdf_url: string | null;
 };
 
 type Props = {
@@ -126,6 +130,32 @@ export default function SprintDetailContent(props: Props) {
   const [savingContractUrl, setSavingContractUrl] = useState(false);
   const [contractStatus, setContractStatus] = useState(row.contract_status || "not_linked");
   const [savingContractStatus, setSavingContractStatus] = useState(false);
+  
+  // Contract PDF state
+  const [contractPdfUrl, setContractPdfUrl] = useState(row.contract_pdf_url);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  
+  // Invoice URL and status state
+  const [invoiceUrl, setInvoiceUrl] = useState(row.invoice_url);
+  const [editingInvoiceUrl, setEditingInvoiceUrl] = useState(false);
+  const [invoiceUrlValue, setInvoiceUrlValue] = useState(row.invoice_url || "");
+  const [savingInvoiceUrl, setSavingInvoiceUrl] = useState(false);
+  const [invoiceStatus, setInvoiceStatus] = useState(row.invoice_status || "not_sent");
+  const [savingInvoiceStatus, setSavingInvoiceStatus] = useState(false);
+  
+  // Budget status state
+  const [budgetStatus, setBudgetStatus] = useState(row.budget_status || "draft");
+  const [savingBudgetStatus, setSavingBudgetStatus] = useState(false);
+  
+  // Overview state (title and dates)
+  const [sprintTitle, setSprintTitle] = useState(row.title || "");
+  const [startDate, setStartDate] = useState(row.start_date ? new Date(row.start_date).toISOString().split('T')[0] : "");
+  const [endDate, setEndDate] = useState(row.due_date ? new Date(row.due_date).toISOString().split('T')[0] : "");
+  const [editingOverview, setEditingOverview] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(sprintTitle);
+  const [editingStartDate, setEditingStartDate] = useState(startDate);
+  const [editingEndDate, setEditingEndDate] = useState(endDate);
+  const [savingOverview, setSavingOverview] = useState(false);
   
   // Effective admin view: only true if user is actually admin AND viewing as admin
   const showAdminContent = isAdmin && viewAsAdmin;
@@ -245,10 +275,212 @@ export default function SprintDetailContent(props: Props) {
   const contractStatusOptions = [
     { value: "not_linked", label: "Not linked", color: "text-text-muted" },
     { value: "drafted", label: "Drafted", color: "text-amber-600 dark:text-amber-400" },
+    { value: "ready", label: "Ready", color: "text-blue-600 dark:text-blue-400" },
     { value: "signed", label: "Signed", color: "text-green-700 dark:text-green-300" },
   ];
 
   const currentStatusOption = contractStatusOptions.find(o => o.value === contractStatus) || contractStatusOptions[0];
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.type !== "application/pdf") {
+      alert("Please upload a PDF file");
+      return;
+    }
+    
+    try {
+      setUploadingPdf(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const res = await fetch(`/api/sprint-drafts/${row.id}/agreement-pdf`, {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Upload failed");
+      }
+      
+      const data = await res.json();
+      setContractPdfUrl(data.url);
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Failed to upload PDF");
+    } finally {
+      setUploadingPdf(false);
+      // Reset the input
+      e.target.value = "";
+    }
+  };
+
+  const handleRemovePdf = async () => {
+    if (!confirm("Remove the uploaded PDF?")) return;
+    
+    try {
+      setUploadingPdf(true);
+      const res = await fetch(`/api/sprint-drafts/${row.id}/agreement-pdf`, {
+        method: "DELETE",
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to remove PDF");
+      }
+      
+      setContractPdfUrl(null);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove PDF");
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  const handleSaveInvoiceUrl = async () => {
+    try {
+      setSavingInvoiceUrl(true);
+      const res = await fetch(`/api/sprint-drafts/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoice_url: invoiceUrlValue.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to save invoice URL");
+      }
+      setInvoiceUrl(invoiceUrlValue.trim() || null);
+      setEditingInvoiceUrl(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save invoice URL");
+    } finally {
+      setSavingInvoiceUrl(false);
+    }
+  };
+
+  const handleInvoiceStatusChange = async (newStatus: string) => {
+    try {
+      setSavingInvoiceStatus(true);
+      const res = await fetch(`/api/sprint-drafts/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoice_status: newStatus,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update invoice status");
+      }
+      setInvoiceStatus(newStatus);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update invoice status");
+    } finally {
+      setSavingInvoiceStatus(false);
+    }
+  };
+
+  const invoiceStatusOptions = [
+    { value: "not_sent", label: "Not sent", color: "text-text-muted", bgColor: "bg-gray-100 dark:bg-gray-800" },
+    { value: "sent", label: "Sent", color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-950" },
+    { value: "paid", label: "Paid", color: "text-green-700 dark:text-green-300", bgColor: "bg-green-50 dark:bg-green-950" },
+    { value: "overdue", label: "Overdue", color: "text-red-600 dark:text-red-400", bgColor: "bg-red-50 dark:bg-red-950" },
+  ];
+
+  const currentInvoiceStatusOption = invoiceStatusOptions.find(o => o.value === invoiceStatus) || invoiceStatusOptions[0];
+
+  const handleBudgetStatusChange = async (newStatus: string) => {
+    try {
+      setSavingBudgetStatus(true);
+      const res = await fetch(`/api/sprint-drafts/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          budget_status: newStatus,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update budget status");
+      }
+      setBudgetStatus(newStatus);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update budget status");
+    } finally {
+      setSavingBudgetStatus(false);
+    }
+  };
+
+  const budgetStatusOptions = [
+    { value: "draft", label: "Draft", color: "text-text-muted", bgColor: "bg-gray-100 dark:bg-gray-800" },
+    { value: "negotiating", label: "Negotiating", color: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-50 dark:bg-amber-950" },
+    { value: "agreed", label: "Agreed", color: "text-green-700 dark:text-green-300", bgColor: "bg-green-50 dark:bg-green-950" },
+  ];
+
+  const currentBudgetStatusOption = budgetStatusOptions.find(o => o.value === budgetStatus) || budgetStatusOptions[0];
+
+  // Sprint status display options
+  const sprintStatusOptions: Record<string, { label: string; bgColor: string; textColor: string }> = {
+    draft: { label: "Draft", bgColor: "bg-gray-100 dark:bg-gray-800", textColor: "text-gray-700 dark:text-gray-300" },
+    negotiating: { label: "Negotiating", bgColor: "bg-amber-100 dark:bg-amber-900", textColor: "text-amber-800 dark:text-amber-200" },
+    scheduled: { label: "Scheduled", bgColor: "bg-blue-100 dark:bg-blue-900", textColor: "text-blue-800 dark:text-blue-200" },
+    in_progress: { label: "In Progress", bgColor: "bg-purple-100 dark:bg-purple-900", textColor: "text-purple-800 dark:text-purple-200" },
+    complete: { label: "Complete", bgColor: "bg-green-100 dark:bg-green-900", textColor: "text-green-800 dark:text-green-200" },
+  };
+
+  const currentSprintStatus = sprintStatusOptions[row.status || "draft"] || sprintStatusOptions.draft;
+
+  // Calculate duration in weeks from start and end dates
+  const calculateDurationWeeks = (start: string, end: string): number | null => {
+    if (!start || !end) return null;
+    const startMs = new Date(start + 'T00:00:00').getTime();
+    const endMs = new Date(end + 'T00:00:00').getTime();
+    if (isNaN(startMs) || isNaN(endMs)) return null;
+    const diffMs = endMs - startMs;
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    // Round to nearest 0.5 week
+    return Math.round((diffDays / 7) * 2) / 2;
+  };
+
+  const calculatedWeeks = calculateDurationWeeks(startDate, endDate);
+  const displayWeeks = calculatedWeeks ?? row.weeks ?? 2;
+  
+  // For edit mode - calculate from editing values
+  const editingCalculatedWeeks = calculateDurationWeeks(editingStartDate, editingEndDate);
+  const editingDisplayWeeks = editingCalculatedWeeks ?? row.weeks ?? 2;
+
+  const handleSaveOverview = async () => {
+    try {
+      setSavingOverview(true);
+      const res = await fetch(`/api/sprint-drafts/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          overview_update: {
+            title: editingTitle.trim() || null,
+            start_date: editingStartDate || null,
+            due_date: editingEndDate || null,
+          },
+        }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update overview");
+      }
+      setSprintTitle(editingTitle.trim());
+      setStartDate(editingStartDate);
+      setEndDate(editingEndDate);
+      setEditingOverview(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update overview");
+    } finally {
+      setSavingOverview(false);
+    }
+  };
 
   const t = {
     pageTitle: `${typography.headingSection}`,
@@ -284,7 +516,7 @@ export default function SprintDetailContent(props: Props) {
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <h1 className={t.pageTitle} data-typography-id="h2">
-            {row.title || plan.sprintTitle?.trim() || "Sprint draft"}
+            {sprintTitle || plan.sprintTitle?.trim() || "Sprint draft"}
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -302,32 +534,126 @@ export default function SprintDetailContent(props: Props) {
       {/* ============================================ */}
       {/* EVERYONE SEES: Sprint Overview */}
       {/* ============================================ */}
-      <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-4 bg-white/40 dark:bg-black/40`}>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div className="space-y-1">
-            <p className={t.subhead}>
-              {row.weeks || 2} week sprint
-              {row.start_date ? ` · Starts ${new Date(row.start_date).toLocaleDateString()}` : ""}
-              {row.due_date ? ` · Ends ${new Date(row.due_date).toLocaleDateString()}` : ""}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-0.5 ${getTypographyClassName("subtitle-sm")}`}
-            >
-              {row.status || "draft"}
-            </span>
-          </div>
+      <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-3 bg-white/40 dark:bg-black/40`}>
+        <div className="flex items-center justify-between">
+          <h2 className={t.cardHeading}>Overview</h2>
+          <span
+            className={`inline-flex items-center rounded-full ${currentSprintStatus.bgColor} ${currentSprintStatus.textColor} px-2.5 py-0.5 ${getTypographyClassName("subtitle-sm")}`}
+          >
+            {currentSprintStatus.label}
+          </span>
         </div>
 
-        {/* Member view: Limited info */}
-        <div className="grid gap-3 sm:grid-cols-2">
-          {row.deliverable_count != null && row.deliverable_count > 0 && (
-            <div>
-              <span className={t.monoLabel}>deliverables:</span> {row.deliverable_count}
+        {editingOverview && showAdminContent ? (
+          // Edit mode for admins
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className={`${getTypographyClassName("subtitle-sm")} text-text-muted block`}>
+                Sprint title
+              </label>
+              <input
+                type="text"
+                value={editingTitle}
+                onChange={(e) => setEditingTitle(e.target.value)}
+                placeholder="Enter sprint title..."
+                className="w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                disabled={savingOverview}
+              />
             </div>
-          )}
-        </div>
+            <div className={`grid gap-3 sm:grid-cols-2 ${t.bodySm}`}>
+              <div>
+                <span className={t.monoLabel}>duration:</span> {editingDisplayWeeks} week{editingDisplayWeeks !== 1 ? 's' : ''}
+              </div>
+              <div>
+                <span className={t.monoLabel}>deliverables:</span> {row.deliverable_count ?? 0}
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className={`${getTypographyClassName("subtitle-sm")} text-text-muted block`}>
+                  Start date
+                </label>
+                <input
+                  type="date"
+                  value={editingStartDate}
+                  onChange={(e) => setEditingStartDate(e.target.value)}
+                  className="w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                  disabled={savingOverview}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className={`${getTypographyClassName("subtitle-sm")} text-text-muted block`}>
+                  End date
+                </label>
+                <input
+                  type="date"
+                  value={editingEndDate}
+                  onChange={(e) => setEditingEndDate(e.target.value)}
+                  className="w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                  disabled={savingOverview}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSaveOverview}
+                disabled={savingOverview}
+                className={`${getTypographyClassName("button-sm")} px-3 py-1.5 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
+              >
+                {savingOverview ? "Saving..." : "Save"}
+              </button>
+              <button
+                onClick={() => {
+                  setEditingOverview(false);
+                  setEditingTitle(sprintTitle);
+                  setEditingStartDate(startDate);
+                  setEditingEndDate(endDate);
+                }}
+                disabled={savingOverview}
+                className={`${getTypographyClassName("button-sm")} px-3 py-1.5 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          // View mode
+          <div className="flex items-start justify-between gap-4">
+            <div className={`grid gap-2 sm:grid-cols-2 flex-1 ${t.bodySm}`}>
+              <div>
+                <span className={t.monoLabel}>duration:</span> {displayWeeks} week{displayWeeks !== 1 ? 's' : ''}
+              </div>
+              {startDate && (
+                <div>
+                  <span className={t.monoLabel}>starts:</span> {new Date(startDate + 'T00:00:00').toLocaleDateString()}
+                </div>
+              )}
+              {endDate && (
+                <div>
+                  <span className={t.monoLabel}>ends:</span> {new Date(endDate + 'T00:00:00').toLocaleDateString()}
+                </div>
+              )}
+              {row.deliverable_count != null && row.deliverable_count > 0 && (
+                <div>
+                  <span className={t.monoLabel}>deliverables:</span> {row.deliverable_count}
+                </div>
+              )}
+            </div>
+            {showAdminContent && (
+              <button
+                onClick={() => {
+                  setEditingTitle(sprintTitle);
+                  setEditingStartDate(startDate);
+                  setEditingEndDate(endDate);
+                  setEditingOverview(true);
+                }}
+                className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+              >
+                Edit
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
       {/* ============================================ */}
@@ -381,142 +707,6 @@ export default function SprintDetailContent(props: Props) {
                   variant="inline"
                   hideHeading
                 />
-              </div>
-            )}
-          </div>
-        </AdminOnlySection>
-      )}
-
-      {/* ============================================ */}
-      {/* ADMIN ONLY: Budget Status */}
-      {/* ============================================ */}
-      {showAdminContent && (
-        <AdminOnlySection label="Admin Only">
-          <div className={`p-4 space-y-3 ${t.bodySm}`}>
-            <div className="flex items-center justify-between">
-              <h2 className={t.cardHeading}>Budget Status</h2>
-              {budgetPlan ? (
-                <span className={`${getTypographyClassName("body-sm")} text-green-700 dark:text-green-300`}>
-                  Attached
-                </span>
-              ) : (
-                <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>Not attached</span>
-              )}
-            </div>
-            {budgetPlan ? (
-              <div className="space-y-1">
-                {budgetPlan.label && <div className={t.bodySm}>Label: {budgetPlan.label}</div>}
-                <div className={t.bodySm}>
-                  Saved: {new Date(budgetPlan.created_at).toLocaleString()}
-                </div>
-                <div>
-                  <Link
-                    href={`/deferred-compensation?sprintId=${row.id}&amountCents=${Math.round(
-                      Number(row.total_fixed_price ?? 0) * 100
-                    )}`}
-                    className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
-                  >
-                    View / Update budget
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <span className={t.bodySm}>No budget attached to this sprint.</span>
-                <Link
-                  href={`/deferred-compensation?sprintId=${row.id}&amountCents=${Math.round(
-                    Number(row.total_fixed_price ?? 0) * 100
-                  )}`}
-                  className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
-                >
-                  Add budget
-                </Link>
-              </div>
-            )}
-          </div>
-        </AdminOnlySection>
-      )}
-
-      {/* ============================================ */}
-      {/* ADMIN ONLY: Agreement/Contract */}
-      {/* ============================================ */}
-      {showAdminContent && (
-        <AdminOnlySection label="Admin Only">
-          <div className={`p-4 space-y-3 ${t.bodySm}`}>
-            <div className="flex items-center justify-between">
-              <h2 className={t.cardHeading}>Agreement</h2>
-              <div className="flex items-center gap-2">
-                <select
-                  value={contractStatus}
-                  onChange={(e) => handleContractStatusChange(e.target.value)}
-                  disabled={savingContractStatus}
-                  className={`${getTypographyClassName("body-sm")} ${currentStatusOption.color} bg-transparent border border-black/10 dark:border-white/15 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
-                >
-                  {contractStatusOptions.map((option) => (
-                    <option key={option.value} value={option.value} className="text-black dark:text-white bg-white dark:bg-gray-900">
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            {editingContractUrl ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="url"
-                  value={contractUrlValue}
-                  onChange={(e) => setContractUrlValue(e.target.value)}
-                  placeholder="https://..."
-                  className="flex-1 min-w-[200px] rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                  disabled={savingContractUrl}
-                />
-                <button
-                  onClick={handleSaveContractUrl}
-                  disabled={savingContractUrl}
-                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
-                >
-                  {savingContractUrl ? "..." : "Save"}
-                </button>
-                <button
-                  onClick={() => {
-                    setEditingContractUrl(false);
-                    setContractUrlValue(contractUrl || "");
-                  }}
-                  disabled={savingContractUrl}
-                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : contractUrl ? (
-              <div className="flex items-center justify-between">
-                <a
-                  href={contractUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
-                >
-                  View agreement <span className="opacity-50">↗</span>
-                </a>
-                <button
-                  onClick={() => {
-                    setEditingContractUrl(true);
-                    setContractUrlValue(contractUrl || "");
-                  }}
-                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
-                >
-                  Edit URL
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <span className={t.bodySm}>No agreement URL linked.</span>
-                <button
-                  onClick={() => setEditingContractUrl(true)}
-                  className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
-                >
-                  Add URL
-                </button>
               </div>
             )}
           </div>
@@ -743,6 +933,351 @@ export default function SprintDetailContent(props: Props) {
               </ul>
             </div>
           </AdminOnlySection>
+        )}
+      </section>
+
+      {/* ============================================ */}
+      {/* ADMIN ONLY: Budget Status */}
+      {/* ============================================ */}
+      {showAdminContent && (
+        <AdminOnlySection label="Admin Only">
+          <div className={`p-4 space-y-3 ${t.bodySm}`}>
+            <div className="flex items-center justify-between">
+              <h2 className={t.cardHeading}>Budget</h2>
+              <div className="flex items-center gap-2">
+                <select
+                  value={budgetStatus}
+                  onChange={(e) => handleBudgetStatusChange(e.target.value)}
+                  disabled={savingBudgetStatus}
+                  className={`${getTypographyClassName("body-sm")} ${currentBudgetStatusOption.color} bg-transparent border border-black/10 dark:border-white/15 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
+                >
+                  {budgetStatusOptions.map((option) => (
+                    <option key={option.value} value={option.value} className="text-black dark:text-white bg-white dark:bg-gray-900">
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {budgetPlan ? (
+              <div className="space-y-2">
+                {budgetPlan.label && <div className={t.bodySm}>Label: {budgetPlan.label}</div>}
+                <div className={`${t.bodySm} text-text-muted`}>
+                  Last saved: {new Date(budgetPlan.created_at).toLocaleString()}
+                </div>
+                <div>
+                  <Link
+                    href={`/deferred-compensation?sprintId=${row.id}&amountCents=${Math.round(
+                      Number(row.total_fixed_price ?? 0) * 100
+                    )}`}
+                    className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
+                  >
+                    View / Update budget
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className={t.bodySm}>No budget attached to this sprint.</span>
+                <Link
+                  href={`/deferred-compensation?sprintId=${row.id}&amountCents=${Math.round(
+                    Number(row.total_fixed_price ?? 0) * 100
+                  )}`}
+                  className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
+                >
+                  Add budget
+                </Link>
+              </div>
+            )}
+          </div>
+        </AdminOnlySection>
+      )}
+
+      {/* ============================================ */}
+      {/* EVERYONE SEES: Agreement Section */}
+      {/* ============================================ */}
+      <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-3 bg-white/40 dark:bg-black/40`}>
+        <div className="flex items-center justify-between">
+          <h2 className={t.cardHeading}>Agreement</h2>
+          <div className="flex items-center gap-2">
+            {/* Status - editable for admins, read-only badge for others */}
+            {showAdminContent ? (
+              <select
+                value={contractStatus}
+                onChange={(e) => handleContractStatusChange(e.target.value)}
+                disabled={savingContractStatus}
+                className={`${getTypographyClassName("body-sm")} ${currentStatusOption.color} bg-transparent border border-black/10 dark:border-white/15 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
+              >
+                {contractStatusOptions.map((option) => (
+                  <option key={option.value} value={option.value} className="text-black dark:text-white bg-white dark:bg-gray-900">
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 bg-gray-100 dark:bg-gray-800 ${currentStatusOption.color} ${getTypographyClassName("subtitle-sm")}`}
+              >
+                {currentStatusOption.label}
+              </span>
+            )}
+          </div>
+        </div>
+        
+        {/* Agreement content - URL and/or PDF */}
+        <div className="space-y-3">
+          {/* Agreement URL section */}
+          {showAdminContent ? (
+            // Admin view: can edit URL
+            editingContractUrl ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="url"
+                  value={contractUrlValue}
+                  onChange={(e) => setContractUrlValue(e.target.value)}
+                  placeholder="https://..."
+                  className="flex-1 min-w-[200px] rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                  disabled={savingContractUrl}
+                />
+                <button
+                  onClick={handleSaveContractUrl}
+                  disabled={savingContractUrl}
+                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
+                >
+                  {savingContractUrl ? "..." : "Save"}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingContractUrl(false);
+                    setContractUrlValue(contractUrl || "");
+                  }}
+                  disabled={savingContractUrl}
+                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : contractUrl ? (
+              <div className="flex items-center justify-between">
+                <a
+                  href={contractUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+                >
+                  View agreement link <span className="opacity-50">↗</span>
+                </a>
+                <button
+                  onClick={() => {
+                    setEditingContractUrl(true);
+                    setContractUrlValue(contractUrl || "");
+                  }}
+                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                >
+                  Edit URL
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className={t.bodySm}>No agreement URL linked.</span>
+                <button
+                  onClick={() => setEditingContractUrl(true)}
+                  className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
+                >
+                  Add URL
+                </button>
+              </div>
+            )
+          ) : (
+            // Non-admin view: read-only URL
+            contractUrl && (
+              <a
+                href={contractUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+              >
+                View agreement link <span className="opacity-50">↗</span>
+              </a>
+            )
+          )}
+
+          {/* PDF upload/display section */}
+          {showAdminContent ? (
+            // Admin view: can upload/remove PDF
+            contractPdfUrl ? (
+              <div className="flex items-center justify-between p-2 rounded-md bg-black/5 dark:bg-white/5">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                  </svg>
+                  <a
+                    href={contractPdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+                  >
+                    View PDF <span className="opacity-50">↗</span>
+                  </a>
+                </div>
+                <button
+                  onClick={handleRemovePdf}
+                  disabled={uploadingPdf}
+                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50 transition`}
+                >
+                  {uploadingPdf ? "..." : "Remove"}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className={t.bodySm}>No PDF uploaded.</span>
+                <label
+                  className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer ${getTypographyClassName("button-sm")} ${uploadingPdf ? "opacity-50 pointer-events-none" : ""}`}
+                >
+                  {uploadingPdf ? "Uploading..." : "Upload PDF"}
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handlePdfUpload}
+                    disabled={uploadingPdf}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            )
+          ) : (
+            // Non-admin view: read-only PDF link
+            contractPdfUrl && (
+              <div className="flex items-center gap-2 p-2 rounded-md bg-black/5 dark:bg-white/5">
+                <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                </svg>
+                <a
+                  href={contractPdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+                >
+                  View PDF <span className="opacity-50">↗</span>
+                </a>
+              </div>
+            )
+          )}
+
+          {/* Show message if nothing available for non-admins */}
+          {!showAdminContent && !contractUrl && !contractPdfUrl && (
+            <span className={`${t.bodySm} text-text-muted`}>No agreement available yet.</span>
+          )}
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* EVERYONE SEES: Invoice Section */}
+      {/* ============================================ */}
+      <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-3 bg-white/40 dark:bg-black/40`}>
+        <div className="flex items-center justify-between">
+          <h2 className={t.cardHeading}>Invoice</h2>
+          <div className="flex items-center gap-2">
+            {/* Status badge - visible to all */}
+            {showAdminContent ? (
+              <select
+                value={invoiceStatus}
+                onChange={(e) => handleInvoiceStatusChange(e.target.value)}
+                disabled={savingInvoiceStatus}
+                className={`${getTypographyClassName("body-sm")} ${currentInvoiceStatusOption.color} bg-transparent border border-black/10 dark:border-white/15 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
+              >
+                {invoiceStatusOptions.map((option) => (
+                  <option key={option.value} value={option.value} className="text-black dark:text-white bg-white dark:bg-gray-900">
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 ${currentInvoiceStatusOption.bgColor} ${currentInvoiceStatusOption.color} ${getTypographyClassName("subtitle-sm")}`}
+              >
+                {currentInvoiceStatusOption.label}
+              </span>
+            )}
+          </div>
+        </div>
+        
+        {/* Invoice URL section */}
+        {showAdminContent ? (
+          // Admin view: can edit
+          editingInvoiceUrl ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="url"
+                value={invoiceUrlValue}
+                onChange={(e) => setInvoiceUrlValue(e.target.value)}
+                placeholder="https://bill.com/..."
+                className="flex-1 min-w-[200px] rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                disabled={savingInvoiceUrl}
+              />
+              <button
+                onClick={handleSaveInvoiceUrl}
+                disabled={savingInvoiceUrl}
+                className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
+              >
+                {savingInvoiceUrl ? "..." : "Save"}
+              </button>
+              <button
+                onClick={() => {
+                  setEditingInvoiceUrl(false);
+                  setInvoiceUrlValue(invoiceUrl || "");
+                }}
+                disabled={savingInvoiceUrl}
+                className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : invoiceUrl ? (
+            <div className="flex items-center justify-between">
+              <a
+                href={invoiceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+              >
+                View invoice <span className="opacity-50">↗</span>
+              </a>
+              <button
+                onClick={() => {
+                  setEditingInvoiceUrl(true);
+                  setInvoiceUrlValue(invoiceUrl || "");
+                }}
+                className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+              >
+                Edit URL
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <span className={t.bodySm}>No invoice URL linked.</span>
+              <button
+                onClick={() => setEditingInvoiceUrl(true)}
+                className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
+              >
+                Add URL
+              </button>
+            </div>
+          )
+        ) : (
+          // Non-admin view: read-only
+          invoiceUrl ? (
+            <a
+              href={invoiceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+            >
+              View invoice <span className="opacity-50">↗</span>
+            </a>
+          ) : (
+            <span className={`${t.bodySm} text-text-muted`}>No invoice available yet.</span>
+          )
         )}
       </section>
 

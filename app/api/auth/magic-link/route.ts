@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
-import { createLoginToken } from "@/lib/auth";
+import { createLoginToken, SUPERADMIN_EMAIL } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -17,6 +17,68 @@ export async function POST(request: Request) {
     }
     
     const normalizedEmail = email.trim().toLowerCase();
+    
+    // Superadmin bypass: Always allow login and auto-create/update as admin
+    if (normalizedEmail === SUPERADMIN_EMAIL) {
+      const superadminResult = await pool.query(
+        `INSERT INTO accounts (id, email, email_verified_at, is_admin)
+         VALUES ($1, $2, NOW(), true)
+         ON CONFLICT (email) DO UPDATE 
+         SET email_verified_at = COALESCE(accounts.email_verified_at, NOW()),
+             is_admin = true
+         RETURNING id`,
+        [crypto.randomUUID(), normalizedEmail]
+      );
+      const accountId = (superadminResult.rows[0] as { id: string }).id;
+      
+      // Continue to send magic link below
+      const defaultRedirect = "/profile?from=magic-email";
+      const redirect = typeof redirectUrl === "string" && redirectUrl.trim() ? redirectUrl.trim() : defaultRedirect;
+      const token = createLoginToken(accountId);
+      
+      let origin: string;
+      if (process.env.BASE_URL) {
+        origin = process.env.BASE_URL.replace(/\/$/, '');
+      } else {
+        const url = new URL(request.url);
+        origin = `${url.protocol}//${url.host}`;
+      }
+      
+      const magicLink = `${origin}/api/auth/callback?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(redirect)}`;
+      
+      // Send magic link
+      const mailgunApiKey = process.env.MAILGUN_API_KEY;
+      const mailgunDomain = process.env.MAILGUN_DOMAIN;
+      const mailgunFrom = process.env.MAILGUN_FROM_EMAIL || `no-reply@${mailgunDomain || "example.com"}`;
+
+      if (mailgunApiKey && mailgunDomain) {
+        try {
+          const authHeader = `Basic ${Buffer.from(`api:${mailgunApiKey}`).toString("base64")}`;
+          const mailgunRes = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
+            method: "POST",
+            headers: {
+              Authorization: authHeader,
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              from: mailgunFrom,
+              to: normalizedEmail,
+              subject: "Your sprint builder magic link (Superadmin)",
+              text: `Click this link to sign in:\n\n${magicLink}\n\nThis link will expire in 15 minutes.`,
+            }),
+          });
+          if (mailgunRes.ok) {
+            console.log("[Auth] Superadmin magic link email sent", { email: normalizedEmail });
+          }
+        } catch (err) {
+          console.error("[Auth] Mailgun request error", { message: (err as Error)?.message });
+        }
+      } else {
+        console.log("[Auth] Superadmin magic link:", { email: normalizedEmail, magicLink });
+      }
+
+      return NextResponse.json({ ok: true });
+    }
     
     // Check if this email has been verified
     const existingAccount = await pool.query(

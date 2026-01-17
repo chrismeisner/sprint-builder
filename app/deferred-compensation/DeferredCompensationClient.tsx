@@ -9,11 +9,20 @@ type SprintOption = {
   label: string;
 };
 
+type SavedPlanInputs = {
+  totalProjectValue?: number;
+  upfrontPayment?: number;
+  equitySplit?: number;
+  milestones?: Array<{ id: number; summary: string; multiplier: number; date: string }>;
+  milestoneMissOutcome?: string;
+};
+
 type DeferredCompensationProps = {
   sprintOptions: SprintOption[];
   isLoggedIn: boolean;
   defaultSprintId?: string;
   defaultAmount?: number;
+  savedPlan?: SavedPlanInputs | null;
 };
 
 // Constants (guardrails)
@@ -54,6 +63,7 @@ export default function DeferredCompensationClient({
   isLoggedIn,
   defaultSprintId,
   defaultAmount,
+  savedPlan,
 }: DeferredCompensationProps) {
   const router = useRouter();
 
@@ -70,21 +80,59 @@ export default function DeferredCompensationClient({
     ];
   }, [sprintOptions, defaultSprintId]);
 
+  // Determine initial values - use saved plan if available, otherwise use defaults
+  const initialTotalProjectValue = useMemo(() => {
+    // Priority: savedPlan > defaultAmount > default
+    if (savedPlan?.totalProjectValue != null && Number.isFinite(savedPlan.totalProjectValue)) {
+      return savedPlan.totalProjectValue;
+    }
+    if (Number.isFinite(defaultAmount) && typeof defaultAmount === "number") {
+      return defaultAmount;
+    }
+    return DEFAULT_PROJECT_VALUE;
+  }, [savedPlan, defaultAmount]);
+
+  const initialUpfrontPayment = useMemo(() => {
+    if (savedPlan?.upfrontPayment != null && Number.isFinite(savedPlan.upfrontPayment)) {
+      return savedPlan.upfrontPayment;
+    }
+    return 0.4;
+  }, [savedPlan]);
+
+  const initialEquitySplit = useMemo(() => {
+    if (savedPlan?.equitySplit != null && Number.isFinite(savedPlan.equitySplit)) {
+      return savedPlan.equitySplit;
+    }
+    return 0.5;
+  }, [savedPlan]);
+
+  const initialMilestones = useMemo(() => {
+    if (savedPlan?.milestones && Array.isArray(savedPlan.milestones) && savedPlan.milestones.length > 0) {
+      return savedPlan.milestones;
+    }
+    return [
+      { id: 1, summary: "", multiplier: 1.5, date: "" },
+      { id: 2, summary: "", multiplier: 2, date: "" },
+    ];
+  }, [savedPlan]);
+
+  const initialMilestoneMissOutcome = useMemo(() => {
+    if (savedPlan?.milestoneMissOutcome && typeof savedPlan.milestoneMissOutcome === "string") {
+      return savedPlan.milestoneMissOutcome;
+    }
+    return "renegotiate";
+  }, [savedPlan]);
+
   // User inputs
-  const [totalProjectValue, setTotalProjectValue] = useState(
-    Number.isFinite(defaultAmount) && typeof defaultAmount === "number" ? defaultAmount : DEFAULT_PROJECT_VALUE
-  );
-  const [upfrontPayment, setUpfrontPayment] = useState(0.4);
+  const [totalProjectValue, setTotalProjectValue] = useState(initialTotalProjectValue);
+  const [upfrontPayment, setUpfrontPayment] = useState(initialUpfrontPayment);
   // This controls how the remaining (non-upfront) portion is split
   // 0 = all deferred, 1 = all equity
-  const [equitySplit, setEquitySplit] = useState(0.5);
+  const [equitySplit, setEquitySplit] = useState(initialEquitySplit);
   const [milestones, setMilestones] = useState<
     { id: number; summary: string; multiplier: number; date: string }[]
-  >([
-    { id: 1, summary: "", multiplier: 1.5, date: "" },
-    { id: 2, summary: "", multiplier: 2, date: "" },
-  ]);
-  const [milestoneMissOutcome, setMilestoneMissOutcome] = useState("renegotiate");
+  >(initialMilestones);
+  const [milestoneMissOutcome, setMilestoneMissOutcome] = useState(initialMilestoneMissOutcome);
   const [selectedSprint, setSelectedSprint] = useState(defaultSprintId ?? "");
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
   const [newMilestoneSummary, setNewMilestoneSummary] = useState("");

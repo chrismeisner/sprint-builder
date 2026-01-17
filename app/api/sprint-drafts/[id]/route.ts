@@ -190,11 +190,71 @@ export async function PATCH(request: Request, { params }: Params) {
       if (!user.isAdmin) {
         return NextResponse.json({ error: "Admin access required" }, { status: 403 });
       }
-      const validStatuses = ["not_linked", "drafted", "signed"];
+      const validStatuses = ["not_linked", "drafted", "ready", "signed"];
       const statusValue = validStatuses.includes(contract_status || "") ? contract_status : "not_linked";
       await pool.query(
         `UPDATE sprint_drafts SET contract_status = $1, updated_at = now() WHERE id = $2`,
         [statusValue, params.id]
+      );
+      return NextResponse.json({ success: true });
+    }
+
+    // Invoice URL update (admin only)
+    if (body.invoice_url !== undefined) {
+      if (!user.isAdmin) {
+        return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+      }
+      await pool.query(
+        `UPDATE sprint_drafts SET invoice_url = $1, updated_at = now() WHERE id = $2`,
+        [body.invoice_url || null, params.id]
+      );
+      return NextResponse.json({ success: true });
+    }
+
+    // Invoice status update (admin only)
+    if (body.invoice_status !== undefined) {
+      if (!user.isAdmin) {
+        return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+      }
+      const validInvoiceStatuses = ["not_sent", "sent", "paid", "overdue"];
+      const invoiceStatusValue = validInvoiceStatuses.includes(body.invoice_status || "") ? body.invoice_status : "not_sent";
+      await pool.query(
+        `UPDATE sprint_drafts SET invoice_status = $1, updated_at = now() WHERE id = $2`,
+        [invoiceStatusValue, params.id]
+      );
+      return NextResponse.json({ success: true });
+    }
+
+    // Budget status update (admin only)
+    if (body.budget_status !== undefined) {
+      if (!user.isAdmin) {
+        return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+      }
+      const validBudgetStatuses = ["draft", "negotiating", "agreed"];
+      const budgetStatusValue = validBudgetStatuses.includes(body.budget_status || "") ? body.budget_status : "draft";
+      await pool.query(
+        `UPDATE sprint_drafts SET budget_status = $1, updated_at = now() WHERE id = $2`,
+        [budgetStatusValue, params.id]
+      );
+      return NextResponse.json({ success: true });
+    }
+
+    // Overview update (title and dates) - admin only
+    if (body.overview_update !== undefined) {
+      if (!user.isAdmin) {
+        return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+      }
+      const { title, start_date, due_date } = body.overview_update as { 
+        title?: string | null; 
+        start_date?: string | null; 
+        due_date?: string | null;
+      };
+      const titleValue = typeof title === "string" && title.trim() ? title.trim() : null;
+      const startValue = typeof start_date === "string" && start_date.trim() ? start_date.trim() : null;
+      const dueValue = typeof due_date === "string" && due_date.trim() ? due_date.trim() : null;
+      await pool.query(
+        `UPDATE sprint_drafts SET title = $1, start_date = $2, due_date = $3, updated_at = now() WHERE id = $4`,
+        [titleValue, startValue, dueValue, params.id]
       );
       return NextResponse.json({ success: true });
     }

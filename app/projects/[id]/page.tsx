@@ -159,7 +159,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 {sandboxes.map((sandbox) => (
                   <tr key={sandbox.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
                     <td className="px-4 py-2">
-                      <span className="font-medium">{sandbox.name}</span>
+                      <a
+                        href={`/api/sandbox-files/${sandbox.folder_name}/index.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium hover:underline"
+                      >
+                        {sandbox.name}
+                      </a>
                     </td>
                     <td className="px-4 py-2">
                       <span className="opacity-70">{sandbox.description || "—"}</span>
