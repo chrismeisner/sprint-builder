@@ -46,16 +46,16 @@ export default async function MySprintsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold">My sprints</h1>
         <Link
-          href="/documents"
+          href="/profile"
           className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition text-sm"
         >
-          All documents
+          Go to Profile
         </Link>
       </div>
 
       {rows.length === 0 ? (
         <p className="text-sm opacity-70">
-          You don&apos;t have any sprint drafts yet. Once a sprint is generated from your intake, it will appear here.
+          You don&apos;t have any sprint drafts yet. Once a sprint is created, it will appear here.
         </p>
       ) : (
         <section className="rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
@@ -65,7 +65,6 @@ export default async function MySprintsPage() {
                 <tr>
                   <th className="px-4 py-2 font-semibold">Sprint</th>
                   <th className="px-4 py-2 font-semibold">Created</th>
-                  <th className="px-4 py-2 font-semibold">Document</th>
                   <th className="px-4 py-2 font-semibold">Email</th>
                   <th className="px-4 py-2 font-semibold">Actions</th>
                 </tr>
@@ -80,28 +79,16 @@ export default async function MySprintsPage() {
                     <td className="px-4 py-2">
                       {new Date(row.sprint_created_at).toLocaleString()}
                     </td>
-                    <td className="px-4 py-2 font-mono">
-                      <span className="hidden sm:inline">{row.document_id}</span>
-                      <span className="sm:hidden">{row.document_id.slice(0, 8)}…</span>
-                    </td>
                     <td className="px-4 py-2">
                       {row.email ?? <span className="opacity-50">—</span>}
                     </td>
                     <td className="px-4 py-2">
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/sprints/${row.sprint_id}`}
-                          className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10"
-                        >
-                          View sprint
-                        </Link>
-                        <Link
-                          href={`/documents/${row.document_id}`}
-                          className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10"
-                        >
-                          View intake
-                        </Link>
-                      </div>
+                      <Link
+                        href={`/sprints/${row.sprint_id}`}
+                        className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10"
+                      >
+                        View sprint
+                      </Link>
                     </td>
                   </tr>
                 ))}

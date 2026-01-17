@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { typography } from "@/app/components/typography";
+import { POINT_PRICE_PER_POINT, HOURS_PER_POINT } from "@/lib/pricing";
 
 type Props = {
   initialPoints: number;
@@ -10,6 +11,7 @@ type Props = {
   initialPrice: number;
   isEditable: boolean;
   showPointsAndHours?: boolean;
+  showRate?: boolean;
   variant?: "card" | "inline";
   hideHeading?: boolean;
   hideHelper?: boolean;
@@ -23,6 +25,7 @@ export default function SprintTotals({
   initialPrice,
   isEditable,
   showPointsAndHours = true,
+  showRate = false,
   variant = "card",
   hideHeading = false,
   hideHelper = false,
@@ -70,7 +73,7 @@ export default function SprintTotals({
           {isEditable && " (Live)"}
         </h2>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className={`grid grid-cols-1 gap-4 ${showRate ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
         {showPointsAndHours && (
           <>
             <div>
@@ -82,8 +85,24 @@ export default function SprintTotals({
               <div className={`${getTypographyClassName("h3")} text-text-primary`}>
                 {(typeof totals.hours === "number" ? totals.hours : 0).toFixed(1)}h
               </div>
+              {showRate && (
+                <div className={`${getTypographyClassName("mono-sm")} text-text-muted mt-1`}>
+                  ({HOURS_PER_POINT}h/pt)
+                </div>
+              )}
             </div>
           </>
+        )}
+        {showRate && (
+          <div>
+            <div className={`${getTypographyClassName("subtitle-sm")} text-text-muted mb-1`}>Rate</div>
+            <div className={`${getTypographyClassName("h3")} text-text-primary`}>
+              ${POINT_PRICE_PER_POINT.toLocaleString()}
+            </div>
+            <div className={`${getTypographyClassName("mono-sm")} text-text-muted mt-1`}>
+              per point
+            </div>
+          </div>
         )}
         <div>
           <div className={`${getTypographyClassName("subtitle-sm")} text-text-muted mb-1`}>Total Price</div>

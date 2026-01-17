@@ -147,6 +147,7 @@ export async function PATCH(request: Request, { params }: Params) {
       dueDate,
       deliverables,
       customContent,
+      contract_url,
     } = body as {
       title?: string;
       projectId?: string;
@@ -155,14 +156,9 @@ export async function PATCH(request: Request, { params }: Params) {
       dueDate?: string | null;
       deliverables?: Array<{ deliverableId: string; complexityMultiplier?: number; note?: string | null; customScope?: string | null }>;
       customContent?: Record<string, unknown>;
+      contract_url?: string | null;
+      contract_status?: string | null;
     };
-
-    if (typeof title !== "string" || !title.trim()) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
-    }
-    if (typeof projectId !== "string" || !projectId.trim()) {
-      return NextResponse.json({ error: "Project is required" }, { status: 400 });
-    }
 
     const sprintRes = await pool.query(
       `SELECT sd.id, sd.project_id, d.account_id
@@ -175,6 +171,39 @@ export async function PATCH(request: Request, { params }: Params) {
     const sprint = sprintRes.rows[0] as { account_id: string | null };
     if (sprint.account_id && sprint.account_id !== user.accountId && !user.isAdmin) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // Handle simple field updates (admin only for contract fields)
+    if (contract_url !== undefined) {
+      if (!user.isAdmin) {
+        return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+      }
+      await pool.query(
+        `UPDATE sprint_drafts SET contract_url = $1, updated_at = now() WHERE id = $2`,
+        [contract_url || null, params.id]
+      );
+      return NextResponse.json({ success: true });
+    }
+
+    if (contract_status !== undefined) {
+      if (!user.isAdmin) {
+        return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+      }
+      const validStatuses = ["not_linked", "drafted", "signed"];
+      const statusValue = validStatuses.includes(contract_status || "") ? contract_status : "not_linked";
+      await pool.query(
+        `UPDATE sprint_drafts SET contract_status = $1, updated_at = now() WHERE id = $2`,
+        [statusValue, params.id]
+      );
+      return NextResponse.json({ success: true });
+    }
+
+    // Full update requires title and projectId
+    if (typeof title !== "string" || !title.trim()) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+    if (typeof projectId !== "string" || !projectId.trim()) {
+      return NextResponse.json({ error: "Project is required" }, { status: 400 });
     }
 
     // Update sprint core fields

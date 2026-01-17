@@ -13,7 +13,6 @@ export default async function StackPage() {
     database: Boolean(process.env.DATABASE_URL || process.env.PGHOST),
     storage: Boolean(process.env.GCS_PROJECT_ID && process.env.GCS_BUCKET_NAME),
     mailgun: Boolean(process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN),
-    typeform: Boolean(process.env.TYPEFORM_WEBHOOK_SECRET),
     openai: Boolean(process.env.OPENAI_API_KEY),
     analytics: Boolean(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID),
   };

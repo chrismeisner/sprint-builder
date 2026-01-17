@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Typography from "@/components/ui/Typography";
 
 type SprintOption = {
@@ -54,6 +55,8 @@ export default function DeferredCompensationClient({
   defaultSprintId,
   defaultAmount,
 }: DeferredCompensationProps) {
+  const router = useRouter();
+
   const resolvedSprintOptions = useMemo(() => {
     if (!defaultSprintId) return sprintOptions;
     const exists = sprintOptions.some((opt) => opt.id === defaultSprintId);
@@ -164,6 +167,12 @@ export default function DeferredCompensationClient({
       const savedAt = new Date().toLocaleString();
       setLastSavedAt(savedAt);
       setSaveSuccess("Budget saved");
+      
+      // Redirect to the sprint page after successful save
+      const sprintId = payload.sprintId;
+      if (sprintId) {
+        router.push(`/sprints/${sprintId}`);
+      }
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Failed to save budget");
     } finally {
@@ -497,7 +506,7 @@ export default function DeferredCompensationClient({
     <main className="container py-10 space-y-10 max-w-5xl">
       <header className="space-y-2">
         <Typography as="h1" scale="h2" className="text-text-primary">
-          🔮 Deferred Compensation Calculator
+          Compensation Calculator
         </Typography>
         <Typography as="p" scale="body-md" className="text-text-secondary">
           Calculate upfront, equity, and deferred payment structures for project engagements.

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { priceFromPoints, hoursFromPoints } from "@/lib/pricing";
 
 type Params = {
   params: { id: string; deliverableId: string };
@@ -65,11 +66,11 @@ export async function PATCH(request: Request, { params }: Params) {
 
     // Parse request body
     const body = await request.json();
-    const { content, notes, customScope, attachments, deliveryUrl } = body;
+    const { content, notes, customScope, attachments, deliveryUrl, customEstimatePoints } = body;
 
     // Build update query
     const updates: string[] = [];
-    const values: (string | null)[] = [];
+    const values: (string | number | null)[] = [];
     let paramIndex = 1;
 
     if (typeof content === "string") {
@@ -97,6 +98,11 @@ export async function PATCH(request: Request, { params }: Params) {
       values.push(typeof deliveryUrl === "string" ? (deliveryUrl.trim() || null) : null);
     }
 
+    if (customEstimatePoints !== undefined) {
+      updates.push(`custom_estimate_points = $${paramIndex++}`);
+      values.push(typeof customEstimatePoints === "number" ? customEstimatePoints : null);
+    }
+
     if (updates.length === 0) {
       return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
@@ -107,14 +113,40 @@ export async function PATCH(request: Request, { params }: Params) {
       `UPDATE sprint_deliverables 
        SET ${updates.join(", ")}
        WHERE id = $${paramIndex}
-       RETURNING id, content, notes, custom_scope, attachments, delivery_url`,
+       RETURNING id, content, notes, custom_scope, attachments, delivery_url, custom_estimate_points`,
       values
     );
 
-    // Also update sprint's updated_at
-    await pool.query(
-      `UPDATE sprint_drafts SET updated_at = NOW() WHERE id = $1`,
+    // Recalculate sprint totals from all deliverables
+    const deliverablesResult = await pool.query(
+      `SELECT 
+        COALESCE(spd.custom_estimate_points, del.default_estimate_points, 0) as points,
+        COALESCE(spd.complexity_score, 1.0) as complexity_score
+       FROM sprint_deliverables spd
+       LEFT JOIN deliverables del ON spd.deliverable_id = del.id
+       WHERE spd.sprint_draft_id = $1`,
       [params.id]
+    );
+
+    let totalPoints = 0;
+    for (const row of deliverablesResult.rows) {
+      const points = Number(row.points) || 0;
+      const complexity = Number(row.complexity_score) || 1.0;
+      totalPoints += points * complexity;
+    }
+
+    const totalPrice = priceFromPoints(totalPoints);
+    const totalHours = hoursFromPoints(totalPoints);
+
+    // Update sprint totals and updated_at
+    await pool.query(
+      `UPDATE sprint_drafts 
+       SET updated_at = NOW(),
+           total_estimate_points = $2,
+           total_fixed_price = $3,
+           total_fixed_hours = $4
+       WHERE id = $1`,
+      [params.id, totalPoints, totalPrice, totalHours]
     );
 
     return NextResponse.json({
@@ -126,6 +158,11 @@ export async function PATCH(request: Request, { params }: Params) {
         customScope: updateResult.rows[0].custom_scope,
         attachments: updateResult.rows[0].attachments,
         deliveryUrl: updateResult.rows[0].delivery_url,
+      },
+      sprintTotals: {
+        totalPoints,
+        totalPrice,
+        totalHours,
       },
     });
   } catch (error: unknown) {

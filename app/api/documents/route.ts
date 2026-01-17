@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
-import { verifyTypeformSignature } from "@/lib/typeform";
 import { sendEmail, generateIntakeConfirmationEmail } from "@/lib/email";
 
+/**
+ * Extract email from Typeform or generic JSON payload
+ */
 function extractEmailFromPayload(content: unknown): string | null {
   const maybeEmail = (value: unknown): string | null => {
     if (typeof value === "string" && value.includes("@")) {
@@ -14,7 +16,7 @@ function extractEmailFromPayload(content: unknown): string | null {
   if (!content || typeof content !== "object") return null;
   const root = content as Record<string, unknown>;
 
-  // Prefer Typeform v2-style payload: form_response.answers[]
+  // Typeform v2-style payload: form_response.answers[]
   const formResponse = root.form_response as unknown;
   if (formResponse && typeof formResponse === "object") {
     const fr = formResponse as { answers?: unknown[]; hidden?: Record<string, unknown> | undefined };
@@ -65,28 +67,22 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * POST /api/documents
+ * 
+ * Receives Typeform webhooks (or any JSON intake form data).
+ * Saves to database and sends confirmation email to submitter.
+ */
 export async function POST(request: Request) {
   try {
-    // Read raw body once, to support signature verification
-    const rawBody = await request.text();
-    const contentType = request.headers.get("content-type") || "";
-    const typeformSignature = request.headers.get("typeform-signature");
-    const typeformSecret = process.env.TYPEFORM_WEBHOOK_SECRET;
-
-    // Verify Typeform signature if configured and header present
-    if (typeformSecret && typeformSignature) {
-      const ok = verifyTypeformSignature(rawBody, typeformSignature, typeformSecret);
-      if (!ok) {
-        return NextResponse.json({ error: "Invalid Typeform signature" }, { status: 401 });
-      }
-    }
-
     await ensureSchema();
+    const contentType = request.headers.get("content-type") || "";
+    
     let content: unknown;
     const filename: string | null = null;
 
-    if (contentType.includes("application/json") || contentType.includes("text/json") || contentType.includes("application/octet-stream")) {
-      content = JSON.parse(rawBody || "{}");
+    if (contentType.includes("application/json") || contentType.includes("text/json")) {
+      content = await request.json();
     } else {
       return NextResponse.json(
         { error: "Unsupported Content-Type. Use application/json." },
@@ -95,25 +91,27 @@ export async function POST(request: Request) {
     }
 
     const id = crypto.randomUUID();
+    const pool = getPool();
+    
+    // Extract email from the payload
     const emailRaw = extractEmailFromPayload(content);
     const email = emailRaw ? emailRaw.toLowerCase() : null;
-    const pool = getPool();
     let accountId: string | null = null;
 
+    // Create or update account if email found
     if (email) {
       const accountRes = await pool.query(
-        `
-          INSERT INTO accounts (id, email)
-          VALUES ($1, $2)
-          ON CONFLICT (email)
-          DO UPDATE SET email = EXCLUDED.email
-          RETURNING id
-        `,
+        `INSERT INTO accounts (id, email)
+         VALUES ($1, $2)
+         ON CONFLICT (email)
+         DO UPDATE SET email = EXCLUDED.email
+         RETURNING id`,
         [crypto.randomUUID(), email]
       );
       accountId = (accountRes.rows[0] as { id: string }).id;
     }
 
+    // Save document
     await pool.query(
       `INSERT INTO documents (id, content, filename, email, account_id) VALUES ($1, $2::jsonb, $3, $4, $5)`,
       [id, JSON.stringify(content), filename, email, accountId]
@@ -129,13 +127,14 @@ export async function POST(request: Request) {
         html: emailContent.html,
       }).catch((error) => {
         console.error("[Documents] Failed to send intake confirmation email:", error);
-        // Don't throw - we don't want email failures to break document submission
       });
       
-      console.log("[Documents] Sent intake confirmation email", { 
+      console.log("[Documents] Intake form received and confirmation email sent", { 
         documentId: id, 
         email 
       });
+    } else {
+      console.log("[Documents] Intake form received (no email found)", { documentId: id });
     }
 
     return NextResponse.json({ id }, { status: 201 });

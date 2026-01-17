@@ -24,15 +24,14 @@ export default async function NavShell({ children }: { children: ReactNode }) {
     { href: "/dashboard/sprint-drafts", label: "📝 Sprint Drafts" },
     { href: "/dashboard/sprint-builder", label: "🛠️ Sprint Builder" },
     { href: "/dashboard/users", label: "👥 User Management" },
-    { href: "/documents", label: "📄 Documents" },
+    { href: "/dashboard/intake-forms", label: "📄 Intake Forms" },
     { href: "/dashboard/theme", label: "🌗 Theme Controls" },
     { href: "/dashboard/how-it-works-writer", label: "✍️ How It Works Writer" },
     { href: "/dashboard/stack", label: "🧱 Stack" },
     { href: "/dashboard/fade-tester", label: "🌫️ Fade Tester" },
     { href: "/dashboard/storage-test", label: "💾 Storage Test" },
     { href: "/dashboard/email-test", label: "✉️ Email Test" },
-    { href: "/ai-test", label: "🧠 OpenAI Test" },
-    { href: "/deferred-compensation", label: "🔮 Deferred Compensation Calculator" },
+    { href: "/deferred-compensation", label: "🔮 Compensation Calculator" },
   ];
 
   return <AdminNavShellClient nav={nav}>{children}</AdminNavShellClient>;

@@ -25,7 +25,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
     `SELECT sd.id, sd.document_id, sd.ai_response_id, sd.draft, sd.status, sd.title,
             sd.deliverable_count, sd.total_estimate_points, sd.total_fixed_hours, sd.total_fixed_price, 
             sd.created_at, sd.updated_at, sd.weeks, sd.start_date, sd.due_date,
-            sd.project_id,
+            sd.project_id, sd.contract_url, sd.contract_status,
             d.email, d.account_id, d.project_id AS document_project_id
      FROM sprint_drafts sd
      JOIN documents d ON sd.document_id = d.id
@@ -55,6 +55,8 @@ export default async function SprintDetailPage({ params }: PageProps) {
     weeks: number | null;
     start_date: string | Date | null;
     due_date: string | Date | null;
+    contract_url: string | null;
+    contract_status: string | null;
   };
   
   // Check if current user owns this sprint or is a member of the linked project
@@ -264,6 +266,8 @@ export default async function SprintDetailPage({ params }: PageProps) {
     weeks: row.weeks,
     start_date: row.start_date instanceof Date ? row.start_date.toISOString() : row.start_date,
     due_date: row.due_date instanceof Date ? row.due_date.toISOString() : row.due_date,
+    contract_url: row.contract_url,
+    contract_status: row.contract_status,
   };
 
   const budgetPlanForClient = budgetPlan

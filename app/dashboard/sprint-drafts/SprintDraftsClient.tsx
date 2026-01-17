@@ -19,7 +19,6 @@ type SprintDraft = {
   email: string | null;
   accountName: string | null;
   accountId: string | null;
-  source: "package" | "typeform";
 };
 
 type Props = {
@@ -27,22 +26,15 @@ type Props = {
 };
 
 type FilterStatus = "all" | "draft" | "negotiating" | "scheduled" | "in_progress" | "complete";
-type FilterSource = "all" | "package" | "typeform";
 
 export default function SprintDraftsClient({ sprintDrafts }: Props) {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
-  const [filterSource, setFilterSource] = useState<FilterSource>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
   // Filter sprints
   const filteredSprints = sprintDrafts.filter((sprint) => {
     // Status filter
     if (filterStatus !== "all" && sprint.status !== filterStatus) {
-      return false;
-    }
-
-    // Source filter
-    if (filterSource !== "all" && sprint.source !== filterSource) {
       return false;
     }
 
@@ -68,8 +60,6 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
     scheduled: sprintDrafts.filter((s) => s.status === "scheduled").length,
     in_progress: sprintDrafts.filter((s) => s.status === "in_progress").length,
     complete: sprintDrafts.filter((s) => s.status === "complete").length,
-    fromPackage: sprintDrafts.filter((s) => s.source === "package").length,
-    fromTypeform: sprintDrafts.filter((s) => s.source === "typeform").length,
   };
 
   const getStatusColor = (status: string) => {
@@ -83,25 +73,11 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
     return colors[status] || colors.draft;
   };
 
-  const getSourceBadge = (source: "package" | "typeform", packageName: string | null) => {
-    if (source === "package") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-          📦 {packageName || "Package"}
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-        📝 Typeform
-      </span>
-    );
-  };
 
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
           <div className="text-2xl font-bold">{stats.total}</div>
           <div className="text-xs opacity-70">Total Sprints</div>
@@ -125,12 +101,6 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
         <div className="rounded-lg border border-purple-300 dark:border-purple-700 p-4">
           <div className="text-2xl font-bold">{stats.complete}</div>
           <div className="text-xs opacity-70">Complete</div>
-        </div>
-        <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-          <div className="text-2xl font-bold">
-            {stats.fromPackage}/{stats.fromTypeform}
-          </div>
-          <div className="text-xs opacity-70">Pkg/Form</div>
         </div>
       </div>
 
@@ -160,17 +130,6 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
           <option value="in_progress">In Progress</option>
           <option value="complete">Complete</option>
         </select>
-
-        {/* Source filter */}
-        <select
-          value={filterSource}
-          onChange={(e) => setFilterSource(e.target.value as FilterSource)}
-          className="px-4 py-2 rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black text-sm"
-        >
-          <option value="all">All Sources</option>
-          <option value="package">Package Template</option>
-          <option value="typeform">Typeform Submission</option>
-        </select>
       </div>
 
       {/* Results count */}
@@ -186,7 +145,6 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
               <tr>
                 <th className="px-4 py-3 text-left font-semibold">Sprint</th>
                 <th className="px-4 py-3 text-left font-semibold">Owner</th>
-                <th className="px-4 py-3 text-left font-semibold">Source</th>
                 <th className="px-4 py-3 text-left font-semibold">Status</th>
                 <th className="px-4 py-3 text-left font-semibold">Deliverables</th>
                 <th className="px-4 py-3 text-left font-semibold">Price</th>
@@ -198,7 +156,7 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
             <tbody>
               {filteredSprints.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center opacity-70">
+                  <td colSpan={8} className="px-4 py-8 text-center opacity-70">
                     No sprint drafts found matching your filters.
                   </td>
                 </tr>
@@ -218,7 +176,6 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
                       <div>{sprint.accountName || <span className="opacity-50">—</span>}</div>
                       <div className="text-xs opacity-60">{sprint.email || <span className="opacity-50">—</span>}</div>
                     </td>
-                    <td className="px-4 py-3">{getSourceBadge(sprint.source, sprint.packageName)}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getStatusColor(sprint.status)}`}>
                         {sprint.status.replace("_", " ")}

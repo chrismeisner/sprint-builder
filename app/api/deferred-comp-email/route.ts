@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Calculator payload is required" }, { status: 400 });
     }
 
-    const subject = body.subject || "Deferred compensation calculator snapshot";
+    const subject = body.subject || "Compensation calculator snapshot";
 
     const milestoneLines =
       calculator.milestones && calculator.milestones.length
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
         : "No milestones added.";
 
     const text = `
-Deferred compensation calculator snapshot
+Compensation calculator snapshot
 
 Total project value: ${formatCurrency(calculator.totalProjectValue)}
 Upfront: ${formatPercent(calculator.upfrontPayment)} (${formatCurrency(calculator.upfrontAmount)})
@@ -113,7 +113,7 @@ ${milestoneLines}
 <html>
   <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; background: #f8fafc; padding: 16px;">
     <div style="max-width: 640px; margin: 0 auto; background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 24px;">
-      <h2 style="margin: 0 0 12px 0;">Deferred compensation calculator snapshot</h2>
+      <h2 style="margin: 0 0 12px 0;">Compensation calculator snapshot</h2>
       <p style="margin: 0 0 16px 0;">Here's the latest calculation you requested:</p>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
         <tbody>
@@ -148,7 +148,7 @@ ${milestoneLines}
         </tbody>
       </table>
 
-      <p style="margin-top: 24px; color: #475569; font-size: 14px;">Sent via Deferred Compensation Calculator.</p>
+      <p style="margin-top: 24px; color: #475569; font-size: 14px;">Sent via Compensation Calculator.</p>
     </div>
   </body>
 </html>

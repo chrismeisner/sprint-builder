@@ -56,7 +56,6 @@ export default async function SprintDraftsAdminPage() {
     email: row.email,
     accountName: row.account_name,
     accountId: row.account_id,
-    source: (row.sprint_package_id ? "package" : "typeform") as "package" | "typeform",
   }));
 
   return (

@@ -12,7 +12,6 @@ export default async function DashboardPage() {
 
   const links = [
     { href: "/", label: "Home" },
-    { href: "/documents", label: "Documents" },
     { href: "/dashboard/sprint-builder", label: "Sprint Builder" },
     { href: "/dashboard/projects", label: "Past Projects" },
     { href: "/dashboard/deliverables", label: "Deliverables" },
@@ -22,8 +21,8 @@ export default async function DashboardPage() {
 
   // Add admin-only links
   if (isAdmin) {
+    links.push({ href: "/dashboard/intake-forms", label: "Intake Forms (Admin)" });
     links.push({ href: "/dashboard/deliverable-templates", label: "Deliverable Templates (Admin)" });
-    links.push({ href: "/ai-test", label: "AI Sprint Generation (Admin)" });
     links.push({ href: "/dashboard/sprint-drafts", label: "Sprint Drafts (Admin)" });
     links.push({ href: "/dashboard/users", label: "User Management" });
     links.push({ href: "/dashboard/workshop-cleanup", label: "Workshop Cleanup (Admin)" });

@@ -77,6 +77,8 @@ type SprintRow = {
   weeks: number | null;
   start_date: string | Date | null;
   due_date: string | Date | null;
+  contract_url: string | null;
+  contract_status: string | null;
 };
 
 type Props = {
@@ -100,53 +102,153 @@ export default function SprintDetailContent(props: Props) {
   } = props;
   const [viewAsAdmin, setViewAsAdmin] = useState(true);
   const [deliverables, setDeliverables] = useState(initialDeliverables);
-  const [editingUrlId, setEditingUrlId] = useState<string | null>(null);
+  
+  // Sprint totals state - these update when deliverable points change
+  const [totalPoints, setTotalPoints] = useState(Number(row.total_estimate_points ?? 0));
+  const [totalPrice, setTotalPrice] = useState(Number(row.total_fixed_price ?? 0));
+  const [totalHours, setTotalHours] = useState(
+    row.total_fixed_hours != null
+      ? Number(row.total_fixed_hours)
+      : hoursFromPoints(Number(row.total_estimate_points ?? 0))
+  );
+  
+  // Deliverable edit modal state
+  const [editingDeliverable, setEditingDeliverable] = useState<SprintDeliverable | null>(null);
   const [editingUrlValue, setEditingUrlValue] = useState("");
-  const [savingUrl, setSavingUrl] = useState(false);
+  const [editingNoteValue, setEditingNoteValue] = useState("");
+  const [editingPointsValue, setEditingPointsValue] = useState("");
+  const [savingDeliverable, setSavingDeliverable] = useState(false);
+  
+  // Contract URL and status state
+  const [contractUrl, setContractUrl] = useState(row.contract_url);
+  const [editingContractUrl, setEditingContractUrl] = useState(false);
+  const [contractUrlValue, setContractUrlValue] = useState(row.contract_url || "");
+  const [savingContractUrl, setSavingContractUrl] = useState(false);
+  const [contractStatus, setContractStatus] = useState(row.contract_status || "not_linked");
+  const [savingContractStatus, setSavingContractStatus] = useState(false);
   
   // Effective admin view: only true if user is actually admin AND viewing as admin
   const showAdminContent = isAdmin && viewAsAdmin;
 
-  const handleEditUrl = (deliverable: SprintDeliverable) => {
-    setEditingUrlId(deliverable.sprintDeliverableId);
+  const handleOpenEditModal = (deliverable: SprintDeliverable) => {
+    setEditingDeliverable(deliverable);
     setEditingUrlValue(deliverable.deliveryUrl || "");
+    setEditingNoteValue(deliverable.note || "");
+    setEditingPointsValue(deliverable.customPoints?.toString() || deliverable.basePoints?.toString() || "");
   };
 
-  const handleCancelEditUrl = () => {
-    setEditingUrlId(null);
+  const handleCloseEditModal = () => {
+    setEditingDeliverable(null);
     setEditingUrlValue("");
+    setEditingNoteValue("");
+    setEditingPointsValue("");
   };
 
-  const handleSaveUrl = async (sprintDeliverableId: string) => {
+  const handleSaveDeliverable = async () => {
+    if (!editingDeliverable) return;
+    
     try {
-      setSavingUrl(true);
-      const res = await fetch(`/api/sprint-drafts/${row.id}/deliverables/${sprintDeliverableId}`, {
+      setSavingDeliverable(true);
+      const pointsNum = parseFloat(editingPointsValue);
+      const customPoints = !isNaN(pointsNum) && pointsNum >= 0 ? pointsNum : null;
+      
+      const res = await fetch(`/api/sprint-drafts/${row.id}/deliverables/${editingDeliverable.sprintDeliverableId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           deliveryUrl: editingUrlValue.trim() || null,
+          notes: editingNoteValue.trim() || null,
+          customEstimatePoints: customPoints,
         }),
       });
       if (!res.ok) {
-        throw new Error("Failed to save URL");
+        throw new Error("Failed to save deliverable");
       }
+      
+      // Parse response to get updated sprint totals
+      const responseData = await res.json();
+      
+      // Update sprint totals if returned from API
+      if (responseData.sprintTotals) {
+        setTotalPoints(responseData.sprintTotals.totalPoints);
+        setTotalPrice(responseData.sprintTotals.totalPrice);
+        setTotalHours(responseData.sprintTotals.totalHours);
+      }
+      
       // Update local state
       setDeliverables((prev) =>
         prev.map((d) =>
-          d.sprintDeliverableId === sprintDeliverableId
-            ? { ...d, deliveryUrl: editingUrlValue.trim() || null }
+          d.sprintDeliverableId === editingDeliverable.sprintDeliverableId
+            ? { 
+                ...d, 
+                deliveryUrl: editingUrlValue.trim() || null,
+                note: editingNoteValue.trim() || null,
+                customPoints: customPoints,
+              }
             : d
         )
       );
-      setEditingUrlId(null);
-      setEditingUrlValue("");
+      handleCloseEditModal();
     } catch (err) {
       console.error(err);
-      alert("Failed to save delivery URL");
+      alert("Failed to save deliverable");
     } finally {
-      setSavingUrl(false);
+      setSavingDeliverable(false);
     }
   };
+
+  const handleSaveContractUrl = async () => {
+    try {
+      setSavingContractUrl(true);
+      const res = await fetch(`/api/sprint-drafts/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contract_url: contractUrlValue.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to save contract URL");
+      }
+      setContractUrl(contractUrlValue.trim() || null);
+      setEditingContractUrl(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save contract URL");
+    } finally {
+      setSavingContractUrl(false);
+    }
+  };
+
+  const handleContractStatusChange = async (newStatus: string) => {
+    try {
+      setSavingContractStatus(true);
+      const res = await fetch(`/api/sprint-drafts/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contract_status: newStatus,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update contract status");
+      }
+      setContractStatus(newStatus);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update contract status");
+    } finally {
+      setSavingContractStatus(false);
+    }
+  };
+
+  const contractStatusOptions = [
+    { value: "not_linked", label: "Not linked", color: "text-text-muted" },
+    { value: "drafted", label: "Drafted", color: "text-amber-600 dark:text-amber-400" },
+    { value: "signed", label: "Signed", color: "text-green-700 dark:text-green-300" },
+  ];
+
+  const currentStatusOption = contractStatusOptions.find(o => o.value === contractStatus) || contractStatusOptions[0];
 
   const t = {
     pageTitle: `${typography.headingSection}`,
@@ -226,24 +328,6 @@ export default function SprintDetailContent(props: Props) {
             </div>
           )}
         </div>
-
-        {/* Total price (admin only) */}
-        {showAdminContent && row.total_fixed_price != null && row.total_fixed_price > 0 && (
-          <SprintTotals
-            initialPoints={Number(row.total_estimate_points ?? 0)}
-            initialHours={
-              row.total_fixed_hours != null
-                ? Number(row.total_fixed_hours)
-                : hoursFromPoints(Number(row.total_estimate_points ?? 0))
-            }
-            initialPrice={Number(row.total_fixed_price ?? 0)}
-            isEditable={row.status === "draft" && Boolean(isOwner)}
-            showPointsAndHours={false}
-            variant="inline"
-            hideHeading
-            className="pt-2 border-t border-black/10 dark:border-white/10"
-          />
-        )}
       </section>
 
       {/* ============================================ */}
@@ -285,18 +369,15 @@ export default function SprintDetailContent(props: Props) {
             </div>
 
             {/* Full totals with points and hours for admin */}
-            {(row.total_estimate_points != null || row.total_fixed_hours != null) && (
+            {(totalPoints != null || totalHours != null) && (
               <div className="pt-3 border-t border-amber-400/30">
                 <SprintTotals
-                  initialPoints={Number(row.total_estimate_points ?? 0)}
-                  initialHours={
-                    row.total_fixed_hours != null
-                      ? Number(row.total_fixed_hours)
-                      : hoursFromPoints(Number(row.total_estimate_points ?? 0))
-                  }
-                  initialPrice={Number(row.total_fixed_price ?? 0)}
+                  initialPoints={totalPoints}
+                  initialHours={totalHours}
+                  initialPrice={totalPrice}
                   isEditable={false}
                   showPointsAndHours={true}
+                  showRate={true}
                   variant="inline"
                   hideHeading
                 />
@@ -357,6 +438,92 @@ export default function SprintDetailContent(props: Props) {
       )}
 
       {/* ============================================ */}
+      {/* ADMIN ONLY: Agreement/Contract */}
+      {/* ============================================ */}
+      {showAdminContent && (
+        <AdminOnlySection label="Admin Only">
+          <div className={`p-4 space-y-3 ${t.bodySm}`}>
+            <div className="flex items-center justify-between">
+              <h2 className={t.cardHeading}>Agreement</h2>
+              <div className="flex items-center gap-2">
+                <select
+                  value={contractStatus}
+                  onChange={(e) => handleContractStatusChange(e.target.value)}
+                  disabled={savingContractStatus}
+                  className={`${getTypographyClassName("body-sm")} ${currentStatusOption.color} bg-transparent border border-black/10 dark:border-white/15 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
+                >
+                  {contractStatusOptions.map((option) => (
+                    <option key={option.value} value={option.value} className="text-black dark:text-white bg-white dark:bg-gray-900">
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {editingContractUrl ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="url"
+                  value={contractUrlValue}
+                  onChange={(e) => setContractUrlValue(e.target.value)}
+                  placeholder="https://..."
+                  className="flex-1 min-w-[200px] rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                  disabled={savingContractUrl}
+                />
+                <button
+                  onClick={handleSaveContractUrl}
+                  disabled={savingContractUrl}
+                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
+                >
+                  {savingContractUrl ? "..." : "Save"}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingContractUrl(false);
+                    setContractUrlValue(contractUrl || "");
+                  }}
+                  disabled={savingContractUrl}
+                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : contractUrl ? (
+              <div className="flex items-center justify-between">
+                <a
+                  href={contractUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+                >
+                  View agreement <span className="opacity-50">↗</span>
+                </a>
+                <button
+                  onClick={() => {
+                    setEditingContractUrl(true);
+                    setContractUrlValue(contractUrl || "");
+                  }}
+                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                >
+                  Edit URL
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className={t.bodySm}>No agreement URL linked.</span>
+                <button
+                  onClick={() => setEditingContractUrl(true)}
+                  className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
+                >
+                  Add URL
+                </button>
+              </div>
+            )}
+          </div>
+        </AdminOnlySection>
+      )}
+
+      {/* ============================================ */}
       {/* EVERYONE SEES: Deliverables Table */}
       {/* ============================================ */}
       <section className={`space-y-6 ${t.bodySm}`}>
@@ -373,10 +540,12 @@ export default function SprintDetailContent(props: Props) {
                     <th className="text-left px-3 py-2 text-text-muted">Name</th>
                     <th className="text-left px-3 py-2 text-text-muted">Category</th>
                     {showAdminContent && (
-                      <th className="text-left px-3 py-2 text-text-muted">Adjusted Points</th>
+                      <th className="text-left px-3 py-2 text-text-muted">Points</th>
                     )}
                     <th className="text-left px-3 py-2 text-text-muted">Delivery</th>
-                    <th className="text-center px-3 py-2 text-text-muted">Template</th>
+                    {showAdminContent && (
+                      <th className="text-center px-3 py-2 text-text-muted">Edit</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className={getTypographyClassName("body-sm")}>
@@ -386,9 +555,25 @@ export default function SprintDetailContent(props: Props) {
                       className="border-t border-black/10 dark:border-white/10 bg-white dark:bg-gray-950/40 hover:bg-black/5 dark:hover:bg-white/5 transition"
                     >
                       <td className="px-3 py-3 align-top">
-                        <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>
-                          {d.name || "Untitled"}
-                        </span>
+                        <div className="space-y-1">
+                          {d.deliverableId ? (
+                            <Link
+                              href={`/deliverables/${d.deliverableId}`}
+                              className={`${getTypographyClassName("body-sm")} font-medium text-text-primary hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition`}
+                            >
+                              {d.name || "Untitled"}
+                            </Link>
+                          ) : (
+                            <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>
+                              {d.name || "Untitled"}
+                            </span>
+                          )}
+                          {d.note && (
+                            <p className={`${getTypographyClassName("body-sm")} text-text-muted italic`}>
+                              {d.note}
+                            </p>
+                          )}
+                        </div>
                       </td>
                       <td className="px-3 py-3 align-top">{d.category ?? "—"}</td>
                       {showAdminContent && (
@@ -397,74 +582,29 @@ export default function SprintDetailContent(props: Props) {
                         </td>
                       )}
                       <td className="px-3 py-3 align-top">
-                        {editingUrlId === d.sprintDeliverableId ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="url"
-                              value={editingUrlValue}
-                              onChange={(e) => setEditingUrlValue(e.target.value)}
-                              placeholder="https://..."
-                              className="flex-1 min-w-[200px] rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                              disabled={savingUrl}
-                            />
-                            <button
-                              onClick={() => handleSaveUrl(d.sprintDeliverableId)}
-                              disabled={savingUrl}
-                              className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
-                            >
-                              {savingUrl ? "..." : "Save"}
-                            </button>
-                            <button
-                              onClick={handleCancelEditUrl}
-                              disabled={savingUrl}
-                              className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : d.deliveryUrl ? (
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={d.deliveryUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
-                            >
-                              View delivery <span className="opacity-50">↗</span>
-                            </a>
-                            {showAdminContent && (
-                              <button
-                                onClick={() => handleEditUrl(d)}
-                                className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
-                              >
-                                Edit
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="text-text-muted">—</span>
-                            {showAdminContent && (
-                              <button
-                                onClick={() => handleEditUrl(d)}
-                                className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
-                              >
-                                Add URL
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 align-top text-center">
-                        {d.deliverableId && (
-                          <Link
-                            href={`/deliverables/${d.deliverableId}`}
-                            className={`${getTypographyClassName("button-sm")} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                        {d.deliveryUrl ? (
+                          <a
+                            href={d.deliveryUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
                           >
-                            Template
-                          </Link>
+                            View <span className="opacity-50">↗</span>
+                          </a>
+                        ) : (
+                          <span className="text-text-muted">—</span>
                         )}
                       </td>
+                      {showAdminContent && (
+                        <td className="px-3 py-3 align-top text-center">
+                          <button
+                            onClick={() => handleOpenEditModal(d)}
+                            className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -615,6 +755,128 @@ export default function SprintDetailContent(props: Props) {
             <DeleteSprintButton sprintId={row.id} visible={true} />
           </div>
         </AdminOnlySection>
+      )}
+
+      {/* ============================================ */}
+      {/* Edit Deliverable Modal */}
+      {/* ============================================ */}
+      {editingDeliverable && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 dark:bg-black/70"
+            onClick={handleCloseEditModal}
+          />
+          
+          {/* Modal */}
+          <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
+              <h2 className={t.cardHeading}>Edit Deliverable</h2>
+              <button
+                onClick={handleCloseEditModal}
+                className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded transition"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Body */}
+            <div className="p-4 space-y-4">
+              {/* Deliverable Name (read-only) */}
+              <div>
+                <label className={`${getTypographyClassName("subtitle-sm")} text-text-muted block mb-1`}>
+                  Deliverable
+                </label>
+                <p className={`${getTypographyClassName("body-md")} text-text-primary font-medium`}>
+                  {editingDeliverable.name || "Untitled"}
+                </p>
+                {editingDeliverable.category && (
+                  <p className={`${getTypographyClassName("body-sm")} text-text-muted`}>
+                    {editingDeliverable.category}
+                  </p>
+                )}
+              </div>
+
+              {/* Points */}
+              <div>
+                <label className={`${getTypographyClassName("subtitle-sm")} text-text-muted block mb-1`}>
+                  Points
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    value={editingPointsValue}
+                    onChange={(e) => setEditingPointsValue(e.target.value)}
+                    placeholder="e.g. 2.5"
+                    className="w-32 rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                    disabled={savingDeliverable}
+                  />
+                  <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>
+                    pts
+                  </span>
+                  {editingDeliverable.basePoints != null && (
+                    <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>
+                      (base: {editingDeliverable.basePoints})
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Delivery URL */}
+              <div>
+                <label className={`${getTypographyClassName("subtitle-sm")} text-text-muted block mb-1`}>
+                  Delivery URL
+                </label>
+                <input
+                  type="url"
+                  value={editingUrlValue}
+                  onChange={(e) => setEditingUrlValue(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                  disabled={savingDeliverable}
+                />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className={`${getTypographyClassName("subtitle-sm")} text-text-muted block mb-1`}>
+                  Notes
+                </label>
+                <textarea
+                  value={editingNoteValue}
+                  onChange={(e) => setEditingNoteValue(e.target.value)}
+                  placeholder="Add notes about this deliverable..."
+                  rows={3}
+                  className="w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white resize-none"
+                  disabled={savingDeliverable}
+                />
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-black/10 dark:border-white/10">
+              <button
+                onClick={handleCloseEditModal}
+                disabled={savingDeliverable}
+                className={`${getTypographyClassName("button-sm")} px-4 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveDeliverable}
+                disabled={savingDeliverable}
+                className={`${getTypographyClassName("button-sm")} px-4 py-2 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
+              >
+                {savingDeliverable ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );

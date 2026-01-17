@@ -32,7 +32,6 @@ type Sprint = {
   created_at: string;
   updated_at: string | null;
   document_id: string;
-  document_filename: string | null;
 };
 
 type Project = {
@@ -804,21 +803,18 @@ export default function ProfileClient() {
                     <th className={`px-6 py-3 ${tableHeadingClass}`}>
                       Created
                     </th>
-                    <th className={`px-6 py-3 ${tableHeadingClass}`}>
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-black divide-y divide-black/10 dark:divide-white/15">
                   {data.sprints.map((sprint) => (
                     <tr key={sprint.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
                       <td className="px-6 py-4">
-                        <div className={`${bodyClass} font-medium`}>
+                        <Link
+                          href={`/sprints/${sprint.id}`}
+                          className={`${bodyClass} font-medium hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition`}
+                        >
                           {sprint.title || <span className="opacity-50 italic">Untitled Sprint</span>}
-                        </div>
-                        <div className={helperTextClass}>
-                          From: {sprint.document_filename || "Form submission"}
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(sprint.status)}
@@ -842,14 +838,6 @@ export default function ProfileClient() {
                         <span className={helperTextClass}>
                           {new Date(sprint.created_at).toLocaleDateString()}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Link
-                          href={`/sprints/${sprint.id}`}
-                          className={`${bodySmClass} font-medium hover:underline`}
-                        >
-                          View Sprint
-                        </Link>
                       </td>
                     </tr>
                   ))}
