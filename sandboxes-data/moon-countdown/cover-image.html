@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Moon Cover Image Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+	body {
+	  margin: 0;
+	  height: 100vh;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  background: #0b0f1a;
+	  color: #ffffff;
+	  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+	}
+
+	.container {
+	  text-align: center;
+	  max-width: 600px;
+	  padding: 2rem;
+	}
+
+	h1 {
+	  font-size: 2rem;
+	  margin-bottom: 1rem;
+	}
+
+	.description {
+	  font-size: 1rem;
+	  opacity: 0.8;
+	  margin-bottom: 2rem;
+	  line-height: 1.5;
+	}
+
+	button {
+	  background: #ffffff;
+	  color: #0b0f1a;
+	  border: none;
+	  padding: 1rem 2rem;
+	  font-size: 1.1rem;
+	  font-weight: 600;
+	  border-radius: 0.5rem;
+	  cursor: pointer;
+	  transition: all 0.2s ease;
+	}
+
+	button:hover {
+	  transform: scale(1.05);
+	  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+	}
+
+	button:active {
+	  transform: scale(0.98);
+	}
+
+	button:disabled {
+	  opacity: 0.5;
+	  cursor: not-allowed;
+	  transform: none;
+	}
+
+	.status {
+	  margin-top: 1.5rem;
+	  font-size: 1rem;
+	  min-height: 1.5rem;
+	}
+
+	.status.success {
+	  color: #4ade80;
+	}
+
+	.status.error {
+	  color: #f87171;
+	}
+
+	.preview {
+	  margin-top: 2rem;
+	  border: 2px solid rgba(255, 255, 255, 0.2);
+	  border-radius: 0.5rem;
+	  overflow: hidden;
+	  display: none;
+	}
+
+	.preview img {
+	  width: 100%;
+	  height: auto;
+	  display: block;
+	}
+
+	.preview.show {
+	  display: block;
+	}
+  </style>
+</head>
+<body>
+  <div class="container">
+	<h1>Moon Cover Image Generator</h1>
+	<div class="description">
+	  Generate a static cover image with the current moon phase for social sharing.
+	  Click the button below to create/update the cover image.
+	</div>
+	<button id="generateBtn" onclick="generateCoverImage()">
+	  Create Cover Image
+	</button>
+	<div id="status" class="status"></div>
+	<div id="preview" class="preview">
+	  <img id="previewImg" alt="Generated cover image" />
+	</div>
+  </div>
+
+  <script>
+	async function generateCoverImage() {
+	  const button = document.getElementById('generateBtn');
+	  const status = document.getElementById('status');
+	  const preview = document.getElementById('preview');
+	  const previewImg = document.getElementById('previewImg');
+
+	  // Disable button and show loading
+	  button.disabled = true;
+	  button.textContent = 'Generating...';
+	  status.textContent = '';
+	  status.className = 'status';
+	  preview.classList.remove('show');
+
+	  try {
+		const response = await fetch('/api/moon-cover-image', {
+		  method: 'POST',
+		});
+
+		const result = await response.json();
+
+		if (response.ok) {
+		  status.textContent = `✓ ${result.message}`;
+		  status.className = 'status success';
+		  
+		  // Show preview with cache buster
+		  previewImg.src = `moon-preview.png?t=${Date.now()}`;
+		  preview.classList.add('show');
+		} else {
+		  status.textContent = `✗ Error: ${result.error}`;
+		  status.className = 'status error';
+		}
+	  } catch (error) {
+		status.textContent = `✗ Failed to generate image: ${error.message}`;
+		status.className = 'status error';
+	  } finally {
+		// Re-enable button
+		button.disabled = false;
+		button.textContent = 'Create Cover Image';
+	  }
+	}
+  </script>
+</body>
+</html>

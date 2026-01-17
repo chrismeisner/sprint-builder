@@ -1,6 +1,8 @@
 import { ImageResponse } from "next/og";
-
-export const runtime = "edge";
+import { NextRequest, NextResponse } from "next/server";
+import { writeFile } from "fs/promises";
+import path from "path";
+import { getCurrentUser } from "@/lib/auth";
 
 // Moon phase calculation (same as in HTML)
 const SYNODIC_MONTH = 29.530588;
@@ -29,13 +31,20 @@ function getMoonEmoji(phase: number): string {
   return "🌑";
 }
 
-export async function GET() {
+export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const now = Date.now();
     const { phase, percent, waxing } = getMoonData(now);
     const moonEmoji = getMoonEmoji(phase);
 
-    return new ImageResponse(
+    // Generate the image using ImageResponse
+    const imageResponse = new ImageResponse(
       (
         <div
           style={{
@@ -83,8 +92,31 @@ export async function GET() {
         height: 630,
       }
     );
+
+    // Get the image as array buffer
+    const imageBuffer = await imageResponse.arrayBuffer();
+
+    // Save to sandboxes-data/moon-countdown/moon-preview.png
+    const outputPath = path.join(
+      process.cwd(),
+      "sandboxes-data",
+      "moon-countdown",
+      "moon-preview.png"
+    );
+
+    await writeFile(outputPath, Buffer.from(imageBuffer));
+
+    return NextResponse.json({
+      success: true,
+      message: "Cover image generated successfully!",
+      path: "/api/sandbox-files/moon-countdown/moon-preview.png",
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
-    console.error("Error generating moon preview:", error);
-    return new Response("Failed to generate image", { status: 500 });
+    console.error("Error generating moon cover image:", error);
+    return NextResponse.json(
+      { error: "Failed to generate cover image" },
+      { status: 500 }
+    );
   }
 }
