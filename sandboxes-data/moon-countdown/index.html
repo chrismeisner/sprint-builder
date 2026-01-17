@@ -35,6 +35,8 @@
 	.emoji {
 	  font-size: 3rem;
 	  font-family: 'Noto Color Emoji', sans-serif;
+	  cursor: pointer;
+	  position: relative;
 	}
 
 	.label {
@@ -82,6 +84,11 @@
 	  opacity: 1;
 	}
 
+	.emoji:hover .tooltip,
+	.emoji.active .tooltip {
+	  opacity: 1;
+	}
+
 	.zodiac-label {
 	  margin-top: 0.25rem;
 	  font-size: 0.9rem;
@@ -92,7 +99,10 @@
 </head>
 <body>
   <div class="container">
-	<div class="emoji" id="moonEmoji">🌑</div>
+	<div class="emoji" id="moonEmoji">
+	  🌑
+	  <div class="tooltip" id="moonTooltip">Waxing</div>
+	</div>
 	<div class="percent">
 	  <span id="moonPercent">---.---</span>
 	</div>
@@ -180,10 +190,10 @@
 	  const zodiac = getMoonZodiac(now);
 
 	  document.getElementById("moonPercent").textContent =
-		percent.toFixed(4) + "%";
+		percent.toFixed(3) + "%";
 
-	  document.getElementById("moonEmoji").textContent =
-		getMoonEmoji(phase);
+	  document.getElementById("moonEmoji").innerHTML =
+		`${getMoonEmoji(phase)}<div class="tooltip" id="moonTooltip">${waxing ? 'Waxing' : 'Waning'}</div>`;
 
 	  document.getElementById("moonZodiac").innerHTML =
 		`${zodiac.symbol}<div class="tooltip" id="zodiacTooltip">${zodiac.name}</div>`;
@@ -192,22 +202,24 @@
 	// Add touch support for mobile
 	document.addEventListener('DOMContentLoaded', () => {
 	  const zodiacEl = document.getElementById('moonZodiac');
+	  const moonEl = document.getElementById('moonEmoji');
 	  let touchTimeout;
 
-	  zodiacEl.addEventListener('touchstart', (e) => {
-		e.preventDefault();
-		zodiacEl.classList.add('active');
-		
-		// Auto-hide after 2 seconds on mobile
-		clearTimeout(touchTimeout);
-		touchTimeout = setTimeout(() => {
-		  zodiacEl.classList.remove('active');
-		}, 2000);
-	  });
+	  const addTouchSupport = (element) => {
+		element.addEventListener('touchstart', (e) => {
+		  e.preventDefault();
+		  element.classList.add('active');
+		  
+		  // Auto-hide after 2 seconds on mobile
+		  clearTimeout(touchTimeout);
+		  touchTimeout = setTimeout(() => {
+			element.classList.remove('active');
+		  }, 2000);
+		});
+	  };
 
-	  zodiacEl.addEventListener('touchend', () => {
-		// Keep tooltip visible for 2 seconds after tap
-	  });
+	  addTouchSupport(zodiacEl);
+	  addTouchSupport(moonEl);
 	});
 
 	update();
