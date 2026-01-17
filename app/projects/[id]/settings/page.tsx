@@ -40,7 +40,16 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
     updated_at: string | Date | null;
   };
 
-  if (project.account_id !== user.accountId) {
+  // Allow owners, admins, or explicit project members to view settings
+  const isOwner = project.account_id === user.accountId;
+  const isAdmin = Boolean(user.isAdmin);
+  const membershipRes = await pool.query(
+    `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
+    [project.id, user.email]
+  );
+  const isMember = (membershipRes?.rowCount ?? 0) > 0;
+
+  if (!isOwner && !isAdmin && !isMember) {
     notFound();
   }
 
@@ -68,13 +77,11 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
       </div>
 
       <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-4">
-        <div className="space-y-4">
-          <Typography as="h2" scale="h4">
-            Project settings
-          </Typography>
-          <ProjectNameForm projectId={project.id} initialName={project.name} />
-          <ProjectActions projectId={project.id} projectName={project.name} isOwner={project.account_id === user.accountId} />
-        </div>
+        <ProjectNameForm projectId={project.id} initialName={project.name} />
+      </section>
+
+      <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-4">
+        <ProjectActions projectId={project.id} projectName={project.name} isOwner={isOwner} />
       </section>
     </main>
   );
