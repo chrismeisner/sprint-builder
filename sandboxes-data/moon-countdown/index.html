@@ -1,9 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="background: #0b0f1a;">
 <head>
   <meta charset="UTF-8" />
   <title>Moon Illumination</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- Inline critical styles to prevent white flash -->
+  <style>
+    html, body { background: #0b0f1a; margin: 0; }
+  </style>
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
@@ -20,9 +25,11 @@
   <meta name="twitter:image" content="https://storage.googleapis.com/YOUR_BUCKET/sandboxes/moon-countdown/TIMESTAMP-moon-preview.png" />
   
   <style>
+	/* Load custom emoji font in background - swaps in when ready */
 	@font-face {
 	  font-family: 'Noto Color Emoji';
 	  src: url('NotoColorEmoji.ttf') format('truetype');
+	  font-display: swap;
 	}
 
 	body {
@@ -49,7 +56,7 @@
 
 	.emoji {
 	  font-size: 3rem;
-	  font-family: 'Noto Color Emoji', sans-serif;
+	  font-family: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
 	  cursor: pointer;
 	  position: relative;
 	}
@@ -70,7 +77,7 @@
 	  margin-top: 1.5rem;
 	  font-size: 1.5rem;
 	  opacity: 0.9;
-	  font-family: 'Noto Color Emoji', sans-serif;
+	  font-family: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
 	  cursor: pointer;
 	  position: relative;
 	}
@@ -109,11 +116,43 @@
 	  font-size: 0.9rem;
 	  opacity: 0.6;
 	}
+
+	/* Loading state */
+	.loading {
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  height: 100vh;
+	  color: rgba(255, 255, 255, 0.5);
+	  font-size: 1rem;
+	}
+
+	.container {
+	  opacity: 0;
+	  transition: opacity 0.3s ease;
+	}
+
+	.container.loaded {
+	  opacity: 1;
+	}
+
+	@keyframes pulse {
+	  0%, 100% { opacity: 0.4; }
+	  50% { opacity: 0.8; }
+	}
+
+	.loading-dot {
+	  animation: pulse 1.5s ease-in-out infinite;
+	}
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 </head>
 <body>
-  <div class="container">
+  <!-- Loading state shown immediately -->
+  <div class="loading" id="loadingState">
+	<span class="loading-dot">●</span>
+  </div>
+
+  <div class="container" id="mainContent">
 	<div class="emoji" id="moonEmoji">
 	  🌑
 	  <div class="tooltip" id="moonTooltip">Waxing</div>
@@ -127,7 +166,19 @@
 	</div>
   </div>
 
+  <!-- Load astronomy library asynchronously -->
   <script>
+	// Load the astronomy library dynamically
+	function loadScript(src) {
+	  return new Promise((resolve, reject) => {
+		const script = document.createElement('script');
+		script.src = src;
+		script.onload = resolve;
+		script.onerror = reject;
+		document.head.appendChild(script);
+	  });
+	}
+
 	const SYNODIC_MONTH = 29.530588;
 	const REFERENCE_NEW_MOON = Date.UTC(2024, 0, 11, 11, 57, 0);
 
@@ -214,13 +265,18 @@
 		`${zodiac.symbol}<div class="tooltip" id="zodiacTooltip">${zodiac.name}</div>`;
 	}
 
-	// Add touch support for mobile
-	document.addEventListener('DOMContentLoaded', () => {
+	function showContent() {
+	  // Hide loading, show content
+	  document.getElementById('loadingState').style.display = 'none';
+	  document.getElementById('mainContent').classList.add('loaded');
+	}
+
+	function addTouchSupport() {
 	  const zodiacEl = document.getElementById('moonZodiac');
 	  const moonEl = document.getElementById('moonEmoji');
 	  let touchTimeout;
 
-	  const addTouchSupport = (element) => {
+	  const addTouch = (element) => {
 		element.addEventListener('touchstart', (e) => {
 		  e.preventDefault();
 		  element.classList.add('active');
@@ -233,12 +289,41 @@
 		});
 	  };
 
-	  addTouchSupport(zodiacEl);
-	  addTouchSupport(moonEl);
-	});
+	  addTouch(zodiacEl);
+	  addTouch(moonEl);
+	}
 
-	update();
-	setInterval(update, 1000);
+	// Initialize app
+	async function init() {
+	  try {
+		// Load astronomy library
+		await loadScript('https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js');
+		
+		// First update
+		update();
+		
+		// Show content with fade-in
+		showContent();
+		
+		// Add touch support
+		addTouchSupport();
+		
+		// Start interval updates
+		setInterval(update, 1000);
+	  } catch (error) {
+		console.error('Failed to load astronomy library:', error);
+		// Still show content even if library fails, just with placeholder
+		document.getElementById('moonPercent').textContent = 'Error loading';
+		showContent();
+	  }
+	}
+
+	// Start initialization when DOM is ready
+	if (document.readyState === 'loading') {
+	  document.addEventListener('DOMContentLoaded', init);
+	} else {
+	  init();
+	}
   </script>
 </body>
 </html>
