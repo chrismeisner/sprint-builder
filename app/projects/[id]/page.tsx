@@ -115,10 +115,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             Settings
           </Link>
           <Link
-            href="/profile"
-            className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:hoverbg-white/10 transition"
+            href="/my-dashboard"
+            className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
           >
-            Back to profile
+            Back to dashboard
           </Link>
         </div>
       </div>

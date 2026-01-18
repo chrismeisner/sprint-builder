@@ -199,6 +199,42 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json({ success: true });
     }
 
+    // Signed by studio/client update (admin only)
+    if (body.signed_by_studio !== undefined || body.signed_by_client !== undefined) {
+      if (!user.isAdmin) {
+        return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+      }
+      
+      const updates: string[] = [];
+      const values: (boolean | string | null)[] = [];
+      let paramIndex = 1;
+      
+      if (body.signed_by_studio !== undefined) {
+        updates.push(`signed_by_studio = $${paramIndex++}`);
+        values.push(body.signed_by_studio ?? false);
+      }
+      if (body.signed_by_client !== undefined) {
+        updates.push(`signed_by_client = $${paramIndex++}`);
+        values.push(body.signed_by_client ?? false);
+      }
+      // Also update contract_status if provided (when both sign)
+      if (body.contract_status !== undefined) {
+        const validStatuses = ["not_linked", "drafted", "ready", "signed"];
+        const statusValue = validStatuses.includes(body.contract_status || "") ? body.contract_status : "not_linked";
+        updates.push(`contract_status = $${paramIndex++}`);
+        values.push(statusValue);
+      }
+      
+      updates.push("updated_at = now()");
+      values.push(params.id);
+      
+      await pool.query(
+        `UPDATE sprint_drafts SET ${updates.join(", ")} WHERE id = $${paramIndex}`,
+        values
+      );
+      return NextResponse.json({ success: true });
+    }
+
     // Invoice URL update (admin only)
     if (body.invoice_url !== undefined) {
       if (!user.isAdmin) {

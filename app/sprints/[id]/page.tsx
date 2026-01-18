@@ -26,6 +26,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
             sd.deliverable_count, sd.total_estimate_points, sd.total_fixed_hours, sd.total_fixed_price, 
             sd.created_at, sd.updated_at, sd.weeks, sd.start_date, sd.due_date,
             sd.project_id, sd.contract_url, sd.contract_status,
+            sd.signed_by_studio, sd.signed_by_client,
             sd.invoice_url, sd.invoice_status, sd.budget_status, sd.contract_pdf_url,
             d.email, d.account_id, d.project_id AS document_project_id
      FROM sprint_drafts sd
@@ -58,6 +59,8 @@ export default async function SprintDetailPage({ params }: PageProps) {
     due_date: string | Date | null;
     contract_url: string | null;
     contract_status: string | null;
+    signed_by_studio: boolean | null;
+    signed_by_client: boolean | null;
     invoice_url: string | null;
     invoice_status: string | null;
     budget_status: string | null;
@@ -289,6 +292,8 @@ export default async function SprintDetailPage({ params }: PageProps) {
     due_date: row.due_date instanceof Date ? row.due_date.toISOString() : row.due_date,
     contract_url: row.contract_url,
     contract_status: row.contract_status,
+    signed_by_studio: row.signed_by_studio,
+    signed_by_client: row.signed_by_client,
     invoice_url: row.invoice_url,
     invoice_status: row.invoice_status,
     budget_status: row.budget_status,

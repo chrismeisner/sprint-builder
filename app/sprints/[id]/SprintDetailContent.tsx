@@ -79,6 +79,8 @@ type SprintRow = {
   due_date: string | Date | null;
   contract_url: string | null;
   contract_status: string | null;
+  signed_by_studio: boolean | null;
+  signed_by_client: boolean | null;
   invoice_url: string | null;
   invoice_status: string | null;
   budget_status: string | null;
@@ -130,6 +132,9 @@ export default function SprintDetailContent(props: Props) {
   const [savingContractUrl, setSavingContractUrl] = useState(false);
   const [contractStatus, setContractStatus] = useState(row.contract_status || "not_linked");
   const [savingContractStatus, setSavingContractStatus] = useState(false);
+  const [signedByStudio, setSignedByStudio] = useState(row.signed_by_studio ?? false);
+  const [signedByClient, setSignedByClient] = useState(row.signed_by_client ?? false);
+  const [savingSignedBy, setSavingSignedBy] = useState(false);
   
   // Contract PDF state
   const [contractPdfUrl, setContractPdfUrl] = useState(row.contract_pdf_url);
@@ -272,10 +277,51 @@ export default function SprintDetailContent(props: Props) {
     }
   };
 
+  const handleSignedByChange = async (field: "studio" | "client", value: boolean) => {
+    try {
+      setSavingSignedBy(true);
+      const newSignedByStudio = field === "studio" ? value : signedByStudio;
+      const newSignedByClient = field === "client" ? value : signedByClient;
+      
+      // Determine if we need to auto-update the status
+      const bothSigned = newSignedByStudio && newSignedByClient;
+      const newStatus = bothSigned ? "signed" : contractStatus;
+      
+      const res = await fetch(`/api/sprint-drafts/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          signed_by_studio: newSignedByStudio,
+          signed_by_client: newSignedByClient,
+          ...(bothSigned && contractStatus !== "signed" ? { contract_status: "signed" } : {}),
+        }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update signed status");
+      }
+      
+      if (field === "studio") {
+        setSignedByStudio(value);
+      } else {
+        setSignedByClient(value);
+      }
+      
+      // Auto-update status to "signed" if both are checked
+      if (bothSigned && contractStatus !== "signed") {
+        setContractStatus("signed");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update signed status");
+    } finally {
+      setSavingSignedBy(false);
+    }
+  };
+
   const contractStatusOptions = [
     { value: "not_linked", label: "Not linked", color: "text-text-muted" },
     { value: "drafted", label: "Drafted", color: "text-amber-600 dark:text-amber-400" },
-    { value: "ready", label: "Ready", color: "text-blue-600 dark:text-blue-400" },
+    { value: "ready", label: "Sent", color: "text-blue-600 dark:text-blue-400" },
     { value: "signed", label: "Signed", color: "text-green-700 dark:text-green-300" },
   ];
 
@@ -1027,8 +1073,57 @@ export default function SprintDetailContent(props: Props) {
         </div>
         
         <p className={`${t.bodySm} text-text-secondary`}>
-          Agreements are signed via Google Docs eSignatures
+          {contractStatus === "ready" 
+            ? "Agreements are signed via Google Docs eSignatures. Check your inbox for a link from Google Docs to sign."
+            : "Agreements are signed via Google Docs eSignatures"
+          }
         </p>
+        
+        {/* Admin-only: Signed by checkboxes */}
+        {showAdminContent && (
+          <div className="flex items-center gap-6 py-2 px-3 bg-gray-50 dark:bg-gray-900/50 rounded-md border border-black/5 dark:border-white/10">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={signedByStudio}
+                onChange={(e) => handleSignedByChange("studio", e.target.checked)}
+                disabled={savingSignedBy}
+                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-black dark:text-white focus:ring-black dark:focus:ring-white disabled:opacity-50"
+              />
+              <span className={`${t.bodySm} ${signedByStudio ? "text-green-700 dark:text-green-400" : "text-text-secondary"}`}>
+                Signed by Studio
+              </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={signedByClient}
+                onChange={(e) => handleSignedByChange("client", e.target.checked)}
+                disabled={savingSignedBy}
+                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-black dark:text-white focus:ring-black dark:focus:ring-white disabled:opacity-50"
+              />
+              <span className={`${t.bodySm} ${signedByClient ? "text-green-700 dark:text-green-400" : "text-text-secondary"}`}>
+                Signed by Client
+              </span>
+            </label>
+          </div>
+        )}
+        
+        {/* Non-admin: Read-only signature status */}
+        {!showAdminContent && (signedByStudio || signedByClient) && (
+          <div className="flex items-center gap-4 py-2">
+            <div className="flex items-center gap-1.5">
+              <span className={`${t.bodySm} ${signedByStudio ? "text-green-700 dark:text-green-400" : "text-text-muted"}`}>
+                {signedByStudio ? "✓" : "○"} Studio
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className={`${t.bodySm} ${signedByClient ? "text-green-700 dark:text-green-400" : "text-text-muted"}`}>
+                {signedByClient ? "✓" : "○"} Client
+              </span>
+            </div>
+          </div>
+        )}
         
         {/* Agreement content - URL and/or PDF */}
         <div className="space-y-3">
