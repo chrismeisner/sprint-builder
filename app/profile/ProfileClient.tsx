@@ -70,6 +70,7 @@ export default function ProfileClient() {
   const [projectError, setProjectError] = useState<string | null>(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [memberModalProjectId, setMemberModalProjectId] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [memberModalProjectName, setMemberModalProjectName] = useState<string>("");
   const [memberModalMembers, setMemberModalMembers] = useState<Array<{ email: string; addedByAccount: string | null; createdAt: string }>>([]);
   const [memberModalLoading, setMemberModalLoading] = useState(false);
