@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
           s.created_by, s.created_at, s.updated_at,
           p.name AS project_name
         FROM sandboxes s
-        JOIN projects p ON s.project_id = p.id
+        LEFT JOIN projects p ON s.project_id = p.id
         ORDER BY s.created_at DESC
       `);
       sandboxes = result.rows;
@@ -125,8 +125,9 @@ export async function GET(request: NextRequest) {
           s.created_by, s.created_at, s.updated_at,
           p.name AS project_name
         FROM sandboxes s
-        JOIN projects p ON s.project_id = p.id
-        WHERE p.account_id = $1
+        LEFT JOIN projects p ON s.project_id = p.id
+        WHERE s.project_id IS NULL
+           OR p.account_id = $1
            OR EXISTS (
              SELECT 1 FROM project_members pm 
              WHERE pm.project_id = p.id 

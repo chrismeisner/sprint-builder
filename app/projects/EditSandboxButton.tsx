@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Button from "@/components/ui/Button";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 interface Sandbox {
   id: string;
@@ -23,6 +24,7 @@ export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
   const [saving, setSaving] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
   const [error, setError] = useState("");
+  const [showUnlinkModal, setShowUnlinkModal] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
@@ -53,10 +55,6 @@ export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
   };
 
   const handleUnlink = async () => {
-    if (!confirm("Are you sure you want to unlink this sandbox from the project?")) {
-      return;
-    }
-
     setUnlinking(true);
     setError("");
     try {
@@ -89,6 +87,17 @@ export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
 
   return (
     <>
+      <ConfirmModal
+        isOpen={showUnlinkModal}
+        onClose={() => setShowUnlinkModal(false)}
+        onConfirm={handleUnlink}
+        title="Unlink sandbox?"
+        message={`Are you sure you want to unlink "${sandbox.name}" from this project? The sandbox files will remain, but it won't be associated with this project anymore.`}
+        confirmText="Unlink"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
       <button
         onClick={() => setIsOpen(true)}
         className="font-medium hover:underline text-sm"
@@ -192,7 +201,7 @@ export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
                 </span>
                 <button
                   type="button"
-                  onClick={handleUnlink}
+                  onClick={() => setShowUnlinkModal(true)}
                   disabled={unlinking}
                   className="w-full flex items-center gap-3 p-3 rounded-md border border-red-500/30 hover:bg-red-500/5 transition disabled:opacity-50"
                 >

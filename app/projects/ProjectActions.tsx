@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Typography from "@/components/ui/Typography";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 
 type Member = { email: string; addedByAccount: string | null; createdAt: string };
@@ -22,6 +23,7 @@ export default function ProjectActions({ projectId, projectName, isOwner }: Prop
   const [memberSaving, setMemberSaving] = useState(false);
   const [memberRemovingEmail, setMemberRemovingEmail] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const bodySmClass = getTypographyClassName("body-sm");
 
@@ -97,7 +99,6 @@ export default function ProjectActions({ projectId, projectName, isOwner }: Prop
 
   const handleDeleteProject = async () => {
     if (!isOwner) return;
-    if (!confirm("Delete this project? This cannot be undone.")) return;
     try {
       setDeleting(true);
       const res = await fetch(`/api/projects?id=${projectId}`, { method: "DELETE" });
@@ -116,6 +117,17 @@ export default function ProjectActions({ projectId, projectName, isOwner }: Prop
 
   return (
     <div className="space-y-4">
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteProject}
+        title="Delete project?"
+        message={`Are you sure you want to delete "${projectName}"? This action cannot be undone.`}
+        confirmText="Delete project"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
       <div className="flex items-center justify-between">
         <Typography as="h3" scale="h4">
           Project access
@@ -183,7 +195,7 @@ export default function ProjectActions({ projectId, projectName, isOwner }: Prop
 
       <div className="pt-2 border-t border-black/10 dark:border-white/15 flex justify-end">
         <button
-          onClick={handleDeleteProject}
+          onClick={() => setShowDeleteModal(true)}
           disabled={!isOwner || deleting}
           className={`${getTypographyClassName("button-sm")} inline-flex items-center rounded-md border border-red-200 text-red-700 dark:border-red-800 dark:text-red-300 px-3 py-2 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50 disabled:cursor-not-allowed transition`}
         >

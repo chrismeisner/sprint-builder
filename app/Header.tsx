@@ -26,7 +26,7 @@ export default async function Header() {
           <div className="flex items-center gap-2">
             {user ? (
               <Button as={Link} href="/profile" variant="secondary" size="sm" className="normal-case tracking-normal">
-                {user.email}
+                Dashboard
               </Button>
             ) : (
               <Button as={Link} href="/login" variant="secondary" size="sm" className="normal-case tracking-normal">

@@ -81,7 +81,7 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
       </section>
 
       <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-4">
-        <ProjectActions projectId={project.id} projectName={project.name} isOwner={isOwner} />
+        <ProjectActions projectId={project.id} projectName={project.name} isOwner={isOwner || isAdmin} />
       </section>
     </main>
   );

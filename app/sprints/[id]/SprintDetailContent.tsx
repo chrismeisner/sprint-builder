@@ -1026,6 +1026,10 @@ export default function SprintDetailContent(props: Props) {
           </div>
         </div>
         
+        <p className={`${t.bodySm} text-text-secondary`}>
+          Agreements are signed via Google Docs eSignatures
+        </p>
+        
         {/* Agreement content - URL and/or PDF */}
         <div className="space-y-3">
           {/* Agreement URL section */}
@@ -1203,6 +1207,10 @@ export default function SprintDetailContent(props: Props) {
             )}
           </div>
         </div>
+        
+        <p className={`${t.bodySm} text-text-secondary`}>
+          Invoices are sent via Bill.com
+        </p>
         
         {/* Invoice URL section */}
         {showAdminContent ? (

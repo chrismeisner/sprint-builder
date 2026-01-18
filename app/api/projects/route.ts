@@ -199,9 +199,16 @@ export async function DELETE(request: Request) {
     await ensureSchema();
     const pool = getPool();
 
+    // Allow deletion if user is the owner OR an admin
+    const whereClause = user.isAdmin
+      ? `WHERE id = $1`
+      : `WHERE id = $1 AND account_id = $2`;
+    
+    const params = user.isAdmin ? [id] : [id, user.accountId];
+
     const result = await pool.query(
-      `DELETE FROM projects WHERE id = $1 AND account_id = $2`,
-      [id, user.accountId]
+      `DELETE FROM projects ${whereClause}`,
+      params
     );
 
     if (result.rowCount === 0) {

@@ -203,6 +203,11 @@ function LoginForm() {
               </p>
             </div>
 
+            {/* How it works */}
+            <div className={`${typography.bodySm} text-text-secondary`}>
+              New users receive a verification code. Returning users get a magic link.
+            </div>
+
             <form onSubmit={handleEmailSubmit} className="space-y-4">
               <div>
                 <label htmlFor="email" className={`${typography.bodySm} text-text-primary block mb-2`}>

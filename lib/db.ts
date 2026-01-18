@@ -754,7 +754,7 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sandboxes (
       id text PRIMARY KEY,
-      project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      project_id text REFERENCES projects(id) ON DELETE CASCADE,
       name text NOT NULL,
       folder_name text NOT NULL UNIQUE,
       description text,
@@ -771,6 +771,11 @@ export async function ensureSchema(): Promise<void> {
   // Defaults to true so existing sandboxes become public
   await pool.query(`
     ALTER TABLE sandboxes ADD COLUMN IF NOT EXISTS is_public boolean NOT NULL DEFAULT true
+  `);
+  
+  // Make project_id nullable so sandboxes can be unlinked from projects
+  await pool.query(`
+    ALTER TABLE sandboxes ALTER COLUMN project_id DROP NOT NULL
   `);
   
   global._schemaInitialized = true;

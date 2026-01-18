@@ -664,23 +664,12 @@ export default function ProfileClient() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                        <Link
-                          href={`/projects/${project.id}`}
-                          className={`${getTypographyClassName("button-sm")} w-full sm:w-auto px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition text-center inline-block`}
-                        >
-                          Open project
-                        </Link>
-                        {data.profile.isAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => openMemberModal(project)}
-                            className={`${getTypographyClassName("button-sm")} w-full sm:w-auto px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition text-center`}
-                          >
-                            Members
-                          </button>
-                        )}
-                      </div>
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className={`${getTypographyClassName("button-sm")} px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition inline-block`}
+                      >
+                        Open project
+                      </Link>
                     </td>
                   </tr>
                 ))}
