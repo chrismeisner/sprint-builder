@@ -68,8 +68,6 @@ export default function ProfileClient() {
   const [projectName, setProjectName] = useState("");
   const [projectSaving, setProjectSaving] = useState(false);
   const [projectError, setProjectError] = useState<string | null>(null);
-  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
-  const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [memberModalProjectId, setMemberModalProjectId] = useState<string | null>(null);
   const [memberModalProjectName, setMemberModalProjectName] = useState<string>("");
@@ -219,24 +217,6 @@ export default function ProfileClient() {
       setProjectError(err instanceof Error ? err.message : "Failed to create project");
     } finally {
       setProjectSaving(false);
-    }
-  };
-
-  const handleDeleteProject = async (projectId: string) => {
-    if (!confirm("Delete this project? This cannot be undone.")) return;
-    setDeletingProjectId(projectId);
-    setDeleteProjectError(null);
-    try {
-      const res = await fetch(`/api/projects?id=${projectId}`, { method: "DELETE" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to delete project");
-      }
-      await fetchProfile();
-    } catch (err) {
-      setDeleteProjectError(err instanceof Error ? err.message : "Failed to delete project");
-    } finally {
-      setDeletingProjectId(null);
     }
   };
 
@@ -630,11 +610,6 @@ export default function ProfileClient() {
               </div>
             )}
           </div>
-          {deleteProjectError && (
-            <div className={`${bodySmClass} text-red-700 dark:text-red-300 bg-red-600/10 dark:bg-red-900/30 border border-red-600/20 dark:border-red-900/30 rounded-md px-3 py-2`}>
-              {deleteProjectError}
-            </div>
-          )}
         </div>
         {data.projects.length === 0 ? (
           <div className="p-6 text-center">
@@ -703,16 +678,6 @@ export default function ProfileClient() {
                             className={`${getTypographyClassName("button-sm")} w-full sm:w-auto px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition text-center`}
                           >
                             Members
-                          </button>
-                        )}
-                        {project.isOwner !== false && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteProject(project.id)}
-                            disabled={deletingProjectId === project.id}
-                            className={`${getTypographyClassName("button-sm")} w-full sm:w-auto px-3 py-2 rounded-md border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50 transition text-center`}
-                          >
-                            {deletingProjectId === project.id ? "Deleting…" : "Delete"}
                           </button>
                         )}
                       </div>
