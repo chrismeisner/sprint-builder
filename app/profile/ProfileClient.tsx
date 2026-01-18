@@ -240,19 +240,6 @@ export default function ProfileClient() {
     }
   };
 
-  const openMemberModal = async (project: Project) => {
-    setMemberModalProjectId(project.id);
-    setMemberModalProjectName(project.name);
-    setMemberEmailInput("");
-    const cached = data?.projectMembers?.[project.id];
-    if (cached) {
-      setMemberModalMembers(cached);
-    } else {
-      setMemberModalMembers([]);
-      await fetchProjectMembers(project.id);
-    }
-  };
-
   const closeMemberModal = () => {
     setMemberModalProjectId(null);
     setMemberModalMembers([]);
