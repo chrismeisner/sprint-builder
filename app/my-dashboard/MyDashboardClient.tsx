@@ -415,7 +415,7 @@ export default function MyDashboardClient() {
             <div>
               <h2 className={`${sectionTitleClass} text-text-primary`}>Projects</h2>
               <p className={helperTextClass}>
-                Track the initiatives you're running sprints for.
+                Track the initiatives you&apos;re running sprints for.
               </p>
             </div>
           </div>

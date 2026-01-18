@@ -285,7 +285,6 @@ export default function SprintDetailContent(props: Props) {
       
       // Determine if we need to auto-update the status
       const bothSigned = newSignedByStudio && newSignedByClient;
-      const newStatus = bothSigned ? "signed" : contractStatus;
       
       const res = await fetch(`/api/sprint-drafts/${row.id}`, {
         method: "PATCH",
