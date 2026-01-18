@@ -97,7 +97,7 @@ export function verifySessionToken(
 }
 
 // Helper to get current user from cookies (for use in server components)
-export async function getCurrentUser(): Promise<{ accountId: string; email: string; isAdmin: boolean } | null> {
+export async function getCurrentUser(): Promise<{ accountId: string; email: string; name: string | null; isAdmin: boolean } | null> {
   try {
     const cookieStore = cookies();
     const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
@@ -109,16 +109,17 @@ export async function getCurrentUser(): Promise<{ accountId: string; email: stri
     // Fetch user data from database
     const pool = getPool();
     const result = await pool.query(
-      `SELECT id, email, is_admin FROM accounts WHERE id = $1`,
+      `SELECT id, email, name, is_admin FROM accounts WHERE id = $1`,
       [session.accountId]
     );
 
     if (result.rowCount === 0) return null;
     
-    const account = result.rows[0] as { id: string; email: string; is_admin: boolean };
+    const account = result.rows[0] as { id: string; email: string; name: string | null; is_admin: boolean };
     return { 
       accountId: account.id, 
-      email: account.email, 
+      email: account.email,
+      name: account.name,
       isAdmin: account.is_admin 
     };
   } catch (error) {
@@ -128,7 +129,7 @@ export async function getCurrentUser(): Promise<{ accountId: string; email: stri
 }
 
 // Helper to check if current user is an admin
-export async function requireAdmin(): Promise<{ accountId: string; email: string; isAdmin: true }> {
+export async function requireAdmin(): Promise<{ accountId: string; email: string; name: string | null; isAdmin: true }> {
   const user = await getCurrentUser();
   if (!user) {
     throw new Error("Authentication required");
