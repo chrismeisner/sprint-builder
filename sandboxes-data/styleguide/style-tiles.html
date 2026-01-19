@@ -36,7 +36,7 @@
     }
     .dark .text-brand { color: var(--brand-primary-500); }
 
-    h1, h2,
+    /* Content typography - only applies to elements with data-style attributes */
     [data-style="H1"],
     [data-style="H2"] {
       font-family: "Acme Gothic Condensed", var(--font-family-sans);
@@ -46,8 +46,6 @@
       font-family: "Inter Tight", var(--font-family-sans);
     }
 
-    /* Keep other headings on the core sans */
-    h3, h4, h5, h6,
     [data-style="H4"],
     [data-style="H5"],
     [data-style="H6"],
@@ -177,19 +175,25 @@
     .wrap {
       max-width: 1400px;
       margin: auto;
-      padding: 24px 12px 56px;
+      padding: 32px 20px 64px;
     }
 
+    /* Page structure typography */
     h1 {
       margin: 0 0 8px;
+      font-family: var(--font-family-sans);
       font-size: 28px;
+      font-weight: 600;
       letter-spacing: -0.02em;
     }
 
     .subtitle {
+      font-family: var(--font-family-sans);
       font-size: 15px;
+      font-weight: 400;
       color: var(--neutral-700);
       margin: 0 0 28px;
+      line-height: 1.5;
     }
 
     .card {
@@ -611,30 +615,38 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="mb-4 flex items-center justify-between gap-3">
-      <div id="tailwind-status" class="inline-flex items-center gap-2 rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-sm font-semibold text-yellow-700">
-        <span class="size-2.5 rounded-full bg-yellow-500"></span>
-        Tailwind: checking…
+    <div class="mb-6">
+      <div class="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900 mb-1">Style Tiles</h1>
+          <p class="subtitle">Interactive component layouts showcasing our design system in context.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div id="tailwind-status" class="admin-only inline-flex items-center gap-2 rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-sm font-semibold text-yellow-700" style="display: none;">
+            <span class="size-2.5 rounded-full bg-yellow-500"></span>
+            Tailwind: checking…
+          </div>
+        </div>
       </div>
-      <div class="header-controls">
-        <button id="toggleFontStylesBtn" class="toggle-switch" title="Show style labels on all typography">
-          <span class="toggle-indicator"></span>
-          Font styles
-        </button>
+      <div class="flex items-center justify-center gap-2 flex-wrap" style="padding-bottom: 24px; width: 100%;">
         <button id="toggleHoverLabelBtn" class="toggle-switch" title="Show font style on mouse hover">
           <span class="toggle-indicator"></span>
           Hover labels
         </button>
-        <button id="toggleColorHoverBtn" class="toggle-switch" title="Show color info on mouse hover">
+        <button id="toggleFontStylesBtn" class="toggle-switch admin-only" title="Show style labels on all typography" style="display: none;">
+          <span class="toggle-indicator"></span>
+          Font styles
+        </button>
+        <button id="toggleColorHoverBtn" class="toggle-switch admin-only" title="Show color info on mouse hover" style="display: none;">
           <span class="toggle-indicator"></span>
           Color rollover
         </button>
-        <button id="toggleWireframeBtn" class="toggle-switch" title="Show wireframe outlines">
+        <button id="toggleWireframeBtn" class="toggle-switch admin-only" title="Show wireframe outlines" style="display: none;">
           <span class="toggle-indicator"></span>
           Wireframe mode
         </button>
-        <button id="toggleSettingsBtn" class="ghost-btn">Show settings</button>
-        <button id="toggleColorsBtn" class="ghost-btn">Hide colors</button>
+        <button id="toggleSettingsBtn" class="ghost-btn admin-only" style="display: none;">Show settings</button>
+        <button id="toggleColorsBtn" class="ghost-btn admin-only" style="display: none;">Hide colors</button>
       </div>
     </div>
 
@@ -685,9 +697,10 @@
             </defs>
           </svg>
         </div>
-        <div class="relative mx-auto max-w-7xl py-24 sm:py-32 lg:px-8 lg:py-40">
-          <div class="pl-6 pr-6 md:ml-auto md:w-2/3 md:pl-16 lg:w-1/2 lg:pl-24 lg:pr-0 xl:pl-32">
-            <h2 class="text-base/7 font-semibold text-brand" data-style="H4">Built for families with new drivers</h2>
+        <div class="relative mx-auto max-w-7xl py-10 sm:py-10 lg:px-8 lg:py-10">
+          <div class="pl-6 pr-6 md:ml-auto md:w-2/3 md:pl-16 lg:w-1/2 lg:pl-24 lg:pr-0 xl:pl-32" style="padding-top: 40px; padding-bottom: 40px;">
+            <img src="./images/miles-logos/miles-badge-green.svg" alt="Miles" style="width: 120px; height: 120px; max-width: 120px; margin-bottom: 32px;" />
+            <h2 class="text-base/7 font-semibold" style="color: var(--brand-primary-600);" data-style="H4">Built for families with new drivers</h2>
             <p class="mt-2 text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl dark:text-white" data-style="H1">Confidence For Every Drive</p>
             <p class="mt-4 text-base/7 text-gray-600 dark:text-gray-300" data-style="Body / L">When your teen starts driving, everything changes. Miles helps families stay calm, informed, and prepared — without constant check-ins or invasive tracking.</p>
             <div class="mt-8">
@@ -698,7 +711,7 @@
       </div>
     </article>
     <article class="tile" id="tile-blog-grid">
-      <div class="bg-white py-12 sm:py-16 dark:bg-gray-900">
+      <div class="bg-white py-6 sm:py-16 dark:bg-gray-900">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
           <div class="mx-auto max-w-2xl text-center">
             <p class="text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400" data-style="Overline">From the Team</p>
@@ -726,7 +739,7 @@
                   <p class="mt-5 line-clamp-3 text-gray-600 dark:text-gray-400" data-style="Body / M">Most parents don’t want more data — they want reassurance. We break down the real fears families have during the first year of teen driving, and what actually helps reduce anxiety.</p>
                 </div>
                 <div class="relative mt-4 flex items-center gap-x-4 justify-self-end">
-                  <img src="./images/miles-social.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" />
+                  <img src="./images/miles-logos/miles-icon-arrow-green.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" />
                   <div class="text-sm/6">
                     <p class="font-semibold text-gray-900 dark:text-white" data-style="Body / S">
                       <a href="#">
@@ -759,7 +772,7 @@
                   <p class="mt-5 line-clamp-3 text-gray-600 dark:text-gray-400" data-style="Body / M">Teen insurance doesn’t have to be a black hole. Here’s how driver scores work, why families hate insurance dongles, and how Miles puts you back in control.</p>
                 </div>
                 <div class="relative mt-4 flex items-center gap-x-4 justify-self-end">
-                  <img src="./images/miles-social.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" />
+                  <img src="./images/miles-logos/miles-icon-arrow-green.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" />
                   <div class="text-sm/6">
                     <p class="font-semibold text-gray-900 dark:text-white" data-style="Body / S">
                       <a href="#">
@@ -792,7 +805,7 @@
                   <p class="mt-5 line-clamp-3 text-gray-600 dark:text-gray-400" data-style="Body / M">Teens don’t want to feel watched. Parents don’t want to feel powerless. We explore how transparency, fairness, and restraint create better outcomes for everyone.</p>
                 </div>
                 <div class="relative mt-4 flex items-center gap-x-4 justify-self-end">
-                  <img src="./images/miles-social.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" />
+                  <img src="./images/miles-logos/miles-icon-arrow-green.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" />
                   <div class="text-sm/6">
                     <p class="font-semibold text-gray-900 dark:text-white" data-style="Body / S">
                       <a href="#">
@@ -1474,6 +1487,17 @@
         labelEl.classList.remove("show");
         active = false;
       });
+    })();
+  </script>
+  <script>
+    // Show admin controls if user is admin
+    (function initAdminControls() {
+      const isAdmin = window.__USER_IS_ADMIN__ || false;
+      if (isAdmin) {
+        document.querySelectorAll('.admin-only').forEach(el => {
+          el.style.display = '';
+        });
+      }
     })();
   </script>
   <script src="sidebar-nav.js"></script>

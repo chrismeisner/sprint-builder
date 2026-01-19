@@ -161,7 +161,7 @@ export async function GET(
     }
 
     // Read and serve the file
-    const content = fs.readFileSync(normalizedPath);
+    let content = fs.readFileSync(normalizedPath);
     const mimeType = getMimeType(normalizedPath);
 
     // Set appropriate headers
@@ -174,6 +174,16 @@ export async function GET(
     // Allow HTML files to be framed (for the viewer)
     if (mimeType === "text/html") {
       headers["X-Frame-Options"] = "SAMEORIGIN";
+      
+      // Inject user admin status for style-tiles.html
+      if (filePath.includes("style-tiles.html")) {
+        const user = await getCurrentUser();
+        const isAdmin = user?.isAdmin || false;
+        const userInfoScript = `<script>window.__USER_IS_ADMIN__ = ${isAdmin};</script>`;
+        const htmlContent = content.toString("utf-8");
+        const modifiedHtml = htmlContent.replace("</head>", `${userInfoScript}\n  </head>`);
+        content = Buffer.from(modifiedHtml, "utf-8");
+      }
     }
 
     return new NextResponse(content, { headers });

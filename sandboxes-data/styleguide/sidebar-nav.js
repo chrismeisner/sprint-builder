@@ -48,8 +48,10 @@
     const sidebarHTML = `
       <nav class="sidebar-nav ${isOpen ? '' : 'collapsed'}" id="sidebarNav" aria-label="Styleguide navigation">
         <div class="sidebar-header">
-          <img src="images/miles-logos/miles-badge-green.png" alt="Brand logo" class="sidebar-logo" />
-          <h2 class="sidebar-title">Styleguide</h2>
+          <a href="index.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; flex: 1; min-width: 0;">
+            <img src="images/miles-logos/miles-badge-green.png" alt="Brand logo" class="sidebar-logo" />
+            <h2 class="sidebar-title">Styleguide</h2>
+          </a>
           <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M15 18l-6-6 6-6"/>
@@ -80,7 +82,6 @@
           <path d="M9 18l6-6-6-6"/>
         </svg>
       </button>
-      <div class="sidebar-overlay" id="sidebarOverlay"></div>
     `;
 
     // Insert sidebar at the beginning of body
@@ -90,7 +91,6 @@
     const sidebar = document.getElementById('sidebarNav');
     const toggle = document.getElementById('sidebarToggle');
     const collapseBtn = document.getElementById('sidebarCollapseBtn');
-    const overlay = document.getElementById('sidebarOverlay');
 
     // Wrap existing content in styleguide-content div
     const existingContent = document.querySelector('.wrap');
@@ -104,7 +104,6 @@
     // Open sidebar
     function openSidebar() {
       sidebar.classList.remove('collapsed');
-      overlay.classList.add('visible');
       toggle.setAttribute('aria-expanded', 'true');
       saveState(true);
     }
@@ -112,7 +111,6 @@
     // Close sidebar
     function closeSidebar() {
       sidebar.classList.add('collapsed');
-      overlay.classList.remove('visible');
       toggle.setAttribute('aria-expanded', 'false');
       saveState(false);
     }
@@ -131,9 +129,6 @@
     
     // Internal collapse button closes the sidebar
     collapseBtn.addEventListener('click', closeSidebar);
-    
-    // Overlay click closes the sidebar
-    overlay.addEventListener('click', closeSidebar);
 
     // Keyboard navigation
     document.addEventListener('keydown', function(e) {
