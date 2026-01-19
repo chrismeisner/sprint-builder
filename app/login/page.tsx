@@ -190,7 +190,7 @@ function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen bg-black/[0.02] dark:bg-white/[0.02] flex items-center justify-center px-4 py-12">
+    <main className="min-h-[calc(100vh-8rem)] bg-black/[0.02] dark:bg-white/[0.02] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-8 shadow-sm space-y-6">
         
         {/* Email Step */}
@@ -374,7 +374,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <main className="min-h-screen flex items-center justify-center p-6 bg-black/[0.02] dark:bg-white/[0.02]">
+      <main className="min-h-[calc(100vh-8rem)] flex items-center justify-center p-6 bg-black/[0.02] dark:bg-white/[0.02]">
         <div className="w-full max-w-md">
           <div className="bg-white dark:bg-black border border-black/10 dark:border-white/15 rounded-lg p-8 shadow-sm">
             <div className="animate-pulse space-y-4">

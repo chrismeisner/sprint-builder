@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomInt } from "crypto";
-import { ensureSchema, getPool } from "@/lib/db";
+import { ensureSchema, getPool, isEmailBlocked } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { SUPERADMIN_EMAIL } from "@/lib/auth";
 
@@ -32,6 +32,13 @@ export async function POST(request: Request) {
         verified: true,
         message: "Superadmin email - using magic link."
       });
+    }
+
+    // Check if email is blocked
+    if (await isEmailBlocked(normalizedEmail)) {
+      return NextResponse.json({ 
+        error: "This email has been blocked from creating an account. Please contact support if you believe this is an error."
+      }, { status: 403 });
     }
 
     // Check if this email is already verified (existing account)

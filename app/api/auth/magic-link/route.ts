@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ensureSchema, getPool } from "@/lib/db";
+import { ensureSchema, getPool, isEmailBlocked } from "@/lib/db";
 import { createLoginToken, SUPERADMIN_EMAIL } from "@/lib/auth";
 
 export async function POST(request: Request) {
@@ -78,6 +78,13 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({ ok: true });
+    }
+
+    // Check if email is blocked
+    if (await isEmailBlocked(normalizedEmail)) {
+      return NextResponse.json({ 
+        error: "This email has been blocked from accessing this service. Please contact support if you believe this is an error."
+      }, { status: 403 });
     }
     
     // Check if this email has been verified

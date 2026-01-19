@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ensureSchema, getPool } from "@/lib/db";
+import { ensureSchema, getPool, isEmailBlocked } from "@/lib/db";
 import { createSessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 
 export async function POST(request: Request) {
@@ -23,6 +23,13 @@ export async function POST(request: Request) {
     }
     
     const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if email is blocked
+    if (await isEmailBlocked(normalizedEmail)) {
+      return NextResponse.json({ 
+        error: "This email has been blocked from creating an account. Please contact support if you believe this is an error."
+      }, { status: 403 });
+    }
 
     // Find the most recent unexpired, unverified code for this email
     const codeResult = await pool.query(

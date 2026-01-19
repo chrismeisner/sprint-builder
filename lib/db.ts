@@ -37,6 +37,17 @@ export function getPool(): Pool {
   return global._pgPool;
 }
 
+// Check if an email is in the blocked list
+export async function isEmailBlocked(email: string): Promise<boolean> {
+  const pool = getPool();
+  const normalizedEmail = email.trim().toLowerCase();
+  const result = await pool.query(
+    `SELECT 1 FROM blocked_emails WHERE email = $1`,
+    [normalizedEmail]
+  );
+  return (result.rowCount ?? 0) > 0;
+}
+
 export async function ensureSchema(): Promise<void> {
   // Hotfix: ensure sprint_deliverables.base_points supports decimals
   if (!global._basePointsPatched) {
@@ -776,6 +787,18 @@ export async function ensureSchema(): Promise<void> {
   // Make project_id nullable so sandboxes can be unlinked from projects
   await pool.query(`
     ALTER TABLE sandboxes ALTER COLUMN project_id DROP NOT NULL
+  `);
+  
+  // Blocked emails: prevent specific emails from signing up
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS blocked_emails (
+      id text PRIMARY KEY,
+      email text NOT NULL UNIQUE,
+      reason text,
+      blocked_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_blocked_emails_email ON blocked_emails(email);
   `);
   
   global._schemaInitialized = true;
