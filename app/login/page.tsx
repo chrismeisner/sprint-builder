@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect, Suspense, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { typography } from "@/app/components/typography";
 
 type Step = "email" | "code" | "magic-link-sent";
 
 function LoginForm() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [step, setStep] = useState<Step>("email");
