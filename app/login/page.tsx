@@ -143,8 +143,10 @@ function LoginForm() {
         return;
       }
       
-      // Success! Redirect to profile or specified URL
-      router.push(redirectUrl || "/profile?from=verified");
+      // Success! Redirect to my-dashboard or specified URL
+      // Use router.push with window.location.href to ensure full page refresh and session reload
+      const targetUrl = redirectUrl || "/my-dashboard";
+      window.location.href = targetUrl;
     } catch (e) {
       setError((e as Error).message || "Failed to verify code");
     } finally {
