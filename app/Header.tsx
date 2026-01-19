@@ -9,13 +9,19 @@ export default async function Header() {
   const user = await getCurrentUser();
   
   // Get user initials for avatar
-  const getInitials = (name: string | null | undefined, email: string) => {
-    if (name) {
-      const parts = name.trim().split(/\s+/);
-      if (parts.length >= 2) {
-        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-      }
-      return name.slice(0, 2).toUpperCase();
+  const getInitials = (
+    firstName: string | null | undefined,
+    lastName: string | null | undefined,
+    email: string
+  ) => {
+    if (firstName && lastName) {
+      return (firstName[0] + lastName[0]).toUpperCase();
+    }
+    if (firstName) {
+      return firstName.slice(0, 2).toUpperCase();
+    }
+    if (lastName) {
+      return lastName.slice(0, 2).toUpperCase();
     }
     return email.slice(0, 2).toUpperCase();
   };
@@ -47,7 +53,7 @@ export default async function Header() {
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-black dark:bg-white text-white dark:text-black text-xs font-semibold hover:opacity-80 transition"
                   title="Profile"
                 >
-                  {getInitials(user.name, user.email)}
+                  {getInitials(user.firstName, user.lastName, user.email)}
                 </Link>
               </>
             ) : (

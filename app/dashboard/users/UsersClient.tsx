@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 type User = {
   id: string;
   email: string;
+  first_name: string | null;
+  last_name: string | null;
   is_admin: boolean;
   created_at: string;
   email_verified_at: string | null;
@@ -238,6 +240,9 @@ export default function UsersClient() {
             <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
                   Email
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium opacity-70 uppercase tracking-wider">
@@ -265,6 +270,15 @@ export default function UsersClient() {
                 const totalProjects = user.owned_projects_count + user.member_projects_count;
                 return (
                   <tr key={user.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium">
+                        {user.first_name && user.last_name
+                          ? `${user.first_name} ${user.last_name}`
+                          : user.first_name || user.last_name || (
+                              <span className="opacity-50 italic">No name</span>
+                            )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="text-sm font-medium">

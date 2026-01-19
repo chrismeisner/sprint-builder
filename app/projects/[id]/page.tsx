@@ -92,6 +92,57 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     created_at: string | Date;
   }>;
 
+  // Fetch members with account data
+  const membersResult = await pool.query(
+    `SELECT 
+      pm.email,
+      pm.title,
+      pm.created_at,
+      a.name,
+      a.first_name,
+      a.last_name
+    FROM project_members pm
+    LEFT JOIN accounts a ON lower(pm.email) = lower(a.email)
+    WHERE pm.project_id = $1
+    ORDER BY pm.created_at ASC`,
+    [project.id]
+  );
+
+  const members = membersResult.rows as Array<{
+    email: string;
+    title: string | null;
+    created_at: string | Date;
+    name: string | null;
+    first_name: string | null;
+    last_name: string | null;
+  }>;
+
+  // Helper function to get initials for avatar fallback
+  function getInitials(member: typeof members[0]): string {
+    if (member.first_name && member.last_name) {
+      return `${member.first_name[0]}${member.last_name[0]}`.toUpperCase();
+    }
+    if (member.name) {
+      const parts = member.name.split(" ");
+      if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      }
+      return member.name.substring(0, 2).toUpperCase();
+    }
+    return member.email.substring(0, 2).toUpperCase();
+  }
+
+  // Helper function to get display name
+  function getDisplayName(member: typeof members[0]): string {
+    if (member.first_name && member.last_name) {
+      return `${member.first_name} ${member.last_name}`;
+    }
+    if (member.name) {
+      return member.name;
+    }
+    return member.email;
+  }
+
   return (
     <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6 font-inter">
       <div className="flex items-center justify-between">
@@ -287,6 +338,49 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           <ProjectDocuments projectId={project.id} />
         </section>
       )}
+
+      {/* Members */}
+      <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
+        <div className="flex items-center gap-3">
+          <Typography as="h2" scale="h3">
+            Members
+          </Typography>
+          <Typography as="span" scale="body-sm" className="opacity-60">
+            {members.length} total
+          </Typography>
+        </div>
+
+        {members.length === 0 ? (
+          <Typography as="div" scale="body-sm" className="opacity-70">
+            No members yet. Add members in project settings.
+          </Typography>
+        ) : (
+          <div className="flex flex-wrap gap-4">
+            {members.map((member) => (
+              <div
+                key={member.email}
+                className="flex items-center gap-3 p-3 rounded-lg border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]"
+              >
+                {/* Avatar with initials */}
+                <div className="w-10 h-10 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center text-sm font-medium">
+                  {getInitials(member)}
+                </div>
+                {/* Name and title */}
+                <div className="min-w-0">
+                  <Typography as="div" scale="body-sm" className="font-medium truncate">
+                    {getDisplayName(member)}
+                  </Typography>
+                  {member.title && (
+                    <Typography as="div" scale="body-xs" className="opacity-60 truncate">
+                      {member.title}
+                    </Typography>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </main>
   );
 }

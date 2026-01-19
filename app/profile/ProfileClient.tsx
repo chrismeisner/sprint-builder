@@ -9,6 +9,8 @@ type Profile = {
   id: string;
   email: string;
   name: string | null;
+  firstName: string | null;
+  lastName: string | null;
   isAdmin: boolean;
   createdAt: string;
 };
@@ -22,7 +24,8 @@ export default function ProfileClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
-  const [nameValue, setNameValue] = useState("");
+  const [firstNameValue, setFirstNameValue] = useState("");
+  const [lastNameValue, setLastNameValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
@@ -49,7 +52,8 @@ export default function ProfileClient() {
       
       const profileData: ProfileData = await res.json();
       setData(profileData);
-      setNameValue(profileData.profile.name || "");
+      setFirstNameValue(profileData.profile.firstName || "");
+      setLastNameValue(profileData.profile.lastName || "");
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -81,7 +85,11 @@ export default function ProfileClient() {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: nameValue || null }),
+        body: JSON.stringify({ 
+          firstName: firstNameValue || null,
+          lastName: lastNameValue || null,
+          name: firstNameValue && lastNameValue ? `${firstNameValue} ${lastNameValue}` : null,
+        }),
       });
 
       if (!res.ok) {
@@ -91,8 +99,9 @@ export default function ProfileClient() {
 
       await fetchProfile();
       setEditingName(false);
+      showToast("Profile updated successfully", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update profile");
+      showToast(err instanceof Error ? err.message : "Failed to update profile", "error");
     } finally {
       setSaving(false);
     }
@@ -163,48 +172,74 @@ export default function ProfileClient() {
           </div>
 
           <div>
-            <label className={`block mb-1 ${labelClass}`}>Name</label>
+            <label className={`block mb-1 ${labelClass}`}>First Name</label>
             {editingName ? (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={nameValue}
-                  onChange={(e) => setNameValue(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-black/10 dark:border-white/15 rounded-md bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent"
-                  placeholder="Enter your name"
-                />
-                <button
-                  onClick={handleSaveName}
-                  disabled={saving}
-                  className={`${getTypographyClassName("button-md")} px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-md hover:opacity-90 disabled:opacity-50 transition`}
-                >
-                  {saving ? "Saving..." : "Save"}
-                </button>
-                <button
-                  onClick={() => {
-                    setEditingName(false);
-                    setNameValue(data.profile.name || "");
-                  }}
-                  disabled={saving}
-                  className="px-4 py-2 border border-black/10 dark:border-white/15 rounded-md hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition"
-                >
-                  Cancel
-                </button>
-              </div>
+              <input
+                type="text"
+                value={firstNameValue}
+                onChange={(e) => setFirstNameValue(e.target.value)}
+                className="w-full px-3 py-2 border border-black/10 dark:border-white/15 rounded-md bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent"
+                placeholder="Enter your first name"
+                disabled={saving}
+              />
             ) : (
-              <div className="flex items-center gap-2">
-                <span className={bodyClass}>
-                  {data.profile.name || <span className="opacity-50 italic">Not set</span>}
-                </span>
-                <button
-                  onClick={() => setEditingName(true)}
-                  className={`${bodySmClass} hover:underline opacity-80`}
-                >
-                  Edit
-                </button>
+              <div className={bodyClass}>
+                {data.profile.firstName || <span className="opacity-50 italic">Not set</span>}
               </div>
             )}
           </div>
+
+          <div>
+            <label className={`block mb-1 ${labelClass}`}>Last Name</label>
+            {editingName ? (
+              <input
+                type="text"
+                value={lastNameValue}
+                onChange={(e) => setLastNameValue(e.target.value)}
+                className="w-full px-3 py-2 border border-black/10 dark:border-white/15 rounded-md bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent"
+                placeholder="Enter your last name"
+                disabled={saving}
+              />
+            ) : (
+              <div className={bodyClass}>
+                {data.profile.lastName || <span className="opacity-50 italic">Not set</span>}
+              </div>
+            )}
+          </div>
+
+          {editingName && (
+            <div className="md:col-span-2 flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setEditingName(false);
+                  setFirstNameValue(data.profile.firstName || "");
+                  setLastNameValue(data.profile.lastName || "");
+                }}
+                disabled={saving}
+                className={`${getTypographyClassName("button-md")} px-4 py-2 border border-black/10 dark:border-white/15 rounded-md hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveName}
+                disabled={saving}
+                className={`${getTypographyClassName("button-md")} px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-md hover:opacity-90 disabled:opacity-50 transition`}
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          )}
+
+          {!editingName && (
+            <div className="md:col-span-2">
+              <button
+                onClick={() => setEditingName(true)}
+                className={`${getTypographyClassName("button-md")} px-4 py-2 border border-black/10 dark:border-white/15 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition`}
+              >
+                Edit Name
+              </button>
+            </div>
+          )}
 
           <div>
             <label className={`block mb-1 ${labelClass}`}>Account Type</label>

@@ -21,7 +21,7 @@ export async function GET() {
     
     // Get user profile information
     const profileResult = await pool.query(
-      `SELECT id, email, name, is_admin, created_at FROM accounts WHERE id = $1`,
+      `SELECT id, email, name, first_name, last_name, is_admin, created_at FROM accounts WHERE id = $1`,
       [user.accountId]
     );
 
@@ -134,6 +134,8 @@ export async function GET() {
         id: profile.id,
         email: profile.email,
         name: profile.name,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
         isAdmin: profile.is_admin,
         createdAt: profile.created_at,
       },
@@ -179,10 +181,18 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name } = body;
+    const { name, firstName, lastName } = body;
 
     if (name !== undefined && typeof name !== "string") {
       return NextResponse.json({ error: "name must be a string" }, { status: 400 });
+    }
+
+    if (firstName !== undefined && typeof firstName !== "string") {
+      return NextResponse.json({ error: "firstName must be a string" }, { status: 400 });
+    }
+
+    if (lastName !== undefined && typeof lastName !== "string") {
+      return NextResponse.json({ error: "lastName must be a string" }, { status: 400 });
     }
 
     const pool = getPool();
@@ -190,10 +200,12 @@ export async function PATCH(request: NextRequest) {
     // Update the user's profile
     const result = await pool.query(
       `UPDATE accounts 
-       SET name = COALESCE($1, name)
-       WHERE id = $2 
-       RETURNING id, email, name, is_admin, created_at`,
-      [name, user.accountId]
+       SET name = COALESCE($1, name),
+           first_name = COALESCE($2, first_name),
+           last_name = COALESCE($3, last_name)
+       WHERE id = $4 
+       RETURNING id, email, name, first_name, last_name, is_admin, created_at`,
+      [name, firstName, lastName, user.accountId]
     );
 
     if (result.rowCount === 0) {
@@ -208,6 +220,8 @@ export async function PATCH(request: NextRequest) {
         id: updatedProfile.id,
         email: updatedProfile.email,
         name: updatedProfile.name,
+        firstName: updatedProfile.first_name,
+        lastName: updatedProfile.last_name,
         isAdmin: updatedProfile.is_admin,
         createdAt: updatedProfile.created_at,
       },

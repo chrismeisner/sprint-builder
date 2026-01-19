@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
       SELECT 
         accounts.id,
         accounts.email,
+        accounts.first_name,
+        accounts.last_name,
         accounts.is_admin,
         accounts.created_at,
         accounts.email_verified_at,

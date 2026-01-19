@@ -6,11 +6,14 @@ import Link from "next/link";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { SHOW_FIRST_PROJECT_MODAL } from "@/lib/feature-flags";
 import { useToast } from "@/lib/toast-context";
+import WelcomeModal from "@/components/ui/WelcomeModal";
 
 type Profile = {
   id: string;
   email: string;
   name: string | null;
+  firstName: string | null;
+  lastName: string | null;
   isAdmin: boolean;
   createdAt: string;
 };
@@ -52,6 +55,8 @@ export default function MyDashboardClient() {
   const [memberEmailInput, setMemberEmailInput] = useState("");
   const [memberSaving, setMemberSaving] = useState(false);
   const [memberRemovingEmail, setMemberRemovingEmail] = useState<string | null>(null);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [welcomeSaving, setWelcomeSaving] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
@@ -97,6 +102,13 @@ export default function MyDashboardClient() {
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    // Show welcome modal if user doesn't have first and last name set
+    if (data && !data.profile.firstName && !data.profile.lastName) {
+      setShowWelcomeModal(true);
+    }
+  }, [data]);
 
   useEffect(() => {
     if (!SHOW_FIRST_PROJECT_MODAL) return;
@@ -145,6 +157,34 @@ export default function MyDashboardClient() {
       setProjectError(err instanceof Error ? err.message : "Failed to create project");
     } finally {
       setProjectSaving(false);
+    }
+  };
+
+  const handleWelcomeComplete = async (firstName: string, lastName: string) => {
+    try {
+      setWelcomeSaving(true);
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          name: `${firstName} ${lastName}`, // Also set the combined name for backward compatibility
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to update profile");
+      }
+
+      await fetchProfile();
+      setShowWelcomeModal(false);
+      showToast(`Welcome, ${firstName}!`, "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to save name", "error");
+    } finally {
+      setWelcomeSaving(false);
     }
   };
 
@@ -248,6 +288,12 @@ export default function MyDashboardClient() {
 
   return (
     <div className="container min-h-screen max-w-6xl space-y-8 py-6">
+      <WelcomeModal
+        isOpen={showWelcomeModal}
+        onComplete={handleWelcomeComplete}
+        saving={welcomeSaving}
+      />
+
       {showProjectModal && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="w-full max-w-md rounded-lg bg-white dark:bg-black border border-black/10 dark:border-white/15 shadow-xl">

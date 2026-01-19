@@ -57,10 +57,19 @@ export async function GET(request: NextRequest) {
     const pool = getPool();
     const membersRes = await pool.query(
       `
-      SELECT email, added_by_account, created_at
-      FROM project_members
-      WHERE project_id = $1
-      ORDER BY created_at ASC
+      SELECT 
+        pm.email,
+        pm.title,
+        pm.added_by_account,
+        pm.created_at,
+        a.name,
+        a.first_name,
+        a.last_name,
+        a.profile_image_url
+      FROM project_members pm
+      LEFT JOIN accounts a ON lower(pm.email) = lower(a.email)
+      WHERE pm.project_id = $1
+      ORDER BY pm.created_at ASC
       `,
       [projectId]
     );
@@ -68,6 +77,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       members: membersRes.rows.map((row) => ({
         email: row.email as string,
+        title: row.title as string | null,
+        name: row.name as string | null,
+        firstName: row.first_name as string | null,
+        lastName: row.last_name as string | null,
+        profileImageUrl: row.profile_image_url as string | null,
         addedByAccount: row.added_by_account as string | null,
         createdAt: row.created_at as string,
       })),
@@ -118,6 +132,59 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[ProjectMembersAPI] POST error:", error);
     return NextResponse.json({ error: "Failed to add project member" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+    await ensureSchema();
+    const body = (await request.json().catch(() => ({}))) as { 
+      projectId?: unknown; 
+      email?: unknown;
+      title?: unknown;
+    };
+    const projectId = typeof body.projectId === "string" ? body.projectId : null;
+    const email = normalizeEmail(body.email);
+    const title = typeof body.title === "string" ? body.title.trim() : null;
+
+    if (!projectId) {
+      return NextResponse.json({ error: "projectId is required" }, { status: 400 });
+    }
+    if (!email) {
+      return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
+    }
+
+    const auth = await assertAuth(projectId, user);
+    if (auth.status !== 200) {
+      return NextResponse.json(auth.body, { status: auth.status });
+    }
+    if (!auth.canManage) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    }
+
+    const pool = getPool();
+    const result = await pool.query(
+      `
+      UPDATE project_members 
+      SET title = $1
+      WHERE project_id = $2 AND lower(email) = lower($3)
+      RETURNING id
+      `,
+      [title || null, projectId, email]
+    );
+
+    if ((result.rowCount ?? 0) === 0) {
+      return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[ProjectMembersAPI] PATCH error:", error);
+    return NextResponse.json({ error: "Failed to update project member" }, { status: 500 });
   }
 }
 

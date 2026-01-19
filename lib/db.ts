@@ -393,6 +393,22 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS name text;
   `);
   
+  // Add first_name and last_name fields to accounts table
+  await pool.query(`
+    ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS first_name text;
+  `);
+  await pool.query(`
+    ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS last_name text;
+  `);
+  
+  // Add profile image URL to accounts table
+  await pool.query(`
+    ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS profile_image_url text;
+  `);
+  
   // Add workshop tracking to accounts table
   await pool.query(`
     ALTER TABLE accounts
@@ -472,6 +488,11 @@ export async function ensureSchema(): Promise<void> {
   `);
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_project_members_email_lower ON project_members((lower(email)));
+  `);
+  // Add title field for project-specific role/title
+  await pool.query(`
+    ALTER TABLE project_members
+    ADD COLUMN IF NOT EXISTS title text;
   `);
   // Attach FK after table exists
   await pool.query(`
