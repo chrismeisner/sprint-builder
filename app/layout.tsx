@@ -308,8 +308,8 @@ const notoEmoji = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "sprint builder",
-  description: "Minimal landing for sprint builder",
+  title: "Meisner Design",
+  description: "Two-week design sprints with senior creative direction",
 };
 
 export default async function RootLayout({
