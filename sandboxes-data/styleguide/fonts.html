@@ -11,27 +11,6 @@
   <link rel="stylesheet" href="base.css" />
   <link rel="stylesheet" href="sidebar-nav.css" />
   <style>
-    :root {
-      /* Page-specific font size tokens */
-      --font-size-h1: 36px;
-      --font-size-h2: 30px;
-      --font-size-h3: 24px;
-      --font-size-subtitle-lg: 20px;
-      --font-size-subtitle-md: 18px;
-      --font-size-subtitle-sm: 16px;
-      --font-size-overline: 12px;
-      --font-size-body-lg: 16px;
-      --font-size-body: 15px;
-      --font-size-body-sm: 14px;
-      --font-size-caption: 12px;
-      --font-size-label: 14px;
-      --font-size-button-md: 15px;
-      --font-size-button-sm: 14px;
-      --font-size-mono-lg: 15px;
-      --font-size-mono-md: 14px;
-      --font-size-mono-sm: 13px;
-    }
-
     * { box-sizing: border-box; }
 
     body {
@@ -145,144 +124,6 @@
       transform: translateY(1px);
     }
 
-    .button-set {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 12px;
-    }
-
-    .button-card {
-      border: 1px solid var(--neutral-200);
-      border-radius: 12px;
-      padding: 14px 16px;
-      background: var(--neutral-0);
-      display: grid;
-      gap: 8px;
-    }
-
-    .btn-demo {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 10px 16px;
-      border-radius: 10px;
-      border: 1px solid var(--neutral-300);
-      background: var(--neutral-0);
-      color: var(--neutral-900);
-      font-weight: 600;
-      cursor: default;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-      transition: border-color 120ms ease, box-shadow 120ms ease;
-    }
-
-    .btn-demo.primary {
-      background: var(--brand-primary-500);
-      color: #fff;
-      border-color: var(--brand-primary-500);
-      box-shadow: 0 8px 18px rgba(59, 130, 246, 0.25);
-    }
-
-    .btn-demo.secondary {
-      background: var(--neutral-900);
-      color: #fff;
-      border-color: var(--neutral-900);
-    }
-
-    .btn-demo.ghost {
-      background: var(--neutral-0);
-      color: var(--neutral-900);
-      border-color: var(--neutral-300);
-    }
-
-    .button-meta {
-      margin: 0;
-      color: var(--neutral-700);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .samples-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 12px;
-    }
-
-    .sample-card {
-      border: 1px solid var(--neutral-200);
-      border-radius: 12px;
-      padding: 16px 16px 18px;
-      background: var(--neutral-0);
-      display: grid;
-      gap: 10px;
-    }
-
-    .sample-kicker {
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--neutral-700);
-    }
-
-    .sample-heading {
-      margin: 0;
-      color: var(--neutral-900);
-      letter-spacing: -0.01em;
-    }
-
-    .sample-body {
-      margin: 0;
-      color: var(--neutral-700);
-      line-height: 1.6;
-    }
-
-    .sample-blog {
-      border: 1px solid var(--neutral-200);
-      border-radius: 12px;
-      padding: 18px 18px 20px;
-      background: var(--neutral-0);
-      display: grid;
-      gap: 12px;
-    }
-
-    .sample-subheading {
-      margin: 0;
-      color: var(--neutral-700);
-      line-height: 1.6;
-    }
-
-    .sample-list {
-      margin: 0 0 4px 20px;
-      padding: 0;
-      color: var(--neutral-700);
-      line-height: 1.6;
-    }
-
-    .sample-list li {
-      margin-bottom: 4px;
-    }
-
-    .sample-quote {
-      margin: 0;
-      padding-left: 12px;
-      border-left: 3px solid var(--neutral-200);
-      color: var(--neutral-900);
-      line-height: 1.6;
-    }
-
-    .sample-caption {
-      margin: 0;
-      color: var(--neutral-600);
-      line-height: 1.4;
-    }
-
-    .sample-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -384,65 +225,6 @@
       font-weight: 700;
       color: var(--neutral-900);
       letter-spacing: -0.01em;
-    }
-
-    .type-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 12px;
-    }
-
-    .type {
-      border: 1px solid var(--neutral-300);
-      border-radius: 12px;
-      padding: 14px 16px;
-      background: var(--neutral-0);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .type .sample {
-      margin: 0;
-      color: var(--neutral-900);
-      letter-spacing: -0.01em;
-    }
-
-    .type .label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--neutral-700);
-      letter-spacing: 0;
-    }
-
-    .meta {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 6px 12px;
-      font-size: 12px;
-      color: var(--neutral-700);
-    }
-
-    .meta dt {
-      margin: 0;
-      font-weight: 600;
-      color: var(--neutral-900);
-    }
-
-    .meta dd {
-      margin: 0;
-      color: var(--neutral-700);
-      font-family: var(--font-family-mono);
-    }
-
-    .notes {
-      font-size: 13px;
-      color: var(--neutral-700);
-      line-height: 1.5;
-    }
-
-    .notes strong {
-      color: var(--neutral-900);
     }
 
     .family-grid {
@@ -662,6 +444,7 @@
               <select id="typeMode" name="typeMode">
                 <option value="desktop">Desktop</option>
                 <option value="mobile">Mobile</option>
+                <option value="google-slides">Google Slides</option>
               </select>
             </label>
             <button type="button" class="action-btn" id="uploadTypeCsv">Upload CSV</button>
@@ -800,6 +583,21 @@
         references: "Local font: Acme Gothic Condensed Semi Bold.",
         bestFor: "Hero H1 headlines and bold marketing statements.",
         resourceUrl: "fonts/Acme-Gothic-Condensed-Semi-Bold.otf",
+        secondaryResourceUrl: "https://fonts.adobe.com/fonts/acme-gothic",
+        isDownload: true
+      },
+      {
+        name: "Special Gothic Condensed One",
+        css: "var(--font-family-special)",
+        variable: "--font-family-special",
+        weights: [400],
+        sample: "BOLD CONDENSED DISPLAY FOR SLIDES",
+        sampleTransform: "uppercase",
+        blurb: "Strong condensed display face for Google Slides. Great Acme Gothic alternative.",
+        references: "Local font: Special Gothic Condensed One Regular.",
+        bestFor: "Headlines in Google Slides presentations where Acme Gothic isn't available.",
+        resourceUrl: "fonts/SpecialGothicCondensedOne-Regular.ttf",
+        secondaryResourceUrl: "https://fonts.google.com/specimen/Special+Gothic+Condensed+One",
         isDownload: true
       },
       {
@@ -888,6 +686,39 @@
       ["var(--font-family-mono)", `ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace`]
     ]);
 
+    // Google Slides-safe font alternatives
+    const googleSlidesAlternatives = new Map([
+      ["var(--font-family-acme)", { name: "Special Gothic Condensed One", css: "'Special Gothic Condensed One', sans-serif", notes: "Condensed display font available in Google Slides", weight: 400 }],
+      ["var(--font-family-special)", { name: "Special Gothic Condensed One", css: "'Special Gothic Condensed One', sans-serif", notes: "Condensed display font available in Google Slides", weight: 400 }],
+      ["var(--font-family-tight)", { name: "Inter", css: "'Inter', sans-serif", notes: "Available in Google Slides" }],
+      ["var(--font-family-sans)", { name: "Inter", css: "'Inter', sans-serif", notes: "Available in Google Slides" }],
+      ["var(--font-family-mono)", { name: "Roboto Mono", css: "'Roboto Mono', monospace", notes: "Monospace font available in Google Slides" }]
+    ]);
+
+    function getDisplayFamily(fontFamily, mode = typeMode) {
+      if (mode === "google-slides") {
+        const alt = googleSlidesAlternatives.get(fontFamily);
+        return alt ? alt.css : fontFamily;
+      }
+      return fontFamily;
+    }
+
+    function getDisplayFamilyLabel(fontFamily, mode = typeMode) {
+      if (mode === "google-slides") {
+        const alt = googleSlidesAlternatives.get(fontFamily);
+        return alt ? alt.name : getFamilyLabel(fontFamily);
+      }
+      return getFamilyLabel(fontFamily);
+    }
+
+    function getDisplayWeight(style, mode = typeMode) {
+      if (mode === "google-slides") {
+        const alt = googleSlidesAlternatives.get(style.fontFamily || "var(--font-family-sans)");
+        if (alt?.weight) return alt.weight;
+      }
+      return style.weight;
+    }
+
     function getFamilyLabel(value) {
       return familyLabels.get(value) || "Inter";
     }
@@ -964,14 +795,21 @@
       const sizeMobile = style.sizeMobile || sizeDesktop;
       const lineHeightDesktop = style.lineHeight;
       const lineHeightMobile = style.lineHeightMobile || lineHeightDesktop;
-      const size = mode === "mobile" ? sizeMobile : sizeDesktop;
-      const lineHeight = mode === "mobile" ? lineHeightMobile : lineHeightDesktop;
+      // For google-slides mode, use desktop sizes but alternative fonts
+      const effectiveSizeMode = mode === "google-slides" ? "desktop" : mode;
+      const size = effectiveSizeMode === "mobile" ? sizeMobile : sizeDesktop;
+      const lineHeight = effectiveSizeMode === "mobile" ? lineHeightMobile : lineHeightDesktop;
+      
+      // Use Google Slides font if in that mode
+      const fontFamily = getDisplayFamily(style.fontFamily || "var(--font-family-sans)", mode);
+
+      const weight = getDisplayWeight(style, mode);
 
       return [
-        `font-family: ${style.fontFamily || "var(--font-family-sans)"}`,
+        `font-family: ${fontFamily}`,
         `font-size: ${size}`,
         `line-height: ${lineHeight}`,
-        `font-weight: ${style.weight}`,
+        `font-weight: ${weight}`,
         `letter-spacing: ${style.letterSpacing}`,
         style.transform ? `text-transform: ${style.transform}` : ""
       ].filter(Boolean).join("; ");
@@ -1025,7 +863,10 @@
       const container = document.getElementById("fontFamilies");
       if (!container) return;
 
-      container.innerHTML = fontFamilies.map((family) => {
+      // Always show all font families regardless of view mode
+      const families = fontFamilies;
+
+      container.innerHTML = families.map((family) => {
         const weightChips = (family.weights || [])
           .map(w => `<li class="chip">${w}</li>`)
           .join("");
@@ -1033,7 +874,7 @@
         let resourceBtn;
         if (family.resourceUrl && family.isDownload) {
           // Direct download link
-          resourceBtn = `<a href="${family.resourceUrl}" download class="action-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+          const downloadBtn = `<a href="${family.resourceUrl}" download class="action-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="7 10 12 15 17 10"></polyline>
@@ -1041,6 +882,18 @@
               </svg>
               Download font
             </a>`;
+          let externalBtn = "";
+          if (family.secondaryResourceUrl) {
+            externalBtn = `<a href="${family.secondaryResourceUrl}" target="_blank" rel="noopener noreferrer" class="action-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+                View on Google Fonts
+              </a>`;
+          }
+          resourceBtn = `${downloadBtn}${externalBtn ? ` ${externalBtn}` : ""}`;
         } else if (family.resourceUrl) {
           // External resource link
           resourceBtn = `<a href="${family.resourceUrl}" target="_blank" rel="noopener noreferrer" class="action-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
@@ -1096,9 +949,12 @@
         .map((row) => {
           const sizeDesktop = row.sizeDesktop || row.size || "";
           const sizeMobile = row.sizeMobile || sizeDesktop;
-          const size = typeMode === "mobile" ? sizeMobile : sizeDesktop;
-          const lineHeight = typeMode === "mobile" ? (row.lineHeightMobile || row.lineHeight) : row.lineHeight;
-          const familyLabel = getFamilyLabel(row.fontFamily);
+          // For google-slides mode, use desktop sizes
+          const effectiveSizeMode = typeMode === "google-slides" ? "desktop" : typeMode;
+          const size = effectiveSizeMode === "mobile" ? sizeMobile : sizeDesktop;
+          const lineHeight = effectiveSizeMode === "mobile" ? (row.lineHeightMobile || row.lineHeight) : row.lineHeight;
+          const weight = getDisplayWeight(row, typeMode);
+          const familyLabel = getDisplayFamilyLabel(row.fontFamily, typeMode);
 
           return `
           <tr>
@@ -1106,7 +962,7 @@
             <td><div class="sample" data-style-name="${row.name}" style="${buildInlineStyle(row)}">${row.sample || row.name}</div></td>
             <td class="mono">${familyLabel}</td>
             <td class="mono">${size}</td>
-            <td class="mono">${row.weight}</td>
+            <td class="mono">${weight}</td>
             <td class="mono">${lineHeight}</td>
             <td class="mono">${row.letterSpacing}</td>
             <td class="subtle">${row.usage || ""}</td>
@@ -1175,19 +1031,28 @@
       const sizeMobile = row.sizeMobile || sizeDesktop;
       const lineHeightDesktop = row.lineHeight;
       const lineHeightMobile = row.lineHeightMobile || lineHeightDesktop;
-      const size = typeMode === "mobile" ? sizeMobile : sizeDesktop;
-      const lineHeight = typeMode === "mobile" ? lineHeightMobile : lineHeightDesktop;
-      const familyLabel = getFamilyLabel(row.fontFamily);
+      // For google-slides mode, use desktop sizes
+      const effectiveSizeMode = typeMode === "google-slides" ? "desktop" : typeMode;
+      const size = effectiveSizeMode === "mobile" ? sizeMobile : sizeDesktop;
+      const lineHeight = effectiveSizeMode === "mobile" ? lineHeightMobile : lineHeightDesktop;
+      const weight = getDisplayWeight(row, typeMode);
+      const familyLabel = getDisplayFamilyLabel(row.fontFamily, typeMode);
 
       titleEl.textContent = `${row.name} • ${familyLabel}`;
       sampleEl.textContent = row.sample || row.name;
       sampleEl.setAttribute("style", buildInlineStyle(row));
 
+      const modeLabels = {
+        "desktop": "Desktop",
+        "mobile": "Mobile",
+        "google-slides": "Google Slides"
+      };
+
       metaEl.innerHTML = `
         <div><dt>Family</dt><dd>${familyLabel}</dd></div>
-        <div><dt>Mode</dt><dd>${typeMode === "mobile" ? "Mobile" : "Desktop"}</dd></div>
+        <div><dt>Mode</dt><dd>${modeLabels[typeMode] || "Desktop"}</dd></div>
         <div><dt>Size</dt><dd>${size}</dd></div>
-        <div><dt>Weight</dt><dd>${row.weight}</dd></div>
+        <div><dt>Weight</dt><dd>${weight}</dd></div>
         <div><dt>Line-height</dt><dd>${lineHeight}</dd></div>
         <div><dt>Tracking</dt><dd>${row.letterSpacing}</dd></div>
         <div><dt>Usage</dt><dd>${row.usage || ""}</dd></div>
@@ -1232,9 +1097,10 @@
     const modeSelect = document.getElementById("typeMode");
 
     document.getElementById("typeMode")?.addEventListener("change", (event) => {
-      const value = event.target.value === "mobile" ? "mobile" : "desktop";
-      typeMode = value;
+      const value = event.target.value;
+      typeMode = ["mobile", "google-slides"].includes(value) ? value : "desktop";
       renderTypeTable();
+      // Font families don't change with view mode
     });
 
     function buildTypeCsv() {

@@ -451,9 +451,19 @@
     /* =====================================================
        BUTTON SAMPLES
     ===================================================== */
+    .button-samples-container {
+      display: block;
+    }
+
+    .button-sample-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
     .button-samples {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(4, minmax(220px, 1fr));
       gap: 16px;
     }
 
@@ -473,23 +483,51 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      align-items: center;
+      text-align: center;
+    }
+
+    .button-sample-preview .sample-logo {
+      width: 48px;
+      height: 48px;
+      color: inherit;
     }
 
     .button-sample-preview h3 {
       margin: 0;
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
     }
 
     .button-sample-preview p {
       margin: 0;
-      font-size: 14px;
+    }
+
+    .type-h2 {
+      font-family: var(--font-family-acme);
+      font-size: 48px;
+      line-height: 1;
+      font-weight: 600;
+      letter-spacing: 0em;
+      text-transform: uppercase;
+    }
+
+    .body-md {
+      font-family: var(--font-family-sans);
+      font-size: 16px;
       line-height: 1.5;
+      font-weight: 400;
+      letter-spacing: -0.015em;
+    }
+
+    .type-button {
+      font-family: var(--font-family-sans);
+      font-size: 16px;
+      line-height: 1.5;
+      font-weight: 600;
+      letter-spacing: 0.01em;
     }
 
     .button-sample-preview .sample-btn {
-      align-self: flex-start;
+      align-self: center;
       padding: 10px 20px;
       font-size: 14px;
       font-weight: 600;
@@ -535,6 +573,15 @@
 
     .button-sample-tokens .token-label {
       color: var(--neutral-400);
+    }
+
+    .button-sample-tokens .mini-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      border: 1px solid var(--neutral-200);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+      flex: 0 0 auto;
     }
 
     @media (max-width: 768px) {
@@ -791,7 +838,7 @@
       </label>
       <label class="control">
         <input type="checkbox" class="section-toggle" data-section="buttonSamplesCard" checked />
-        <span>Button Samples</span>
+        <span>Color Tiles</span>
       </label>
       <label class="control">
         <input type="checkbox" class="section-toggle" data-section="colorPairingsCard" />
@@ -800,6 +847,13 @@
     </div>
 
     <div class="cards">
+      <div class="card" id="buttonSamplesCard">
+        <h2>Color Tiles</h2>
+        <div class="section">
+          <div class="button-samples-container" id="buttonSamples"></div>
+        </div>
+      </div>
+
       <div class="card" id="brandPrimaryCard">
         <h2 id="brandPrimaryHeader">Brand · Primary (50 → 950)</h2>
         <div class="section">
@@ -832,13 +886,6 @@
         <h2>UI States</h2>
         <div class="section">
           <div class="swatches" id="uiStates"></div>
-        </div>
-      </div>
-
-      <div class="card" id="buttonSamplesCard">
-        <h2>Button Samples</h2>
-        <div class="section">
-          <div class="button-samples" id="buttonSamples"></div>
         </div>
       </div>
 
@@ -1491,12 +1538,30 @@
     const buttonSamples = [
       {
         name: 'Primary Light',
-        bg: '--neutral-0',
-        h1: '--neutral-900',
-        body: '--neutral-600',
+        bg: '--brand-secondary-50',
+        h1: '--brand-primary-900',
+        body: '--brand-primary-700',
         btnBg: '--brand-primary-500',
         btnText: '--neutral-0',
         btnHover: '--brand-primary-600'
+      },
+      {
+        name: 'Primary Color',
+        bg: '--brand-primary-500',
+        h1: '--neutral-0',
+        body: '--neutral-100',
+        btnBg: '--neutral-0',
+        btnText: '--brand-primary-700',
+        btnHover: '--neutral-100'
+      },
+      {
+        name: 'Primary Color Dark',
+        bg: '--brand-primary-700',
+        h1: '--neutral-0',
+        body: '--neutral-100',
+        btnBg: '--neutral-0',
+        btnText: '--brand-primary-900',
+        btnHover: '--neutral-100'
       },
       {
         name: 'Primary Dark',
@@ -1517,6 +1582,33 @@
         btnHover: '--brand-secondary-600'
       },
       {
+        name: 'Secondary Color',
+        bg: '--brand-secondary-500',
+        h1: '--neutral-0',
+        body: '--neutral-100',
+        btnBg: '--neutral-0',
+        btnText: '--brand-secondary-800',
+        btnHover: '--neutral-100'
+      },
+      {
+        name: 'Secondary Color Dark',
+        bg: '--brand-secondary-700',
+        h1: '--neutral-0',
+        body: '--neutral-100',
+        btnBg: '--neutral-0',
+        btnText: '--brand-secondary-900',
+        btnHover: '--neutral-100'
+      },
+      {
+        name: 'Secondary Dark',
+        bg: '--neutral-900',
+        h1: '--neutral-0',
+        body: '--neutral-300',
+        btnBg: '--brand-secondary-500',
+        btnText: '--neutral-0',
+        btnHover: '--brand-secondary-400'
+      },
+      {
         name: 'Tertiary Light',
         bg: '--neutral-0',
         h1: '--neutral-800',
@@ -1526,66 +1618,69 @@
         btnHover: '--brand-tertiary-600'
       },
       {
-        name: 'Primary Surface',
-        bg: '--brand-primary-50',
-        h1: '--brand-primary-900',
-        body: '--brand-primary-700',
-        btnBg: '--brand-primary-500',
-        btnText: '--neutral-0',
-        btnHover: '--brand-primary-600'
+        name: 'Tertiary Color',
+        bg: '--brand-tertiary-500',
+        h1: '--neutral-0',
+        body: '--neutral-100',
+        btnBg: '--neutral-0',
+        btnText: '--brand-tertiary-800',
+        btnHover: '--neutral-100'
       },
       {
-        name: 'Secondary Surface',
-        bg: '--brand-secondary-50',
-        h1: '--brand-secondary-900',
-        body: '--brand-secondary-700',
-        btnBg: '--brand-secondary-500',
-        btnText: '--neutral-900',
-        btnHover: '--brand-secondary-600'
+        name: 'Tertiary Color Dark',
+        bg: '--brand-tertiary-700',
+        h1: '--neutral-0',
+        body: '--neutral-100',
+        btnBg: '--neutral-0',
+        btnText: '--brand-tertiary-900',
+        btnHover: '--neutral-100'
       },
       {
-        name: 'Tertiary Surface',
-        bg: '--brand-tertiary-50',
-        h1: '--brand-tertiary-900',
-        body: '--brand-tertiary-700',
+        name: 'Tertiary Dark',
+        bg: '--neutral-900',
+        h1: '--neutral-0',
+        body: '--neutral-300',
         btnBg: '--brand-tertiary-500',
         btnText: '--neutral-0',
-        btnHover: '--brand-tertiary-600'
-      },
-      {
-        name: 'Neutral Dark',
-        bg: '--neutral-800',
-        h1: '--neutral-100',
-        body: '--neutral-400',
-        btnBg: '--neutral-0',
-        btnText: '--neutral-900',
-        btnHover: '--neutral-200'
+        btnHover: '--brand-tertiary-400'
       },
     ];
 
     function buttonSampleHTML(sample, index) {
       const tokenName = (v) => v.replace(/^--/, '');
+      const shortTokenName = (v) => {
+        const label = tokenName(v);
+        const match = label.match(/^(brand-primary|brand-secondary|brand-tertiary|neutral)-(\d+)$/);
+        if (!match) return label;
+        const prefix = match[1];
+        const stop = match[2];
+        const abbr = colorRamps[prefix]?.abbr;
+        return abbr ? `${abbr}-${stop}` : label;
+      };
       return `
         <div class="button-sample" data-sample-index="${index}">
           <div class="button-sample-preview" style="background: var(${sample.bg});">
-            <h3 style="color: var(${sample.h1}); font-family: var(--font-family-acme); font-size: 48px; line-height: 1; font-weight: 600; letter-spacing: 0em; text-transform: uppercase;">Heading</h3>
-            <p style="color: var(${sample.body}); font-family: var(--font-family-sans); font-size: 16px; line-height: 1.5; font-weight: 400; letter-spacing: -0.015em;">Body text demonstrates how readable content appears with this color combination.</p>
-            <button class="sample-btn" 
-                    style="background: var(${sample.btnBg}); color: var(${sample.btnText}); font-family: var(--font-family-sans); font-size: 16px; line-height: 1; font-weight: 500; letter-spacing: -0.005em;"
+            <svg class="sample-logo" viewBox="0 0 800 800" aria-hidden="true" focusable="false" style="color: var(${sample.h1});">
+              <path fill="currentColor" d="M500.58,239.63c-1.14-3.36-3.78-1.18-5.43.61-9.17,9.88-18.99,32.99-23.71,45.88-9.76,26.67-16.31,55.39-19.19,83.67.83.94,3.83-3.69,4.33-4.36,16.25-21.84,30.7-56.96,37.98-83.19,2.58-9.3,8.87-34.24,6.02-42.61ZM558.75,333.19c-15.16,16.03-24.9,40.66-32.08,61.19,8.22-1.84,15.6-8.2,21.33-14.04,10.34-10.53,22.97-28.17,26.85-42.47,5.39-19.85-7.19-14.1-16.1-4.68ZM558.75,333.19c-15.16,16.03-24.9,40.66-32.08,61.19,8.22-1.84,15.6-8.2,21.33-14.04,10.34-10.53,22.97-28.17,26.85-42.47,5.39-19.85-7.19-14.1-16.1-4.68ZM495.15,240.24c-9.17,9.88-18.99,32.99-23.71,45.88-9.76,26.67-16.31,55.39-19.19,83.67.83.94,3.83-3.69,4.33-4.36,16.25-21.84,30.7-56.96,37.98-83.19,2.58-9.3,8.87-34.24,6.02-42.61-1.14-3.36-3.78-1.18-5.43.61ZM400,0C179.09,0,0,179.08,0,400s179.09,400,400,400,400-179.09,400-400S620.91,0,400,0ZM395.09,262.59c29.77-4.03,20.74,50.47-6.14,49.02-23.12-1.24-17.31-45.84,6.14-49.02ZM655.28,519.76l-86.38,38.94c-3.46.32-4.61-3.45-3.09-6.16l16.38-25.61-.29-1.52c-82.46-10.1-166.64,1.64-244.85,28.23-18.07,6.14-44.64,19.54-63.27,17.59-28.97-3.02-21.64-39.22-18.2-58.82,9.29-53.05,24.15-107.89,39.73-159.41,4.52-14.94,10.24-30.08,14.4-44.98.18-.65.76-2.01,0-2.41-1.74.88-3,3.84-4,5.6-22.97,40.46-46.49,85.62-64.82,128.35-5.76,13.45-10.26,28.71-16.59,41.59-2.11,4.29-4.25,8.16-9.55,9.05-10.07,1.68-25.16-3.47-30.18-12.74-7.09-13.09-2.27-48.54-.58-64.18,3.07-28.39,7.94-56.69,10.22-85.15l-.62-5.11c-16.06,45.6-33.44,90.91-47.1,137.35-4.5,15.32-8.77,30.88-11.55,46.63-1.75,9.91.07,22.62-11.58,26.81-17.3,6.22-30.84-5.97-30.64-23.33l-.56-.95v-.6c6.52-42.39,25.13-83.77,40.96-123.69,17.2-43.37,35.11-89.83,55.56-131.6,2.2-4.5,5.89-13.42,10.58-15.22,8.17-3.14,25.35,1.22,32.81,5.65,8.4,5,8.87,8.65,8.32,18.06-1.03,17.62-4.48,37.9-6.67,55.71-3.86,31.34-9.25,62.68-11.32,94.24-.09,1.37-.24,3.24.29,4.49,24.25-47.63,46.33-96.36,72.22-143.14,6.92-12.52,14.35-25.92,22.06-37.93,2.66-4.15,5.89-10.81,11.33-11.46,10.29-1.23,29.15,2.16,37.21,9.02,2.71,2.31,5.56,6.05,5.11,9.83-.49,4.07-5.77,14.31-7.46,18.98-26.19,72.05-46.23,154.33-61.96,229.55-2.16,10.31-6.63,27.77-6.75,37.7-.04,3.81.88,7.21,5.39,5.95,77.41-27.78,169.05-47.18,251.73-38.73,11.37,1.16,22.66,3.47,33.91,5.39l-6.63-26.69c3.98-11.8,9.08-.9,12.92,3.31,14.2,15.54,34.02,25.97,54.2,31.61,6.1,1.71,14.57.71,9.31,9.8ZM629.06,465.08c-16.82-1.68-33.81-15.09-25.88-33.51,1.53-3.55,9.84-15.05,13.83-14.99,3.97.07,1.97,7.06,2.13,9.21,1.04,13.99,19.63,14.41,27.2,5.12,12.31-15.08,4.65-46.83-.83-63.83-1.7-5.26-3.36-11.43-6.61-15.88-15.71,34.64-35.96,70.34-64.21,96.27-15.16,13.9-36.55,29.29-58.35,22.91-15.67-4.59-20.41-21.19-24.18-35.21-8.53,13.07-17.1,32.66-32.62,38.77-20.48,8.06-38.24-2.71-44.79-22.59l-2.41-9.58c-11.5,15.07-31.31,40.28-52.21,40.22-29.77-.08-24.19-38.05-20.53-57.15,3.89-20.36,9.73-42.89,15.87-62.7,1.52-4.91,6.35-21.68,9.36-24.53,4.09-3.89,14.61-1.34,19.61.09,13.44,3.83,11.78,7.16,8.82,19.62-6.46,27.18-20.72,56.86-22.03,84.75-.2,4.29-1.58,12.16,4.36,10.95,10.55-2.13,28.07-29.7,35.13-38.07,5.46-57.15,15.41-115.22,47.04-164.1,9.82-15.17,22.54-31.93,40.7-36.99h7.8c20.08,6.45,14.46,35.65,10.99,51.47-11.11,50.68-39.12,100.59-70.26,141.49-.76,9.69-2.65,19.5-1.97,29.27.56,7.99,3.94,16.95,13.64,12.98,9.24-3.78,28.92-34.02,31.13-43.86,1.11-4.98,1.42-10.03,2.84-15.15,7.84-28.19,36.49-75.14,65.27-85.32,18.11-6.4,36.56-1.68,38.37,19.78,2.86,33.78-32.84,77.22-64.32,86.83-3.15.96-8.79.2-9.45,4.36-1.05,6.69.56,22.92,5.67,27.85,10.64,10.23,28.51-6.77,36.31-14.09,26.04-24.41,46.28-61.27,60.29-93.88,4.3-10.02,8.74-27.59,17.42-34.17,8.62-6.53,21.8-5.44,28.17,3.64,4.45,6.34.71,7.97-1.47,13.45-10.89,27.39,5.67,38.52,13.82,61.77,13.65,38.9-6.33,89.53-53.65,84.8ZM548,380.34c10.34-10.53,22.97-28.17,26.85-42.47,5.39-19.85-7.19-14.1-16.1-4.68-15.16,16.03-24.9,40.66-32.08,61.19,8.22-1.84,15.6-8.2,21.33-14.04ZM456.58,365.43c16.25-21.84,30.7-56.96,37.98-83.19,2.58-9.3,8.87-34.24,6.02-42.61-1.14-3.36-3.78-1.18-5.43.61-9.17,9.88-18.99,32.99-23.71,45.88-9.76,26.67-16.31,55.39-19.19,83.67.83.94,3.83-3.69,4.33-4.36Z"/>
+            </svg>
+            <h3 class="type-h2" style="color: var(${sample.h1});">Heading</h3>
+            <p class="body-md" style="color: var(${sample.body});">Body text demonstrates how readable content appears with this color combination.</p>
+            <button class="sample-btn type-button" 
+                    style="background: var(${sample.btnBg}); color: var(${sample.btnText});"
                     data-hover-color="var(${sample.btnHover})"
                     data-default-color="var(${sample.btnBg})">
-              Button
+              Get Started
             </button>
           </div>
           <div class="button-sample-meta">
             <div class="button-sample-title">${sample.name}</div>
             <div class="button-sample-tokens">
-              <span><span class="token-label">bg:</span> ${tokenName(sample.bg)}</span>
-              <span><span class="token-label">h1:</span> ${tokenName(sample.h1)}</span>
-              <span><span class="token-label">body:</span> ${tokenName(sample.body)}</span>
-              <span><span class="token-label">btn:</span> ${tokenName(sample.btnBg)}</span>
-              <span><span class="token-label">btn-text:</span> ${tokenName(sample.btnText)}</span>
-              <span><span class="token-label">btn-hover:</span> ${tokenName(sample.btnHover)}</span>
+              <span><span class="token-label">bg:</span> <span class="mini-swatch" style="background: var(${sample.bg});"></span> ${shortTokenName(sample.bg)}</span>
+              <span><span class="token-label">h1:</span> <span class="mini-swatch" style="background: var(${sample.h1});"></span> ${shortTokenName(sample.h1)}</span>
+              <span><span class="token-label">body:</span> <span class="mini-swatch" style="background: var(${sample.body});"></span> ${shortTokenName(sample.body)}</span>
+              <span><span class="token-label">btn:</span> <span class="mini-swatch" style="background: var(${sample.btnBg});"></span> ${shortTokenName(sample.btnBg)}</span>
+              <span><span class="token-label">btn-text:</span> <span class="mini-swatch" style="background: var(${sample.btnText});"></span> ${shortTokenName(sample.btnText)}</span>
+              <span><span class="token-label">btn-hover:</span> <span class="mini-swatch" style="background: var(${sample.btnHover});"></span> ${shortTokenName(sample.btnHover)}</span>
             </div>
           </div>
         </div>
@@ -1595,7 +1690,28 @@
     function renderButtonSamples() {
       const container = document.getElementById('buttonSamples');
       if (!container) return;
-      container.innerHTML = buttonSamples.map((sample, i) => buttonSampleHTML(sample, i)).join('');
+      const groups = [
+        { id: 'Primary', title: 'Primary' },
+        { id: 'Secondary', title: 'Secondary' },
+        { id: 'Tertiary', title: 'Tertiary' },
+        { id: 'Neutral', title: 'Neutral' },
+      ];
+
+      container.innerHTML = `
+        <div class="button-sample-groups">
+          ${groups.map(group => {
+            const samples = buttonSamples.filter(sample => sample.name.startsWith(group.id));
+            if (!samples.length) return '';
+            return `
+              <div class="button-sample-group" data-group="${group.id.toLowerCase()}">
+                <div class="button-samples">
+                  ${samples.map((sample, i) => buttonSampleHTML(sample, i)).join('')}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
       
       // Add hover effects to sample buttons
       container.querySelectorAll('.sample-btn').forEach(btn => {

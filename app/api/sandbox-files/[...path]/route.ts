@@ -164,12 +164,40 @@ export async function GET(
     let content = fs.readFileSync(normalizedPath);
     const mimeType = getMimeType(normalizedPath);
 
+    // For CSS files, rewrite relative font URLs to absolute URLs
+    if (mimeType === "text/css") {
+      const cssContent = content.toString("utf-8");
+      // Build the base URL for this CSS file
+      const baseUrl = `/api/sandbox-files/${folderName}/${pathParts.slice(1, -1).join("/")}`;
+      const fixedBase = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
+      
+      // Replace relative font URLs with absolute URLs
+      const modifiedCss = cssContent.replace(
+        /url\(['"]?([^'")\s]+\.(woff2?|ttf|otf|eot))['"]?\)/gi,
+        (match, fontPath) => {
+          // If already absolute, don't modify
+          if (fontPath.startsWith("http") || fontPath.startsWith("/")) {
+            return match;
+          }
+          // Convert relative to absolute
+          const absolutePath = `${fixedBase}${fontPath}`;
+          return `url('${absolutePath}')`;
+        }
+      );
+      content = Buffer.from(modifiedCss, "utf-8");
+    }
+
     // Set appropriate headers
     const headers: Record<string, string> = {
       "Content-Type": mimeType,
       // Don't cache CSS files to allow live updates during development
       "Cache-Control": mimeType === "text/css" ? "no-cache, no-store, must-revalidate" : "private, max-age=3600",
     };
+
+    // Add CORS headers for font files
+    if (mimeType.startsWith("font/")) {
+      headers["Access-Control-Allow-Origin"] = "*";
+    }
 
     // Allow HTML files to be framed (for the viewer)
     if (mimeType === "text/html") {
