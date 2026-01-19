@@ -1,4 +1,3 @@
-import { getCurrentUser } from "@/lib/auth";
 import { promises as fs } from "fs";
 import path from "path";
 import RandomImageDisplay from "./RandomImageDisplay";
@@ -6,7 +5,6 @@ import RandomImageDisplay from "./RandomImageDisplay";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const user = await getCurrentUser();
 
   // Get all images from the scraps folder
   const scrapsDir = path.join(process.cwd(), "public", "scraps");

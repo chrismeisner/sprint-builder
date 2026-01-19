@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 
 interface RandomImageDisplayProps {
@@ -11,15 +11,15 @@ export default function RandomImageDisplay({ images }: RandomImageDisplayProps) 
   const [currentImage, setCurrentImage] = useState<string>("");
 
   // Pick a random image
-  const pickRandomImage = () => {
+  const pickRandomImage = useCallback(() => {
     const randomImage = images[Math.floor(Math.random() * images.length)];
     setCurrentImage(`/scraps/${randomImage}`);
-  };
+  }, [images]);
 
   // Pick initial random image on mount
   useEffect(() => {
     pickRandomImage();
-  }, []);
+  }, [pickRandomImage]);
 
   // Listen for 'r' key press
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function RandomImageDisplay({ images }: RandomImageDisplayProps) 
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [images]);
+  }, [pickRandomImage]);
 
   if (!currentImage) return null;
 
