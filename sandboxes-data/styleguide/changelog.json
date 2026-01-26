@@ -1,6 +1,33 @@
 {
   "entries": [
     {
+      "version": "1.0.2",
+      "date": "2026-01-26",
+      "title": "Style tiles + palette refresh",
+      "changes": [
+        {
+          "type": "changed",
+          "text": "Updated the secondary (sand) color ramp values in tokens."
+        },
+        {
+          "type": "changed",
+          "text": "Refined style tiles layout with full-bleed backgrounds and theme-specific overrides for hero, blog, and signup tiles."
+        },
+        {
+          "type": "changed",
+          "text": "Adjusted primary/tertiary button colors and hover states for better consistency across themes."
+        },
+        {
+          "type": "removed",
+          "text": "Simplified the color palette page by removing UI states and recommended color pairing sections."
+        },
+        {
+          "type": "changed",
+          "text": "Updated green logo assets (badge, icon, wordmark) in the styleguide."
+        }
+      ]
+    },
+    {
       "version": "1.0.1",
       "date": "2026-01-17",
       "title": "Change Log",

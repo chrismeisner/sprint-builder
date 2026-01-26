@@ -294,161 +294,6 @@
     }
 
     /* =====================================================
-       COLOR PAIRINGS
-    ===================================================== */
-    .pairings {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 12px;
-    }
-
-    .pairing-tile {
-      border-radius: 10px;
-      overflow: hidden;
-      border: 1px solid var(--neutral-200);
-      background: var(--neutral-0);
-      cursor: pointer;
-      transition: box-shadow 120ms ease, transform 80ms ease;
-    }
-
-    .pairing-tile:hover {
-      box-shadow: 0 6px 20px rgba(17, 24, 39, 0.12);
-      transform: translateY(-2px);
-    }
-
-    .pairing-tile:focus-visible {
-      outline: 2px solid var(--brand-primary-500);
-      outline-offset: 2px;
-    }
-
-    .pairing-preview {
-      padding: 24px 16px;
-      text-align: center;
-      min-height: 80px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-    }
-
-    .pairing-preview .sample-text {
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-    }
-
-    .pairing-preview .sample-subtext {
-      font-size: 12px;
-      opacity: 0.85;
-    }
-
-    .pairing-meta {
-      padding: 10px 12px;
-      font-size: 11px;
-      background: var(--neutral-50);
-      border-top: 1px solid var(--neutral-200);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .pairing-meta .pairing-label {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .pairing-meta .pairing-bg,
-    .pairing-meta .pairing-fg {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 10px;
-      color: var(--neutral-600);
-    }
-
-    .pairing-meta .pairing-bg::before {
-      content: "BG: ";
-      color: var(--neutral-400);
-    }
-
-    .pairing-meta .pairing-fg::before {
-      content: "FG: ";
-      color: var(--neutral-400);
-    }
-
-    .pairing-meta .contrast-badge {
-      font-size: 9px;
-      font-weight: 600;
-      padding: 3px 6px;
-      border-radius: 4px;
-      background: var(--neutral-200);
-      color: var(--neutral-700);
-      white-space: nowrap;
-    }
-
-    .pairing-meta .contrast-badge.aaa {
-      background: var(--success-primary);
-      color: white;
-    }
-
-    .pairing-meta .contrast-badge.aa {
-      background: var(--brand-tertiary-500);
-      color: white;
-    }
-
-    @media (max-width: 768px) {
-      .pairings {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      }
-      .pairing-preview {
-        padding: 18px 12px;
-        min-height: 70px;
-      }
-      .pairing-preview .sample-text {
-        font-size: 16px;
-      }
-    }
-
-    /* Pairing categories */
-    .pairing-categories {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    .pairing-category {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .pairing-category-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--neutral-200);
-    }
-
-    .pairing-category-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--neutral-700);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .pairing-category-count {
-      font-size: 10px;
-      font-weight: 500;
-      color: var(--neutral-400);
-      background: var(--neutral-100);
-      padding: 2px 6px;
-      border-radius: 10px;
-    }
-
-    /* =====================================================
        BUTTON SAMPLES
     ===================================================== */
     .button-samples-container {
@@ -791,30 +636,19 @@
 <body>
   <div class="wrap">
     <h1>Color Palette</h1>
-    <p class="subtitle">All colors are visually sampled below (brand ramps, neutrals, and UI states).</p>
+    <p class="subtitle">All colors are visually sampled below (brand ramps and neutrals).</p>
     <div class="controls">
-      <label class="control">
-        <span>Palette view</span>
-        <select id="paletteMode">
-          <option value="full">Show complete palette</option>
-          <option value="recommended">Show recommended palette</option>
-        </select>
-      </label>
-      <label class="control">
-        <span>Title</span>
-        <input type="text" id="exportTitle" placeholder="Optional title" />
-      </label>
       <label class="control">
         <input type="checkbox" id="includeHash" checked />
         <span>Include # when copying</span>
       </label>
-      <button type="button" class="button" id="editColorNames">Edit Color Names</button>
-      <button type="button" class="button" id="exportCsv">Export CSV</button>
-      <button type="button" class="button" id="uploadCsv">Upload CSV</button>
-      <input type="file" id="uploadInput" accept=".csv,text/csv" class="sr-only" />
+      <button type="button" class="button admin-only" id="editColorNames" style="display: none;">Edit Color Names</button>
+      <button type="button" class="button admin-only" id="exportCsv" style="display: none;">Export CSV</button>
+      <button type="button" class="button admin-only" id="uploadCsv" style="display: none;">Upload CSV</button>
+      <input type="file" id="uploadInput" accept=".csv,text/csv" class="sr-only admin-only" style="display: none;" />
     </div>
 
-    <div class="controls section-toggles">
+    <div class="controls section-toggles admin-only" style="display: none;">
       <span class="control-label">Show sections:</span>
       <label class="control">
         <input type="checkbox" class="section-toggle" data-section="brandPrimaryCard" checked />
@@ -833,27 +667,12 @@
         <span>Neutrals</span>
       </label>
       <label class="control">
-        <input type="checkbox" class="section-toggle" data-section="uiStatesCard" />
-        <span>UI States</span>
-      </label>
-      <label class="control">
         <input type="checkbox" class="section-toggle" data-section="buttonSamplesCard" checked />
         <span>Color Tiles</span>
-      </label>
-      <label class="control">
-        <input type="checkbox" class="section-toggle" data-section="colorPairingsCard" />
-        <span>Color Pairings</span>
       </label>
     </div>
 
     <div class="cards">
-      <div class="card" id="buttonSamplesCard">
-        <h2>Color Tiles</h2>
-        <div class="section">
-          <div class="button-samples-container" id="buttonSamples"></div>
-        </div>
-      </div>
-
       <div class="card" id="brandPrimaryCard">
         <h2 id="brandPrimaryHeader">Brand · Primary (50 → 950)</h2>
         <div class="section">
@@ -882,17 +701,10 @@
         </div>
       </div>
 
-      <div class="card" id="uiStatesCard">
-        <h2>UI States</h2>
+      <div class="card" id="buttonSamplesCard">
+        <h2>Color Tiles</h2>
         <div class="section">
-          <div class="swatches" id="uiStates"></div>
-        </div>
-      </div>
-
-      <div class="card hidden" id="colorPairingsCard">
-        <h2>Recommended Color Pairings</h2>
-        <div class="section">
-          <div id="colorPairings"></div>
+          <div class="button-samples-container" id="buttonSamples"></div>
         </div>
       </div>
 
@@ -974,8 +786,6 @@
     };
 
     const includeHashControl = document.getElementById("includeHash");
-    const paletteModeSelect = document.getElementById("paletteMode");
-    const exportTitleInput = document.getElementById("exportTitle");
     const exportButton = document.getElementById("exportCsv");
     const uploadButton = document.getElementById("uploadCsv");
     const uploadInput = document.getElementById("uploadInput");
@@ -1034,21 +844,11 @@
     }
 
     function renderAll() {
-      const mode = paletteModeSelect?.value || "full";
-      const rampStops = mode === "recommended" ? recommendedRamp : ramps;
-      const neutralTokens = mode === "recommended" ? recommendedNeutrals : fullNeutrals;
-      document.body.classList.toggle("recommended-mode", mode === "recommended");
-
-      renderRamp("brandPrimary", "brand-primary", rampStops);
-      renderRamp("brandSecondary", "brand-secondary", rampStops);
-      renderRamp("brandTertiary", "brand-tertiary", rampStops);
-      renderList("neutrals", neutralTokens, colorRamps['neutral'].abbr);
-      renderList("uiStates", [
-        "--success-primary",
-        "--success-secondary",
-        "--fail-primary",
-        "--fail-secondary"
-      ]);
+      document.body.classList.remove("recommended-mode");
+      renderRamp("brandPrimary", "brand-primary", ramps);
+      renderRamp("brandSecondary", "brand-secondary", ramps);
+      renderRamp("brandTertiary", "brand-tertiary", ramps);
+      renderList("neutrals", fullNeutrals, colorRamps['neutral'].abbr);
     }
 
     function copyHexToClipboard(hex) {
@@ -1191,7 +991,6 @@
 
     exportButton?.addEventListener("click", () => {
       const rows = collectAllTokens().map(({ token, value }) => [token, value]);
-      const title = exportTitleInput?.value?.trim() || "";
       
       // Add color names metadata rows at the beginning
       const colorNamesRows = [
@@ -1205,8 +1004,8 @@
         ['_color_abbr_neutral', colorRamps['neutral'].abbr],
       ];
       
-      const header = ["token", "value", "title"];
-      const csvRows = [header, ...colorNamesRows.map(r => [...r, title]), ...rows.map(r => [...r, title])];
+      const header = ["token", "value"];
+      const csvRows = [header, ...colorNamesRows, ...rows.map(r => [r[0], r[1]])];
       const csv = csvRows.map(cols => cols.map(csvEscape).join(",")).join("\n");
       downloadCsv(csv, `design-tokens-${numericTimestamp()}.csv`);
       showToast("Exported CSV");
@@ -1268,9 +1067,6 @@
         });
       });
       fullNeutrals.forEach(token => tokens.push({ token, value: cssVar(token) }));
-      ["--success-primary", "--success-secondary", "--fail-primary", "--fail-secondary"].forEach(token =>
-        tokens.push({ token, value: cssVar(token) })
-      );
       return tokens;
     }
 
@@ -1316,7 +1112,7 @@
         if (!cols.length) continue;
         if (i === 0 && cols[0].toLowerCase() === "token") continue;
         if (cols.length < 2) continue;
-        rows.push({ token: cols[0].trim(), value: cols[1].trim(), title: cols[2]?.trim() || "" });
+        rows.push({ token: cols[0].trim(), value: cols[1].trim() });
       }
       return rows;
     }
@@ -1352,11 +1148,6 @@
     }
 
     function applyTokensFromCsv(rows) {
-      const titleFromCsv = rows.find(r => r.title)?.title || "";
-      if (exportTitleInput && titleFromCsv) {
-        exportTitleInput.value = titleFromCsv;
-      }
-      
       // Extract color names from CSV if present
       rows.forEach(({ token, value }) => {
         if (token === '_color_name_primary') colorRamps['brand-primary'].name = value;
@@ -1384,152 +1175,6 @@
       toastTimer = setTimeout(() => {
         toastEl.classList.remove("show");
       }, 1500);
-    }
-
-    // =====================================================
-    // COLOR PAIRINGS
-    // =====================================================
-    const pairingCategories = [
-      {
-        id: 'primary',
-        title: 'Primary',
-        pairings: [
-          { bg: '--brand-primary-500', fg: '--neutral-0', label: 'Button' },
-          { bg: '--brand-primary-100', fg: '--brand-primary-900', label: 'Surface' },
-          { bg: '--brand-primary-900', fg: '--neutral-0', label: 'Dark' },
-          { bg: '--brand-primary-50', fg: '--brand-primary-700', label: 'Subtle' },
-        ]
-      },
-      {
-        id: 'secondary',
-        title: 'Secondary',
-        pairings: [
-          { bg: '--brand-secondary-500', fg: '--neutral-900', label: 'Button' },
-          { bg: '--brand-secondary-100', fg: '--brand-secondary-900', label: 'Surface' },
-          { bg: '--brand-secondary-900', fg: '--neutral-0', label: 'Dark' },
-        ]
-      },
-      {
-        id: 'tertiary',
-        title: 'Tertiary',
-        pairings: [
-          { bg: '--brand-tertiary-500', fg: '--neutral-0', label: 'Button' },
-          { bg: '--brand-tertiary-100', fg: '--brand-tertiary-900', label: 'Surface' },
-          { bg: '--brand-tertiary-900', fg: '--neutral-0', label: 'Dark' },
-        ]
-      },
-      {
-        id: 'neutrals',
-        title: 'Neutrals',
-        pairings: [
-          { bg: '--neutral-0', fg: '--neutral-900', label: 'Default' },
-          { bg: '--neutral-100', fg: '--neutral-900', label: 'Light Surface' },
-          { bg: '--neutral-800', fg: '--neutral-100', label: 'Dark Surface' },
-          { bg: '--neutral-900', fg: '--neutral-0', label: 'Dark Mode' },
-        ]
-      },
-      {
-        id: 'status',
-        title: 'Status',
-        pairings: [
-          { bg: '--success-primary', fg: '--neutral-0', label: 'Success' },
-          { bg: '--fail-primary', fg: '--neutral-0', label: 'Error' },
-        ]
-      },
-      {
-        id: 'mixed',
-        title: 'Mixed / Accent',
-        pairings: [
-          { bg: '--brand-primary-500', fg: '--brand-secondary-100', label: 'Primary + Secondary' },
-          { bg: '--neutral-900', fg: '--brand-primary-400', label: 'Dark + Primary' },
-          { bg: '--neutral-900', fg: '--brand-tertiary-400', label: 'Dark + Tertiary' },
-          { bg: '--brand-primary-100', fg: '--brand-tertiary-700', label: 'Primary + Tertiary' },
-        ]
-      },
-    ];
-
-    function hexToRgb(hex) {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      } : null;
-    }
-
-    function getLuminance(r, g, b) {
-      const [rs, gs, bs] = [r, g, b].map(c => {
-        c = c / 255;
-        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-      });
-      return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
-    }
-
-    function getContrastRatio(hex1, hex2) {
-      const rgb1 = hexToRgb(hex1);
-      const rgb2 = hexToRgb(hex2);
-      if (!rgb1 || !rgb2) return 0;
-      const l1 = getLuminance(rgb1.r, rgb1.g, rgb1.b);
-      const l2 = getLuminance(rgb2.r, rgb2.g, rgb2.b);
-      const lighter = Math.max(l1, l2);
-      const darker = Math.min(l1, l2);
-      return (lighter + 0.05) / (darker + 0.05);
-    }
-
-    function getContrastBadge(ratio) {
-      if (ratio >= 7) return { text: 'AAA', class: 'aaa' };
-      if (ratio >= 4.5) return { text: 'AA', class: 'aa' };
-      if (ratio >= 3) return { text: 'AA Large', class: '' };
-      return { text: `${ratio.toFixed(1)}:1`, class: '' };
-    }
-
-    function pairingTileHTML(pairing) {
-      const bgHex = cssVar(pairing.bg);
-      const fgHex = cssVar(pairing.fg);
-      const ratio = getContrastRatio(bgHex, fgHex);
-      const badge = getContrastBadge(ratio);
-      const bgToken = pairing.bg.replace(/^--/, '');
-      const fgToken = pairing.fg.replace(/^--/, '');
-      
-      return `
-        <div class="pairing-tile" tabindex="0" 
-             data-bg-var="${pairing.bg}" data-fg-var="${pairing.fg}"
-             data-bg-hex="${bgHex}" data-fg-hex="${fgHex}"
-             aria-label="${pairing.label}: ${bgToken} background with ${fgToken} text">
-          <div class="pairing-preview" style="background: var(${pairing.bg}); color: var(${pairing.fg});">
-            <span class="sample-text">${pairing.label}</span>
-            <span class="sample-subtext">Sample text</span>
-          </div>
-          <div class="pairing-meta">
-            <div class="pairing-label">
-              <span class="pairing-bg">${bgToken}</span>
-              <span class="pairing-fg">${fgToken}</span>
-            </div>
-            <span class="contrast-badge ${badge.class}">${badge.text}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderPairings() {
-      const container = document.getElementById('colorPairings');
-      if (!container) return;
-      
-      container.innerHTML = `
-        <div class="pairing-categories">
-          ${pairingCategories.map(category => `
-            <div class="pairing-category" data-category="${category.id}">
-              <div class="pairing-category-header">
-                <span class="pairing-category-title">${category.title}</span>
-                <span class="pairing-category-count">${category.pairings.length}</span>
-              </div>
-              <div class="pairings">
-                ${category.pairings.map(pairingTileHTML).join('')}
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      `;
     }
 
     // =====================================================
@@ -1565,9 +1210,9 @@
       },
       {
         name: 'Primary Dark',
-        bg: '--neutral-900',
-        h1: '--neutral-0',
-        body: '--neutral-300',
+        bg: '--brand-primary-900',
+        h1: '--brand-primary-100',
+        body: '--neutral-200',
         btnBg: '--brand-primary-500',
         btnText: '--neutral-0',
         btnHover: '--brand-primary-400'
@@ -1724,27 +1369,9 @@
       });
     }
 
-    // Handle clicking on pairing tiles to copy info
-    document.addEventListener('click', event => {
-      const tile = event.target.closest('.pairing-tile');
-      if (!tile) return;
-      const bgHex = formatHexForCopy(tile.dataset.bgHex);
-      const fgHex = formatHexForCopy(tile.dataset.fgHex);
-      const copyText = `BG: ${bgHex}, FG: ${fgHex}`;
-      copyHexToClipboard(copyText);
-      showToast(`Copied ${copyText}`);
-    });
-
     renderAll();
-    renderPairings();
     renderButtonSamples();
     updateCardHeaders();
-
-    paletteModeSelect?.addEventListener("change", () => {
-      renderAll();
-      renderPairings();
-      renderButtonSamples();
-    });
 
     // Section toggle functionality
     const sectionToggles = document.querySelectorAll(".section-toggle");
@@ -1813,7 +1440,6 @@
       
       // Re-render all swatches with new abbreviations
       renderAll();
-      renderPairings();
       renderButtonSamples();
       updateCardHeaders();
       
@@ -1833,6 +1459,17 @@
         closeModal();
       }
     });
+  </script>
+  <script>
+    // Show admin controls if user is admin
+    (function initAdminControls() {
+      const isAdmin = window.__USER_IS_ADMIN__ || false;
+      if (isAdmin) {
+        document.querySelectorAll('.admin-only').forEach(el => {
+          el.style.display = '';
+        });
+      }
+    })();
   </script>
   <script src="sidebar-nav.js"></script>
 </body>

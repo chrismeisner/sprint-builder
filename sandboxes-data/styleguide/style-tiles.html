@@ -25,10 +25,10 @@
     }
 
     .brand-btn {
-      background: var(--brand-primary-700);
+      background: var(--brand-primary-500);
     }
     .brand-btn:hover {
-      background: var(--brand-primary-800);
+      background: var(--brand-primary-600);
     }
     .brand-btn:focus-visible,
     .focus-outline-brand:focus-visible {
@@ -175,7 +175,7 @@
     .wrap {
       max-width: 1400px;
       margin: auto;
-      padding: 32px 20px 64px;
+      padding: 32px 20px 0;
     }
 
     /* Page structure typography */
@@ -222,17 +222,35 @@
     .tile-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 12px;
+      gap: 0;
     }
 
     .tile {
-      border: 1px solid var(--neutral-200);
-      border-radius: 6px;
-      background: var(--neutral-0);
+      --tile-bg: var(--neutral-0);
+      border: none;
+      border-radius: 0;
+      background: transparent;
       padding: 16px;
       display: grid;
       gap: 10px;
+      position: relative;
       transition: border-color 120ms ease, box-shadow 120ms ease, transform 80ms ease;
+    }
+
+    .tile::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      left: 50%;
+      width: 100vw;
+      transform: translateX(-50%);
+      background: var(--tile-bg);
+      z-index: 0;
+    }
+
+    .tile > * {
+      position: relative;
+      z-index: 1;
     }
 
     .tile-head {
@@ -290,7 +308,7 @@
 
     /* vertical rhythm between tiles */
     .tile + .tile {
-      margin-top: 16px;
+      margin-top: 0;
     }
 
     /* Global fade-in on page load */
@@ -449,14 +467,19 @@
 
     /* Signup tile - simplified */
     #tile-signup {
+      --tile-bg: var(--brand-primary-600);
       padding: 0;
-      background: var(--brand-secondary-400);
+      background: transparent;
       border-color: transparent;
     }
 
     #tile-signup .signup-shell { 
       background: transparent;
       box-shadow: none; 
+    }
+
+    #tile-signup .footer-cta-btn:hover {
+      background: var(--brand-primary-400) !important;
     }
 
     /* Font style labels */
@@ -628,11 +651,11 @@
       }
 
       .tile {
-        border: 1px solid var(--neutral-200);
-        border-radius: 12px;
+        border: none;
+        border-radius: 0;
         padding: 12px 10px;
-        box-shadow: var(--shadow);
-        background: var(--neutral-0);
+        box-shadow: none;
+        background: transparent;
         margin: 0;
       }
 
@@ -704,7 +727,7 @@
     }
 
     #tilesContainer.theme-dark .tile {
-      background: var(--neutral-0);
+      --tile-bg: var(--neutral-0);
       border-color: var(--neutral-200);
     }
 
@@ -736,6 +759,21 @@
       --tw-ring-color: rgba(255, 255, 255, 0.1) !important;
     }
 
+    #tilesContainer.theme-secondary-light #tile-hero,
+    #tilesContainer.theme-surface-light #tile-hero,
+    #tilesContainer:not(.theme-secondary-light):not(.theme-secondary-dark):not(.theme-surface-light):not(.theme-surface-dark):not(.theme-neutral-light):not(.theme-neutral-dark):not(.theme-primary-dark) #tile-hero {
+      --tile-bg: var(--brand-secondary-100);
+    }
+
+    #tile-hero .bg-white {
+      background: transparent !important;
+    }
+
+    #tile-hero {
+      padding-top: 60px;
+      padding-bottom: 60px;
+    }
+
     /* -------------------------------------------------
        PRIMARY (Green) - default accent, no override needed for light
     ------------------------------------------------- */
@@ -758,12 +796,12 @@
     }
 
     #tilesContainer.theme-primary-dark .tile {
-      background: var(--neutral-0);
-      border-color: var(--neutral-200);
+      --tile-bg: var(--brand-primary-900);
+      border-color: transparent;
     }
 
     #tilesContainer.theme-primary-dark .bg-white {
-      background: #1f2937 !important;
+      background: transparent !important;
     }
 
     #tilesContainer.theme-primary-dark .text-gray-900 {
@@ -788,6 +826,48 @@
 
     #tilesContainer.theme-primary-dark .ring-gray-900\/10 {
       --tw-ring-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    #tilesContainer.theme-primary-dark #tile-hero [data-style="H1"] {
+      color: var(--brand-primary-100) !important;
+    }
+
+    #tilesContainer.theme-primary-dark #tile-blog-grid [data-style="H2"] {
+      color: var(--brand-primary-100) !important;
+    }
+
+    #tilesContainer.theme-primary-dark #tile-signup {
+      --tile-bg: var(--brand-primary-950);
+    }
+
+    #tilesContainer.theme-primary-dark #tile-blog-grid [data-style="H3"] {
+      color: var(--brand-tertiary-100) !important;
+    }
+
+    #tilesContainer.theme-primary-dark #tile-blog-grid [data-style="Body / S"] {
+      color: var(--brand-primary-200) !important;
+    }
+
+    #tilesContainer.theme-primary-dark #tile-blog-grid [data-style="Label"] {
+      color: var(--brand-primary-300) !important;
+    }
+
+    #tilesContainer.theme-primary-dark #tile-blog-grid a[data-style="Label"] {
+      background: var(--brand-primary-800) !important;
+      color: var(--brand-primary-300) !important;
+    }
+
+    #tilesContainer.theme-primary-dark #tile-hero [data-style="H4"] {
+      color: var(--brand-primary-400) !important;
+    }
+
+    #tilesContainer.theme-primary-dark #tile-signup input[type="email"] {
+      background: #ffffff !important;
+      color: #000000 !important;
+    }
+
+    #tilesContainer.theme-primary-dark #tile-signup input[type="email"]::placeholder {
+      color: #000000 !important;
     }
 
     /* -------------------------------------------------
@@ -815,12 +895,44 @@
 
     #tilesContainer.theme-secondary-light .brand-btn,
     #tilesContainer.theme-secondary-dark .brand-btn {
-      background: var(--brand-tertiary-700) !important;
+      background: var(--brand-tertiary-500) !important;
     }
 
     #tilesContainer.theme-secondary-light .brand-btn:hover,
     #tilesContainer.theme-secondary-dark .brand-btn:hover {
-      background: var(--brand-tertiary-800) !important;
+      background: var(--brand-tertiary-600) !important;
+    }
+
+    #tilesContainer.theme-secondary-light .footer-cta-btn {
+      background: var(--brand-tertiary-500) !important;
+    }
+
+    #tilesContainer.theme-secondary-light .footer-cta-btn:hover {
+      background: var(--brand-tertiary-400) !important;
+    }
+
+    #tilesContainer.theme-secondary-light [style*="color: var(--brand-primary-700)"] {
+      color: var(--brand-tertiary-700) !important;
+    }
+
+    #tilesContainer.theme-secondary-light [style*="color: var(--brand-primary-800)"] {
+      color: var(--brand-tertiary-800) !important;
+    }
+
+    #tilesContainer.theme-secondary-light [style*="color: var(--brand-primary-900)"] {
+      color: var(--brand-tertiary-900) !important;
+    }
+
+    #tilesContainer.theme-secondary-light [style*="background: var(--brand-primary-200)"] {
+      background: var(--brand-tertiary-200) !important;
+    }
+
+    #tilesContainer.theme-secondary-light [style*="background: var(--brand-primary-600)"] {
+      background: var(--brand-tertiary-600) !important;
+    }
+
+    #tilesContainer.theme-secondary-light [style*="color: var(--brand-primary-100)"] {
+      color: var(--brand-tertiary-100) !important;
     }
 
     #tilesContainer.theme-secondary-light [style*="color: var(--brand-primary-600)"],
@@ -845,12 +957,12 @@
     }
 
     #tilesContainer.theme-secondary-dark .tile {
-      background: var(--neutral-0);
-      border-color: var(--neutral-200);
+      --tile-bg: var(--brand-tertiary-900);
+      border-color: transparent;
     }
 
     #tilesContainer.theme-secondary-dark .bg-white {
-      background: #1f2937 !important;
+      background: transparent !important;
     }
 
     #tilesContainer.theme-secondary-dark .text-gray-900 {
@@ -875,6 +987,48 @@
 
     #tilesContainer.theme-secondary-dark .ring-gray-900\/10 {
       --tw-ring-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    #tilesContainer.theme-secondary-dark #tile-hero [data-style="H1"] {
+      color: var(--brand-tertiary-100) !important;
+    }
+
+    #tilesContainer.theme-secondary-dark #tile-hero [data-style="H4"] {
+      color: var(--brand-tertiary-400) !important;
+    }
+
+    #tilesContainer.theme-secondary-dark #tile-blog-grid [data-style="H2"] {
+      color: var(--brand-tertiary-100) !important;
+    }
+
+    #tilesContainer.theme-secondary-dark #tile-blog-grid [data-style="H3"] {
+      color: var(--brand-tertiary-100) !important;
+    }
+
+    #tilesContainer.theme-secondary-dark #tile-blog-grid [data-style="Body / S"] {
+      color: var(--brand-tertiary-200) !important;
+    }
+
+    #tilesContainer.theme-secondary-dark #tile-blog-grid [data-style="Label"] {
+      color: var(--brand-tertiary-300) !important;
+    }
+
+    #tilesContainer.theme-secondary-dark #tile-blog-grid a[data-style="Label"] {
+      background: var(--brand-tertiary-800) !important;
+      color: var(--brand-tertiary-300) !important;
+    }
+
+    #tilesContainer.theme-secondary-dark #tile-signup {
+      --tile-bg: var(--brand-tertiary-950);
+    }
+
+    #tilesContainer.theme-secondary-dark #tile-signup input[type="email"] {
+      background: #ffffff !important;
+      color: #000000 !important;
+    }
+
+    #tilesContainer.theme-secondary-dark #tile-signup input[type="email"]::placeholder {
+      color: #000000 !important;
     }
 
     /* -------------------------------------------------
@@ -902,12 +1056,44 @@
 
     #tilesContainer.theme-surface-light .brand-btn,
     #tilesContainer.theme-surface-dark .brand-btn {
-      background: var(--brand-secondary-700) !important;
+      background: var(--brand-secondary-500) !important;
     }
 
     #tilesContainer.theme-surface-light .brand-btn:hover,
     #tilesContainer.theme-surface-dark .brand-btn:hover {
-      background: var(--brand-secondary-800) !important;
+      background: var(--brand-secondary-600) !important;
+    }
+
+    #tilesContainer.theme-surface-light .footer-cta-btn {
+      background: var(--brand-secondary-500) !important;
+    }
+
+    #tilesContainer.theme-surface-light .footer-cta-btn:hover {
+      background: var(--brand-secondary-400) !important;
+    }
+
+    #tilesContainer.theme-surface-light [style*="color: var(--brand-primary-700)"] {
+      color: var(--brand-secondary-700) !important;
+    }
+
+    #tilesContainer.theme-surface-light [style*="color: var(--brand-primary-800)"] {
+      color: var(--brand-secondary-800) !important;
+    }
+
+    #tilesContainer.theme-surface-light [style*="color: var(--brand-primary-900)"] {
+      color: var(--brand-secondary-900) !important;
+    }
+
+    #tilesContainer.theme-surface-light [style*="background: var(--brand-primary-200)"] {
+      background: var(--brand-secondary-200) !important;
+    }
+
+    #tilesContainer.theme-surface-light [style*="background: var(--brand-primary-600)"] {
+      background: var(--brand-secondary-600) !important;
+    }
+
+    #tilesContainer.theme-surface-light [style*="color: var(--brand-primary-100)"] {
+      color: var(--brand-secondary-100) !important;
     }
 
     #tilesContainer.theme-surface-light [style*="color: var(--brand-primary-600)"],
@@ -932,12 +1118,12 @@
     }
 
     #tilesContainer.theme-surface-dark .tile {
-      background: var(--neutral-0);
-      border-color: var(--neutral-200);
+      --tile-bg: var(--brand-secondary-900);
+      border-color: transparent;
     }
 
     #tilesContainer.theme-surface-dark .bg-white {
-      background: #1f2937 !important;
+      background: transparent !important;
     }
 
     #tilesContainer.theme-surface-dark .text-gray-900 {
@@ -962,6 +1148,48 @@
 
     #tilesContainer.theme-surface-dark .ring-gray-900\/10 {
       --tw-ring-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    #tilesContainer.theme-surface-dark #tile-hero [data-style="H1"] {
+      color: var(--brand-secondary-100) !important;
+    }
+
+    #tilesContainer.theme-surface-dark #tile-hero [data-style="H4"] {
+      color: var(--brand-secondary-400) !important;
+    }
+
+    #tilesContainer.theme-surface-dark #tile-blog-grid [data-style="H2"] {
+      color: var(--brand-secondary-100) !important;
+    }
+
+    #tilesContainer.theme-surface-dark #tile-blog-grid [data-style="H3"] {
+      color: var(--brand-secondary-100) !important;
+    }
+
+    #tilesContainer.theme-surface-dark #tile-blog-grid [data-style="Body / S"] {
+      color: var(--brand-secondary-200) !important;
+    }
+
+    #tilesContainer.theme-surface-dark #tile-blog-grid [data-style="Label"] {
+      color: var(--brand-secondary-300) !important;
+    }
+
+    #tilesContainer.theme-surface-dark #tile-blog-grid a[data-style="Label"] {
+      background: var(--brand-secondary-800) !important;
+      color: var(--brand-secondary-300) !important;
+    }
+
+    #tilesContainer.theme-surface-dark #tile-signup {
+      --tile-bg: var(--brand-secondary-950);
+    }
+
+    #tilesContainer.theme-surface-dark #tile-signup input[type="email"] {
+      background: #ffffff !important;
+      color: #000000 !important;
+    }
+
+    #tilesContainer.theme-surface-dark #tile-signup input[type="email"]::placeholder {
+      color: #000000 !important;
     }
 
     /* -------------------------------------------------
@@ -1035,7 +1263,7 @@
     }
 
     #tilesContainer.theme-neutral-dark .tile {
-      background: var(--neutral-0);
+      --tile-bg: var(--neutral-0);
       border-color: var(--neutral-200);
     }
 
@@ -1139,10 +1367,10 @@
           </select>
         </div>
         <div class="theme-selector-wrapper">
-          <label for="fontThemeSelector" class="theme-selector-label">Fonts</label>
+          <label for="fontThemeSelector" class="theme-selector-label">H1</label>
           <select id="fontThemeSelector" class="theme-selector" title="Change font theme">
-            <option value="default">Default</option>
-            <option value="google-slides">Google Slides</option>
+            <option value="default">Acme</option>
+            <option value="google-slides">Special Gothic</option>
           </select>
         </div>
         <div class="theme-selector-wrapper">
@@ -1154,7 +1382,7 @@
         </div>
         <button id="toggleHoverLabelBtn" class="toggle-switch" title="Show font style on mouse hover">
           <span class="toggle-indicator"></span>
-          Hover labels
+          Show Labels
         </button>
         <button id="toggleFontStylesBtn" class="toggle-switch admin-only" title="Show style labels on all typography" style="display: none;">
           <span class="toggle-indicator"></span>
@@ -1215,9 +1443,9 @@
         <div class="relative mx-auto max-w-7xl py-10 sm:py-10 lg:px-8 lg:py-10">
           <div class="pl-6 pr-6 md:ml-auto md:w-2/3 md:pl-16 lg:w-1/2 lg:pl-24 lg:pr-0 xl:pl-32" style="padding-top: 40px; padding-bottom: 40px;">
             <img src="./images/miles-logos/miles-badge-green.svg" alt="Miles" style="width: 100px; height: 100px; max-width: 100px; margin-bottom: 32px;" />
-            <h2 class="text-base/7 font-semibold" style="color: var(--brand-primary-600);" data-style="H4">Built for families with new drivers</h2>
-            <p class="mt-2 text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl dark:text-white" data-style="H1">Confidence For Every Drive</p>
-            <p class="mt-4 text-base/7 text-gray-600 dark:text-gray-300" data-style="Body / L">When your teen starts driving, everything changes. Miles helps families stay calm, informed, and prepared — without constant check-ins or invasive tracking.</p>
+            <h2 class="text-base/7 font-semibold" style="color: var(--brand-primary-700);" data-style="H4">Built for families with new drivers</h2>
+            <p class="mt-2 text-4xl font-semibold tracking-tight sm:text-5xl dark:text-white" style="color: var(--brand-primary-900);" data-style="H1">Confidence For Every Drive</p>
+            <p class="mt-4 text-base/7 dark:text-gray-300" style="color: var(--neutral-700);" data-style="Body / L">When your teen starts driving, everything changes. Miles helps families stay calm, informed, and prepared — without constant check-ins or invasive tracking.</p>
             <div class="mt-8">
               <a href="#" class="inline-flex rounded-md brand-btn px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-outline-brand dark:shadow-none" data-style="Button">See How Miles Works</a>
             </div>
@@ -1229,9 +1457,9 @@
       <div class="bg-white py-6 sm:py-16 dark:bg-gray-900">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
           <div class="mx-auto text-center" style="max-width: 75%;">
-            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400" data-style="Overline">From the Team</p>
-            <h2 class="text-balance text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl dark:text-white" data-style="H2">Guides for modern driving families</h2>
-            <p class="text-gray-600 dark:text-gray-300" data-style="Body / L">Thoughtful takes on teen driving, trust, safety, and the moments that matter when your family adds a new driver.</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.08em] dark:text-gray-400" style="color: var(--brand-primary-800);" data-style="Overline">From the Team</p>
+            <h2 class="text-balance text-4xl font-semibold tracking-tight sm:text-5xl dark:text-white" style="color: var(--brand-primary-900);" data-style="H2">Guides for modern driving families</h2>
+            <p class="dark:text-gray-300" style="color: var(--neutral-700);" data-style="Body / L">Thoughtful takes on teen driving, trust, safety, and the moments that matter when your family adds a new driver.</p>
           </div>
           <div class="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-20 lg:mx-0 lg:max-w-none lg:grid-cols-3">
             <article class="flex flex-col items-start justify-between">
@@ -1242,27 +1470,27 @@
               <div class="flex max-w-xl grow flex-col justify-between">
                 <div class="mt-2 flex items-center gap-x-4 text-xs">
                   <time datetime="2020-03-16" class="text-gray-500 dark:text-gray-400" data-style="Caption">Mar 16, 2020</time>
-                  <a href="#" class="relative z-10 rounded-full bg-gray-50 px-3 py-1.5 font-medium text-gray-600 hover:bg-gray-100 dark:bg-gray-800/60 dark:text-gray-300 dark:hover:bg-gray-800" data-style="Label">Teen Safety</a>
+                  <a href="#" class="relative z-10 rounded-full px-3 py-1.5 font-medium dark:bg-gray-800/60 dark:text-gray-300 dark:hover:bg-gray-800" style="background: var(--brand-primary-200); color: var(--brand-primary-800);" data-style="Label">Teen Safety</a>
                 </div>
                 <div class="group relative grow">
-                  <h3 class="mt-2 text-lg/6 font-semibold text-gray-900 group-hover:text-gray-600 dark:text-white dark:group-hover:text-gray-300" data-style="H3">
+                  <h3 class="mt-2 text-lg/6 font-semibold group-hover:opacity-80 dark:text-white dark:group-hover:text-gray-300" style="color: var(--brand-primary-900);" data-style="H3">
                     <a href="#">
                       <span class="absolute inset-0"></span>
                       What parents actually worry about when teens start driving
                     </a>
                   </h3>
-                  <p class="mt-5 line-clamp-3 text-gray-600 dark:text-gray-400" data-style="Body / M">Most parents don’t want more data — they want reassurance. We break down the real fears families have during the first year of teen driving, and what actually helps reduce anxiety.</p>
+                  <p class="mt-5 line-clamp-3 dark:text-gray-400" style="color: var(--neutral-700);" data-style="Body / M">Most parents don’t want more data — they want reassurance. We break down the real fears families have during the first year of teen driving, and what actually helps reduce anxiety.</p>
                 </div>
                 <div class="relative mt-4 flex items-center gap-x-4 justify-self-end">
                   <img src="./images/miles-logos/miles-icon-green.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" data-blog-icon />
                   <div class="text-sm/6">
-                    <p class="font-semibold text-gray-900 dark:text-white" data-style="Body / S">
+                    <p class="font-semibold dark:text-white" style="color: var(--brand-primary-900);" data-style="Body / S">
                       <a href="#">
                         <span class="absolute inset-0"></span>
                         Miles Team
                       </a>
                     </p>
-                    <p class="text-gray-600 dark:text-gray-400" data-style="Label">Product & Research</p>
+                    <p class="dark:text-gray-400" style="color: var(--neutral-500);" data-style="Label">Product & Research</p>
                   </div>
                 </div>
               </div>
@@ -1275,27 +1503,27 @@
               <div class="flex max-w-xl grow flex-col justify-between">
                 <div class="mt-2 flex items-center gap-x-4 text-xs">
                   <time datetime="2020-03-10" class="text-gray-500 dark:text-gray-400" data-style="Caption">Mar 10, 2020</time>
-                  <a href="#" class="relative z-10 rounded-full bg-gray-50 px-3 py-1.5 font-medium text-gray-600 hover:bg-gray-100 dark:bg-gray-800/60 dark:text-gray-300 dark:hover:bg-gray-800" data-style="Label">Insurance</a>
+                  <a href="#" class="relative z-10 rounded-full px-3 py-1.5 font-medium dark:bg-gray-800/60 dark:text-gray-300 dark:hover:bg-gray-800" style="background: var(--brand-primary-200); color: var(--brand-primary-800);" data-style="Label">Insurance</a>
                 </div>
                 <div class="group relative grow">
-                  <h3 class="mt-2 text-lg/6 font-semibold text-gray-900 group-hover:text-gray-600 dark:text-white dark:group-hover:text-gray-300" data-style="H3">
+                  <h3 class="mt-2 text-lg/6 font-semibold group-hover:opacity-80 dark:text-white dark:group-hover:text-gray-300" style="color: var(--brand-primary-900);" data-style="H3">
                     <a href="#">
                       <span class="absolute inset-0"></span>
                       How safe driving data can lower your insurance bill
                     </a>
                   </h3>
-                  <p class="mt-5 line-clamp-3 text-gray-600 dark:text-gray-400" data-style="Body / M">Teen insurance doesn’t have to be a black hole. Here’s how driver scores work, why families hate insurance dongles, and how Miles puts you back in control.</p>
+                  <p class="mt-5 line-clamp-3 dark:text-gray-400" style="color: var(--neutral-700);" data-style="Body / M">Teen insurance doesn’t have to be a black hole. Here’s how driver scores work, why families hate insurance dongles, and how Miles puts you back in control.</p>
                 </div>
                 <div class="relative mt-4 flex items-center gap-x-4 justify-self-end">
                   <img src="./images/miles-logos/miles-icon-green.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" data-blog-icon />
                   <div class="text-sm/6">
-                    <p class="font-semibold text-gray-900 dark:text-white" data-style="Body / S">
+                    <p class="font-semibold dark:text-white" style="color: var(--brand-primary-900);" data-style="Body / S">
                       <a href="#">
                         <span class="absolute inset-0"></span>
                         Miles Team
                       </a>
                     </p>
-                    <p class="text-gray-600 dark:text-gray-400" data-style="Label">Insurance & Partnerships</p>
+                    <p class="dark:text-gray-400" style="color: var(--neutral-500);" data-style="Label">Insurance & Partnerships</p>
                   </div>
                 </div>
               </div>
@@ -1308,27 +1536,27 @@
               <div class="flex max-w-xl grow flex-col justify-between">
                 <div class="mt-2 flex items-center gap-x-4 text-xs">
                   <time datetime="2020-02-12" class="text-gray-500 dark:text-gray-400" data-style="Caption">Feb 12, 2020</time>
-                  <a href="#" class="relative z-10 rounded-full bg-gray-50 px-3 py-1.5 font-medium text-gray-600 hover:bg-gray-100 dark:bg-gray-800/60 dark:text-gray-300 dark:hover:bg-gray-800" data-style="Label">Trust & Independence</a>
+                  <a href="#" class="relative z-10 rounded-full px-3 py-1.5 font-medium dark:bg-gray-800/60 dark:text-gray-300 dark:hover:bg-gray-800" style="background: var(--brand-primary-200); color: var(--brand-primary-800);" data-style="Label">Trust & Independence</a>
                 </div>
                 <div class="group relative grow">
-                  <h3 class="mt-2 text-lg/6 font-semibold text-gray-900 group-hover:text-gray-600 dark:text-white dark:group-hover:text-gray-300" data-style="H3">
+                  <h3 class="mt-2 text-lg/6 font-semibold group-hover:opacity-80 dark:text-white dark:group-hover:text-gray-300" style="color: var(--brand-primary-900);" data-style="H3">
                     <a href="#">
                       <span class="absolute inset-0"></span>
                       How to build trust with your teen — without hovering
                     </a>
                   </h3>
-                  <p class="mt-5 line-clamp-3 text-gray-600 dark:text-gray-400" data-style="Body / M">Teens don’t want to feel watched. Parents don’t want to feel powerless. We explore how transparency, fairness, and restraint create better outcomes for everyone.</p>
+                  <p class="mt-5 line-clamp-3 dark:text-gray-400" style="color: var(--neutral-700);" data-style="Body / M">Teens don’t want to feel watched. Parents don’t want to feel powerless. We explore how transparency, fairness, and restraint create better outcomes for everyone.</p>
                 </div>
                 <div class="relative mt-4 flex items-center gap-x-4 justify-self-end">
                   <img src="./images/miles-logos/miles-icon-green.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" data-blog-icon />
                   <div class="text-sm/6">
-                    <p class="font-semibold text-gray-900 dark:text-white" data-style="Body / S">
+                    <p class="font-semibold dark:text-white" style="color: var(--brand-primary-900);" data-style="Body / S">
                       <a href="#">
                         <span class="absolute inset-0"></span>
                         Miles Team
                       </a>
                     </p>
-                    <p class="text-gray-600 dark:text-gray-400" data-style="Label">Family Experience</p>
+                    <p class="dark:text-gray-400" style="color: var(--neutral-500);" data-style="Label">Family Experience</p>
                   </div>
                 </div>
               </div>
@@ -1341,11 +1569,11 @@
       <div class="mx-auto max-w-full relative isolate overflow-hidden rounded-2xl px-6 py-12 min-h-[320px] sm:rounded-3xl sm:px-8 sm:py-16 sm:min-h-[360px] xl:px-12 xl:py-20 xl:min-h-[400px] dark:after:pointer-events-none dark:after:absolute dark:after:inset-0 dark:after:ring-1 dark:after:ring-inset dark:after:ring-white/15 dark:after:sm:rounded-3xl signup-shell text-center">
         <div class="mx-auto max-w-xl w-full">
           <h2 class="text-center text-3xl font-semibold tracking-tight text-white sm:text-4xl md:text-5xl" data-style="H2">Coming Soon</h2>
-          <p class="mt-4 text-center text-base text-white sm:mt-5 sm:text-lg" data-style="Subtitle">Join the list to get early access, product updates, and launch-only pricing.</p>
+          <p class="mt-4 text-center text-base sm:mt-5 sm:text-lg" style="color: var(--brand-primary-100);" data-style="Subtitle">Join the list to get early access, product updates, and launch-only pricing.</p>
           <form class="mx-auto mt-4 flex flex-col gap-2 sm:mt-6 sm:flex-row sm:items-center sm:gap-3" style="max-width: 400px;">
             <label for="email-address" class="sr-only">Email address</label>
-            <input id="email-address" type="email" name="email" required placeholder="you@familyemail.com" autocomplete="email" class="min-w-0 w-full flex-auto rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus-outline-brand sm:text-sm/6 dark:outline-white/20" data-style="Body / M" />
-            <button type="submit" class="w-full flex-none rounded-md brand-btn px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto dark:shadow-none" data-style="Button">Notify Me</button>
+            <input id="email-address" type="email" name="email" required placeholder="name@website.com" autocomplete="email" class="min-w-0 w-full flex-auto rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus-outline-brand sm:text-sm/6 dark:outline-white/20" data-style="Body / M" />
+            <button type="submit" class="w-full flex-none rounded-md px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto dark:shadow-none footer-cta-btn" style="background: var(--brand-primary-500);" data-style="Button">Notify Me</button>
           </form>
         </div>
       </div>
@@ -1393,15 +1621,21 @@
         }
       }
 
-      // Load saved preference
+      // Load saved preference, default to primary-light
       try {
         const saved = localStorage.getItem('styleguide-theme');
         if (saved && validThemes.includes(saved)) {
           selector.value = saved;
           applyTheme(saved);
+        } else {
+          // Set default to primary-light
+          selector.value = 'primary-light';
+          applyTheme('primary-light');
         }
       } catch (e) {
-        // localStorage not available
+        // localStorage not available, use default
+        selector.value = 'primary-light';
+        applyTheme('primary-light');
       }
 
       // Handle changes
