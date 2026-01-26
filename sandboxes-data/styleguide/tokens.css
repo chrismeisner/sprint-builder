@@ -15,17 +15,17 @@
   --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 
   /* =====================================================
-     BRAND – PRIMARY (Grass Green)
+     BRAND – PRIMARY (Forest Green)
   ===================================================== */
   --brand-primary-50:  #F2F9F5;
   --brand-primary-100: #E5F4EB;
-  --brand-primary-200: #D8F0E0;
-  --brand-primary-300: #AADCC7;
-  --brand-primary-400: #7AC7A8;
-  --brand-primary-500: #52BA8A;
-  --brand-primary-600: #309B69;
-  --brand-primary-700: #2B7352;
-  --brand-primary-800: #244C37;
+  --brand-primary-200: #BCEBD3;
+  --brand-primary-300: #8DD5B3;
+  --brand-primary-400: #5EBE91;
+  --brand-primary-500: #32A871;
+  --brand-primary-600: #309061;
+  --brand-primary-700: #2F7852;
+  --brand-primary-800: #2D6041;
   --brand-primary-900: #1F2420;
   --brand-primary-950: #181A17;
 
@@ -34,13 +34,13 @@
   ===================================================== */
   --brand-secondary-50:  #F7F6F5;
   --brand-secondary-100: #F0EBE3;
-  --brand-secondary-200: #F0E5D4;
-  --brand-secondary-300: #ECDABA;
-  --brand-secondary-400: #E8CEA2;
-  --brand-secondary-500: #E3C084;
-  --brand-secondary-600: #C0A271;
-  --brand-secondary-700: #8A7554;
-  --brand-secondary-800: #544938;
+  --brand-secondary-200: #F7E9D2;
+  --brand-secondary-300: #F2D5A9;
+  --brand-secondary-400: #EBC27F;
+  --brand-secondary-500: #D69F40;
+  --brand-secondary-600: #B08B4D;
+  --brand-secondary-700: #7A6747;
+  --brand-secondary-800: #4D402D;
   --brand-secondary-900: #1F1C1B;
   --brand-secondary-950: #1A1817;
 
@@ -49,9 +49,9 @@
   ===================================================== */
   --brand-tertiary-50:  #F4F8FA;
   --brand-tertiary-100: #E6F0F5;
-  --brand-tertiary-200: #BED5E8;
-  --brand-tertiary-300: #95BBDC;
-  --brand-tertiary-400: #6EA1CF;
+  --brand-tertiary-200: #C9E1F5;
+  --brand-tertiary-300: #9DC3E4;
+  --brand-tertiary-400: #71A4D3;
   --brand-tertiary-500: #4686C2;
   --brand-tertiary-600: #3E6FA0;
   --brand-tertiary-700: #37577E;
