@@ -17,47 +17,47 @@
   /* =====================================================
      BRAND – PRIMARY (Grass Green)
   ===================================================== */
-  --brand-primary-50:  #EEFAF1;
-  --brand-primary-100: #CBF0D4;
-  --brand-primary-200: #93EDA9;
-  --brand-primary-300: #6BDF8F;
-  --brand-primary-400: #54D371;
-  --brand-primary-500: #2FC351;
-  --brand-primary-600: #37A350;
-  --brand-primary-700: #368F49;
-  --brand-primary-800: #217535;
-  --brand-primary-900: #1A5227;
-  --brand-primary-950: #12331A;
+  --brand-primary-50:  #F2F9F5;
+  --brand-primary-100: #E5F4EB;
+  --brand-primary-200: #D8F0E0;
+  --brand-primary-300: #AADCC7;
+  --brand-primary-400: #7AC7A8;
+  --brand-primary-500: #52BA8A;
+  --brand-primary-600: #309B69;
+  --brand-primary-700: #2B7352;
+  --brand-primary-800: #244C37;
+  --brand-primary-900: #1F2420;
+  --brand-primary-950: #181A17;
 
   /* =====================================================
      BRAND – SECONDARY (Sand)
   ===================================================== */
-  --brand-secondary-50:  #FAF8F5;
-  --brand-secondary-100: #F5ECE1;
-  --brand-secondary-200: #F6E2BF;
-  --brand-secondary-300: #FACD80;
-  --brand-secondary-400: #FDBD53;
-  --brand-secondary-500: #FFA710;
-  --brand-secondary-600: #E5900C;
-  --brand-secondary-700: #C47509;
-  --brand-secondary-800: #854F05;
-  --brand-secondary-900: #5C390F;
-  --brand-secondary-950: #1F180B;
+  --brand-secondary-50:  #F7F6F5;
+  --brand-secondary-100: #F0EBE3;
+  --brand-secondary-200: #F0E5D4;
+  --brand-secondary-300: #ECDABA;
+  --brand-secondary-400: #E8CEA2;
+  --brand-secondary-500: #E3C084;
+  --brand-secondary-600: #C0A271;
+  --brand-secondary-700: #8A7554;
+  --brand-secondary-800: #544938;
+  --brand-secondary-900: #1F1C1B;
+  --brand-secondary-950: #1A1817;
 
   /* =====================================================
      BRAND – TERTIARY (Sky Blue)
   ===================================================== */
-  --brand-tertiary-50:  #F5F9FC;
-  --brand-tertiary-100: #DEF2FE;
-  --brand-tertiary-200: #B8E4FF;
-  --brand-tertiary-300: #87D3FF;
-  --brand-tertiary-400: #4DBEFF;
-  --brand-tertiary-500: #00A2FF;
-  --brand-tertiary-600: #008CE5;
-  --brand-tertiary-700: #1177BA;
-  --brand-tertiary-800: #0A568A;
-  --brand-tertiary-900: #16364C;
-  --brand-tertiary-950: #122026;
+  --brand-tertiary-50:  #F4F8FA;
+  --brand-tertiary-100: #E6F0F5;
+  --brand-tertiary-200: #BED5E8;
+  --brand-tertiary-300: #95BBDC;
+  --brand-tertiary-400: #6EA1CF;
+  --brand-tertiary-500: #4686C2;
+  --brand-tertiary-600: #3E6FA0;
+  --brand-tertiary-700: #37577E;
+  --brand-tertiary-800: #30405C;
+  --brand-tertiary-900: #1F222E;
+  --brand-tertiary-950: #17181F;
 
   /* =====================================================
      NEUTRALS

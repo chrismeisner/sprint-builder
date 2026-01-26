@@ -447,16 +447,17 @@
       gap: 10px;
     }
 
-    /* Signup tile background */
+    /* Signup tile - simplified */
     #tile-signup {
-      background: var(--brand-primary-600);
-      border-color: transparent;
       padding: 0;
-      box-shadow: none;
+      background: var(--brand-secondary-400);
+      border-color: transparent;
     }
 
-    #tile-signup > .bg-white { background: transparent; }
-    #tile-signup .signup-shell { background: transparent; box-shadow: none; }
+    #tile-signup .signup-shell { 
+      background: transparent;
+      box-shadow: none; 
+    }
 
     /* Font style labels */
     [data-style] {
@@ -640,6 +641,474 @@
       }
 
     }
+
+    /* =====================================================
+       THEME SYSTEM (scoped to tiles only)
+    ===================================================== */
+    
+    /* Theme selector dropdown */
+    .theme-selector {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--neutral-200);
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .theme-selector:hover {
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
+    }
+
+    .theme-selector:focus {
+      outline: none;
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 0 0 3px var(--brand-primary-100);
+    }
+
+    .theme-selector-wrapper {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .theme-selector-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--neutral-700);
+    }
+
+    /* -------------------------------------------------
+       DARK MODE BASE (shared by all dark themes)
+    ------------------------------------------------- */
+    #tilesContainer.theme-dark {
+      --neutral-0: #1f2937;
+      --neutral-50: #111827;
+      --neutral-100: #1f2937;
+      --neutral-200: #374151;
+      --neutral-300: #4b5563;
+      --neutral-400: #6b7280;
+      --neutral-500: #9ca3af;
+      --neutral-600: #d1d5db;
+      --neutral-700: #e5e7eb;
+      --neutral-800: #f3f4f6;
+      --neutral-900: #f9fafb;
+      --neutral-950: #ffffff;
+    }
+
+    #tilesContainer.theme-dark .tile {
+      background: var(--neutral-0);
+      border-color: var(--neutral-200);
+    }
+
+    #tilesContainer.theme-dark .bg-white {
+      background: #1f2937 !important;
+    }
+
+    #tilesContainer.theme-dark .text-gray-900 {
+      color: #f9fafb !important;
+    }
+
+    #tilesContainer.theme-dark .text-gray-600 {
+      color: #d1d5db !important;
+    }
+
+    #tilesContainer.theme-dark .text-gray-500 {
+      color: #9ca3af !important;
+    }
+
+    #tilesContainer.theme-dark .bg-gray-50 {
+      background: #374151 !important;
+    }
+
+    #tilesContainer.theme-dark .bg-gray-100 {
+      background: #1f2937 !important;
+    }
+
+    #tilesContainer.theme-dark .ring-gray-900\/10 {
+      --tw-ring-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* -------------------------------------------------
+       PRIMARY (Green) - default accent, no override needed for light
+    ------------------------------------------------- */
+    /* Primary Light: default styles, no changes needed */
+
+    /* Primary Dark: dark mode with green accent */
+    #tilesContainer.theme-primary-dark {
+      --neutral-0: #1f2937;
+      --neutral-50: #111827;
+      --neutral-100: #1f2937;
+      --neutral-200: #374151;
+      --neutral-300: #4b5563;
+      --neutral-400: #6b7280;
+      --neutral-500: #9ca3af;
+      --neutral-600: #d1d5db;
+      --neutral-700: #e5e7eb;
+      --neutral-800: #f3f4f6;
+      --neutral-900: #f9fafb;
+      --neutral-950: #ffffff;
+    }
+
+    #tilesContainer.theme-primary-dark .tile {
+      background: var(--neutral-0);
+      border-color: var(--neutral-200);
+    }
+
+    #tilesContainer.theme-primary-dark .bg-white {
+      background: #1f2937 !important;
+    }
+
+    #tilesContainer.theme-primary-dark .text-gray-900 {
+      color: #f9fafb !important;
+    }
+
+    #tilesContainer.theme-primary-dark .text-gray-600 {
+      color: #d1d5db !important;
+    }
+
+    #tilesContainer.theme-primary-dark .text-gray-500 {
+      color: #9ca3af !important;
+    }
+
+    #tilesContainer.theme-primary-dark .bg-gray-50 {
+      background: #374151 !important;
+    }
+
+    #tilesContainer.theme-primary-dark .bg-gray-100 {
+      background: #1f2937 !important;
+    }
+
+    #tilesContainer.theme-primary-dark .ring-gray-900\/10 {
+      --tw-ring-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* -------------------------------------------------
+       SECONDARY (Blue/Sky) accent
+    ------------------------------------------------- */
+    #tilesContainer.theme-secondary-light,
+    #tilesContainer.theme-secondary-dark {
+      --brand-primary-50: var(--brand-tertiary-50);
+      --brand-primary-100: var(--brand-tertiary-100);
+      --brand-primary-200: var(--brand-tertiary-200);
+      --brand-primary-300: var(--brand-tertiary-300);
+      --brand-primary-400: var(--brand-tertiary-400);
+      --brand-primary-500: var(--brand-tertiary-500);
+      --brand-primary-600: var(--brand-tertiary-600);
+      --brand-primary-700: var(--brand-tertiary-700);
+      --brand-primary-800: var(--brand-tertiary-800);
+      --brand-primary-900: var(--brand-tertiary-900);
+      --brand-primary-950: var(--brand-tertiary-950);
+    }
+
+    #tilesContainer.theme-secondary-light .bg-\[\#37A350\],
+    #tilesContainer.theme-secondary-dark .bg-\[\#37A350\] {
+      background: #008CE5 !important;
+    }
+
+    #tilesContainer.theme-secondary-light .brand-btn,
+    #tilesContainer.theme-secondary-dark .brand-btn {
+      background: var(--brand-tertiary-700) !important;
+    }
+
+    #tilesContainer.theme-secondary-light .brand-btn:hover,
+    #tilesContainer.theme-secondary-dark .brand-btn:hover {
+      background: var(--brand-tertiary-800) !important;
+    }
+
+    #tilesContainer.theme-secondary-light [style*="color: var(--brand-primary-600)"],
+    #tilesContainer.theme-secondary-dark [style*="color: var(--brand-primary-600)"] {
+      color: var(--brand-tertiary-600) !important;
+    }
+
+    /* Secondary Dark: dark mode */
+    #tilesContainer.theme-secondary-dark {
+      --neutral-0: #1f2937;
+      --neutral-50: #111827;
+      --neutral-100: #1f2937;
+      --neutral-200: #374151;
+      --neutral-300: #4b5563;
+      --neutral-400: #6b7280;
+      --neutral-500: #9ca3af;
+      --neutral-600: #d1d5db;
+      --neutral-700: #e5e7eb;
+      --neutral-800: #f3f4f6;
+      --neutral-900: #f9fafb;
+      --neutral-950: #ffffff;
+    }
+
+    #tilesContainer.theme-secondary-dark .tile {
+      background: var(--neutral-0);
+      border-color: var(--neutral-200);
+    }
+
+    #tilesContainer.theme-secondary-dark .bg-white {
+      background: #1f2937 !important;
+    }
+
+    #tilesContainer.theme-secondary-dark .text-gray-900 {
+      color: #f9fafb !important;
+    }
+
+    #tilesContainer.theme-secondary-dark .text-gray-600 {
+      color: #d1d5db !important;
+    }
+
+    #tilesContainer.theme-secondary-dark .text-gray-500 {
+      color: #9ca3af !important;
+    }
+
+    #tilesContainer.theme-secondary-dark .bg-gray-50 {
+      background: #374151 !important;
+    }
+
+    #tilesContainer.theme-secondary-dark .bg-gray-100 {
+      background: #1f2937 !important;
+    }
+
+    #tilesContainer.theme-secondary-dark .ring-gray-900\/10 {
+      --tw-ring-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* -------------------------------------------------
+       SURFACE (Sand) accent
+    ------------------------------------------------- */
+    #tilesContainer.theme-surface-light,
+    #tilesContainer.theme-surface-dark {
+      --brand-primary-50: var(--brand-secondary-50);
+      --brand-primary-100: var(--brand-secondary-100);
+      --brand-primary-200: var(--brand-secondary-200);
+      --brand-primary-300: var(--brand-secondary-300);
+      --brand-primary-400: var(--brand-secondary-400);
+      --brand-primary-500: var(--brand-secondary-500);
+      --brand-primary-600: var(--brand-secondary-600);
+      --brand-primary-700: var(--brand-secondary-700);
+      --brand-primary-800: var(--brand-secondary-800);
+      --brand-primary-900: var(--brand-secondary-900);
+      --brand-primary-950: var(--brand-secondary-950);
+    }
+
+    #tilesContainer.theme-surface-light .bg-\[\#37A350\],
+    #tilesContainer.theme-surface-dark .bg-\[\#37A350\] {
+      background: #E5900C !important;
+    }
+
+    #tilesContainer.theme-surface-light .brand-btn,
+    #tilesContainer.theme-surface-dark .brand-btn {
+      background: var(--brand-secondary-700) !important;
+    }
+
+    #tilesContainer.theme-surface-light .brand-btn:hover,
+    #tilesContainer.theme-surface-dark .brand-btn:hover {
+      background: var(--brand-secondary-800) !important;
+    }
+
+    #tilesContainer.theme-surface-light [style*="color: var(--brand-primary-600)"],
+    #tilesContainer.theme-surface-dark [style*="color: var(--brand-primary-600)"] {
+      color: var(--brand-secondary-600) !important;
+    }
+
+    /* Surface Dark: dark mode */
+    #tilesContainer.theme-surface-dark {
+      --neutral-0: #1f2937;
+      --neutral-50: #111827;
+      --neutral-100: #1f2937;
+      --neutral-200: #374151;
+      --neutral-300: #4b5563;
+      --neutral-400: #6b7280;
+      --neutral-500: #9ca3af;
+      --neutral-600: #d1d5db;
+      --neutral-700: #e5e7eb;
+      --neutral-800: #f3f4f6;
+      --neutral-900: #f9fafb;
+      --neutral-950: #ffffff;
+    }
+
+    #tilesContainer.theme-surface-dark .tile {
+      background: var(--neutral-0);
+      border-color: var(--neutral-200);
+    }
+
+    #tilesContainer.theme-surface-dark .bg-white {
+      background: #1f2937 !important;
+    }
+
+    #tilesContainer.theme-surface-dark .text-gray-900 {
+      color: #f9fafb !important;
+    }
+
+    #tilesContainer.theme-surface-dark .text-gray-600 {
+      color: #d1d5db !important;
+    }
+
+    #tilesContainer.theme-surface-dark .text-gray-500 {
+      color: #9ca3af !important;
+    }
+
+    #tilesContainer.theme-surface-dark .bg-gray-50 {
+      background: #374151 !important;
+    }
+
+    #tilesContainer.theme-surface-dark .bg-gray-100 {
+      background: #1f2937 !important;
+    }
+
+    #tilesContainer.theme-surface-dark .ring-gray-900\/10 {
+      --tw-ring-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* -------------------------------------------------
+       NEUTRAL (Gray) accent
+    ------------------------------------------------- */
+    #tilesContainer.theme-neutral-light,
+    #tilesContainer.theme-neutral-dark {
+      --brand-primary-50: var(--neutral-50);
+      --brand-primary-100: var(--neutral-100);
+      --brand-primary-200: var(--neutral-200);
+      --brand-primary-300: var(--neutral-300);
+      --brand-primary-400: var(--neutral-400);
+      --brand-primary-500: var(--neutral-500);
+      --brand-primary-600: var(--neutral-600);
+      --brand-primary-700: var(--neutral-700);
+      --brand-primary-800: var(--neutral-800);
+      --brand-primary-900: var(--neutral-900);
+      --brand-primary-950: var(--neutral-950);
+    }
+
+    #tilesContainer.theme-neutral-light .bg-\[\#37A350\] {
+      background: #4D4B49 !important;
+    }
+
+    #tilesContainer.theme-neutral-light .brand-btn {
+      background: #4D4B49 !important;
+    }
+
+    #tilesContainer.theme-neutral-light .brand-btn:hover {
+      background: #363432 !important;
+    }
+
+    #tilesContainer.theme-neutral-light .status {
+      background: var(--neutral-100) !important;
+      color: var(--neutral-700) !important;
+    }
+
+    #tilesContainer.theme-neutral-light .status .dot {
+      background: var(--neutral-500) !important;
+    }
+
+    #tilesContainer.theme-neutral-light [style*="color: var(--brand-primary-600)"] {
+      color: var(--neutral-600) !important;
+    }
+
+    /* Neutral Dark */
+    #tilesContainer.theme-neutral-dark {
+      --neutral-0: #1f2937;
+      --neutral-50: #111827;
+      --neutral-100: #1f2937;
+      --neutral-200: #374151;
+      --neutral-300: #4b5563;
+      --neutral-400: #6b7280;
+      --neutral-500: #9ca3af;
+      --neutral-600: #d1d5db;
+      --neutral-700: #e5e7eb;
+      --neutral-800: #f3f4f6;
+      --neutral-900: #f9fafb;
+      --neutral-950: #ffffff;
+      --brand-primary-50: #374151;
+      --brand-primary-100: #4b5563;
+      --brand-primary-200: #6b7280;
+      --brand-primary-300: #9ca3af;
+      --brand-primary-400: #d1d5db;
+      --brand-primary-500: #e5e7eb;
+      --brand-primary-600: #f3f4f6;
+      --brand-primary-700: #f9fafb;
+      --brand-primary-800: #ffffff;
+      --brand-primary-900: #ffffff;
+      --brand-primary-950: #ffffff;
+    }
+
+    #tilesContainer.theme-neutral-dark .tile {
+      background: var(--neutral-0);
+      border-color: var(--neutral-200);
+    }
+
+    #tilesContainer.theme-neutral-dark .bg-white {
+      background: #1f2937 !important;
+    }
+
+    #tilesContainer.theme-neutral-dark .bg-\[\#37A350\] {
+      background: #6b7280 !important;
+    }
+
+    #tilesContainer.theme-neutral-dark .brand-btn {
+      background: #6b7280 !important;
+    }
+
+    #tilesContainer.theme-neutral-dark .brand-btn:hover {
+      background: #9ca3af !important;
+    }
+
+    #tilesContainer.theme-neutral-dark .status {
+      background: #374151 !important;
+      color: #d1d5db !important;
+    }
+
+    #tilesContainer.theme-neutral-dark .status .dot {
+      background: #9ca3af !important;
+    }
+
+    #tilesContainer.theme-neutral-dark .text-gray-900 {
+      color: #f9fafb !important;
+    }
+
+    #tilesContainer.theme-neutral-dark .text-gray-600 {
+      color: #d1d5db !important;
+    }
+
+    #tilesContainer.theme-neutral-dark .text-gray-500 {
+      color: #9ca3af !important;
+    }
+
+    #tilesContainer.theme-neutral-dark .bg-gray-50 {
+      background: #374151 !important;
+    }
+
+    #tilesContainer.theme-neutral-dark .bg-gray-100 {
+      background: #1f2937 !important;
+    }
+
+    #tilesContainer.theme-neutral-dark .ring-gray-900\/10 {
+      --tw-ring-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    #tilesContainer.theme-neutral-dark [style*="color: var(--brand-primary-600)"] {
+      color: #d1d5db !important;
+    }
+
+    /* Smooth transitions when changing themes */
+    #tilesContainer .tile,
+    #tilesContainer .brand-btn,
+    #tilesContainer .status {
+      transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+    }
+
+    /* =====================================================
+       FONT THEME SYSTEM (scoped to tiles only)
+    ===================================================== */
+
+    /* Google Slides font theme - swap Acme Gothic → Special Gothic */
+    #tilesContainer.font-google-slides [data-style="H1"],
+    #tilesContainer.font-google-slides [data-style="H2"] {
+      font-family: 'Special Gothic Condensed One', var(--font-family-sans) !important;
+      font-weight: 400 !important;
+    }
   </style>
 </head>
 <body>
@@ -658,6 +1127,33 @@
         </div>
       </div>
       <div class="flex items-center justify-center gap-2 flex-wrap" style="padding-bottom: 24px; width: 100%;">
+        <div class="theme-selector-wrapper">
+          <label for="themeSelector" class="theme-selector-label">Color</label>
+          <select id="themeSelector" class="theme-selector" title="Change color theme">
+            <option value="primary-light">Primary Light</option>
+            <option value="primary-dark">Primary Dark</option>
+            <option value="secondary-light">Secondary Light</option>
+            <option value="secondary-dark">Secondary Dark</option>
+            <option value="surface-light">Surface Light</option>
+            <option value="surface-dark">Surface Dark</option>
+            <option value="neutral-light">Neutral Light</option>
+            <option value="neutral-dark">Neutral Dark</option>
+          </select>
+        </div>
+        <div class="theme-selector-wrapper">
+          <label for="fontThemeSelector" class="theme-selector-label">Fonts</label>
+          <select id="fontThemeSelector" class="theme-selector" title="Change font theme">
+            <option value="default">Default</option>
+            <option value="google-slides">Google Slides</option>
+          </select>
+        </div>
+        <div class="theme-selector-wrapper">
+          <label for="iconSelector" class="theme-selector-label">Icon</label>
+          <select id="iconSelector" class="theme-selector" title="Change blog icon">
+            <option value="miles-icon-green">Badge</option>
+            <option value="miles-icon-arrow-green">Arrow</option>
+          </select>
+        </div>
         <button id="toggleHoverLabelBtn" class="toggle-switch" title="Show font style on mouse hover">
           <span class="toggle-indicator"></span>
           Hover labels
@@ -675,7 +1171,6 @@
           Wireframe mode
         </button>
         <button id="toggleSettingsBtn" class="ghost-btn admin-only" style="display: none;">Show settings</button>
-        <button id="toggleColorsBtn" class="ghost-btn admin-only" style="display: none;">Hide colors</button>
       </div>
     </div>
 
@@ -704,13 +1199,6 @@
       </div>
     </div>
 
-    <div class="card" id="colorsCard">
-      <h2 class="section-title" data-style="H3">Colors used on this page</h2>
-      <p class="meta" data-style="Body / S">Design system colors from tokens.css used across the tiles.</p>
-      <div class="colors-grid" id="colorsGridContainer">
-        <!-- Colors will be dynamically inserted here -->
-      </div>
-    </div>
     <div id="tilesContainer">
     <article class="tile" id="tile-hero">
       <div class="relative bg-white dark:bg-gray-900">
@@ -768,7 +1256,7 @@
                   <p class="mt-5 line-clamp-3 text-gray-600 dark:text-gray-400" data-style="Body / M">Most parents don’t want more data — they want reassurance. We break down the real fears families have during the first year of teen driving, and what actually helps reduce anxiety.</p>
                 </div>
                 <div class="relative mt-4 flex items-center gap-x-4 justify-self-end">
-                  <img src="./images/miles-logos/miles-icon-arrow-green.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" />
+                  <img src="./images/miles-logos/miles-icon-green.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" data-blog-icon />
                   <div class="text-sm/6">
                     <p class="font-semibold text-gray-900 dark:text-white" data-style="Body / S">
                       <a href="#">
@@ -801,7 +1289,7 @@
                   <p class="mt-5 line-clamp-3 text-gray-600 dark:text-gray-400" data-style="Body / M">Teen insurance doesn’t have to be a black hole. Here’s how driver scores work, why families hate insurance dongles, and how Miles puts you back in control.</p>
                 </div>
                 <div class="relative mt-4 flex items-center gap-x-4 justify-self-end">
-                  <img src="./images/miles-logos/miles-icon-arrow-green.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" />
+                  <img src="./images/miles-logos/miles-icon-green.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" data-blog-icon />
                   <div class="text-sm/6">
                     <p class="font-semibold text-gray-900 dark:text-white" data-style="Body / S">
                       <a href="#">
@@ -834,7 +1322,7 @@
                   <p class="mt-5 line-clamp-3 text-gray-600 dark:text-gray-400" data-style="Body / M">Teens don’t want to feel watched. Parents don’t want to feel powerless. We explore how transparency, fairness, and restraint create better outcomes for everyone.</p>
                 </div>
                 <div class="relative mt-4 flex items-center gap-x-4 justify-self-end">
-                  <img src="./images/miles-logos/miles-icon-arrow-green.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" />
+                  <img src="./images/miles-logos/miles-icon-green.png" alt="" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800" data-blog-icon />
                   <div class="text-sm/6">
                     <p class="font-semibold text-gray-900 dark:text-white" data-style="Body / S">
                       <a href="#">
@@ -852,7 +1340,7 @@
       </div>
     </article>
     <article class="tile" id="tile-signup">
-      <div class="bg-[#37A350] mx-auto max-w-full relative isolate overflow-hidden rounded-2xl px-6 py-12 min-h-[320px] sm:rounded-3xl sm:px-8 sm:py-16 sm:min-h-[360px] xl:px-12 xl:py-20 xl:min-h-[400px] dark:after:pointer-events-none dark:after:absolute dark:after:inset-0 dark:after:ring-1 dark:after:ring-inset dark:after:ring-white/15 dark:after:sm:rounded-3xl signup-shell text-center">
+      <div class="mx-auto max-w-full relative isolate overflow-hidden rounded-2xl px-6 py-12 min-h-[320px] sm:rounded-3xl sm:px-8 sm:py-16 sm:min-h-[360px] xl:px-12 xl:py-20 xl:min-h-[400px] dark:after:pointer-events-none dark:after:absolute dark:after:inset-0 dark:after:ring-1 dark:after:ring-inset dark:after:ring-white/15 dark:after:sm:rounded-3xl signup-shell text-center">
         <div class="mx-auto max-w-xl w-full">
           <h2 class="text-center text-3xl font-semibold tracking-tight text-white sm:text-4xl md:text-5xl" data-style="H2">Coming Soon</h2>
           <p class="mt-4 text-center text-base text-white sm:mt-5 sm:text-lg" data-style="Subtitle">Join the list to get early access, product updates, and launch-only pricing.</p>
@@ -868,6 +1356,151 @@
 
   </div>
   <script>
+    // Theme selector (scoped to tiles container only)
+    (function initThemeSelector() {
+      const selector = document.getElementById('themeSelector');
+      const tilesContainer = document.getElementById('tilesContainer');
+      if (!selector || !tilesContainer) return;
+
+      // All possible theme classes
+      const allThemeClasses = [
+        'theme-primary-light', 'theme-primary-dark',
+        'theme-secondary-light', 'theme-secondary-dark',
+        'theme-surface-light', 'theme-surface-dark',
+        'theme-neutral-light', 'theme-neutral-dark'
+      ];
+
+      // Valid theme values
+      const validThemes = [
+        'primary-light', 'primary-dark',
+        'secondary-light', 'secondary-dark',
+        'surface-light', 'surface-dark',
+        'neutral-light', 'neutral-dark'
+      ];
+
+      function applyTheme(themeName) {
+        // Remove all existing theme classes from tiles container
+        allThemeClasses.forEach(cls => tilesContainer.classList.remove(cls));
+        
+        // Add new theme class (primary-light is default, no class needed)
+        if (themeName !== 'primary-light') {
+          tilesContainer.classList.add('theme-' + themeName);
+        }
+
+        // Store preference
+        try {
+          localStorage.setItem('styleguide-theme', themeName);
+        } catch (e) {
+          // localStorage not available
+        }
+      }
+
+      // Load saved preference
+      try {
+        const saved = localStorage.getItem('styleguide-theme');
+        if (saved && validThemes.includes(saved)) {
+          selector.value = saved;
+          applyTheme(saved);
+        }
+      } catch (e) {
+        // localStorage not available
+      }
+
+      // Handle changes
+      selector.addEventListener('change', (e) => {
+        applyTheme(e.target.value);
+      });
+    })();
+
+    // Font theme selector (scoped to tiles container only)
+    (function initFontThemeSelector() {
+      const selector = document.getElementById('fontThemeSelector');
+      const tilesContainer = document.getElementById('tilesContainer');
+      if (!selector || !tilesContainer) return;
+
+      // All possible font theme classes
+      const allFontThemeClasses = ['font-google-slides'];
+
+      function applyFontTheme(themeName) {
+        // Remove all existing font theme classes from tiles container
+        allFontThemeClasses.forEach(cls => tilesContainer.classList.remove(cls));
+        
+        // Add new font theme class (if not 'default')
+        if (themeName !== 'default') {
+          tilesContainer.classList.add('font-' + themeName);
+        }
+
+        // Store preference
+        try {
+          localStorage.setItem('styleguide-font-theme', themeName);
+        } catch (e) {
+          // localStorage not available
+        }
+      }
+
+      // Load saved preference
+      try {
+        const saved = localStorage.getItem('styleguide-font-theme');
+        if (saved && ['default', 'google-slides'].includes(saved)) {
+          selector.value = saved;
+          applyFontTheme(saved);
+        }
+      } catch (e) {
+        // localStorage not available
+      }
+
+      // Handle changes
+      selector.addEventListener('change', (e) => {
+        applyFontTheme(e.target.value);
+      });
+    })();
+
+    // Icon selector (for blog preview icons)
+    (function initIconSelector() {
+      const selector = document.getElementById('iconSelector');
+      const tilesContainer = document.getElementById('tilesContainer');
+      if (!selector || !tilesContainer) return;
+
+      const iconOptions = {
+        'miles-icon-green': './images/miles-logos/miles-icon-green.png',
+        'miles-icon-arrow-green': './images/miles-logos/miles-icon-arrow-green.png'
+      };
+
+      function applyIcon(iconName) {
+        const src = iconOptions[iconName];
+        if (!src) return;
+
+        // Update all blog icons
+        const icons = tilesContainer.querySelectorAll('[data-blog-icon]');
+        icons.forEach(img => {
+          img.src = src;
+        });
+
+        // Store preference
+        try {
+          localStorage.setItem('styleguide-blog-icon', iconName);
+        } catch (e) {
+          // localStorage not available
+        }
+      }
+
+      // Load saved preference
+      try {
+        const saved = localStorage.getItem('styleguide-blog-icon');
+        if (saved && iconOptions[saved]) {
+          selector.value = saved;
+          applyIcon(saved);
+        }
+      } catch (e) {
+        // localStorage not available
+      }
+
+      // Handle changes
+      selector.addEventListener('change', (e) => {
+        applyIcon(e.target.value);
+      });
+    })();
+
     (function () {
       const el = document.getElementById("tailwind-status");
       if (!el) return;
@@ -1289,23 +1922,6 @@
       const update = () => {
         panel.style.display = open ? "grid" : "none";
         btn.textContent = open ? "Hide settings" : "Show settings";
-      };
-      btn.addEventListener("click", () => {
-        open = !open;
-        update();
-      });
-      update();
-    })();
-
-    // Colors card toggle
-    (function initColorsToggle() {
-      const btn = document.getElementById("toggleColorsBtn");
-      const card = document.getElementById("colorsCard");
-      if (!btn || !card) return;
-      let open = false;
-      const update = () => {
-        card.style.display = open ? "" : "none";
-        btn.textContent = open ? "Hide colors" : "Show colors";
       };
       btn.addEventListener("click", () => {
         open = !open;
