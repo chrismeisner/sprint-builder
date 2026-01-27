@@ -1,21 +1,13 @@
 {
   "name": "styleguide",
   "version": "1.0.0",
-  "description": "Static styleguide with Tailwind build pipeline.",
+  "type": "module",
+  "description": "Miles brand styleguide with centralized typography system",
   "scripts": {
-    "dev": "tailwindcss -i src/tailwind.css -o dist/tailwind.css --watch",
-    "build": "tailwindcss -i src/tailwind.css -o dist/tailwind.css --minify",
-    "preview": "npx http-server dist -p 4173"
+    "generate-typography": "node generate-typography-css.js",
+    "watch-typography": "nodemon --watch typography-data.js --exec 'node generate-typography-css.js'"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
-    "autoprefixer": "^10.4.23",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.14"
-  },
-  "dependencies": {
-    "express": "^5.2.1"
+    "nodemon": "^3.0.0"
   }
 }

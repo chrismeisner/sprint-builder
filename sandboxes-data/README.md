@@ -44,7 +44,25 @@ The goal is: **"Make it work, don't make it different."**
 │   ├── style.css                 ← Optional
 │   ├── script.js                 ← Optional
 │   └── assets/                   ← Optional subfolder for images, fonts, etc.
+├── styleguide/                   ← Brand styleguide (special sandbox)
+│   ├── typography-data.js        ← 🎯 SINGLE SOURCE OF TRUTH for typography
+│   ├── generate-typography-css.js ← Auto-generates CSS from data
+│   ├── typography-styles.css     ← Auto-generated (DO NOT EDIT)
+│   ├── fonts.html                ← Typography documentation
+│   ├── style-tiles.html          ← Style tiles page
+│   └── TYPOGRAPHY-README.md      ← Typography system docs
 ```
+
+### Typography System (Styleguide)
+
+The styleguide uses a **centralized typography system** where all type styles are defined once in `typography-data.js` and automatically applied everywhere.
+
+**To update typography:**
+1. Edit `sandboxes-data/styleguide/typography-data.js`
+2. Run `cd sandboxes-data/styleguide && npm run generate-typography`
+3. Changes apply to both `fonts.html` and `style-tiles.html`
+
+See `sandboxes-data/styleguide/TYPOGRAPHY-README.md` for full documentation.
 
 ### Access Flow
 

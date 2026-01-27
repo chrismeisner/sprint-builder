@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inter+Tight:wght@100..900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="tokens.css" />
   <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="typography-styles.css" />
   <link rel="stylesheet" href="sidebar-nav.css" />
   <style>
     * { box-sizing: border-box; }
@@ -24,7 +25,7 @@
     .wrap {
       max-width: 1400px;
       margin: auto;
-      padding: 32px 20px 64px;
+      padding: 32px 16px 64px;
     }
 
     h1 {
@@ -338,102 +339,12 @@
       box-shadow: 0 1px 2px rgba(0,0,0,0.03);
     }
 
-    .controls-bar {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 12px;
-    }
-
-    .switch {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: var(--neutral-700);
-      user-select: none;
-      cursor: pointer;
-    }
-
-    .switch input {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .switch-track {
-      width: 40px;
-      height: 22px;
-      border-radius: 999px;
-      background: var(--neutral-200);
-      border: 1px solid var(--neutral-300);
-      display: inline-flex;
-      align-items: center;
-      padding: 2px;
-      transition: background 140ms ease, border-color 140ms ease;
-      position: relative;
-    }
-
-    .switch-thumb {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
-      transform: translateX(0);
-      transition: transform 140ms ease;
-    }
-
-    .switch input:checked + .switch-track {
-      background: var(--brand-primary-500);
-      border-color: var(--brand-primary-500);
-    }
-
-    .switch input:checked + .switch-track .switch-thumb {
-      transform: translateX(18px);
-    }
-
-    .switch-label {
-      color: var(--neutral-900);
-      font-weight: 600;
-    }
-
-    .cursor-label {
-      position: fixed;
-      top: 0;
-      left: 0;
-      transform: translate(-9999px, -9999px);
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(17, 24, 39, 0.9);
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      pointer-events: none;
-      box-shadow: 0 6px 18px rgba(17, 24, 39, 0.22);
-      opacity: 0;
-      transition: opacity 120ms ease;
-      z-index: 1200;
-      white-space: nowrap;
-    }
-
-    .cursor-label.show {
-      opacity: 1;
-    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>Typography</h1>
     <p class="subtitle">A compact type scale for marketing and product surfaces.</p>
-
-    <div class="controls-bar">
-      <label class="switch" for="showStyleToggle">
-        <input id="showStyleToggle" type="checkbox" checked />
-        <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
-        <span class="switch-label">Show page fonts</span>
-      </label>
-    </div>
 
     <div class="card">
       <div class="table-header">
@@ -447,7 +358,6 @@
                 <option value="google-slides">Google Slides</option>
               </select>
             </label>
-            <button type="button" class="action-btn" id="uploadTypeCsv">Upload CSV</button>
             <button type="button" class="action-btn" id="downloadTypeCsv">Download CSV</button>
           </div>
       </div>
@@ -477,8 +387,6 @@
     </div>
 
   </div>
-
-  <input id="uploadTypeCsvInput" type="file" accept=".csv,text/csv" aria-label="Upload type scale CSV" style="display:none;" />
 
   <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal">
@@ -530,7 +438,14 @@
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px 12px;">
               <div>
                 <label class="section-title" style="font-size:13px; margin:0 0 4px;">Size (Desktop)</label>
-                <input id="editSizeDesktop" name="sizeDesktop" type="text" placeholder="48px" style="width:100%; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px;" />
+                <div style="display:flex; gap:4px;">
+                  <input id="editSizeDesktopValue" name="sizeDesktopValue" type="number" step="1" placeholder="48" style="flex:1; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px;" />
+                  <select id="editSizeDesktopUnit" name="sizeDesktopUnit" style="border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px; background:var(--neutral-0); color:var(--neutral-900);">
+                    <option value="px">px</option>
+                    <option value="rem">rem</option>
+                    <option value="em">em</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label class="section-title" style="font-size:13px; margin:0 0 4px;">Line-height (Desktop)</label>
@@ -540,7 +455,14 @@
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px 12px;">
               <div>
                 <label class="section-title" style="font-size:13px; margin:0 0 4px;">Size (Mobile)</label>
-                <input id="editSizeMobile" name="sizeMobile" type="text" placeholder="36px" style="width:100%; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px;" />
+                <div style="display:flex; gap:4px;">
+                  <input id="editSizeMobileValue" name="sizeMobileValue" type="number" step="1" placeholder="36" style="flex:1; border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px;" />
+                  <select id="editSizeMobileUnit" name="sizeMobileUnit" style="border:1px solid var(--neutral-300); border-radius:8px; padding:6px 10px; font-size:13px; background:var(--neutral-0); color:var(--neutral-900);">
+                    <option value="px">px</option>
+                    <option value="rem">rem</option>
+                    <option value="em">em</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label class="section-title" style="font-size:13px; margin:0 0 4px;">Line-height (Mobile)</label>
@@ -569,9 +491,20 @@
     </div>
   </div>
 
+  <script type="module">
+    // Import typography data from single source of truth
+    import { fontFamilies, typeCatalog, familyLabels, familyValueByVar, googleSlidesAlternatives } from './typography-data.js';
+
+    // Make data available to non-module scripts
+    window.__TYPOGRAPHY_DATA__ = { fontFamilies, typeCatalog, familyLabels, familyValueByVar, googleSlidesAlternatives };
+  </script>
+
   <script>
-    // Add 1–4 families here. Keep blurbs short and opinionated (what it feels like + best use).
-    const fontFamilies = [
+    // Use typography data from window (set by module script above)
+    const { fontFamilies, typeCatalog, familyLabels, familyValueByVar, googleSlidesAlternatives } = window.__TYPOGRAPHY_DATA__ || {};
+
+    // Fallback font families data (if module import fails)
+    const fontFamiliesFallback = [
       {
         name: "Acme Gothic Condensed",
         css: "var(--font-family-acme)",
@@ -624,39 +557,39 @@
       }
     ];
 
-    const typeCatalog = [
+    const typeCatalogFallback = [
       {
         title: "Headings",
         items: [
-          { name: "H1", sizeDesktop: "60px", sizeMobile: "60px", lineHeight: 1.0667, weight: 600, letterSpacing: "0em", sample: "HEADING 1 — PAGE TITLE", usage: "Page / document title", fontFamily: "var(--font-family-acme)", transform: "uppercase" },
-          { name: "H2", sizeDesktop: "48px", sizeMobile: "48px", lineHeight: 1, weight: 600, letterSpacing: "0em", sample: "HEADING 2 — SECTION HEADING", usage: "Section heading", fontFamily: "var(--font-family-acme)", transform: "uppercase" },
-          { name: "H3", sizeDesktop: "22px", sizeMobile: "22px", lineHeight: 1.18, weight: 600, letterSpacing: "0em", sample: "Heading 3 — Subsection heading", usage: "Subsection heading", fontFamily: "var(--font-family-tight)" }
+          { name: "H1", sizeDesktop: "60px", sizeMobile: "52px", lineHeight: 1, lineHeightMobile: 1, weight: 600, letterSpacing: "0em", sample: "HEADING 1 — PAGE TITLE", usage: "Page / document title", fontFamily: "var(--font-family-acme)", transform: "uppercase" },
+          { name: "H2", sizeDesktop: "48px", sizeMobile: "40px", lineHeight: 1, lineHeightMobile: 1, weight: 600, letterSpacing: "0em", sample: "HEADING 2 — SECTION HEADING", usage: "Section heading", fontFamily: "var(--font-family-acme)", transform: "uppercase" },
+          { name: "H3", sizeDesktop: "22px", sizeMobile: "20px", lineHeight: 1.25, lineHeightMobile: 1.25, weight: 600, letterSpacing: "0em", sample: "Heading 3 — Subsection heading", usage: "Subsection heading", fontFamily: "var(--font-family-tight)" }
         ]
       },
       {
         title: "Subheadings",
         items: [
-          { name: "H4", sizeDesktop: "18px", sizeMobile: "18px", lineHeight: 1.444, weight: 500, letterSpacing: "-0.2px", sample: "H4 — Prominent subheading", usage: "Prominent subheading", fontFamily: "var(--font-family-sans)" },
-          { name: "Subtitle", sizeDesktop: "21px", sizeMobile: "21px", lineHeight: 1.429, weight: 400, letterSpacing: "-0.1px", sample: "Subtitle — Standard subheading", usage: "Standard subheading", fontFamily: "var(--font-family-sans)" },
-          { name: "Overline", sizeDesktop: "14px", sizeMobile: "18px", lineHeight: 1.4, weight: 500, letterSpacing: "0.3px", sample: "OVERLINE — SECTION LABEL", usage: "Optional; section labels / metadata", fontFamily: "var(--font-family-sans)", transform: "uppercase" }
+          { name: "H4", sizeDesktop: "18px", sizeMobile: "16px", lineHeight: 1.33, lineHeightMobile: 1.33, weight: 500, letterSpacing: "-0.2px", sample: "H4 — Prominent subheading", usage: "Prominent subheading", fontFamily: "var(--font-family-sans)" },
+          { name: "Subtitle", sizeDesktop: "20px", sizeMobile: "16px", lineHeight: 1.33, lineHeightMobile: 1.33, weight: 400, letterSpacing: "-0.1px", sample: "Subtitle — Standard subheading", usage: "Standard subheading", fontFamily: "var(--font-family-sans)" },
+          { name: "Overline", sizeDesktop: "14px", sizeMobile: "13px", lineHeight: 1.5, lineHeightMobile: 1.5, weight: 500, letterSpacing: "0.3px", sample: "OVERLINE — SECTION LABEL", usage: "Optional; section labels / metadata", fontFamily: "var(--font-family-sans)", transform: "uppercase" }
         ]
       },
       {
         title: "Body",
         items: [
-          { name: "Body / L", sizeDesktop: "20px", sizeMobile: "20px", lineHeight: 1.3, lineHeightMobile: 1.2, weight: 400, letterSpacing: "-0.4px", sample: "When your teen starts driving, everything changes. Miles helps families stay calm, informed, and prepared — without constant check-ins or invasive tracking.", usage: "Intro / lead text", fontFamily: "var(--font-family-sans)" },
-          { name: "Body / M", sizeDesktop: "16px", sizeMobile: "16px", lineHeight: 1.5, weight: 400, letterSpacing: "-0.015em", sample: "Body Medium — Default body text", usage: "Default body text", fontFamily: "var(--font-family-sans)" },
-          { name: "Body / M Bold", sizeDesktop: "16px", sizeMobile: "16px", lineHeight: 1.5, weight: 600, letterSpacing: "-0.015em", sample: "Body Medium Bold — Emphasis text", usage: "Emphasis within body copy", fontFamily: "var(--font-family-sans)" },
-          { name: "Body / S", sizeDesktop: "14px", sizeMobile: "14px", lineHeight: 1.35, weight: 400, letterSpacing: "-0.005em", sample: "Body Small — Secondary or dense content", usage: "Secondary or dense content", fontFamily: "var(--font-family-sans)" },
-          { name: "Body / S Bold", sizeDesktop: "14px", sizeMobile: "14px", lineHeight: 1.35, weight: 600, letterSpacing: "-0.005em", sample: "Body Small Bold — Compact emphasis", usage: "Emphasis in dense content", fontFamily: "var(--font-family-sans)" },
-          { name: "Caption", sizeDesktop: "12px", sizeMobile: "12px", lineHeight: 1.5, weight: 500, letterSpacing: "0.01em", sample: "Caption — Helper text or footnotes", usage: "Captions, helper text, footnotes", fontFamily: "var(--font-family-sans)" }
+          { name: "Body / L", sizeDesktop: "20px", sizeMobile: "16px", lineHeight: 1.3, lineHeightMobile: 1.33, weight: 400, letterSpacing: "-0.2px", sample: "When your teen starts driving, everything changes. Miles helps families stay calm, informed, and prepared — without constant check-ins or invasive tracking.", usage: "Intro / lead text", fontFamily: "var(--font-family-sans)" },
+          { name: "Body / M", sizeDesktop: "16px", sizeMobile: "16px", lineHeight: 1.5, lineHeightMobile: 1.5, weight: 400, letterSpacing: "-0.015em", sample: "Body Medium — Default body text", usage: "Default body text", fontFamily: "var(--font-family-sans)" },
+          { name: "Body / M Bold", sizeDesktop: "16px", sizeMobile: "14px", lineHeight: 1.4, lineHeightMobile: 1.4, weight: 600, letterSpacing: "-0.015em", sample: "Body Medium Bold — Emphasis text", usage: "Emphasis within body copy", fontFamily: "var(--font-family-sans)" },
+          { name: "Body / S", sizeDesktop: "14px", sizeMobile: "14px", lineHeight: 1.35, lineHeightMobile: 1.35, weight: 400, letterSpacing: "-0.005em", sample: "Body Small — Secondary or dense content", usage: "Secondary or dense content", fontFamily: "var(--font-family-sans)" },
+          { name: "Body / S Bold", sizeDesktop: "14px", sizeMobile: "14px", lineHeight: 1.35, lineHeightMobile: 1.35, weight: 600, letterSpacing: "-0.005em", sample: "Body Small Bold — Compact emphasis", usage: "Emphasis in dense content", fontFamily: "var(--font-family-sans)" },
+          { name: "Caption", sizeDesktop: "12px", sizeMobile: "12px", lineHeight: 1.5, lineHeightMobile: 1.5, weight: 500, letterSpacing: "0.01em", sample: "Caption — Helper text or footnotes", usage: "Captions, helper text, footnotes", fontFamily: "var(--font-family-sans)" }
         ]
       },
       {
         title: "UI Text",
         items: [
-          { name: "Label", sizeDesktop: "13px", sizeMobile: "13px", lineHeight: 1.4, weight: 400, letterSpacing: "0.01em", sample: "Label — Form labels and table headers", usage: "Form labels, table headers", fontFamily: "var(--font-family-sans)" },
-          { name: "Button", sizeDesktop: "16px", sizeMobile: "16px", lineHeight: 1.5, weight: 600, letterSpacing: "0.01em", sample: "Button — Primary CTA", usage: "Primary button text", fontFamily: "var(--font-family-sans)" }
+          { name: "Label", sizeDesktop: "13px", sizeMobile: "11px", lineHeight: 1.33, lineHeightMobile: 1.33, weight: 400, letterSpacing: "0.01em", sample: "Label — Form labels and table headers", usage: "Form labels, table headers", fontFamily: "var(--font-family-sans)" },
+          { name: "Button", sizeDesktop: "16px", sizeMobile: "16px", lineHeight: 1.5, lineHeightMobile: 1.5, weight: 600, letterSpacing: "0.01em", sample: "Button — Primary CTA", usage: "Primary button text", fontFamily: "var(--font-family-sans)" }
         ]
       },
       {
@@ -665,29 +598,24 @@
       }
     ];
 
-    const familyLabels = new Map([
+    // Use imported data, fallback to inline data if import failed
+    const finalFontFamilies = fontFamilies || fontFamiliesFallback;
+    const finalTypeCatalog = typeCatalog || typeCatalogFallback;
+    const finalFamilyLabels = familyLabels || new Map([
       ["var(--font-family-acme)", "Acme Gothic Condensed"],
       ["var(--font-family-tight)", "Inter Tight"],
       ["var(--font-family-mono)", "Mono"],
       ["var(--font-family-sans)", "Inter"]
     ]);
 
-    const familyLabelToVar = new Map([
-      ["Acme Gothic Condensed", "var(--font-family-acme)"],
-      ["Inter Tight", "var(--font-family-tight)"],
-      ["Mono", "var(--font-family-mono)"],
-      ["Inter", "var(--font-family-sans)"]
-    ]);
-
-    const familyValueByVar = new Map([
+    const finalFamilyValueByVar = familyValueByVar || new Map([
       ["var(--font-family-acme)", `"Acme Gothic Condensed","Inter Tight","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`],
       ["var(--font-family-tight)", `"Inter Tight","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`],
       ["var(--font-family-sans)", `"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`],
       ["var(--font-family-mono)", `ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace`]
     ]);
 
-    // Google Slides-safe font alternatives
-    const googleSlidesAlternatives = new Map([
+    const finalGoogleSlidesAlternatives = googleSlidesAlternatives || new Map([
       ["var(--font-family-acme)", { name: "Special Gothic Condensed One", css: "'Special Gothic Condensed One', sans-serif", notes: "Condensed display font available in Google Slides", weight: 400 }],
       ["var(--font-family-special)", { name: "Special Gothic Condensed One", css: "'Special Gothic Condensed One', sans-serif", notes: "Condensed display font available in Google Slides", weight: 400 }],
       ["var(--font-family-tight)", { name: "Inter", css: "'Inter', sans-serif", notes: "Available in Google Slides" }],
@@ -697,7 +625,7 @@
 
     function getDisplayFamily(fontFamily, mode = typeMode) {
       if (mode === "google-slides") {
-        const alt = googleSlidesAlternatives.get(fontFamily);
+        const alt = finalGoogleSlidesAlternatives.get(fontFamily);
         return alt ? alt.css : fontFamily;
       }
       return fontFamily;
@@ -705,7 +633,7 @@
 
     function getDisplayFamilyLabel(fontFamily, mode = typeMode) {
       if (mode === "google-slides") {
-        const alt = googleSlidesAlternatives.get(fontFamily);
+        const alt = finalGoogleSlidesAlternatives.get(fontFamily);
         return alt ? alt.name : getFamilyLabel(fontFamily);
       }
       return getFamilyLabel(fontFamily);
@@ -713,18 +641,18 @@
 
     function getDisplayWeight(style, mode = typeMode) {
       if (mode === "google-slides") {
-        const alt = googleSlidesAlternatives.get(style.fontFamily || "var(--font-family-sans)");
+        const alt = finalGoogleSlidesAlternatives.get(style.fontFamily || "var(--font-family-sans)");
         if (alt?.weight) return alt.weight;
       }
       return style.weight;
     }
 
     function getFamilyLabel(value) {
-      return familyLabels.get(value) || "Inter";
+      return finalFamilyLabels.get(value) || "Inter";
     }
 
     function findStyleByName(name) {
-      for (const group of typeCatalog) {
+      for (const group of finalTypeCatalog) {
         for (const item of group.items) {
           if (item.name === name) return item;
         }
@@ -734,61 +662,6 @@
 
     let typeMode = "desktop";
     let tableRows = [];
-    const hasFinePointer = window.matchMedia("(pointer: fine)").matches;
-    let showStyleLabels = hasFinePointer;
-
-    const cursorLabel = document.createElement("div");
-    cursorLabel.id = "cursorLabel";
-    cursorLabel.className = "cursor-label";
-    cursorLabel.setAttribute("aria-hidden", "true");
-    document.body.appendChild(cursorLabel);
-
-    function hideCursorLabel() {
-      cursorLabel.classList.remove("show");
-      cursorLabel.style.transform = "translate(-9999px, -9999px)";
-    }
-
-    function positionCursorLabel(event) {
-      const offset = 16;
-      const bounds = cursorLabel.getBoundingClientRect();
-      let left = event.clientX + offset;
-      let top = event.clientY + offset;
-      const maxLeft = window.innerWidth - bounds.width - 8;
-      const maxTop = window.innerHeight - bounds.height - 8;
-
-      if (left > maxLeft) left = event.clientX - bounds.width - offset;
-      if (top > maxTop) top = event.clientY - bounds.height - offset;
-
-      cursorLabel.style.transform = `translate(${left}px, ${top}px)`;
-    }
-
-    document.addEventListener("mousemove", (event) => {
-      if (!hasFinePointer || !showStyleLabels) return;
-      const target = event.target.closest("[data-style-name]");
-      if (!target) {
-        hideCursorLabel();
-        return;
-      }
-
-      const label = target.getAttribute("data-style-name") || "";
-      if (!label) {
-        hideCursorLabel();
-        return;
-      }
-
-      cursorLabel.textContent = label;
-      positionCursorLabel(event);
-      cursorLabel.classList.add("show");
-    });
-
-    const toggle = document.getElementById("showStyleToggle");
-    if (toggle) {
-      toggle.checked = showStyleLabels;
-      toggle.addEventListener("change", (event) => {
-        showStyleLabels = !!event.target.checked;
-        if (!showStyleLabels) hideCursorLabel();
-      });
-    }
 
     function buildInlineStyle(style, mode = typeMode) {
       const sizeDesktop = style.sizeDesktop || style.size;
@@ -864,7 +737,7 @@
       if (!container) return;
 
       // Always show all font families regardless of view mode
-      const families = fontFamilies;
+      const families = finalFontFamilies;
 
       container.innerHTML = families.map((family) => {
         const weightChips = (family.weights || [])
@@ -936,7 +809,7 @@
       if (!tbody) return;
 
       let idx = 0;
-      const rows = typeCatalog.flatMap(group =>
+      const rows = finalTypeCatalog.flatMap(group =>
         group.items.map(item => ({
           ...item,
           __index: idx++
@@ -976,19 +849,22 @@
                 >Copy CSS</button>
                 <button
                   type="button"
-                  class="action-btn"
+                  class="action-btn admin-only"
+                  style="${window.__USER_IS_ADMIN__ ? '' : 'display:none;'}"
                   data-preview-index="${row.__index}"
                   aria-label="Preview ${row.name}"
                 >Preview</button>
                 <button
                   type="button"
-                  class="action-btn"
+                  class="action-btn admin-only"
+                  style="${window.__USER_IS_ADMIN__ ? '' : 'display:none;'}"
                   data-edit-index="${row.__index}"
                   aria-label="Edit ${row.name}"
                 >Edit</button>
                 <button
                   type="button"
-                  class="action-btn"
+                  class="action-btn admin-only"
+                  style="${window.__USER_IS_ADMIN__ ? '' : 'display:none;'}"
                   data-popout-index="${row.__index}"
                   aria-label="Pop out ${row.name}"
                 >Pop out</button>
@@ -1151,158 +1027,6 @@
 
     document.getElementById("downloadTypeCsv")?.addEventListener("click", downloadTypeScaleCsv);
 
-    function parseCsv(text) {
-      const rows = [];
-      let current = [];
-      let value = "";
-      let inQuotes = false;
-
-      for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const next = text[i + 1];
-
-        if (inQuotes) {
-          if (char === '"' && next === '"') {
-            value += '"';
-            i++;
-          } else if (char === '"') {
-            inQuotes = false;
-          } else {
-            value += char;
-          }
-        } else {
-          if (char === '"') {
-            inQuotes = true;
-          } else if (char === ",") {
-            current.push(value.trim());
-            value = "";
-          } else if (char === "\n" || char === "\r") {
-            if (char === "\r" && next === "\n") i++;
-            current.push(value.trim());
-            if (current.some(c => c.length > 0)) rows.push(current);
-            current = [];
-            value = "";
-          } else {
-            value += char;
-          }
-        }
-      }
-
-      if (value.length || current.length) {
-        current.push(value.trim());
-        rows.push(current);
-      }
-
-      return rows;
-    }
-
-    function importTypeRows(records) {
-      const existing = new Map(
-        typeCatalog.flatMap(group => group.items).map(item => [item.name, item])
-      );
-
-      let updatedCount = 0;
-
-      records.forEach((row) => {
-        const target = existing.get(row.name);
-        if (!target) return;
-
-        target.sample = row.sample || target.sample;
-        target.usage = row.usage || target.usage;
-        target.fontFamily = familyLabelToVar.get(row.family) || target.fontFamily || "var(--font-family-sans)";
-        target.weight = Number(row.weight) || row.weight || target.weight;
-        target.letterSpacing = row.tracking ?? target.letterSpacing;
-        const capsValue = String(row.allCaps || "").trim().toLowerCase();
-        const isCaps = capsValue === "true" || capsValue === "yes" || capsValue === "1" || capsValue === "uppercase";
-        target.transform = isCaps ? "uppercase" : "";
-
-        const size = row.size || target.sizeDesktop || target.size;
-        const lineHeight = row.lineHeight ?? target.lineHeight;
-
-        target.sizeDesktop = size;
-        target.sizeMobile = size;
-        target.size = size;
-        target.lineHeight = lineHeight;
-        target.lineHeightMobile = lineHeight;
-
-        if (target.transform) {
-          // keep existing transform (e.g., Overline uppercase) if present
-          target.transform = target.transform;
-        }
-
-        updatedCount += 1;
-      });
-
-      return updatedCount;
-    }
-
-    function handleCsvText(text) {
-      const rows = parseCsv(text);
-      if (!rows.length) {
-        alert("CSV appears empty.");
-        return;
-      }
-
-      const headers = rows[0].map(h => h.toLowerCase());
-      const required = ["style", "sample", "family", "size", "weight", "line height", "tracking", "usage", "all caps"];
-      const missing = required.filter(h => !headers.includes(h));
-      if (missing.length) {
-        alert(`CSV missing required columns: ${missing.join(", ")}`);
-        return;
-      }
-
-      const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
-      const records = rows.slice(1).map((cols) => ({
-        name: cols[idx["style"]] || "",
-        sample: cols[idx["sample"]] || "",
-        family: cols[idx["family"]] || "",
-        size: cols[idx["size"]] || "",
-        weight: cols[idx["weight"]] || "",
-        lineHeight: cols[idx["line height"]] || "",
-        tracking: cols[idx["tracking"]] || "",
-        usage: cols[idx["usage"]] || "",
-        allCaps: cols[idx["all caps"]] || ""
-      })).filter(r => r.name);
-
-      if (!records.length) {
-        alert("No data rows found in CSV.");
-        return;
-      }
-
-      const updated = importTypeRows(records);
-      if (!updated) {
-        alert("No matching styles were updated. Ensure names match the table.");
-        return;
-      }
-
-      renderTypeTable();
-      alert(`Updated ${updated} style${updated === 1 ? "" : "s"} from CSV.`);
-    }
-
-    const uploadBtn = document.getElementById("uploadTypeCsv");
-    const uploadInput = document.getElementById("uploadTypeCsvInput");
-
-    uploadBtn?.addEventListener("click", () => uploadInput?.click());
-
-    uploadInput?.addEventListener("change", (event) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result;
-        if (typeof text === "string") {
-          handleCsvText(text);
-        } else {
-          alert("Could not read CSV file.");
-        }
-      };
-      reader.onerror = () => alert("Error reading CSV file.");
-      reader.readAsText(file);
-
-      event.target.value = "";
-    });
-
     let editIndex = null;
     const editModal = document.getElementById("editModal");
     const editModalTitle = document.getElementById("editModalTitle");
@@ -1311,12 +1035,41 @@
     const editWeight = document.getElementById("editWeight");
     const editTracking = document.getElementById("editTracking");
     const editAllCaps = document.getElementById("editAllCaps");
-    const editSizeDesktop = document.getElementById("editSizeDesktop");
-    const editSizeMobile = document.getElementById("editSizeMobile");
+    const editSizeDesktopValue = document.getElementById("editSizeDesktopValue");
+    const editSizeDesktopUnit = document.getElementById("editSizeDesktopUnit");
+    const editSizeMobileValue = document.getElementById("editSizeMobileValue");
+    const editSizeMobileUnit = document.getElementById("editSizeMobileUnit");
     const editLineHeightDesktop = document.getElementById("editLineHeightDesktop");
     const editLineHeightMobile = document.getElementById("editLineHeightMobile");
     const editSample = document.getElementById("editSample");
     const editUsage = document.getElementById("editUsage");
+
+    // Helper function to parse size string (e.g., "48px") into value and unit
+    function parseSizeString(sizeStr) {
+      if (!sizeStr) return { value: "", unit: "px" };
+      const match = String(sizeStr).match(/^([\d.]+)([a-z%]+)$/i);
+      if (match) {
+        return { value: match[1], unit: match[2] };
+      }
+      // If no unit found, assume it's just a number in px
+      return { value: sizeStr, unit: "px" };
+    }
+
+    // Helper function to update step based on unit
+    function updateStepForUnit(inputEl, unit) {
+      if (!inputEl) return;
+      // px uses whole numbers (step=1), rem/em use 1 decimal place (step=0.1)
+      inputEl.step = unit === "px" ? "1" : "0.1";
+    }
+
+    // Update step when unit selector changes
+    editSizeDesktopUnit?.addEventListener("change", (e) => {
+      updateStepForUnit(editSizeDesktopValue, e.target.value);
+    });
+
+    editSizeMobileUnit?.addEventListener("change", (e) => {
+      updateStepForUnit(editSizeMobileValue, e.target.value);
+    });
 
     function closeEditModal() {
       if (!editModal) return;
@@ -1339,7 +1092,7 @@
       const weight = source.weight;
       const letterSpacing = source.letterSpacing;
       const transform = source.transform ? `text-transform: ${source.transform};` : "";
-      const familyValue = familyValueByVar.get(source.fontFamily) || familyValueByVar.get("var(--font-family-sans)");
+      const familyValue = finalFamilyValueByVar.get(source.fontFamily) || finalFamilyValueByVar.get("var(--font-family-sans)");
 
       // Build absolute URL for local font
       const fontUrl = new URL("fonts/Acme-Gothic-Condensed-Semi-Bold.otf", window.location.href).href;
@@ -1404,8 +1157,19 @@
       editWeight.value = source.weight ?? "";
       editTracking.value = source.letterSpacing ?? "";
       editAllCaps.checked = (source.transform || "").toLowerCase() === "uppercase";
-      editSizeDesktop.value = source.sizeDesktop || source.size || "";
-      editSizeMobile.value = source.sizeMobile || source.sizeDesktop || source.size || "";
+      
+      // Parse desktop size
+      const desktopSize = parseSizeString(source.sizeDesktop || source.size || "");
+      editSizeDesktopValue.value = desktopSize.value;
+      editSizeDesktopUnit.value = desktopSize.unit;
+      updateStepForUnit(editSizeDesktopValue, desktopSize.unit);
+      
+      // Parse mobile size
+      const mobileSize = parseSizeString(source.sizeMobile || source.sizeDesktop || source.size || "");
+      editSizeMobileValue.value = mobileSize.value;
+      editSizeMobileUnit.value = mobileSize.unit;
+      updateStepForUnit(editSizeMobileValue, mobileSize.unit);
+      
       editLineHeightDesktop.value = source.lineHeight ?? "";
       editLineHeightMobile.value = source.lineHeightMobile || source.lineHeight || "";
       editSample.value = source.sample || "";
@@ -1429,8 +1193,17 @@
       style.weight = Number(editWeight.value) || editWeight.value || style.weight;
       style.letterSpacing = editTracking.value || style.letterSpacing;
       style.transform = editAllCaps.checked ? "uppercase" : "";
-      style.sizeDesktop = editSizeDesktop.value || style.sizeDesktop || style.size || "";
-      style.sizeMobile = editSizeMobile.value || style.sizeMobile || style.sizeDesktop || style.size || "";
+      
+      // Combine value + unit for desktop size
+      const desktopValue = editSizeDesktopValue.value;
+      const desktopUnit = editSizeDesktopUnit.value;
+      style.sizeDesktop = desktopValue ? `${desktopValue}${desktopUnit}` : (style.sizeDesktop || style.size || "");
+      
+      // Combine value + unit for mobile size
+      const mobileValue = editSizeMobileValue.value;
+      const mobileUnit = editSizeMobileUnit.value;
+      style.sizeMobile = mobileValue ? `${mobileValue}${mobileUnit}` : (style.sizeMobile || style.sizeDesktop || style.size || "");
+      
       style.size = style.sizeDesktop;
       style.lineHeight = Number(editLineHeightDesktop.value) || editLineHeightDesktop.value || style.lineHeight;
       style.lineHeightMobile = Number(editLineHeightMobile.value) || editLineHeightMobile.value || style.lineHeightMobile || style.lineHeight;
@@ -1441,6 +1214,7 @@
       Object.assign(row, style);
 
       renderTypeTable();
+      closeEditModal();
     });
 
     editForm?.addEventListener("keydown", (event) => {
@@ -1478,6 +1252,17 @@
 
     renderFontFamilies();
     renderTypeTable();
+  </script>
+  <script>
+    // Show admin controls if user is admin
+    (function initAdminControls() {
+      const isAdmin = window.__USER_IS_ADMIN__ || false;
+      if (isAdmin) {
+        document.querySelectorAll('.admin-only').forEach(el => {
+          el.style.display = '';
+        });
+      }
+    })();
   </script>
   <script src="sidebar-nav.js"></script>
 </body>

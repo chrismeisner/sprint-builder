@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="tokens.css" />
   <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="typography-styles.css" />
   <link rel="stylesheet" href="sidebar-nav.css" />
   <style>
     /* Utility classes using design tokens */
@@ -36,130 +37,14 @@
     }
     .dark .text-brand { color: var(--brand-primary-500); }
 
-    /* Content typography - only applies to elements with data-style attributes */
-    [data-style="H1"],
+    /* Page-specific overrides for H2 margin */
     [data-style="H2"] {
-      font-family: "Acme Gothic Condensed", var(--font-family-sans);
-    }
-
-    [data-style="H3"] {
-      font-family: "Inter Tight", var(--font-family-sans);
-    }
-
-    [data-style="H4"],
-    [data-style="H5"],
-    [data-style="H6"],
-    [data-style="Subtitle"],
-    [data-style="Body / L"],
-    [data-style="Body / M"],
-    [data-style="Body / S"],
-    [data-style="Caption"],
-    [data-style="Label"],
-    [data-style="Button"] {
-      font-family: var(--font-family-sans);
-    }
-
-    /* Normalize type scales so each data-style is consistent */
-    [data-style="H1"] {
-      font-size: 60px !important;
-      line-height: 1.0667;
-      font-weight: 600;
-      letter-spacing: 0em;
-      text-transform: uppercase;
-    }
-
-    [data-style="H2"] {
-      font-size: 48px !important;
-      line-height: 1;
-      font-weight: 600;
-      letter-spacing: 0em;
-      text-transform: uppercase;
       margin-bottom: 20px;
     }
 
-    [data-style="H3"] {
-      font-size: 22px !important;
-      line-height: 1.18;
-      font-weight: 600;
-      letter-spacing: 0em;
-    }
-
-    [data-style="H4"] {
-      font-size: 18px !important;
-      line-height: 1.444;
-      font-weight: 500;
-      letter-spacing: -0.2px;
-    }
-
-    [data-style="Subtitle"] {
-      font-size: 21px !important;
-      line-height: 1.429;
-      font-weight: 400;
-      letter-spacing: -0.1px;
-    }
-
+    /* Page-specific overrides for Overline margin */
     [data-style="Overline"] {
-      font-size: 14px !important;
-      line-height: 1.4;
-      font-weight: 500;
-      letter-spacing: 0.3px;
-      text-transform: uppercase;
-      font-family: var(--font-family-sans);
       margin-bottom: 12px;
-    }
-
-    @media (max-width: 640px) {
-      [data-style="Overline"] {
-        font-size: 18px !important;
-      }
-    }
-
-    [data-style="Body / L"] {
-      font-size: 20px !important;
-      line-height: 1.3;
-      font-weight: 400;
-      letter-spacing: -0.4px;
-    }
-
-    @media (max-width: 640px) {
-      [data-style="Body / L"] {
-        line-height: 1.2;
-      }
-    }
-
-    [data-style="Body / M"] {
-      font-size: 16px !important;
-      line-height: 1.5;
-      font-weight: 400;
-      letter-spacing: -0.015em;
-    }
-
-    [data-style="Body / S"] {
-      font-size: 14px !important;
-      line-height: 1.35;
-      font-weight: 400;
-      letter-spacing: -0.005em;
-    }
-
-    [data-style="Caption"] {
-      font-size: 12px !important;
-      line-height: 1.5;
-      font-weight: 500;
-      letter-spacing: 0.01em;
-    }
-
-    [data-style="Label"] {
-      font-size: 13px !important;
-      line-height: 1.4;
-      font-weight: 400;
-      letter-spacing: 0.01em;
-    }
-
-    [data-style="Button"] {
-      font-size: 16px !important;
-      line-height: 1.5;
-      font-weight: 600;
-      letter-spacing: 0.01em;
     }
 
     * { box-sizing: border-box; }
@@ -175,7 +60,7 @@
     .wrap {
       max-width: 1400px;
       margin: auto;
-      padding: 32px 20px 0;
+      padding: 32px 16px 0;
     }
 
     /* Page structure typography */
@@ -645,15 +530,26 @@
         display: none;
       }
 
+      .wrap {
+        padding-left: 0;
+        padding-right: 0;
+      }
+
+      /* Add padding back to the top section only (before tiles) */
+      .wrap > .mb-6 {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
       #tilesContainer {
-        margin-left: -6px;
-        margin-right: -6px;
+        margin-left: 0;
+        margin-right: 0;
       }
 
       .tile {
         border: none;
         border-radius: 0;
-        padding: 12px 10px;
+        padding: 12px 16px;
         box-shadow: none;
         background: transparent;
         margin: 0;
@@ -661,6 +557,78 @@
 
       .tile + .tile {
         margin-top: 0;
+      }
+
+      /* Hide Show Labels toggle on mobile */
+      #toggleHoverLabelBtn {
+        display: none;
+      }
+
+      /* Hide icon selector on mobile */
+      #iconSelector {
+        display: none;
+      }
+
+      #iconSelector + label,
+      label[for="iconSelector"] {
+        display: none;
+      }
+
+      /* Hide the icon selector wrapper */
+      .theme-selector-wrapper:has(#iconSelector) {
+        display: none;
+      }
+
+      /* Flip hero tile order on mobile: content first, then image */
+      #tile-hero > div {
+        display: flex;
+        flex-direction: column-reverse;
+      }
+
+      #tile-hero {
+        padding-top: 20px !important;
+        padding-bottom: 0px !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+
+      /* Make hero image full width on mobile */
+      #tile-hero .hero-media {
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        height: 300px;
+        border-radius: 0;
+      }
+
+      #tile-hero .hero-media img {
+        border-radius: 0;
+      }
+
+      /* Center all hero content on mobile */
+      #tile-hero .pl-0 {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      #tile-hero .pl-0 img {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* Remove max-width constraint on blog grid header on mobile */
+      #tile-blog-grid .mx-auto.text-center {
+        max-width: 100% !important;
+      }
+
+      /* Remove horizontal padding from blog grid container on mobile */
+      #tile-blog-grid .max-w-7xl {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
       }
 
     }
@@ -1329,9 +1297,10 @@
 
     /* =====================================================
        FONT THEME SYSTEM (scoped to tiles only)
+       Note: Base .font-google-slides rules are in typography-styles.css
+       This adds container-scoped specificity for the tiles
     ===================================================== */
 
-    /* Google Slides font theme - swap Acme Gothic → Special Gothic */
     #tilesContainer.font-google-slides [data-style="H1"],
     #tilesContainer.font-google-slides [data-style="H2"] {
       font-family: 'Special Gothic Condensed One', var(--font-family-sans) !important;
@@ -1441,7 +1410,7 @@
           </svg>
         </div>
         <div class="relative mx-auto max-w-7xl py-10 sm:py-10 lg:px-8 lg:py-10">
-          <div class="pl-6 pr-6 md:ml-auto md:w-2/3 md:pl-16 lg:w-1/2 lg:pl-24 lg:pr-0 xl:pl-32" style="padding-top: 40px; padding-bottom: 40px;">
+          <div class="pl-0 pr-0 md:pl-16 md:pr-6 md:ml-auto md:w-2/3 lg:w-1/2 lg:pl-24 lg:pr-0 xl:pl-32" style="padding-top: 40px; padding-bottom: 40px;">
             <img src="./images/miles-logos/miles-badge-green.svg" alt="Miles" style="width: 100px; height: 100px; max-width: 100px; margin-bottom: 32px;" />
             <h2 class="text-base/7 font-semibold" style="color: var(--brand-primary-700);" data-style="H4">Built for families with new drivers</h2>
             <p class="mt-2 text-4xl font-semibold tracking-tight sm:text-5xl dark:text-white" style="color: var(--brand-primary-900);" data-style="H1">Confidence For Every Drive</p>

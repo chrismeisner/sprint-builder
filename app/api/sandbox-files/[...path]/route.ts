@@ -204,7 +204,7 @@ export async function GET(
       headers["X-Frame-Options"] = "SAMEORIGIN";
       
       // Inject user admin status for admin-only controls
-      if (filePath.includes("style-tiles.html") || filePath.includes("colors.html")) {
+      if (filePath.includes("style-tiles.html") || filePath.includes("colors.html") || filePath.includes("fonts.html")) {
         const user = await getCurrentUser();
         const isAdmin = user?.isAdmin || false;
         const userInfoScript = `<script>window.__USER_IS_ADMIN__ = ${isAdmin};</script>`;
