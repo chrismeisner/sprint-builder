@@ -52,7 +52,7 @@
     body {
       margin: 0;
       font-family: var(--font-family-sans);
-      background: var(--neutral-50);
+      background: var(--neutral-0);
       color: var(--neutral-900);
       -webkit-font-smoothing: antialiased;
     }
@@ -549,7 +549,7 @@
       .tile {
         border: none;
         border-radius: 0;
-        padding: 12px 16px;
+        padding: 40px 16px;
         box-shadow: none;
         background: transparent;
         margin: 0;
@@ -629,6 +629,29 @@
       #tile-blog-grid .max-w-7xl {
         padding-left: 0 !important;
         padding-right: 0 !important;
+      }
+
+      /* Reduce top margin on blog grid on mobile */
+      #tile-blog-grid .mt-16 {
+        margin-top: 40px !important;
+      }
+
+      /* Reduce vertical gap between blog posts on mobile */
+      #tile-blog-grid .gap-y-20 {
+        row-gap: 40px !important;
+      }
+
+      /* Reduce margin-top on blog post descriptions on mobile */
+      #tile-blog-grid .mt-5 {
+        margin-top: 8px !important;
+      }
+
+      /* Update signup tile horizontal padding to 40px on mobile */
+      #tile-signup .signup-shell {
+        padding-left: 40px !important;
+        padding-right: 40px !important;
+        padding-top: 60px !important;
+        padding-bottom: 100px !important;
       }
 
     }

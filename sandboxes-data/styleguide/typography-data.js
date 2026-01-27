@@ -167,9 +167,9 @@ export const typeCatalog = [
       { 
         name: "Body / M", 
         sizeDesktop: "16px", 
-        sizeMobile: "16px", 
+        sizeMobile: "14px", 
         lineHeight: 1.5, 
-        lineHeightMobile: 1.5, 
+        lineHeightMobile: 1.4, 
         weight: 400, 
         letterSpacing: "-0.015em", 
         sample: "Body Medium — Default body text", 
@@ -191,7 +191,7 @@ export const typeCatalog = [
       { 
         name: "Body / S", 
         sizeDesktop: "14px", 
-        sizeMobile: "14px", 
+        sizeMobile: "13px", 
         lineHeight: 1.35, 
         lineHeightMobile: 1.35, 
         weight: 400, 
@@ -203,7 +203,7 @@ export const typeCatalog = [
       { 
         name: "Body / S Bold", 
         sizeDesktop: "14px", 
-        sizeMobile: "14px", 
+        sizeMobile: "13px", 
         lineHeight: 1.35, 
         lineHeightMobile: 1.35, 
         weight: 600, 
@@ -244,11 +244,11 @@ export const typeCatalog = [
       { 
         name: "Button", 
         sizeDesktop: "16px", 
-        sizeMobile: "16px", 
+        sizeMobile: "15px", 
         lineHeight: 1.5, 
         lineHeightMobile: 1.5, 
-        weight: 600, 
-        letterSpacing: "0.01em", 
+        weight: 400, 
+        letterSpacing: "-0.015em", 
         sample: "Button — Primary CTA", 
         usage: "Primary button text", 
         fontFamily: "var(--font-family-sans)" 

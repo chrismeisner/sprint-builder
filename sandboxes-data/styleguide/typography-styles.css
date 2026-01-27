@@ -9,7 +9,7 @@
  * 2. Run: node generate-typography-css.js
  * 3. Changes will automatically apply to all pages that link to this file
  * 
- * Last generated: 2026-01-27T15:34:17.023Z
+ * Last generated: 2026-01-27T18:27:01.640Z
  */
 
 /* =============================================================================
@@ -153,6 +153,13 @@
   letter-spacing: -0.015em;
 }
 
+@media (max-width: 640px) {
+  [data-style="Body / M"] {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+}
+
 [data-style="Body / M Bold"] {
   font-size: 16px;
   line-height: 1.4;
@@ -173,11 +180,23 @@
   letter-spacing: -0.005em;
 }
 
+@media (max-width: 640px) {
+  [data-style="Body / S"] {
+    font-size: 13px;
+  }
+}
+
 [data-style="Body / S Bold"] {
   font-size: 14px;
   line-height: 1.35;
   font-weight: 600;
   letter-spacing: -0.005em;
+}
+
+@media (max-width: 640px) {
+  [data-style="Body / S Bold"] {
+    font-size: 13px;
+  }
 }
 
 [data-style="Caption"] {
@@ -207,8 +226,14 @@
 [data-style="Button"] {
   font-size: 16px;
   line-height: 1.5;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+
+@media (max-width: 640px) {
+  [data-style="Button"] {
+    font-size: 15px;
+  }
 }
 
 /* =============================================================================
