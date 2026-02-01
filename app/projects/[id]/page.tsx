@@ -336,7 +336,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       {/* Demos (admin only) */}
       {isAdmin && (
         <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-4">
-          <ProjectDemos projectId={project.id} />
+          <ProjectDemos projectId={project.id} projectName={project.name} />
         </section>
       )}
 

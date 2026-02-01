@@ -16,7 +16,7 @@ type ProjectDemo = {
   createdAt: string;
 };
 
-type Props = { projectId: string };
+type Props = { projectId: string; projectName: string };
 
 function formatFileSize(bytes: number | null): string {
   if (bytes == null) return "—";
@@ -25,10 +25,29 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function ProjectDemos({ projectId }: Props) {
+function generateDemoFilename(projectName: string): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  
+  // Sanitize project name: remove special chars, replace spaces with hyphens
+  const sanitizedName = projectName
+    .replace(/[^a-zA-Z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .substring(0, 50); // Limit length
+  
+  return `${sanitizedName}-Demo-${year}${month}${day}-${hours}${minutes}${seconds}`;
+}
+
+export default function ProjectDemos({ projectId, projectName }: Props) {
   const [demos, setDemos] = useState<ProjectDemo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copiedFilename, setCopiedFilename] = useState(false);
   
   // Upload modal state
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -48,6 +67,25 @@ export default function ProjectDemos({ projectId }: Props) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCopyFilename = async () => {
+    const filename = generateDemoFilename(projectName);
+    try {
+      await navigator.clipboard.writeText(filename);
+      setCopiedFilename(true);
+      setTimeout(() => setCopiedFilename(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = filename;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setCopiedFilename(true);
+      setTimeout(() => setCopiedFilename(false), 2000);
+    }
+  };
 
   const fetchDemos = useCallback(async () => {
     try {
@@ -194,6 +232,28 @@ export default function ProjectDemos({ projectId }: Props) {
           <p className="text-sm opacity-70">Video demos and recordings showcasing project work.</p>
         </div>
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleCopyFilename}
+            className="px-3 py-2 text-sm rounded-md border border-black/15 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5 transition inline-flex items-center gap-1.5"
+            title="Copy a timestamped filename for your demo recording"
+          >
+            {copiedFilename ? (
+              <>
+                <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+                Copy filename
+              </>
+            )}
+          </button>
           <button
             type="button"
             onClick={() => {
