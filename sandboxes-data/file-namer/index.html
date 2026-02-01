@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filename Converter</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f5f5f7;
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      padding: 40px;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      font-weight: 600;
+      color: #1d1d1f;
+    }
+
+    .subtitle {
+      color: #86868b;
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #1d1d1f;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 16px;
+      border: 1px solid #d2d2d7;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #0071e3;
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px 20px;
+      font-size: 16px;
+      font-weight: 500;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .convert-btn {
+      background: #0071e3;
+      color: white;
+      margin-top: 20px;
+    }
+
+    .convert-btn:hover {
+      background: #0077ed;
+    }
+
+    .output-section {
+      margin-top: 32px;
+      padding-top: 32px;
+      border-top: 1px solid #e5e5e5;
+      display: none;
+    }
+
+    .output-section.visible {
+      display: block;
+    }
+
+    .output-box {
+      background: #f5f5f7;
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .output-text {
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+      font-size: 13px;
+      color: #1d1d1f;
+      word-break: break-all;
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 0;
+      outline: none;
+    }
+
+    .output-text:focus {
+      background: white;
+      border: 1px solid #0071e3;
+      border-radius: 6px;
+      padding: 8px;
+      margin: -8px;
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+    }
+
+    .copy-btn {
+      background: #e8e8ed;
+      color: #1d1d1f;
+      width: auto;
+      padding: 10px 16px;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover {
+      background: #d2d2d7;
+    }
+
+    .copy-btn.copied {
+      background: #34c759;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Filename Converter</h1>
+    <p class="subtitle">Convert any text into a clean, filesystem-friendly filename</p>
+
+    <label for="input">Original filename</label>
+    <input 
+      type="text" 
+      id="input" 
+      placeholder="e.g., My Document (Final Version) 2024!.pdf"
+      autocomplete="off"
+    >
+
+    <button class="convert-btn" onclick="convert()">Convert</button>
+
+    <div class="output-section" id="output-section">
+      <label>Converted filename</label>
+      <div class="output-box">
+        <input 
+          type="text" 
+          class="output-text" 
+          id="output"
+          autocomplete="off"
+        >
+        <button class="copy-btn" onclick="copyToClipboard()">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function convert() {
+      const input = document.getElementById('input').value;
+      const outputSection = document.getElementById('output-section');
+      const output = document.getElementById('output');
+
+      if (!input.trim()) {
+        outputSection.classList.remove('visible');
+        return;
+      }
+
+      // Separate extension if present
+      let name = input;
+      let extension = '';
+      const lastDot = input.lastIndexOf('.');
+      if (lastDot > 0) {
+        extension = input.slice(lastDot).toLowerCase();
+        name = input.slice(0, lastDot);
+      }
+
+      // Convert to filename-friendly format
+      let converted = name
+        .toLowerCase()                          // lowercase
+        .normalize('NFD')                       // decompose accented characters
+        .replace(/[\u0300-\u036f]/g, '')        // remove diacritics
+        .replace(/['']/g, '')                   // remove apostrophes
+        .replace(/[&]/g, 'and')                 // replace & with 'and'
+        .replace(/[._]/g, ' ')                  // replace periods and underscores with spaces
+        .replace(/[^a-z0-9\s-]/g, '')           // remove special characters
+        .trim()                                 // trim whitespace
+        .replace(/\s+/g, '-')                   // replace spaces with dashes
+        .replace(/-+/g, '-')                    // collapse multiple dashes
+        .replace(/^-|-$/g, '');                 // remove leading/trailing dashes
+
+      // Add extension back
+      converted = converted + extension;
+
+      output.value = converted;
+      outputSection.classList.add('visible');
+    }
+
+    function copyToClipboard() {
+      const output = document.getElementById('output').value;
+      const copyBtn = document.querySelector('.copy-btn');
+      
+      navigator.clipboard.writeText(output).then(() => {
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy';
+          copyBtn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    // Also convert on Enter key
+    document.getElementById('input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        convert();
+      }
+    });
+
+    // Press 'r' to reset and focus input
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'r' && !e.target.matches('input, textarea')) {
+        e.preventDefault();
+        document.getElementById('input').value = '';
+        document.getElementById('output').value = '';
+        document.getElementById('output-section').classList.remove('visible');
+        document.getElementById('input').focus();
+      }
+    });
+  </script>
+</body>
+</html>
