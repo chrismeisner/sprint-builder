@@ -4,23 +4,26 @@ import { useState } from "react";
 import Button from "@/components/ui/Button";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 
-interface Sandbox {
+interface AppLink {
   id: string;
   name: string;
-  folder_name: string;
+  folder_name: string | null;
+  url: string | null;
+  link_type: "folder" | "url";
   description: string | null;
   is_public?: boolean;
 }
 
-interface EditSandboxButtonProps {
-  sandbox: Sandbox;
+interface EditAppLinkButtonProps {
+  appLink: AppLink;
 }
 
-export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
+export default function EditAppLinkButton({ appLink }: EditAppLinkButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [name, setName] = useState(sandbox.name);
-  const [description, setDescription] = useState(sandbox.description || "");
-  const [isPublic, setIsPublic] = useState(sandbox.is_public || false);
+  const [name, setName] = useState(appLink.name);
+  const [url, setUrl] = useState(appLink.url || "");
+  const [description, setDescription] = useState(appLink.description || "");
+  const [isPublic, setIsPublic] = useState(appLink.is_public || false);
   const [saving, setSaving] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
   const [error, setError] = useState("");
@@ -34,8 +37,9 @@ export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: sandbox.id,
-          name: name.trim() || sandbox.name,
+          id: appLink.id,
+          name: name.trim() || appLink.name,
+          url: appLink.link_type === "url" ? url.trim() : undefined,
           description: description.trim() || null,
           isPublic,
         }),
@@ -43,12 +47,12 @@ export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to update sandbox");
+        throw new Error(data.error || "Failed to update app link");
       }
 
       window.location.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update sandbox");
+      setError(err instanceof Error ? err.message : "Failed to update app link");
     } finally {
       setSaving(false);
     }
@@ -61,17 +65,17 @@ export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
       const response = await fetch("/api/sandboxes", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: sandbox.id, projectId: null }),
+        body: JSON.stringify({ id: appLink.id, projectId: null }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to unlink sandbox");
+        throw new Error(data.error || "Failed to unlink app link");
       }
 
       window.location.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to unlink sandbox");
+      setError(err instanceof Error ? err.message : "Failed to unlink app link");
     } finally {
       setUnlinking(false);
     }
@@ -79,9 +83,10 @@ export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
 
   const handleClose = () => {
     setIsOpen(false);
-    setName(sandbox.name);
-    setDescription(sandbox.description || "");
-    setIsPublic(sandbox.is_public || false);
+    setName(appLink.name);
+    setUrl(appLink.url || "");
+    setDescription(appLink.description || "");
+    setIsPublic(appLink.is_public || false);
     setError("");
   };
 
@@ -91,8 +96,12 @@ export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
         isOpen={showUnlinkModal}
         onClose={() => setShowUnlinkModal(false)}
         onConfirm={handleUnlink}
-        title="Unlink sandbox?"
-        message={`Are you sure you want to unlink "${sandbox.name}" from this project? The sandbox files will remain, but it won't be associated with this project anymore.`}
+        title="Unlink app link?"
+        message={`Are you sure you want to unlink "${appLink.name}" from this project? ${
+          appLink.link_type === "folder" 
+            ? "The sandbox files will remain, but it won't be associated with this project anymore."
+            : "The URL will remain saved but won't be associated with this project anymore."
+        }`}
         confirmText="Unlink"
         cancelText="Cancel"
         variant="danger"
@@ -117,10 +126,17 @@ export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
             {/* Header */}
             <div className="p-6 border-b border-black/10 dark:border-white/15">
               <h2 className="text-lg font-semibold">
-                Edit Sandbox
+                Edit App Link
               </h2>
-              <p className="text-xs font-mono opacity-50 mt-1">
-                {sandbox.folder_name}
+              <p className="text-xs font-mono opacity-50 mt-1 flex items-center gap-2">
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
+                  appLink.link_type === "url"
+                    ? "bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400"
+                    : "bg-black/10 dark:bg-white/10"
+                }`}>
+                  {appLink.link_type === "url" ? "URL" : "Folder"}
+                </span>
+                {appLink.link_type === "folder" ? appLink.folder_name : ""}
               </p>
             </div>
 
@@ -133,25 +149,41 @@ export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
               )}
 
               <div className="space-y-1.5">
-                <label htmlFor="sandbox-name" className="block text-sm font-medium">
+                <label htmlFor="applink-name" className="block text-sm font-medium">
                   Name
                 </label>
                 <input
-                  id="sandbox-name"
+                  id="applink-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full rounded-md border border-black/15 dark:border-white/25 bg-white dark:bg-black/40 px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/70 dark:focus-visible:ring-white/60"
-                  placeholder="Sandbox name"
+                  placeholder="App link name"
                 />
               </div>
 
+              {appLink.link_type === "url" && (
+                <div className="space-y-1.5">
+                  <label htmlFor="applink-url" className="block text-sm font-medium">
+                    URL
+                  </label>
+                  <input
+                    id="applink-url"
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    className="w-full rounded-md border border-black/15 dark:border-white/25 bg-white dark:bg-black/40 px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/70 dark:focus-visible:ring-white/60"
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
+
               <div className="space-y-1.5">
-                <label htmlFor="sandbox-description" className="block text-sm font-medium">
+                <label htmlFor="applink-description" className="block text-sm font-medium">
                   Description
                 </label>
                 <textarea
-                  id="sandbox-description"
+                  id="applink-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={2}
@@ -210,7 +242,7 @@ export default function EditSandboxButton({ sandbox }: EditSandboxButtonProps) {
                       Unlink from project
                     </span>
                     <span className="text-sm opacity-60 block">
-                      Remove this sandbox from the project
+                      Remove this app link from the project
                     </span>
                   </div>
                   <span className="text-red-600 dark:text-red-400 text-sm font-medium">

@@ -783,13 +783,13 @@ export async function ensureSchema(): Promise<void> {
     DROP COLUMN IF EXISTS workshop_ai_response_id
   `);
   
-  // Sandboxes: Browser-based prototypes linked to projects
+  // App Links (formerly Sandboxes): Links to app versions - either folder-based or direct URLs
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sandboxes (
       id text PRIMARY KEY,
       project_id text REFERENCES projects(id) ON DELETE CASCADE,
       name text NOT NULL,
-      folder_name text NOT NULL UNIQUE,
+      folder_name text UNIQUE,
       description text,
       is_public boolean NOT NULL DEFAULT true,
       created_by text REFERENCES accounts(id) ON DELETE SET NULL,
@@ -801,15 +801,30 @@ export async function ensureSchema(): Promise<void> {
   `);
   
   // Add is_public column if it doesn't exist (for existing databases)
-  // Defaults to true so existing sandboxes become public
+  // Defaults to true so existing app links become public
   await pool.query(`
     ALTER TABLE sandboxes ADD COLUMN IF NOT EXISTS is_public boolean NOT NULL DEFAULT true
   `);
   
-  // Make project_id nullable so sandboxes can be unlinked from projects
+  // Make project_id nullable so app links can be unlinked from projects
   await pool.query(`
     ALTER TABLE sandboxes ALTER COLUMN project_id DROP NOT NULL
   `);
+  
+  // Add link_type and url columns for URL-based app links
+  // link_type: 'folder' (linked to sandbox folder) or 'url' (direct URL)
+  await pool.query(`
+    ALTER TABLE sandboxes 
+    ADD COLUMN IF NOT EXISTS link_type text NOT NULL DEFAULT 'folder',
+    ADD COLUMN IF NOT EXISTS url text
+  `);
+  
+  // Make folder_name nullable for URL-type app links
+  await pool.query(`
+    ALTER TABLE sandboxes ALTER COLUMN folder_name DROP NOT NULL
+  `).catch(() => {
+    // Ignore if already nullable
+  });
   
   // Blocked emails: prevent specific emails from signing up
   await pool.query(`

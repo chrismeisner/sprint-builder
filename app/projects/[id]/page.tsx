@@ -8,8 +8,8 @@ import Typography from "@/components/ui/Typography";
 const DeleteSprintButton = dynamicImport(() => import("../DeleteSprintButton"), { ssr: false });
 const ProjectDocuments = dynamicImport(() => import("../ProjectDocuments"), { ssr: false });
 const ProjectDemos = dynamicImport(() => import("../ProjectDemos"), { ssr: false });
-const LinkSandboxButton = dynamicImport(() => import("../LinkSandboxButton"), { ssr: false });
-const EditSandboxButton = dynamicImport(() => import("../EditSandboxButton"), { ssr: false });
+const AddAppLinkButton = dynamicImport(() => import("../AddAppLinkButton"), { ssr: false });
+const EditAppLinkButton = dynamicImport(() => import("../EditAppLinkButton"), { ssr: false });
 
 type PageProps = { params: { id: string } };
 
@@ -75,19 +75,21 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     created_at: string | Date;
   }>;
 
-  // Fetch sandboxes for this project
-  const sandboxesResult = await pool.query(
-    `SELECT id, name, folder_name, description, is_public, created_at
+  // Fetch app links for this project
+  const appLinksResult = await pool.query(
+    `SELECT id, name, folder_name, url, link_type, description, is_public, created_at
      FROM sandboxes
      WHERE project_id = $1
      ORDER BY created_at DESC`,
     [project.id]
   );
 
-  const sandboxes = sandboxesResult.rows as Array<{
+  const appLinks = appLinksResult.rows as Array<{
     id: string;
     name: string;
-    folder_name: string;
+    folder_name: string | null;
+    url: string | null;
+    link_type: "folder" | "url";
     description: string | null;
     is_public: boolean;
     created_at: string | Date;
@@ -248,23 +250,23 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      {/* Sandboxes */}
+      {/* App Links */}
       <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <Typography as="h2" scale="h3">
-              Sandboxes
+              App Links
             </Typography>
             <Typography as="span" scale="body-sm" className="opacity-60">
-              {sandboxes.length} total
+              {appLinks.length} total
             </Typography>
           </div>
           {isAdmin && (
-            <LinkSandboxButton projectId={project.id} />
+            <AddAppLinkButton projectId={project.id} />
           )}
         </div>
 
-        {sandboxes.length === 0 ? (
+        {appLinks.length === 0 ? (
           <Typography as="div" scale="body-sm" className="opacity-70">
             None
           </Typography>
@@ -274,59 +276,71 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
                 <tr>
                   <th className="text-left px-4 py-2 font-semibold">Name</th>
+                  <th className="text-left px-4 py-2 font-semibold">Type</th>
                   <th className="text-left px-4 py-2 font-semibold">Description</th>
                   <th className="text-left px-4 py-2 font-semibold">Visibility</th>
-                  <th className="text-right px-4 py-2 font-semibold">Created</th>
                   <th className="text-right px-4 py-2 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/10 dark:divide-white/15">
-                {sandboxes.map((sandbox) => (
-                  <tr key={sandbox.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
-                    <td className="px-4 py-2">
-                      <a
-                        href={`/api/sandbox-files/${sandbox.folder_name}/index.html`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium hover:underline"
-                      >
-                        {sandbox.name}
-                      </a>
-                    </td>
-                    <td className="px-4 py-2">
-                      <span className="opacity-70">{sandbox.description || "—"}</span>
-                    </td>
-                    <td className="px-4 py-2">
-                      {sandbox.is_public ? (
-                        <span className="inline-flex items-center rounded-full bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 px-2 py-0.5 text-xs">
-                          Public
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-full bg-black/10 dark:bg-white/10 px-2 py-0.5 text-xs">
-                          Private
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {new Date(sandbox.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        {isAdmin && (
-                          <EditSandboxButton sandbox={sandbox} />
-                        )}
+                {appLinks.map((appLink) => {
+                  const linkUrl = appLink.link_type === "url" 
+                    ? appLink.url 
+                    : `/api/sandbox-files/${appLink.folder_name}/index.html`;
+                  
+                  return (
+                    <tr key={appLink.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
+                      <td className="px-4 py-2">
                         <a
-                          href={`/api/sandbox-files/${sandbox.folder_name}/index.html`}
+                          href={linkUrl || "#"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-medium hover:underline inline-flex items-center gap-1"
+                          className="font-medium hover:underline"
                         >
-                          View ↗
+                          {appLink.name}
                         </a>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
+                          appLink.link_type === "url"
+                            ? "bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400"
+                            : "bg-black/10 dark:bg-white/10"
+                        }`}>
+                          {appLink.link_type === "url" ? "URL" : "Folder"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className="opacity-70">{appLink.description || "—"}</span>
+                      </td>
+                      <td className="px-4 py-2">
+                        {appLink.is_public ? (
+                          <span className="inline-flex items-center rounded-full bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 px-2 py-0.5 text-xs">
+                            Public
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-black/10 dark:bg-white/10 px-2 py-0.5 text-xs">
+                            Private
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          {isAdmin && (
+                            <EditAppLinkButton appLink={appLink} />
+                          )}
+                          <a
+                            href={linkUrl || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium hover:underline inline-flex items-center gap-1"
+                          >
+                            View ↗
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

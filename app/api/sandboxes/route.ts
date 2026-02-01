@@ -7,11 +7,16 @@ import { getPool, ensureSchema } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-type SandboxRow = {
+// App Links can be either 'folder' (linked to sandbox folder) or 'url' (direct URL)
+type LinkType = "folder" | "url";
+
+type AppLinkRow = {
   id: string;
   project_id: string;
   name: string;
-  folder_name: string;
+  folder_name: string | null;
+  url: string | null;
+  link_type: LinkType;
   description: string | null;
   is_public: boolean;
   created_by: string | null;
@@ -100,28 +105,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ unregistered });
     }
 
-    // Regular request: list sandboxes user has access to
+    // Regular request: list app links user has access to
     const pool = getPool();
     
-    let sandboxes: SandboxRow[];
+    let appLinks: AppLinkRow[];
     
     if (user.isAdmin) {
-      // Admins see all sandboxes
+      // Admins see all app links
       const result = await pool.query(`
         SELECT 
-          s.id, s.project_id, s.name, s.folder_name, s.description, s.is_public,
+          s.id, s.project_id, s.name, s.folder_name, s.url, s.link_type, s.description, s.is_public,
           s.created_by, s.created_at, s.updated_at,
           p.name AS project_name
         FROM sandboxes s
         LEFT JOIN projects p ON s.project_id = p.id
         ORDER BY s.created_at DESC
       `);
-      sandboxes = result.rows;
+      appLinks = result.rows;
     } else {
-      // Non-admins see sandboxes for projects they own or are members of
+      // Non-admins see app links for projects they own or are members of
       const result = await pool.query(`
         SELECT 
-          s.id, s.project_id, s.name, s.folder_name, s.description, s.is_public,
+          s.id, s.project_id, s.name, s.folder_name, s.url, s.link_type, s.description, s.is_public,
           s.created_by, s.created_at, s.updated_at,
           p.name AS project_name
         FROM sandboxes s
@@ -135,50 +140,51 @@ export async function GET(request: NextRequest) {
            )
         ORDER BY s.created_at DESC
       `, [user.accountId, user.email]);
-      sandboxes = result.rows;
+      appLinks = result.rows;
     }
 
-    // Enrich with file system info
-    const enrichedSandboxes = sandboxes.map((sandbox) => {
-      const info = getFolderInfo(sandbox.folder_name);
+    // Enrich with file system info (only for folder-type links)
+    const enrichedAppLinks = appLinks.map((appLink) => {
+      if (appLink.link_type === "folder" && appLink.folder_name) {
+        const info = getFolderInfo(appLink.folder_name);
+        return {
+          ...appLink,
+          hasIndex: info.hasIndex,
+          fileCount: info.files.length,
+          folderExists: info.files.length > 0 || fs.existsSync(
+            path.join(SANDBOXES_DIR, appLink.folder_name)
+          ),
+        };
+      }
+      // For URL-type links, no file system info needed
       return {
-        ...sandbox,
-        hasIndex: info.hasIndex,
-        fileCount: info.files.length,
-        folderExists: info.files.length > 0 || fs.existsSync(
-          path.join(SANDBOXES_DIR, sandbox.folder_name)
-        ),
+        ...appLink,
+        hasIndex: false,
+        fileCount: 0,
+        folderExists: false,
       };
     });
 
-    return NextResponse.json({ sandboxes: enrichedSandboxes });
+    return NextResponse.json({ sandboxes: enrichedAppLinks });
   } catch (error) {
-    console.error("Error fetching sandboxes:", error);
-    return NextResponse.json({ error: "Failed to fetch sandboxes" }, { status: 500 });
+    console.error("Error fetching app links:", error);
+    return NextResponse.json({ error: "Failed to fetch app links" }, { status: 500 });
   }
 }
 
-// POST /api/sandboxes - Register a new sandbox (admin only)
-// Body: { folderName, projectId, name?, description? }
+// POST /api/sandboxes - Create a new app link (admin only)
+// Body for folder type: { linkType: 'folder', folderName, projectId, name?, description? }
+// Body for URL type: { linkType: 'url', url, projectId, name, description? }
 export async function POST(request: NextRequest) {
   try {
     await ensureSchema();
     const admin = await requireAdmin();
 
     const body = await request.json();
-    const { folderName, projectId, name, description } = body;
+    const { linkType = "folder", folderName, url, projectId, name, description } = body;
 
-    if (!folderName || typeof folderName !== "string") {
-      return NextResponse.json({ error: "folderName is required" }, { status: 400 });
-    }
     if (!projectId || typeof projectId !== "string") {
       return NextResponse.json({ error: "projectId is required" }, { status: 400 });
-    }
-
-    // Verify folder exists
-    const folderPath = path.join(SANDBOXES_DIR, folderName);
-    if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
-      return NextResponse.json({ error: "Folder does not exist" }, { status: 400 });
     }
 
     const pool = getPool();
@@ -189,48 +195,79 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Check if folder is already registered
-    const existingCheck = await pool.query(
-      `SELECT id FROM sandboxes WHERE folder_name = $1`,
-      [folderName]
-    );
-    if ((existingCheck.rowCount ?? 0) > 0) {
-      return NextResponse.json({ error: "Folder is already registered" }, { status: 400 });
-    }
-
-    // Generate display name from folder name if not provided
-    const displayName = name || folderName
-      .split("-")
-      .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-
     const id = uuidv4();
-    const result = await pool.query(
-      `INSERT INTO sandboxes (id, project_id, name, folder_name, description, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [id, projectId, displayName, folderName, description || null, admin.accountId]
-    );
 
-    return NextResponse.json({ sandbox: result.rows[0] }, { status: 201 });
+    if (linkType === "url") {
+      // URL-type app link
+      if (!url || typeof url !== "string") {
+        return NextResponse.json({ error: "url is required for URL-type links" }, { status: 400 });
+      }
+      if (!name || typeof name !== "string") {
+        return NextResponse.json({ error: "name is required for URL-type links" }, { status: 400 });
+      }
+
+      const result = await pool.query(
+        `INSERT INTO sandboxes (id, project_id, name, url, link_type, description, created_by)
+         VALUES ($1, $2, $3, $4, 'url', $5, $6)
+         RETURNING *`,
+        [id, projectId, name.trim(), url.trim(), description || null, admin.accountId]
+      );
+
+      return NextResponse.json({ sandbox: result.rows[0] }, { status: 201 });
+    } else {
+      // Folder-type app link (original behavior)
+      if (!folderName || typeof folderName !== "string") {
+        return NextResponse.json({ error: "folderName is required for folder-type links" }, { status: 400 });
+      }
+
+      // Verify folder exists
+      const folderPath = path.join(SANDBOXES_DIR, folderName);
+      if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+        return NextResponse.json({ error: "Folder does not exist" }, { status: 400 });
+      }
+
+      // Check if folder is already registered
+      const existingCheck = await pool.query(
+        `SELECT id FROM sandboxes WHERE folder_name = $1`,
+        [folderName]
+      );
+      if ((existingCheck.rowCount ?? 0) > 0) {
+        return NextResponse.json({ error: "Folder is already registered" }, { status: 400 });
+      }
+
+      // Generate display name from folder name if not provided
+      const displayName = name || folderName
+        .split("-")
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+
+      const result = await pool.query(
+        `INSERT INTO sandboxes (id, project_id, name, folder_name, link_type, description, created_by)
+         VALUES ($1, $2, $3, $4, 'folder', $5, $6)
+         RETURNING *`,
+        [id, projectId, displayName, folderName, description || null, admin.accountId]
+      );
+
+      return NextResponse.json({ sandbox: result.rows[0] }, { status: 201 });
+    }
   } catch (error) {
-    console.error("Error registering sandbox:", error);
+    console.error("Error creating app link:", error);
     if (error instanceof Error && error.message.includes("required")) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    return NextResponse.json({ error: "Failed to register sandbox" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create app link" }, { status: 500 });
   }
 }
 
-// PATCH /api/sandboxes - Update a sandbox (admin only)
-// Body: { id, name?, projectId?, description?, isPublic? }
+// PATCH /api/sandboxes - Update an app link (admin only)
+// Body: { id, name?, projectId?, description?, isPublic?, url? }
 export async function PATCH(request: NextRequest) {
   try {
     await ensureSchema();
     await requireAdmin();
 
     const body = await request.json();
-    const { id, name, projectId, description, isPublic } = body;
+    const { id, name, projectId, description, isPublic, url } = body;
 
     if (!id || typeof id !== "string") {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
@@ -238,10 +275,10 @@ export async function PATCH(request: NextRequest) {
 
     const pool = getPool();
 
-    // Check sandbox exists
-    const sandboxCheck = await pool.query(`SELECT id FROM sandboxes WHERE id = $1`, [id]);
-    if (sandboxCheck.rowCount === 0) {
-      return NextResponse.json({ error: "Sandbox not found" }, { status: 404 });
+    // Check app link exists
+    const appLinkCheck = await pool.query(`SELECT id, link_type FROM sandboxes WHERE id = $1`, [id]);
+    if (appLinkCheck.rowCount === 0) {
+      return NextResponse.json({ error: "App link not found" }, { status: 404 });
     }
 
     // If projectId is being updated, verify it exists
@@ -273,6 +310,10 @@ export async function PATCH(request: NextRequest) {
       updates.push(`is_public = $${paramIndex++}`);
       values.push(Boolean(isPublic));
     }
+    if (url !== undefined) {
+      updates.push(`url = $${paramIndex++}`);
+      values.push(url || null);
+    }
 
     if (updates.length === 0) {
       return NextResponse.json({ error: "No fields to update" }, { status: 400 });
@@ -288,16 +329,16 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ sandbox: result.rows[0] });
   } catch (error) {
-    console.error("Error updating sandbox:", error);
+    console.error("Error updating app link:", error);
     if (error instanceof Error && error.message.includes("required")) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    return NextResponse.json({ error: "Failed to update sandbox" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update app link" }, { status: 500 });
   }
 }
 
-// DELETE /api/sandboxes?id=xxx - Unregister a sandbox (admin only)
-// Note: This only removes the DB record, not the files
+// DELETE /api/sandboxes?id=xxx - Delete an app link (admin only)
+// Note: For folder-type links, this only removes the DB record, not the files
 export async function DELETE(request: NextRequest) {
   try {
     await ensureSchema();
@@ -312,23 +353,25 @@ export async function DELETE(request: NextRequest) {
 
     const pool = getPool();
     const result = await pool.query(
-      `DELETE FROM sandboxes WHERE id = $1 RETURNING id, folder_name`,
+      `DELETE FROM sandboxes WHERE id = $1 RETURNING id, folder_name, link_type`,
       [id]
     );
 
     if (result.rowCount === 0) {
-      return NextResponse.json({ error: "Sandbox not found" }, { status: 404 });
+      return NextResponse.json({ error: "App link not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Sandbox unregistered. Files remain in /public/sandboxes/${result.rows[0].folder_name}/`
-    });
+    const deleted = result.rows[0];
+    const message = deleted.link_type === "folder" && deleted.folder_name
+      ? `App link removed. Files remain in sandboxes-data/${deleted.folder_name}/`
+      : "App link removed.";
+
+    return NextResponse.json({ success: true, message });
   } catch (error) {
-    console.error("Error unregistering sandbox:", error);
+    console.error("Error deleting app link:", error);
     if (error instanceof Error && error.message.includes("required")) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    return NextResponse.json({ error: "Failed to unregister sandbox" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete app link" }, { status: 500 });
   }
 }
