@@ -159,7 +159,8 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS invoice_url text,
     ADD COLUMN IF NOT EXISTS invoice_status text DEFAULT 'not_sent',
     ADD COLUMN IF NOT EXISTS budget_status text DEFAULT 'draft',
-    ADD COLUMN IF NOT EXISTS contract_pdf_url text;
+    ADD COLUMN IF NOT EXISTS contract_pdf_url text,
+    ADD COLUMN IF NOT EXISTS invoice_pdf_url text;
   `);
   // Defensive: older databases may still have total_estimate_points as integer
   await pool.query(`
@@ -820,6 +821,25 @@ export async function ensureSchema(): Promise<void> {
       created_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS idx_blocked_emails_email ON blocked_emails(email);
+  `);
+  
+  // Project Demos: Video demos linked to projects (stored in GCS)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_demos (
+      id text PRIMARY KEY,
+      project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      title text NOT NULL,
+      description text,
+      video_url text NOT NULL,
+      thumbnail_url text,
+      duration_seconds integer,
+      file_size_bytes bigint,
+      mimetype text,
+      uploaded_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_project_demos_project ON project_demos(project_id);
   `);
   
   global._schemaInitialized = true;
