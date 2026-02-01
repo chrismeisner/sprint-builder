@@ -823,13 +823,14 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_blocked_emails_email ON blocked_emails(email);
   `);
   
-  // Project Demos: Video demos linked to projects (stored in GCS)
+  // Project Demos: Video demos linked to projects (stored in GCS or external URLs)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS project_demos (
       id text PRIMARY KEY,
       project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
       title text NOT NULL,
       description text,
+      demo_type text NOT NULL DEFAULT 'file',
       video_url text NOT NULL,
       thumbnail_url text,
       duration_seconds integer,
@@ -840,6 +841,12 @@ export async function ensureSchema(): Promise<void> {
       updated_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS idx_project_demos_project ON project_demos(project_id);
+  `);
+  
+  // Add demo_type column if it doesn't exist (for existing installations)
+  await pool.query(`
+    ALTER TABLE project_demos
+    ADD COLUMN IF NOT EXISTS demo_type text NOT NULL DEFAULT 'file'
   `);
   
   global._schemaInitialized = true;

@@ -46,7 +46,7 @@ export async function GET(_req: Request, { params }: Params) {
     }
 
     const demosResult = await pool.query(
-      `SELECT id, title, description, video_url, thumbnail_url, 
+      `SELECT id, title, description, demo_type, video_url, thumbnail_url, 
               duration_seconds, file_size_bytes, mimetype, created_at
        FROM project_demos
        WHERE project_id = $1
@@ -58,6 +58,7 @@ export async function GET(_req: Request, { params }: Params) {
       id: row.id as string,
       title: row.title as string,
       description: row.description as string | null,
+      demoType: (row.demo_type as string) || "file",
       videoUrl: row.video_url as string,
       thumbnailUrl: row.thumbnail_url as string | null,
       durationSeconds: row.duration_seconds as number | null,
@@ -82,7 +83,7 @@ export async function POST(request: Request, { params }: Params) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
 
-    // Only admins can upload demos
+    // Only admins can add demos
     if (!user.isAdmin) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
@@ -98,7 +99,37 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Parse form data
+    const contentType = request.headers.get("content-type") || "";
+
+    // Branch: JSON body for link
+    if (contentType.includes("application/json")) {
+      const body = (await request.json().catch(() => ({}))) as { 
+        url?: unknown; 
+        title?: unknown;
+        description?: unknown;
+      };
+      
+      if (typeof body.url !== "string" || !body.url.trim()) {
+        return NextResponse.json({ error: "URL is required" }, { status: 400 });
+      }
+      
+      const url = body.url.trim();
+      const title = typeof body.title === "string" && body.title.trim() 
+        ? body.title.trim() 
+        : new URL(url).hostname + " Demo";
+      const description = typeof body.description === "string" ? body.description.trim() || null : null;
+
+      const id = crypto.randomUUID();
+      await pool.query(
+        `INSERT INTO project_demos (id, project_id, title, description, demo_type, video_url, uploaded_by)
+         VALUES ($1, $2, $3, $4, 'link', $5, $6)`,
+        [id, params.id, title, description, url, user.accountId]
+      );
+
+      return NextResponse.json({ id, videoUrl: url }, { status: 201 });
+    }
+
+    // Branch: file upload via form-data
     const form = await request.formData();
     const file = form.get("file");
     const title = form.get("title");
@@ -146,8 +177,8 @@ export async function POST(request: Request, { params }: Params) {
       : filename.replace(/\.[^/.]+$/, ""); // Use filename without extension as fallback
 
     await pool.query(
-      `INSERT INTO project_demos (id, project_id, title, description, video_url, file_size_bytes, mimetype, uploaded_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      `INSERT INTO project_demos (id, project_id, title, description, demo_type, video_url, file_size_bytes, mimetype, uploaded_by)
+       VALUES ($1, $2, $3, $4, 'file', $5, $6, $7, $8)`,
       [
         id,
         params.id,
@@ -200,7 +231,7 @@ export async function DELETE(request: Request, { params }: Params) {
 
     // Get demo to retrieve video URL for GCS deletion
     const demoResult = await pool.query(
-      `SELECT video_url, thumbnail_url FROM project_demos WHERE id = $1 AND project_id = $2`,
+      `SELECT demo_type, video_url, thumbnail_url FROM project_demos WHERE id = $1 AND project_id = $2`,
       [demoId, params.id]
     );
     
@@ -208,17 +239,19 @@ export async function DELETE(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Demo not found" }, { status: 404 });
     }
 
-    const demo = demoResult.rows[0] as { video_url: string; thumbnail_url: string | null };
+    const demo = demoResult.rows[0] as { demo_type: string; video_url: string; thumbnail_url: string | null };
 
-    // Delete from GCS
-    try {
-      await deleteFile(demo.video_url);
-      if (demo.thumbnail_url) {
-        await deleteFile(demo.thumbnail_url);
+    // Only delete from GCS if it's a file upload (not a link)
+    if (demo.demo_type === "file") {
+      try {
+        await deleteFile(demo.video_url);
+        if (demo.thumbnail_url) {
+          await deleteFile(demo.thumbnail_url);
+        }
+      } catch (gcsError) {
+        console.warn("[ProjectDemos] GCS deletion failed:", gcsError);
+        // Continue with DB deletion even if GCS fails
       }
-    } catch (gcsError) {
-      console.warn("[ProjectDemos] GCS deletion failed:", gcsError);
-      // Continue with DB deletion even if GCS fails
     }
 
     // Delete from database
