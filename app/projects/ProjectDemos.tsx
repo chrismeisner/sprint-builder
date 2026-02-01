@@ -24,13 +24,6 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatDuration(seconds: number | null): string {
-  if (seconds == null) return "—";
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
-
 export default function ProjectDemos({ projectId }: Props) {
   const [demos, setDemos] = useState<ProjectDemo[]>([]);
   const [loading, setLoading] = useState(true);
