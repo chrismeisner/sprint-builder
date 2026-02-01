@@ -25,13 +25,6 @@
   <meta name="twitter:image" content="https://storage.googleapis.com/YOUR_BUCKET/sandboxes/moon-countdown/TIMESTAMP-moon-preview.png" />
   
   <style>
-	/* Load custom emoji font in background - swaps in when ready */
-	@font-face {
-	  font-family: 'Noto Color Emoji';
-	  src: url('NotoColorEmoji.ttf') format('truetype');
-	  font-display: swap;
-	}
-
 	body {
 	  margin: 0;
 	  height: 100vh;
@@ -56,9 +49,15 @@
 
 	.emoji {
 	  font-size: 3rem;
-	  font-family: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+	  /* Start with system emoji fonts - custom font added via JS when ready */
+	  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 	  cursor: pointer;
 	  position: relative;
+	}
+
+	/* When custom font is loaded, prioritize it */
+	.emoji-font-loaded .emoji {
+	  font-family: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
 	}
 
 	.label {
@@ -77,9 +76,15 @@
 	  margin-top: 1.5rem;
 	  font-size: 1.5rem;
 	  opacity: 0.9;
-	  font-family: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+	  /* Start with system emoji fonts - custom font added via JS when ready */
+	  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 	  cursor: pointer;
 	  position: relative;
+	}
+
+	/* When custom font is loaded, prioritize it */
+	.emoji-font-loaded .zodiac {
+	  font-family: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
 	}
 
 	.tooltip {
@@ -179,9 +184,6 @@
 	  });
 	}
 
-	const SYNODIC_MONTH = 29.530588;
-	const REFERENCE_NEW_MOON = Date.UTC(2024, 0, 11, 11, 57, 0);
-
 	const ZODIAC_SIGNS = [
 	  { name: "Aries", symbol: "♈" },
 	  { name: "Taurus", symbol: "♉" },
@@ -198,23 +200,19 @@
 	];
 
 	function getMoonData(now) {
-	  const msPerDay = 1000 * 60 * 60 * 24;
-	  const daysSinceNew =
-		(now - REFERENCE_NEW_MOON) / msPerDay;
-
-	  const phase =
-		((daysSinceNew % SYNODIC_MONTH) + SYNODIC_MONTH) % SYNODIC_MONTH;
-
-	  // Illumination fraction (0 = new, 1 = full)
-	  const illumination =
-		0.5 * (1 - Math.cos((2 * Math.PI * phase) / SYNODIC_MONTH));
-
-	  const percent = illumination * 100;
-
-	  // Waxing if before full moon, waning if after
-	  const waxing = phase < SYNODIC_MONTH / 2;
-
-	  return { phase, percent, waxing };
+	  // Use astronomy-engine for accurate illumination calculation
+	  const date = new Date(now);
+	  const illum = Astronomy.Illumination(Astronomy.Body.Moon, date);
+	  
+	  // phase_angle: 0° = new moon, 180° = full moon, 360° = new moon
+	  // Waxing when phase angle is 0-180, waning when 180-360
+	  const waxing = illum.phase_angle < 180;
+	  
+	  // Calculate illumination percentage from phase angle
+	  // At 0° (new) = 0%, at 180° (full) = 100%
+	  const percent = (1 - Math.cos(illum.phase_angle * Math.PI / 180)) / 2 * 100;
+	  
+	  return { phaseAngle: illum.phase_angle, percent, waxing };
 	}
 
 	function getMoonZodiac(now) {
@@ -236,30 +234,33 @@
 	  return ZODIAC_SIGNS[signIndex];
 	}
 
-	function getMoonEmoji(phase) {
-	  const f = phase / SYNODIC_MONTH;
-
-	  if (f < 0.0625) return "🌑";
-	  if (f < 0.1875) return "🌒";
-	  if (f < 0.3125) return "🌓";
-	  if (f < 0.4375) return "🌔";
-	  if (f < 0.5625) return "🌕";
-	  if (f < 0.6875) return "🌖";
-	  if (f < 0.8125) return "🌗";
-	  if (f < 0.9375) return "🌘";
-	  return "🌑";
+	function getMoonEmoji(phaseAngle) {
+	  // phaseAngle: 0° = new moon, 180° = full moon, 360° = new moon
+	  // Normalize to 0-360 range
+	  const angle = ((phaseAngle % 360) + 360) % 360;
+	  
+	  // Each phase covers 45° (360° / 8 phases)
+	  if (angle < 22.5) return "🌑";   // New Moon
+	  if (angle < 67.5) return "🌒";   // Waxing Crescent
+	  if (angle < 112.5) return "🌓";  // First Quarter
+	  if (angle < 157.5) return "🌔";  // Waxing Gibbous
+	  if (angle < 202.5) return "🌕";  // Full Moon
+	  if (angle < 247.5) return "🌖";  // Waning Gibbous
+	  if (angle < 292.5) return "🌗";  // Last Quarter
+	  if (angle < 337.5) return "🌘";  // Waning Crescent
+	  return "🌑";                      // New Moon
 	}
 
 	function update() {
 	  const now = Date.now();
-	  const { phase, percent, waxing } = getMoonData(now);
+	  const { phaseAngle, percent, waxing } = getMoonData(now);
 	  const zodiac = getMoonZodiac(now);
 
 	  document.getElementById("moonPercent").textContent =
 		percent.toFixed(3) + "%";
 
 	  document.getElementById("moonEmoji").innerHTML =
-		`${getMoonEmoji(phase)}<div class="tooltip" id="moonTooltip">${waxing ? 'Waxing' : 'Waning'}</div>`;
+		`${getMoonEmoji(phaseAngle)}<div class="tooltip" id="moonTooltip">${waxing ? 'Waxing' : 'Waning'}</div>`;
 
 	  document.getElementById("moonZodiac").innerHTML =
 		`${zodiac.symbol}<div class="tooltip" id="zodiacTooltip">${zodiac.name}</div>`;
@@ -293,9 +294,28 @@
 	  addTouch(moonEl);
 	}
 
+	// Load custom emoji font asynchronously (non-blocking)
+	function loadEmojiFont() {
+	  // Use FontFace API for async font loading
+	  if ('FontFace' in window) {
+		const font = new FontFace('Noto Color Emoji', 'url(NotoColorEmoji.ttf)');
+		font.load().then(function(loadedFont) {
+		  document.fonts.add(loadedFont);
+		  // Add class to enable custom font in CSS
+		  document.documentElement.classList.add('emoji-font-loaded');
+		}).catch(function(error) {
+		  console.log('Custom emoji font failed to load:', error);
+		  // Silently fail - system emojis will continue to work
+		});
+	  }
+	}
+
 	// Initialize app
 	async function init() {
 	  try {
+		// Start loading custom emoji font in background (non-blocking)
+		loadEmojiFont();
+		
 		// Load astronomy library
 		await loadScript('https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js');
 		
