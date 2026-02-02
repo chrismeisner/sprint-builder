@@ -416,9 +416,18 @@ export async function POST(request: Request, { params }: Params) {
                        "Design Sprint";
 
     // Build deliverables table
+    // Combine scope and notes - prefer notes if they exist, fall back to scope
     const tableHeader = "| Deliverable | PTS | Scope |\n| --- | ---: | --- |";
     const tableRows = deliverables.map((d) => {
-      const scopeText = d.scope || d.notes || "—";
+      // Use notes if available (these are the detailed bullet points), 
+      // otherwise use scope, otherwise show dash
+      let scopeText = (d.notes && d.notes.trim()) 
+        ? d.notes.trim() 
+        : (d.scope && d.scope.trim()) 
+          ? d.scope.trim() 
+          : "—";
+      // Replace newlines with <br> for markdown table compatibility
+      scopeText = scopeText.replace(/\n/g, " <br> ");
       return `| ${d.name} | ${d.points.toFixed(1)} | ${scopeText} |`;
     }).join("\n");
     const deliverablesTable = `${tableHeader}\n${tableRows}`;
