@@ -32,6 +32,22 @@ export default function AgreementModal({ agreement, onClose, onRegenerate, isReg
     let tableRows: string[] = [];
     let tableKey = 0;
 
+    // Helper to render cell content with <br> support
+    const renderCellContent = (content: string) => {
+      const trimmed = content.trim();
+      // Check if content has <br> tags
+      if (trimmed.includes("<br>")) {
+        const parts = trimmed.split(/<br\s*\/?>/i);
+        return parts.map((part, idx) => (
+          <span key={idx}>
+            {part.trim()}
+            {idx < parts.length - 1 && <br />}
+          </span>
+        ));
+      }
+      return trimmed;
+    };
+
     const processTableRows = () => {
       if (tableRows.length === 0) return null;
       
@@ -49,7 +65,7 @@ export default function AgreementModal({ agreement, onClose, onRegenerate, isReg
                     key={i} 
                     className={`px-3 py-2 text-left font-medium ${i === 1 ? 'text-right' : ''}`}
                   >
-                    {cell.trim()}
+                    {renderCellContent(cell)}
                   </th>
                 ))}
               </tr>
@@ -64,7 +80,7 @@ export default function AgreementModal({ agreement, onClose, onRegenerate, isReg
                         key={cellIndex} 
                         className={`px-3 py-2 ${cellIndex === 1 ? 'text-right' : ''}`}
                       >
-                        {cell.trim()}
+                        {renderCellContent(cell)}
                       </td>
                     ))}
                   </tr>
