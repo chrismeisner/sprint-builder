@@ -10,6 +10,9 @@ import DeleteSprintButton from "./DeleteSprintButton";
 import SprintTotals from "./SprintTotals";
 import AdminOnlySection from "./AdminOnlySection";
 import ViewModeToggle from "./ViewModeToggle";
+import GenerateAgreementButton from "./GenerateAgreementButton";
+import AgreementModal from "./AgreementModal";
+import SprintLinks from "./SprintLinks";
 
 type SprintDeliverable = {
   sprintDeliverableId: string;
@@ -54,9 +57,35 @@ type DraftPlan = {
   notes?: string[];
 };
 
+type BudgetMilestone = {
+  id: number;
+  summary: string;
+  multiplier: number;
+  date: string;
+};
+
+type BudgetInputs = {
+  totalProjectValue?: number;
+  upfrontPayment?: number;
+  upfrontPaymentTiming?: string;
+  equitySplit?: number;
+  milestones?: BudgetMilestone[];
+  milestoneMissOutcome?: string;
+};
+
+type BudgetOutputs = {
+  upfrontAmount?: number;
+  equityAmount?: number;
+  deferredAmount?: number;
+  milestoneBonusAmount?: number;
+  totalProjectValue?: number;
+};
+
 type BudgetPlan = {
   id: string;
   label: string | null;
+  inputs: BudgetInputs;
+  outputs: BudgetOutputs;
   created_at: string | Date;
 };
 
@@ -88,6 +117,11 @@ type SprintRow = {
   invoice_pdf_url: string | null;
 };
 
+type AgreementData = {
+  agreement: string | null;
+  generatedAt: string | null;
+};
+
 type Props = {
   row: SprintRow;
   plan: DraftPlan;
@@ -96,7 +130,13 @@ type Props = {
   isOwner: boolean;
   isAdmin: boolean;
   isProjectMember: boolean;
+  agreementData?: AgreementData;
 };
+
+// Helper function to format currency
+function formatCurrency(amount: number): string {
+  return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export default function SprintDetailContent(props: Props) {
   const {
@@ -106,6 +146,7 @@ export default function SprintDetailContent(props: Props) {
     budgetPlan,
     isOwner,
     isAdmin,
+    agreementData,
   } = props;
   const [viewAsAdmin, setViewAsAdmin] = useState(true);
   const [deliverables, setDeliverables] = useState(initialDeliverables);
@@ -156,6 +197,12 @@ export default function SprintDetailContent(props: Props) {
   // Budget status state
   const [budgetStatus, setBudgetStatus] = useState(row.budget_status || "draft");
   const [savingBudgetStatus, setSavingBudgetStatus] = useState(false);
+  
+  // Agreement state
+  const [agreement, setAgreement] = useState(agreementData?.agreement || null);
+  const [agreementGeneratedAt, setAgreementGeneratedAt] = useState(agreementData?.generatedAt || null);
+  const [regeneratingAgreement, setRegeneratingAgreement] = useState(false);
+  const [showAgreementModal, setShowAgreementModal] = useState(false);
   
   // Overview state (title and dates)
   const [sprintTitle, setSprintTitle] = useState(row.title || "");
@@ -530,6 +577,35 @@ export default function SprintDetailContent(props: Props) {
   ];
 
   const currentBudgetStatusOption = budgetStatusOptions.find(o => o.value === budgetStatus) || budgetStatusOptions[0];
+
+  const handleRegenerateAgreement = async () => {
+    try {
+      setRegeneratingAgreement(true);
+      const res = await fetch(`/api/sprint-drafts/${row.id}/generate-agreement`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to regenerate agreement");
+      }
+      const data = await res.json();
+      setAgreement(data.agreement);
+      setAgreementGeneratedAt(data.meta?.generatedAt || new Date().toISOString());
+      // Keep modal open to show updated agreement
+    } catch (err) {
+      console.error("Error regenerating agreement:", err);
+      alert("Failed to regenerate agreement");
+    } finally {
+      setRegeneratingAgreement(false);
+    }
+  };
+
+  const handleAgreementGenerated = (newAgreement: string) => {
+    setAgreement(newAgreement);
+    setAgreementGeneratedAt(new Date().toISOString());
+    setShowAgreementModal(true);
+  };
 
   // Sprint status display options
   const sprintStatusOptions: Record<string, { label: string; bgColor: string; textColor: string }> = {
@@ -1047,61 +1123,166 @@ export default function SprintDetailContent(props: Props) {
       </section>
 
       {/* ============================================ */}
-      {/* ADMIN ONLY: Budget Status */}
+      {/* EVERYONE SEES: Budget Section */}
       {/* ============================================ */}
-      {showAdminContent && (
-        <AdminOnlySection label="Admin Only">
-          <div className={`p-4 space-y-3 ${t.bodySm}`}>
-            <div className="flex items-center justify-between">
-              <h2 className={t.cardHeading}>Budget</h2>
-              <div className="flex items-center gap-2">
-                <select
-                  value={budgetStatus}
-                  onChange={(e) => handleBudgetStatusChange(e.target.value)}
-                  disabled={savingBudgetStatus}
-                  className={`${getTypographyClassName("body-sm")} ${currentBudgetStatusOption.color} bg-transparent border border-black/10 dark:border-white/15 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
-                >
-                  {budgetStatusOptions.map((option) => (
-                    <option key={option.value} value={option.value} className="text-black dark:text-white bg-white dark:bg-gray-900">
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            {budgetPlan ? (
-              <div className="space-y-2">
-                {budgetPlan.label && <div className={t.bodySm}>Label: {budgetPlan.label}</div>}
+      <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-4 bg-white/40 dark:bg-black/40`}>
+        <div className="flex items-center justify-between">
+          <h2 className={t.cardHeading}>Budget</h2>
+          {/* Admin status dropdown */}
+          {showAdminContent && (
+            <select
+              value={budgetStatus}
+              onChange={(e) => handleBudgetStatusChange(e.target.value)}
+              disabled={savingBudgetStatus}
+              className={`${getTypographyClassName("body-sm")} ${currentBudgetStatusOption.color} bg-transparent border border-black/10 dark:border-white/15 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
+            >
+              {budgetStatusOptions.map((option) => (
+                <option key={option.value} value={option.value} className="text-black dark:text-white bg-white dark:bg-gray-900">
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        
+        {budgetPlan ? (
+          <div className="space-y-4">
+            {/* Budget Readout - visible to everyone */}
+            {(() => {
+              const { inputs, outputs } = budgetPlan;
+              const upfrontAmount = outputs.upfrontAmount ?? 0;
+              const equityAmount = outputs.equityAmount ?? 0;
+              const deferredAmount = outputs.deferredAmount ?? 0;
+              const totalValue = outputs.totalProjectValue ?? (upfrontAmount + equityAmount + deferredAmount);
+              const upfrontPercent = totalValue > 0 ? Math.round((upfrontAmount / totalValue) * 100) : 0;
+              const equityPercent = totalValue > 0 ? Math.round((equityAmount / totalValue) * 100) : 0;
+              const deferredPercent = totalValue > 0 ? Math.round((deferredAmount / totalValue) * 100) : 0;
+              const hasDeferred = deferredAmount > 0.01;
+              const hasEquity = equityAmount > 0.01;
+              const milestones = inputs.milestones ?? [];
+              
+              return (
+                <div className="space-y-4">
+                  {/* Visual breakdown bar */}
+                  <div className="space-y-2">
+                    <div className={`${t.bodySm} text-text-muted`}>Payment Structure</div>
+                    <div className="flex h-4 rounded-full overflow-hidden border border-black/10 dark:border-white/15">
+                      {upfrontPercent > 0 && (
+                        <div 
+                          className="bg-emerald-500 dark:bg-emerald-400" 
+                          style={{ width: `${upfrontPercent}%` }}
+                          title={`Upfront: ${upfrontPercent}%`}
+                        />
+                      )}
+                      {equityPercent > 0 && (
+                        <div 
+                          className="bg-purple-500 dark:bg-purple-400" 
+                          style={{ width: `${equityPercent}%` }}
+                          title={`Equity: ${equityPercent}%`}
+                        />
+                      )}
+                      {deferredPercent > 0 && (
+                        <div 
+                          className="bg-amber-500 dark:bg-amber-400" 
+                          style={{ width: `${deferredPercent}%` }}
+                          title={`Deferred: ${deferredPercent}%`}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Payment breakdown */}
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                      <div className={t.bodySm}>
+                        <span className="text-text-muted">Upfront:</span>{" "}
+                        <span className="font-medium">{formatCurrency(upfrontAmount)}</span>
+                        <span className="text-text-muted ml-1">({upfrontPercent}%)</span>
+                      </div>
+                    </div>
+                    {hasEquity && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-purple-500 dark:bg-purple-400" />
+                        <div className={t.bodySm}>
+                          <span className="text-text-muted">Equity:</span>{" "}
+                          <span className="font-medium">{formatCurrency(equityAmount)}</span>
+                          <span className="text-text-muted ml-1">({equityPercent}%)</span>
+                        </div>
+                      </div>
+                    )}
+                    {hasDeferred && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-amber-500 dark:bg-amber-400" />
+                        <div className={t.bodySm}>
+                          <span className="text-text-muted">Deferred:</span>{" "}
+                          <span className="font-medium">{formatCurrency(deferredAmount)}</span>
+                          <span className="text-text-muted ml-1">({deferredPercent}%)</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Milestones - only if deferred exists */}
+                  {hasDeferred && milestones.length > 0 && (
+                    <div className="space-y-2">
+                      <div className={`${t.bodySm} text-text-muted`}>Performance Milestones</div>
+                      <div className="space-y-1">
+                        {milestones.map((m, i) => (
+                          <div key={m.id ?? i} className={`${t.bodySm} flex items-center justify-between py-1 px-2 rounded bg-black/5 dark:bg-white/5`}>
+                            <span>{m.summary || "Milestone"}</span>
+                            <span className="text-text-muted">
+                              {m.multiplier}x → {formatCurrency(deferredAmount * m.multiplier)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            
+            {/* Admin controls */}
+            {showAdminContent && (
+              <div className="pt-3 border-t border-black/10 dark:border-white/15 flex items-center justify-between">
                 <div className={`${t.bodySm} text-text-muted`}>
                   Last saved: {new Date(budgetPlan.created_at).toLocaleString()}
                 </div>
-                <div>
-                  <Link
-                    href={`/deferred-compensation?sprintId=${row.id}&amountCents=${Math.round(
-                      Number(row.total_fixed_price ?? 0) * 100
-                    )}`}
-                    className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
-                  >
-                    View / Update budget
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <span className={t.bodySm}>No budget attached to this sprint.</span>
                 <Link
                   href={`/deferred-compensation?sprintId=${row.id}&amountCents=${Math.round(
                     Number(row.total_fixed_price ?? 0) * 100
                   )}`}
                   className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
                 >
-                  Add budget
+                  Edit budget
                 </Link>
               </div>
             )}
           </div>
-        </AdminOnlySection>
-      )}
+        ) : (
+          <div className="flex items-center justify-between">
+            <span className={`${t.bodySm} text-text-muted`}>No budget attached to this sprint.</span>
+            {showAdminContent && (
+              <Link
+                href={`/deferred-compensation?sprintId=${row.id}&amountCents=${Math.round(
+                  Number(row.total_fixed_price ?? 0) * 100
+                )}`}
+                className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
+              >
+                Add budget
+              </Link>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* ============================================ */}
+      {/* EVERYONE SEES: Links Section */}
+      {/* ============================================ */}
+      <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white/40 dark:bg-black/40`}>
+        <SprintLinks sprintId={row.id} isAdmin={showAdminContent} />
+      </section>
 
       {/* ============================================ */}
       {/* EVERYONE SEES: Agreement Section */}
@@ -1332,7 +1513,83 @@ export default function SprintDetailContent(props: Props) {
             <span className={`${t.bodySm} text-text-muted`}>No agreement available yet.</span>
           )}
         </div>
+
+        {/* AI-Generated Agreement Section - Admin Only */}
+        {showAdminContent && (
+          <div className="pt-3 border-t border-black/10 dark:border-white/15 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className={`${getTypographyClassName("subtitle-sm")} text-text-muted uppercase tracking-wide`}>
+                AI-Generated Agreement
+              </h3>
+              {agreement && (
+                <span className={`${getTypographyClassName("body-sm")} text-green-600 dark:text-green-400 flex items-center gap-1`}>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Generated {agreementGeneratedAt ? new Date(agreementGeneratedAt).toLocaleDateString() : ""}
+                </span>
+              )}
+            </div>
+            
+            {agreement ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowAgreementModal(true)}
+                  className={`${getTypographyClassName("button-sm")} inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 transition`}
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  View Agreement
+                </button>
+                <button
+                  onClick={handleRegenerateAgreement}
+                  disabled={regeneratingAgreement}
+                  className={`${getTypographyClassName("button-sm")} inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+                >
+                  {regeneratingAgreement ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Regenerating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Regenerate
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className={`${t.bodySm} text-text-secondary`}>
+                  Generate a contract agreement based on this sprint&apos;s deliverables, pricing, and project details.
+                </p>
+                <GenerateAgreementButton 
+                  sprintId={row.id} 
+                  onAgreementGenerated={handleAgreementGenerated}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </section>
+
+      {/* Agreement Modal */}
+      {showAgreementModal && agreement && (
+        <AgreementModal
+          agreement={agreement}
+          onClose={() => setShowAgreementModal(false)}
+          onRegenerate={handleRegenerateAgreement}
+          isRegenerating={regeneratingAgreement}
+        />
+      )}
 
       {/* ============================================ */}
       {/* EVERYONE SEES: Invoice Section */}

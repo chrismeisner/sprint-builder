@@ -39,6 +39,27 @@ async function loadSprintOptions(accountId: string): Promise<SprintOption[]> {
   }));
 }
 
+// Fetch sprint info by ID (regardless of ownership - for URL params)
+async function loadSprintInfo(sprintId: string): Promise<SprintOption | null> {
+  const pool = getPool();
+  const result = await pool.query(
+    `
+      SELECT 
+        id,
+        COALESCE(NULLIF(title, ''), 'Sprint ' || LEFT(id, 8)) AS label
+      FROM sprint_drafts
+      WHERE id = $1
+    `,
+    [sprintId]
+  );
+  
+  if (result.rowCount === 0) return null;
+  return {
+    id: result.rows[0].id as string,
+    label: result.rows[0].label as string,
+  };
+}
+
 async function loadSavedPlan(sprintId: string): Promise<SavedPlanInputs | null> {
   const pool = getPool();
   const result = await pool.query(
@@ -100,6 +121,9 @@ export default async function DeferredCompensationPage({ searchParams }: { searc
   
   // Load saved plan if sprintId is provided
   const savedPlan = sprintIdFromQuery ? await loadSavedPlan(sprintIdFromQuery) : null;
+  
+  // Load sprint info for the URL param (even if user doesn't own it)
+  const sprintFromUrl = sprintIdFromQuery ? await loadSprintInfo(sprintIdFromQuery) : null;
 
   return (
     <DeferredCompensationClient
@@ -108,6 +132,7 @@ export default async function DeferredCompensationPage({ searchParams }: { searc
       defaultSprintId={sprintIdFromQuery || undefined}
       defaultAmount={amountFromQuery ?? undefined}
       savedPlan={savedPlan}
+      sprintFromUrl={sprintFromUrl}
     />
   );
 }

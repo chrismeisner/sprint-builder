@@ -12,10 +12,19 @@ type SprintOption = {
 type SavedPlanInputs = {
   totalProjectValue?: number;
   upfrontPayment?: number;
+  upfrontPaymentTiming?: string;
   equitySplit?: number;
   milestones?: Array<{ id: number; summary: string; multiplier: number; date: string }>;
   milestoneMissOutcome?: string;
 };
+
+// Payment timing options
+const PAYMENT_TIMING_OPTIONS = [
+  { value: "on_start", label: "On Start (due on signing)" },
+  { value: "net7", label: "Net 7 (7 days after delivery)" },
+  { value: "net14", label: "Net 14 (14 days after delivery)" },
+  { value: "net30", label: "Net 30 (30 days after delivery)" },
+] as const;
 
 type DeferredCompensationProps = {
   sprintOptions: SprintOption[];
@@ -23,6 +32,7 @@ type DeferredCompensationProps = {
   defaultSprintId?: string;
   defaultAmount?: number;
   savedPlan?: SavedPlanInputs | null;
+  sprintFromUrl?: SprintOption | null;
 };
 
 // Constants (guardrails)
@@ -64,6 +74,7 @@ export default function DeferredCompensationClient({
   defaultSprintId,
   defaultAmount,
   savedPlan,
+  sprintFromUrl,
 }: DeferredCompensationProps) {
   const router = useRouter();
 
@@ -71,14 +82,13 @@ export default function DeferredCompensationClient({
     if (!defaultSprintId) return sprintOptions;
     const exists = sprintOptions.some((opt) => opt.id === defaultSprintId);
     if (exists) return sprintOptions;
-    return [
-      ...sprintOptions,
-      {
-        id: defaultSprintId,
-        label: `Sprint ${defaultSprintId.slice(0, 8)}`,
-      },
-    ];
-  }, [sprintOptions, defaultSprintId]);
+    // Use the sprint info fetched from the server if available, otherwise fallback to truncated ID
+    const fallbackOption = sprintFromUrl ?? {
+      id: defaultSprintId,
+      label: `Sprint ${defaultSprintId.slice(0, 8)}`,
+    };
+    return [...sprintOptions, fallbackOption];
+  }, [sprintOptions, defaultSprintId, sprintFromUrl]);
 
   // Determine initial values - use saved plan if available, otherwise use defaults
   const initialTotalProjectValue = useMemo(() => {
@@ -123,6 +133,13 @@ export default function DeferredCompensationClient({
     return "renegotiate";
   }, [savedPlan]);
 
+  const initialUpfrontPaymentTiming = useMemo(() => {
+    if (savedPlan?.upfrontPaymentTiming && typeof savedPlan.upfrontPaymentTiming === "string") {
+      return savedPlan.upfrontPaymentTiming;
+    }
+    return "net30";
+  }, [savedPlan]);
+
   // User inputs
   const [totalProjectValue, setTotalProjectValue] = useState(initialTotalProjectValue);
   const [upfrontPayment, setUpfrontPayment] = useState(initialUpfrontPayment);
@@ -133,6 +150,7 @@ export default function DeferredCompensationClient({
     { id: number; summary: string; multiplier: number; date: string }[]
   >(initialMilestones);
   const [milestoneMissOutcome, setMilestoneMissOutcome] = useState(initialMilestoneMissOutcome);
+  const [upfrontPaymentTiming, setUpfrontPaymentTiming] = useState(initialUpfrontPaymentTiming);
   const [selectedSprint, setSelectedSprint] = useState(defaultSprintId ?? "");
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
   const [newMilestoneSummary, setNewMilestoneSummary] = useState("");
@@ -185,6 +203,7 @@ export default function DeferredCompensationClient({
         inputs: {
           totalProjectValue,
           upfrontPayment,
+          upfrontPaymentTiming,
           equitySplit,
           milestones,
           milestoneMissOutcome,
@@ -769,6 +788,25 @@ export default function DeferredCompensationClient({
             <Typography as="span" scale="body-sm" className="font-medium" style={{ color: COLORS.upfront }}>
               {formatCurrency(upfrontAmount)}
             </Typography>
+          </div>
+
+          {/* Payment Timing Selector */}
+          <div className="flex items-center justify-between gap-4">
+            <Typography as="span" scale="body-sm" className="text-text-secondary">
+              Upfront Payment Due:
+            </Typography>
+            <select
+              value={upfrontPaymentTiming}
+              onChange={(e) => setUpfrontPaymentTiming(e.target.value)}
+              disabled={calculatorDisabled}
+              className="px-3 py-1.5 rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black text-text-primary focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-60 cursor-pointer"
+            >
+              {PAYMENT_TIMING_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

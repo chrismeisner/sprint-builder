@@ -13,7 +13,7 @@ export default function AdminOnlySection({ children, label = "Admin Only", class
   return (
     <div className={`relative ${className}`}>
       {/* Admin indicator badge */}
-      <div className="absolute -top-3 left-3 z-10">
+      <div className="absolute -top-3 left-3 z-10 pointer-events-none">
         <span
           className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/90 dark:bg-amber-400/90 text-white dark:text-black shadow-sm ${getTypographyClassName("mono-sm")} uppercase tracking-wide`}
         >

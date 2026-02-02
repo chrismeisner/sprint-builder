@@ -864,6 +864,27 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS demo_type text NOT NULL DEFAULT 'file'
   `);
   
+  // Sprint Links: URLs and file attachments linked to sprints
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sprint_links (
+      id text PRIMARY KEY,
+      sprint_id text NOT NULL REFERENCES sprint_drafts(id) ON DELETE CASCADE,
+      name text NOT NULL,
+      link_type text NOT NULL DEFAULT 'url',
+      url text,
+      file_url text,
+      file_name text,
+      file_size_bytes bigint,
+      mimetype text,
+      description text,
+      created_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT sprint_links_type_check CHECK (link_type IN ('url', 'file'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_sprint_links_sprint ON sprint_links(sprint_id);
+  `);
+  
   global._schemaInitialized = true;
 }
 

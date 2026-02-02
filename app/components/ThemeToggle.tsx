@@ -45,10 +45,8 @@ function persistSelection(mode: ThemeMode) {
 }
 
 export default function ThemeToggle() {
-  const [mode, setMode] = useState<ThemeMode>(() => {
-    // Initialize with system preference
-    return typeof window !== "undefined" ? getSystemPreference() : "light";
-  });
+  // Use null initially to indicate "not yet determined" - prevents hydration mismatch
+  const [mode, setMode] = useState<ThemeMode | null>(null);
 
   useEffect(() => {
     // Check for saved preference, otherwise use system preference
@@ -65,10 +63,13 @@ export default function ThemeToggle() {
     applyThemeModeClass(newMode);
   };
 
+  // Render a placeholder with consistent styling during SSR/initial render to avoid hydration mismatch
+  // Once mounted, mode will be set and buttons will render correctly
   return (
     <div className="flex items-center gap-1 rounded-full border border-stroke-muted bg-surface-subtle p-1">
       {OPTIONS.map((option) => {
-        const isActive = mode === option.value;
+        // Before hydration completes, render all buttons in inactive state
+        const isActive = mode !== null && mode === option.value;
         return (
           <button
             key={option.value}
@@ -90,7 +91,7 @@ export default function ThemeToggle() {
           </button>
         );
       })}
-      <span className="sr-only">Current theme: {mode}</span>
+      <span className="sr-only">Current theme: {mode ?? "loading"}</span>
     </div>
   );
 }

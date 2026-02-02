@@ -164,16 +164,39 @@ export default async function SprintDetailPage({ params }: PageProps) {
 
   // Check for attached deferred comp / budget
   const budgetRes = await pool.query(
-    `SELECT id, label, created_at
+    `SELECT id, label, inputs, outputs, created_at
      FROM deferred_comp_plans
      WHERE sprint_id = $1
      ORDER BY created_at DESC
      LIMIT 1`,
     [params.id]
   );
+  
+  type BudgetInputs = {
+    totalProjectValue?: number;
+    upfrontPayment?: number;
+    equitySplit?: number;
+    milestones?: Array<{ id: number; summary: string; multiplier: number; date: string }>;
+    milestoneMissOutcome?: string;
+  };
+  
+  type BudgetOutputs = {
+    upfrontAmount?: number;
+    equityAmount?: number;
+    deferredAmount?: number;
+    milestoneBonusAmount?: number;
+    totalProjectValue?: number;
+  };
+  
   const budgetPlan =
     (budgetRes?.rowCount ?? 0) > 0
-      ? (budgetRes.rows[0] as { id: string; label: string | null; created_at: string | Date })
+      ? (budgetRes.rows[0] as { 
+          id: string; 
+          label: string | null; 
+          inputs: BudgetInputs;
+          outputs: BudgetOutputs;
+          created_at: string | Date;
+        })
       : null;
 
   function isObject(value: unknown): value is Record<string, unknown> {
@@ -307,9 +330,39 @@ export default async function SprintDetailPage({ params }: PageProps) {
     ? {
         id: budgetPlan.id,
         label: budgetPlan.label,
+        inputs: budgetPlan.inputs,
+        outputs: budgetPlan.outputs,
         created_at: budgetPlan.created_at instanceof Date ? budgetPlan.created_at.toISOString() : budgetPlan.created_at,
       }
     : null;
+
+  // Fetch agreement data if it exists
+  let agreementData: { agreement: string | null; generatedAt: string | null } = {
+    agreement: null,
+    generatedAt: null,
+  };
+  try {
+    const agreementRes = await pool.query(
+      `SELECT agreement_markdown, agreement_generated_at FROM sprint_drafts WHERE id = $1`,
+      [params.id]
+    );
+    if (agreementRes.rowCount && agreementRes.rowCount > 0) {
+      const agRow = agreementRes.rows[0] as { 
+        agreement_markdown: string | null; 
+        agreement_generated_at: string | Date | null 
+      };
+      agreementData = {
+        agreement: agRow.agreement_markdown,
+        generatedAt: agRow.agreement_generated_at 
+          ? (agRow.agreement_generated_at instanceof Date 
+              ? agRow.agreement_generated_at.toISOString() 
+              : agRow.agreement_generated_at)
+          : null,
+      };
+    }
+  } catch {
+    // Column might not exist yet, ignore
+  }
 
   // Filter plan for client (only serializable data)
   const planForClient = {
@@ -333,6 +386,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
       isOwner={isOwner}
       isAdmin={isAdmin}
       isProjectMember={isProjectMember}
+      agreementData={agreementData}
     />
   );
 }
