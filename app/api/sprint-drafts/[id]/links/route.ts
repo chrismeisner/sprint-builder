@@ -52,14 +52,19 @@ export async function GET(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // Fetch links
+    // Ensure sort_order column exists
+    await pool.query(`
+      ALTER TABLE sprint_links ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0
+    `);
+
+    // Fetch links (order by sort_order, then by created_at for links without explicit order)
     const linksRes = await pool.query(
       `SELECT 
         id, name, link_type, url, file_url, file_name, 
-        file_size_bytes, mimetype, description, created_at
+        file_size_bytes, mimetype, description, created_at, sort_order
        FROM sprint_links
        WHERE sprint_id = $1
-       ORDER BY created_at DESC`,
+       ORDER BY sort_order ASC, created_at DESC`,
       [params.id]
     );
 
@@ -159,6 +164,58 @@ export async function POST(request: Request, { params }: Params) {
   } catch (err) {
     console.error("[SprintLinks POST]", err);
     return NextResponse.json({ error: "Failed to create link" }, { status: 500 });
+  }
+}
+
+// PATCH - Reorder links
+export async function PATCH(request: Request, { params }: Params) {
+  try {
+    await ensureSchema();
+    const pool = getPool();
+    const user = await getCurrentUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    if (!user.isAdmin) {
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    }
+
+    // Verify sprint exists
+    const sprintRes = await pool.query(
+      `SELECT id FROM sprint_drafts WHERE id = $1`,
+      [params.id]
+    );
+
+    if (sprintRes.rowCount === 0) {
+      return NextResponse.json({ error: "Sprint not found" }, { status: 404 });
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const { linkIds } = body as { linkIds?: string[] };
+
+    if (!linkIds || !Array.isArray(linkIds) || linkIds.length === 0) {
+      return NextResponse.json({ error: "linkIds array is required" }, { status: 400 });
+    }
+
+    // Ensure sort_order column exists (add if not)
+    await pool.query(`
+      ALTER TABLE sprint_links ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0
+    `);
+
+    // Update sort_order for each link based on position in array
+    for (let i = 0; i < linkIds.length; i++) {
+      await pool.query(
+        `UPDATE sprint_links SET sort_order = $1 WHERE id = $2 AND sprint_id = $3`,
+        [i, linkIds[i], params.id]
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("[SprintLinks PATCH]", err);
+    return NextResponse.json({ error: "Failed to reorder links" }, { status: 500 });
   }
 }
 

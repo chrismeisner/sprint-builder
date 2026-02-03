@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
+import { typography } from "@/app/components/typography";
 
 type SprintLink = {
   id: string;
@@ -77,6 +78,9 @@ export default function SprintLinks({ sprintId, isAdmin }: Props) {
   
   // Delete state
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  
+  // Reorder state
+  const [reordering, setReordering] = useState(false);
 
   const fetchLinks = useCallback(async () => {
     try {
@@ -197,9 +201,46 @@ export default function SprintLinks({ sprintId, isAdmin }: Props) {
     }
   };
 
+  const handleMove = async (linkId: string, direction: "up" | "down") => {
+    const currentIndex = links.findIndex((l) => l.id === linkId);
+    if (currentIndex === -1) return;
+    
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= links.length) return;
+    
+    // Optimistically update UI
+    const newLinks = [...links];
+    const [movedLink] = newLinks.splice(currentIndex, 1);
+    newLinks.splice(newIndex, 0, movedLink);
+    setLinks(newLinks);
+    
+    // Persist the new order
+    try {
+      setReordering(true);
+      const linkIds = newLinks.map((l) => l.id);
+      
+      const res = await fetch(`/api/sprint-drafts/${sprintId}/links`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ linkIds }),
+      });
+      
+      if (!res.ok) {
+        // Revert on error
+        setLinks(links);
+        throw new Error("Failed to reorder links");
+      }
+    } catch (err) {
+      console.error("Error reordering links:", err);
+      alert("Failed to reorder links");
+    } finally {
+      setReordering(false);
+    }
+  };
+
   const t = {
     bodySm: `${getTypographyClassName("body-sm")} text-text-secondary`,
-    cardHeading: getTypographyClassName("h4"),
+    cardHeading: typography.headingCard,
     buttonSm: getTypographyClassName("button-sm"),
   };
 
@@ -280,6 +321,7 @@ export default function SprintLinks({ sprintId, isAdmin }: Props) {
           <table className="min-w-full border border-black/10 dark:border-white/15 rounded-lg overflow-hidden">
             <thead className="bg-black/5 dark:bg-white/5">
               <tr className={getTypographyClassName("body-sm")}>
+                {isAdmin && <th className="text-center px-2 py-2 text-text-muted w-20">Order</th>}
                 <th className="text-left px-3 py-2 text-text-muted">Name</th>
                 <th className="text-left px-3 py-2 text-text-muted">Type</th>
                 <th className="text-left px-3 py-2 text-text-muted">Link</th>
@@ -288,11 +330,37 @@ export default function SprintLinks({ sprintId, isAdmin }: Props) {
               </tr>
             </thead>
             <tbody className={getTypographyClassName("body-sm")}>
-              {links.map((link) => (
+              {links.map((link, index) => (
                 <tr
                   key={link.id}
                   className="border-t border-black/10 dark:border-white/10 bg-white dark:bg-gray-950/40 hover:bg-black/5 dark:hover:bg-white/5 transition"
                 >
+                  {isAdmin && (
+                    <td className="px-2 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => handleMove(link.id, "up")}
+                          disabled={index === 0 || reordering}
+                          className="p-1 text-text-muted hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition"
+                          title="Move up"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleMove(link.id, "down")}
+                          disabled={index === links.length - 1 || reordering}
+                          className="p-1 text-text-muted hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition"
+                          title="Move down"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  )}
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
                       {link.linkType === "file" ? (

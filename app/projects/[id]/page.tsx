@@ -10,6 +10,7 @@ const ProjectDocuments = dynamicImport(() => import("../ProjectDocuments"), { ss
 const ProjectDemos = dynamicImport(() => import("../ProjectDemos"), { ssr: false });
 const AddAppLinkButton = dynamicImport(() => import("../AddAppLinkButton"), { ssr: false });
 const EditAppLinkButton = dynamicImport(() => import("../EditAppLinkButton"), { ssr: false });
+const MemberCard = dynamicImport(() => import("../MemberCard"), { ssr: false });
 
 type PageProps = { params: { id: string } };
 
@@ -120,31 +121,28 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     last_name: string | null;
   }>;
 
-  // Helper function to get initials for avatar fallback
-  function getInitials(member: typeof members[0]): string {
-    if (member.first_name && member.last_name) {
-      return `${member.first_name[0]}${member.last_name[0]}`.toUpperCase();
-    }
-    if (member.name) {
-      const parts = member.name.split(" ");
-      if (parts.length >= 2) {
-        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-      }
-      return member.name.substring(0, 2).toUpperCase();
-    }
-    return member.email.substring(0, 2).toUpperCase();
+  // Calculate last activity date from all related entities
+  const activityDates: Date[] = [new Date(project.updated_at)];
+  
+  // Add sprint dates
+  for (const sprint of sprints) {
+    activityDates.push(new Date(sprint.created_at));
   }
-
-  // Helper function to get display name
-  function getDisplayName(member: typeof members[0]): string {
-    if (member.first_name && member.last_name) {
-      return `${member.first_name} ${member.last_name}`;
-    }
-    if (member.name) {
-      return member.name;
-    }
-    return member.email;
+  
+  // Add member dates
+  for (const member of members) {
+    activityDates.push(new Date(member.created_at));
   }
+  
+  // Add app link dates
+  for (const appLink of appLinks) {
+    activityDates.push(new Date(appLink.created_at));
+  }
+  
+  // Get the most recent date
+  const lastActivityDate = activityDates.reduce((latest, date) => 
+    date > latest ? date : latest
+  , activityDates[0]);
 
   return (
     <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6 font-inter">
@@ -158,7 +156,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           </Typography>
           <Typography as="p" scale="body-sm" className="opacity-70 mt-1">
             Created {new Date(project.created_at).toLocaleDateString()}
-            {project.updated_at && ` • Updated ${new Date(project.updated_at).toLocaleDateString()}`}
+            {` • Last activity ${lastActivityDate.toLocaleDateString()}`}
           </Typography>
         </div>
         <div className="flex gap-2">
@@ -250,12 +248,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      {/* App Links */}
+      {/* Apps */}
       <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <Typography as="h2" scale="h3">
-              App Links
+              Apps
             </Typography>
             <Typography as="span" scale="body-sm" className="opacity-60">
               {appLinks.length} total
@@ -379,26 +377,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         ) : (
           <div className="flex flex-wrap gap-4">
             {members.map((member) => (
-              <div
-                key={member.email}
-                className="flex items-center gap-3 p-3 rounded-lg border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]"
-              >
-                {/* Avatar with initials */}
-                <div className="w-10 h-10 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center text-sm font-medium">
-                  {getInitials(member)}
-                </div>
-                {/* Name and title */}
-                <div className="min-w-0">
-                  <Typography as="div" scale="body-sm" className="font-medium truncate">
-                    {getDisplayName(member)}
-                  </Typography>
-                  {member.title && (
-                    <Typography as="div" scale="body-xs" className="opacity-60 truncate">
-                      {member.title}
-                    </Typography>
-                  )}
-                </div>
-              </div>
+              <MemberCard key={member.email} member={member} />
             ))}
           </div>
         )}

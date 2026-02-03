@@ -287,17 +287,25 @@ export default function SprintDetailContent(props: Props) {
   const handleSaveContractUrl = async () => {
     try {
       setSavingContractUrl(true);
+      const newUrl = contractUrlValue.trim() || null;
+      // Auto-update status to "drafted" if adding a URL and status is "not_linked"
+      const shouldUpdateStatus = newUrl && contractStatus === "not_linked";
+      
       const res = await fetch(`/api/sprint-drafts/${row.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contract_url: contractUrlValue.trim() || null,
+          contract_url: newUrl,
+          ...(shouldUpdateStatus ? { contract_status: "drafted" } : {}),
         }),
       });
       if (!res.ok) {
         throw new Error("Failed to save contract URL");
       }
-      setContractUrl(contractUrlValue.trim() || null);
+      setContractUrl(newUrl);
+      if (shouldUpdateStatus) {
+        setContractStatus("drafted");
+      }
       setEditingContractUrl(false);
     } catch (err) {
       console.error(err);
@@ -404,6 +412,16 @@ export default function SprintDetailContent(props: Props) {
       
       const data = await res.json();
       setContractPdfUrl(data.url);
+      
+      // Auto-update status to "drafted" if currently "not_linked"
+      if (contractStatus === "not_linked") {
+        await fetch(`/api/sprint-drafts/${row.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contract_status: "drafted" }),
+        });
+        setContractStatus("drafted");
+      }
     } catch (err) {
       console.error(err);
       alert(err instanceof Error ? err.message : "Failed to upload PDF");
@@ -619,6 +637,7 @@ export default function SprintDetailContent(props: Props) {
   const currentSprintStatus = sprintStatusOptions[row.status || "draft"] || sprintStatusOptions.draft;
 
   // Calculate duration in weeks from start and end dates
+  // Uses business week (5 days = 1 week) since sprints are typically Mon-Fri
   const calculateDurationWeeks = (start: string, end: string): number | null => {
     if (!start || !end) return null;
     const startMs = new Date(start + 'T00:00:00').getTime();
@@ -626,8 +645,10 @@ export default function SprintDetailContent(props: Props) {
     if (isNaN(startMs) || isNaN(endMs)) return null;
     const diffMs = endMs - startMs;
     const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    // Add 1 to include both start and end dates, divide by 5 for business week
+    const businessDays = diffDays + 1;
     // Round to nearest 0.5 week
-    return Math.round((diffDays / 7) * 2) / 2;
+    return Math.round((businessDays / 5) * 2) / 2;
   };
 
   const calculatedWeeks = calculateDurationWeeks(startDate, endDate);
@@ -989,12 +1010,12 @@ export default function SprintDetailContent(props: Props) {
           </div>
         )}
 
-        {/* Process Link - everyone sees */}
+        {/* Sprints Link - everyone sees */}
         <Link
-          href={`/sprints/${row.id}/process`}
+          href="/sprints"
           className={`${t.bodySm} text-text-secondary hover:text-text-primary hover:underline transition`}
         >
-          View sprint process →
+          View all sprints →
         </Link>
 
         {/* ============================================ */}
@@ -1123,6 +1144,13 @@ export default function SprintDetailContent(props: Props) {
       </section>
 
       {/* ============================================ */}
+      {/* EVERYONE SEES: Links Section */}
+      {/* ============================================ */}
+      <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white/40 dark:bg-black/40`}>
+        <SprintLinks sprintId={row.id} isAdmin={showAdminContent} />
+      </section>
+
+      {/* ============================================ */}
       {/* EVERYONE SEES: Budget Section */}
       {/* ============================================ */}
       <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-4 bg-white/40 dark:bg-black/40`}>
@@ -1163,62 +1191,25 @@ export default function SprintDetailContent(props: Props) {
               
               return (
                 <div className="space-y-4">
-                  {/* Visual breakdown bar */}
-                  <div className="space-y-2">
-                    <div className={`${t.bodySm} text-text-muted`}>Payment Structure</div>
-                    <div className="flex h-4 rounded-full overflow-hidden border border-black/10 dark:border-white/15">
-                      {upfrontPercent > 0 && (
-                        <div 
-                          className="bg-emerald-500 dark:bg-emerald-400" 
-                          style={{ width: `${upfrontPercent}%` }}
-                          title={`Upfront: ${upfrontPercent}%`}
-                        />
-                      )}
-                      {equityPercent > 0 && (
-                        <div 
-                          className="bg-purple-500 dark:bg-purple-400" 
-                          style={{ width: `${equityPercent}%` }}
-                          title={`Equity: ${equityPercent}%`}
-                        />
-                      )}
-                      {deferredPercent > 0 && (
-                        <div 
-                          className="bg-amber-500 dark:bg-amber-400" 
-                          style={{ width: `${deferredPercent}%` }}
-                          title={`Deferred: ${deferredPercent}%`}
-                        />
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Payment breakdown */}
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-                      <div className={t.bodySm}>
-                        <span className="text-text-muted">Upfront:</span>{" "}
-                        <span className="font-medium">{formatCurrency(upfrontAmount)}</span>
-                        <span className="text-text-muted ml-1">({upfrontPercent}%)</span>
-                      </div>
+                  {/* Payment breakdown - simple list */}
+                  <div className={`space-y-1 ${t.bodySm}`}>
+                    <div>
+                      <span className="text-text-muted">Upfront:</span>{" "}
+                      <span className="font-medium">{formatCurrency(upfrontAmount)}</span>
+                      <span className="text-text-muted ml-1">({upfrontPercent}%)</span>
                     </div>
                     {hasEquity && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-purple-500 dark:bg-purple-400" />
-                        <div className={t.bodySm}>
-                          <span className="text-text-muted">Equity:</span>{" "}
-                          <span className="font-medium">{formatCurrency(equityAmount)}</span>
-                          <span className="text-text-muted ml-1">({equityPercent}%)</span>
-                        </div>
+                      <div>
+                        <span className="text-text-muted">Equity:</span>{" "}
+                        <span className="font-medium">{formatCurrency(equityAmount)}</span>
+                        <span className="text-text-muted ml-1">({equityPercent}%)</span>
                       </div>
                     )}
                     {hasDeferred && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-amber-500 dark:bg-amber-400" />
-                        <div className={t.bodySm}>
-                          <span className="text-text-muted">Deferred:</span>{" "}
-                          <span className="font-medium">{formatCurrency(deferredAmount)}</span>
-                          <span className="text-text-muted ml-1">({deferredPercent}%)</span>
-                        </div>
+                      <div>
+                        <span className="text-text-muted">Deferred:</span>{" "}
+                        <span className="font-medium">{formatCurrency(deferredAmount)}</span>
+                        <span className="text-text-muted ml-1">({deferredPercent}%)</span>
                       </div>
                     )}
                   </div>
@@ -1275,13 +1266,6 @@ export default function SprintDetailContent(props: Props) {
             )}
           </div>
         )}
-      </section>
-
-      {/* ============================================ */}
-      {/* EVERYONE SEES: Links Section */}
-      {/* ============================================ */}
-      <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white/40 dark:bg-black/40`}>
-        <SprintLinks sprintId={row.id} isAdmin={showAdminContent} />
       </section>
 
       {/* ============================================ */}
