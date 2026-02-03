@@ -38,7 +38,7 @@ type ProfileData = {
   };
 };
 
-export default function MyDashboardClient() {
+export default function ProjectsClient() {
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -268,7 +268,7 @@ export default function MyDashboardClient() {
   if (loading) {
     return (
       <div className="p-6">
-        <p className={`${bodyClass} opacity-70`}>Loading dashboard...</p>
+        <p className={`${bodyClass} opacity-70`}>Loading projects...</p>
       </div>
     );
   }
@@ -434,10 +434,10 @@ export default function MyDashboardClient() {
         </div>
       )}
 
-      {/* Dashboard Header */}
+      {/* Page Header */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className={`${pageTitleClass} text-text-primary`}>Dashboard</h1>
+          <h1 className={`${pageTitleClass} text-text-primary`}>Projects</h1>
           <p className={`${pageSubtitleClass} text-text-secondary`}>
             View and manage your projects
           </p>
@@ -456,12 +456,12 @@ export default function MyDashboardClient() {
         )}
       </div>
 
-      {/* Projects */}
+      {/* Projects Table */}
       <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
         <div className="px-6 py-4 border-b border-black/10 dark:border-white/15 space-y-3">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <h2 className={`${sectionTitleClass} text-text-primary`}>Projects</h2>
+              <h2 className={`${sectionTitleClass} text-text-primary`}>All Projects</h2>
               <p className={helperTextClass}>
                 Track the initiatives you&apos;re running sprints for.
               </p>

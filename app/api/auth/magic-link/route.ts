@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       const accountId = (superadminResult.rows[0] as { id: string }).id;
       
       // Continue to send magic link below
-      const defaultRedirect = "/my-dashboard?from=magic-email";
+      const defaultRedirect = "/projects?from=magic-email";
       const redirect = typeof redirectUrl === "string" && redirectUrl.trim() ? redirectUrl.trim() : defaultRedirect;
       const token = createLoginToken(accountId);
       
@@ -113,8 +113,8 @@ export async function POST(request: Request) {
     // Email is verified - proceed with magic link
     const accountId = account.id;
     
-    // Default to dashboard with flag so UI can show a welcome toast
-    const defaultRedirect = "/my-dashboard?from=magic-email";
+    // Default to projects with flag so UI can show a welcome toast
+    const defaultRedirect = "/projects?from=magic-email";
     const redirect = typeof redirectUrl === "string" && redirectUrl.trim() ? redirectUrl.trim() : defaultRedirect;
 
     const token = createLoginToken(accountId);

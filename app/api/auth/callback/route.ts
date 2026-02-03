@@ -24,8 +24,8 @@ export async function GET(request: Request) {
       origin = `${url.protocol}//${url.host}`;
     }
     
-    // Check for redirect parameter, default to /my-dashboard
-    const redirectPath = url.searchParams.get("redirect") || "/my-dashboard";
+    // Check for redirect parameter, default to /projects
+    const redirectPath = url.searchParams.get("redirect") || "/projects";
     const redirectUrl = new URL(redirectPath, origin);
     const res = NextResponse.redirect(redirectUrl);
     res.cookies.set(SESSION_COOKIE_NAME, sessionToken, {

@@ -160,17 +160,19 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           </Typography>
         </div>
         <div className="flex gap-2">
+          {isAdmin && (
+            <Link
+              href={`/projects/${project.id}/settings`}
+              className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
+            >
+              Settings
+            </Link>
+          )}
           <Link
-            href={`/projects/${project.id}/settings`}
+            href="/projects"
             className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
           >
-            Settings
-          </Link>
-          <Link
-            href="/my-dashboard"
-            className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
-          >
-            Back to dashboard
+            Back to projects
           </Link>
         </div>
       </div>

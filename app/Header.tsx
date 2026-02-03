@@ -47,8 +47,8 @@ export default async function Header() {
           <div className="flex items-center gap-3">
             {user ? (
               <>
-                <Button as={Link} href="/my-dashboard" variant="secondary" size="sm" className="normal-case tracking-normal">
-                  Dashboard
+                <Button as={Link} href="/projects" variant="secondary" size="sm" className="normal-case tracking-normal">
+                  Projects
                 </Button>
                 <Link 
                   href="/profile" 

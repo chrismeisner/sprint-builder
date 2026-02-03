@@ -929,27 +929,27 @@ export default function SprintDetailContent(props: Props) {
               <span className={t.subhead}>{deliverables.length} items</span>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full border border-black/10 dark:border-white/15 rounded-lg overflow-hidden">
-                <thead className="bg-black/5 dark:bg-white/5">
-                  <tr className={getTypographyClassName("body-sm")}>
-                    <th className="text-left px-3 py-2 text-text-muted">Name</th>
-                    <th className="text-left px-3 py-2 text-text-muted">Category</th>
+              <table className="w-full">
+                <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
+                  <tr>
+                    <th className={`text-left px-4 py-3 ${getTypographyClassName("mono-sm")} uppercase tracking-wide text-text-secondary`}>Name</th>
+                    <th className={`text-left px-4 py-3 ${getTypographyClassName("mono-sm")} uppercase tracking-wide text-text-secondary`}>Category</th>
                     {showAdminContent && (
-                      <th className="text-left px-3 py-2 text-text-muted">Points</th>
+                      <th className={`text-left px-4 py-3 ${getTypographyClassName("mono-sm")} uppercase tracking-wide text-text-secondary`}>Points</th>
                     )}
-                    <th className="text-left px-3 py-2 text-text-muted">Link</th>
+                    <th className={`text-left px-4 py-3 ${getTypographyClassName("mono-sm")} uppercase tracking-wide text-text-secondary`}>Link</th>
                     {showAdminContent && (
-                      <th className="text-center px-3 py-2 text-text-muted">Edit</th>
+                      <th className={`text-center px-4 py-3 ${getTypographyClassName("mono-sm")} uppercase tracking-wide text-text-secondary`}>Edit</th>
                     )}
                   </tr>
                 </thead>
-                <tbody className={getTypographyClassName("body-sm")}>
+                <tbody className={`divide-y divide-black/10 dark:divide-white/15 ${getTypographyClassName("body-sm")}`}>
                   {deliverables.map((d, i) => (
                     <tr
                       key={d.sprintDeliverableId || `${d.name}-${i}`}
-                      className="border-t border-black/10 dark:border-white/10 bg-white dark:bg-gray-950/40 hover:bg-black/5 dark:hover:bg-white/5 transition"
+                      className="hover:bg-black/5 dark:hover:bg-white/5 transition"
                     >
-                      <td className="px-3 py-3 align-top">
+                      <td className="px-4 py-3 align-top">
                         <div className="space-y-1">
                           {d.deliverableId ? (
                             <Link
@@ -972,13 +972,13 @@ export default function SprintDetailContent(props: Props) {
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-3 align-top">{d.category ?? "—"}</td>
+                      <td className="px-4 py-3 align-top">{d.category ?? "—"}</td>
                       {showAdminContent && (
-                        <td className="px-3 py-3 align-top">
+                        <td className="px-4 py-3 align-top">
                           {d.customPoints != null ? `${d.customPoints} pts` : "—"}
                         </td>
                       )}
-                      <td className="px-3 py-3 align-top">
+                      <td className="px-4 py-3 align-top">
                         {d.deliveryUrl ? (
                           <a
                             href={d.deliveryUrl}
@@ -993,7 +993,7 @@ export default function SprintDetailContent(props: Props) {
                         )}
                       </td>
                       {showAdminContent && (
-                        <td className="px-3 py-3 align-top text-center">
+                        <td className="px-4 py-3 align-top text-center">
                           <button
                             onClick={() => handleOpenEditModal(d)}
                             className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
