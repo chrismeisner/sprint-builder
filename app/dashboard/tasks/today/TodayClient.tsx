@@ -24,6 +24,16 @@ import { CSS } from "@dnd-kit/utilities";
 const DAILY_TARGET_TIME_KEY = "tasks_daily_target_time";
 const DEFAULT_TARGET_TIME = "17:00"; // 5 PM
 
+type Attachment = {
+  id: string;
+  name: string;
+  objectPath: string;
+  contentType: string;
+  size: number;
+  uploadedAt: string;
+  downloadUrl?: string;
+};
+
 type Task = {
   id: string;
   idea_id: string | null;
@@ -39,6 +49,7 @@ type Task = {
   idea_title: string | null;
   milestone_name: string | null;
   milestone_target_date: string | null;
+  attachments: Attachment[];
   created_at: string;
 };
 
@@ -48,9 +59,26 @@ type SortableTodayTaskProps = {
   onToggleComplete: (task: Task) => void;
   onRemoveFromToday: (task: Task) => void;
   onToggleNowFocus: (task: Task) => void;
+  isEditing: boolean;
+  editValue: string;
+  onStartEdit: (task: Task) => void;
+  onEditChange: (value: string) => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
 };
 
-function SortableTodayTask({ task, onToggleComplete, onRemoveFromToday, onToggleNowFocus }: SortableTodayTaskProps) {
+function SortableTodayTask({ 
+  task, 
+  onToggleComplete, 
+  onRemoveFromToday, 
+  onToggleNowFocus,
+  isEditing,
+  editValue,
+  onStartEdit,
+  onEditChange,
+  onSaveEdit,
+  onCancelEdit,
+}: SortableTodayTaskProps) {
   const {
     attributes,
     listeners,
@@ -65,6 +93,16 @@ function SortableTodayTask({ task, onToggleComplete, onRemoveFromToday, onToggle
     transition,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 1000 : 1,
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      onSaveEdit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onCancelEdit();
+    }
   };
 
   return (
@@ -87,7 +125,25 @@ function SortableTodayTask({ task, onToggleComplete, onRemoveFromToday, onToggle
         className="mt-0.5 w-6 h-6 rounded-full border-2 border-black/30 dark:border-white/30 hover:border-green-500 flex items-center justify-center transition"
       />
       <div className="flex-1 min-w-0">
-        <div className="font-medium">{task.name}</div>
+        {isEditing ? (
+          <input
+            type="text"
+            value={editValue}
+            onChange={(e) => onEditChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={onSaveEdit}
+            autoFocus
+            className="w-full font-medium bg-transparent border-b-2 border-blue-500 outline-none py-0.5"
+          />
+        ) : (
+          <div 
+            className="font-medium cursor-text hover:bg-black/5 dark:hover:bg-white/5 rounded px-1 -mx-1 py-0.5 transition"
+            onClick={() => onStartEdit(task)}
+            title="Click to edit"
+          >
+            {task.name}
+          </div>
+        )}
         {task.note && (
           <div className="text-sm opacity-70 mt-1">{task.note}</div>
         )}
@@ -103,6 +159,11 @@ function SortableTodayTask({ task, onToggleComplete, onRemoveFromToday, onToggle
           {task.milestone_name && (
             <span className="text-xs px-2 py-1 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400">
               🎯 {task.milestone_name}
+            </span>
+          )}
+          {task.attachments && task.attachments.length > 0 && (
+            <span className="text-xs px-2 py-1 rounded bg-gray-500/10 text-gray-600 dark:text-gray-400">
+              📎 {task.attachments.length}
             </span>
           )}
         </div>
@@ -138,6 +199,10 @@ export default function TodayClient() {
   const [targetTime, setTargetTime] = useState(DEFAULT_TARGET_TIME);
   const [showEditTime, setShowEditTime] = useState(false);
   const [tempTime, setTempTime] = useState("");
+
+  // Inline editing state
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   // Load target time from localStorage
   useEffect(() => {
@@ -261,6 +326,56 @@ export default function TodayClient() {
     }
   };
 
+  // Inline editing handlers
+  const startEdit = (task: Task) => {
+    setEditingTaskId(task.id);
+    setEditValue(task.name);
+  };
+
+  const cancelEdit = () => {
+    setEditingTaskId(null);
+    setEditValue("");
+  };
+
+  const saveEdit = async () => {
+    if (!editingTaskId) return;
+    
+    const trimmedValue = editValue.trim();
+    if (!trimmedValue) {
+      cancelEdit();
+      return;
+    }
+
+    const task = tasks.find((t) => t.id === editingTaskId);
+    if (!task || task.name === trimmedValue) {
+      cancelEdit();
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/admin/tasks/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingTaskId,
+          name: trimmedValue,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update");
+
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === editingTaskId ? { ...t, name: trimmedValue } : t
+        )
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update task");
+    } finally {
+      cancelEdit();
+    }
+  };
+
   // Separate completed and incomplete tasks
   const incompleteTasks = tasks.filter((t) => !t.completed && t.focus !== "now").sort((a, b) => a.sort_order - b.sort_order);
   const inFocusTask = tasks.find((t) => t.focus === "now" && !t.completed);
@@ -374,7 +489,33 @@ export default function TodayClient() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
                   In Focus
                 </p>
-                <p className="font-medium mt-0.5">{inFocusTask.name}</p>
+                {editingTaskId === inFocusTask.id ? (
+                  <input
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        saveEdit();
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelEdit();
+                      }
+                    }}
+                    onBlur={saveEdit}
+                    autoFocus
+                    className="font-medium mt-0.5 bg-transparent border-b-2 border-blue-500 outline-none w-full"
+                  />
+                ) : (
+                  <p 
+                    className="font-medium mt-0.5 cursor-text hover:bg-black/5 dark:hover:bg-white/5 rounded px-1 -mx-1 transition"
+                    onClick={() => startEdit(inFocusTask)}
+                    title="Click to edit"
+                  >
+                    {inFocusTask.name}
+                  </p>
+                )}
                 {inFocusTask.idea_title && (
                   <Link
                     href={`/dashboard/tasks/${inFocusTask.idea_id}`}
@@ -509,6 +650,12 @@ export default function TodayClient() {
                         onToggleComplete={toggleTaskComplete}
                         onRemoveFromToday={removeFromToday}
                         onToggleNowFocus={toggleNowFocus}
+                        isEditing={editingTaskId === task.id}
+                        editValue={editValue}
+                        onStartEdit={startEdit}
+                        onEditChange={setEditValue}
+                        onSaveEdit={saveEdit}
+                        onCancelEdit={cancelEdit}
                       />
                     ))}
                   </div>
@@ -536,7 +683,33 @@ export default function TodayClient() {
                       ✓
                     </button>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium line-through">{task.name}</div>
+                      {editingTaskId === task.id ? (
+                        <input
+                          type="text"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              saveEdit();
+                            } else if (e.key === "Escape") {
+                              e.preventDefault();
+                              cancelEdit();
+                            }
+                          }}
+                          onBlur={saveEdit}
+                          autoFocus
+                          className="w-full font-medium bg-transparent border-b-2 border-blue-500 outline-none py-0.5"
+                        />
+                      ) : (
+                        <div 
+                          className="font-medium line-through cursor-text hover:bg-black/5 dark:hover:bg-white/5 rounded px-1 -mx-1 py-0.5 transition"
+                          onClick={() => startEdit(task)}
+                          title="Click to edit"
+                        >
+                          {task.name}
+                        </div>
+                      )}
                       {task.idea_title && (
                         <div className="text-xs opacity-70 mt-1">
                           📁 {task.idea_title}

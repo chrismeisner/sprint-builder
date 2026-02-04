@@ -37,6 +37,16 @@ type Idea = {
   updated_at: string;
 };
 
+type Attachment = {
+  id: string;
+  name: string;
+  objectPath: string;
+  contentType: string;
+  size: number;
+  uploadedAt: string;
+  downloadUrl?: string;
+};
+
 type Task = {
   id: string;
   idea_id: string | null;
@@ -52,6 +62,7 @@ type Task = {
   idea_title: string | null;
   milestone_name: string | null;
   milestone_target_date: string | null;
+  attachments: Attachment[];
   created_at: string;
 };
 

@@ -74,7 +74,13 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query(query, values);
 
-    return NextResponse.json({ tasks: result.rows });
+    // Ensure attachments is always an array (handle null/undefined)
+    const tasks = result.rows.map((task) => ({
+      ...task,
+      attachments: task.attachments || [],
+    }));
+
+    return NextResponse.json({ tasks });
   } catch (error) {
     console.error("Error fetching tasks:", error);
     if (error instanceof Error && error.message.includes("required")) {

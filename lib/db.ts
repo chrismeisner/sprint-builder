@@ -966,6 +966,12 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_admin_tasks_completed ON admin_tasks(completed);
   `);
 
+  // Add attachments column to admin_tasks (for screenshots, files, etc.)
+  await pool.query(`
+    ALTER TABLE admin_tasks
+    ADD COLUMN IF NOT EXISTS attachments jsonb DEFAULT '[]'::jsonb
+  `);
+
   // Admin Task Events: Log task activities for analytics
   await pool.query(`
     CREATE TABLE IF NOT EXISTS admin_task_events (

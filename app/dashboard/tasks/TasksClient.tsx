@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   DndContext,
   closestCenter,
@@ -31,6 +32,16 @@ type Idea = {
   updated_at: string;
 };
 
+type Attachment = {
+  id: string;
+  name: string;
+  objectPath: string;
+  contentType: string;
+  size: number;
+  uploadedAt: string;
+  downloadUrl?: string;
+};
+
 type Task = {
   id: string;
   idea_id: string | null;
@@ -46,8 +57,16 @@ type Task = {
   idea_title: string | null;
   milestone_name: string | null;
   milestone_target_date: string | null;
+  attachments: Attachment[];
   created_at: string;
 };
+
+// Helper to format file size
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 // Sortable Task Item Component
 type SortableTaskItemProps = {
@@ -155,6 +174,15 @@ function SortableTaskItem({
         </span>
       )}
       
+      {/* Attachment indicator */}
+      {task.attachments && task.attachments.length > 0 && (
+        <span
+          className="px-1.5 py-0.5 rounded text-xs flex-shrink-0 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+          title={`${task.attachments.length} attachment${task.attachments.length > 1 ? "s" : ""}`}
+        >
+          📎 {task.attachments.length}
+        </span>
+      )}
       <button
         onClick={() => onShowDetail(task)}
         className="px-1.5 py-0.5 rounded text-sm flex-shrink-0 transition bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-blue-500/15 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/30 opacity-0 group-hover:opacity-100"
@@ -216,11 +244,115 @@ export default function TasksClient() {
   const [modalEditNote, setModalEditNote] = useState("");
   const [modalSaving, setModalSaving] = useState(false);
 
+  // Attachment state
+  const [modalAttachments, setModalAttachments] = useState<Attachment[]>([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+
   // Initialize modal edit fields when task changes
-  const openTaskDetail = (task: Task) => {
+  const openTaskDetail = async (task: Task) => {
     setDetailTask(task);
     setModalEditName(task.name);
     setModalEditNote(task.note || "");
+    setModalAttachments([]);
+    
+    // Fetch attachments with signed URLs
+    if (task.attachments && task.attachments.length > 0) {
+      setLoadingAttachments(true);
+      try {
+        const res = await fetch(`/api/admin/tasks/attachments?taskId=${task.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setModalAttachments(data.attachments);
+        }
+      } catch (err) {
+        console.error("Failed to load attachments:", err);
+      } finally {
+        setLoadingAttachments(false);
+      }
+    }
+  };
+
+  // Handle file upload
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!detailTask || !e.target.files || e.target.files.length === 0) return;
+    
+    const file = e.target.files[0];
+    setUploadingAttachment(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("taskId", detailTask.id);
+      
+      const res = await fetch("/api/admin/tasks/attachments", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to upload");
+      }
+      
+      const data = await res.json();
+      setModalAttachments((prev) => [...prev, data.attachment]);
+      
+      // Update task in list to show attachment count
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === detailTask.id
+            ? { ...t, attachments: [...(t.attachments || []), data.attachment] }
+            : t
+        )
+      );
+      setDetailTask((prev) =>
+        prev
+          ? { ...prev, attachments: [...(prev.attachments || []), data.attachment] }
+          : null
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to upload attachment");
+    } finally {
+      setUploadingAttachment(false);
+      // Reset file input
+      e.target.value = "";
+    }
+  };
+
+  // Handle attachment delete
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (!detailTask || !confirm("Delete this attachment?")) return;
+    
+    try {
+      const res = await fetch(
+        `/api/admin/tasks/attachments?taskId=${detailTask.id}&attachmentId=${attachmentId}`,
+        { method: "DELETE" }
+      );
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete");
+      }
+      
+      setModalAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+      
+      // Update task in list
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === detailTask.id
+            ? { ...t, attachments: t.attachments.filter((a) => a.id !== attachmentId) }
+            : t
+        )
+      );
+      setDetailTask((prev) =>
+        prev
+          ? { ...prev, attachments: prev.attachments.filter((a) => a.id !== attachmentId) }
+          : null
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete attachment");
+    }
   };
 
   // Save task from modal
@@ -1047,6 +1179,91 @@ export default function TasksClient() {
                   rows={4}
                   className="w-full text-sm bg-black/5 dark:bg-white/5 rounded-lg p-3 border border-transparent hover:border-black/10 dark:hover:border-white/10 focus:border-blue-500 focus:outline-none resize-none transition"
                 />
+              </div>
+
+              {/* Attachments */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide opacity-50 mb-2">
+                  Attachments
+                  {modalAttachments.length > 0 && (
+                    <span className="ml-1 text-blue-600 dark:text-blue-400">({modalAttachments.length})</span>
+                  )}
+                </h3>
+                
+                {/* Upload button */}
+                <label className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg cursor-pointer transition mb-3">
+                  <span>📎</span>
+                  <span>{uploadingAttachment ? "Uploading..." : "Add attachment"}</span>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleAttachmentUpload}
+                    disabled={uploadingAttachment}
+                    className="hidden"
+                  />
+                </label>
+                
+                {/* Attachments list */}
+                {loadingAttachments ? (
+                  <p className="text-sm opacity-50">Loading attachments...</p>
+                ) : modalAttachments.length > 0 ? (
+                  <div className="space-y-2">
+                    {modalAttachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="flex items-center gap-3 p-2 bg-black/5 dark:bg-white/5 rounded-lg"
+                      >
+                        {/* Thumbnail for images */}
+                        {attachment.contentType.startsWith("image/") && attachment.downloadUrl ? (
+                          <a
+                            href={attachment.downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-shrink-0"
+                          >
+                            {/* Using unoptimized for external signed URLs */}
+                            <Image
+                              src={attachment.downloadUrl}
+                              alt={attachment.name}
+                              width={48}
+                              height={48}
+                              className="w-12 h-12 object-cover rounded border border-black/10 dark:border-white/10"
+                              unoptimized
+                            />
+                          </a>
+                        ) : (
+                          <span className="w-12 h-12 flex items-center justify-center text-2xl bg-black/5 dark:bg-white/5 rounded">
+                            📄
+                          </span>
+                        )}
+                        
+                        <div className="flex-1 min-w-0">
+                          <a
+                            href={attachment.downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 truncate block"
+                          >
+                            {attachment.name}
+                          </a>
+                          <p className="text-xs opacity-50">
+                            {formatFileSize(attachment.size)} · {new Date(attachment.uploadedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        
+                        <button
+                          onClick={() => handleDeleteAttachment(attachment.id)}
+                          className="p-1.5 text-sm opacity-50 hover:opacity-100 hover:text-red-500 transition"
+                          title="Delete attachment"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm opacity-50">No attachments yet. Add screenshots, PDFs, or images.</p>
+                )}
               </div>
 
               {/* Milestone deadline */}
