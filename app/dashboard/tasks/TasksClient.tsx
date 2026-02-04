@@ -2,6 +2,23 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Idea = {
   id: string;
@@ -32,6 +49,147 @@ type Task = {
   created_at: string;
 };
 
+// Sortable Task Item Component
+type SortableTaskItemProps = {
+  task: Task;
+  isEditing: boolean;
+  editingTaskName: string;
+  onToggleComplete: (task: Task) => void;
+  onToggleNowFocus: (task: Task) => void;
+  onToggleFocus: (task: Task) => void;
+  onStartEdit: (task: Task) => void;
+  onUpdateName: (task: Task) => void;
+  onCancelEdit: () => void;
+  onEditingNameChange: (value: string) => void;
+  onShowDetail: (task: Task) => void;
+};
+
+function SortableTaskItem({
+  task,
+  isEditing,
+  editingTaskName,
+  onToggleComplete,
+  onToggleNowFocus,
+  onToggleFocus,
+  onStartEdit,
+  onUpdateName,
+  onCancelEdit,
+  onEditingNameChange,
+  onShowDetail,
+}: SortableTaskItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id, disabled: task.completed });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group p-3 flex items-center gap-3 border-b border-black/5 dark:border-white/5 last:border-b-0 ${
+        task.completed ? "opacity-50" : ""
+      }`}
+    >
+      {/* Drag Handle */}
+      {!task.completed && (
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 opacity-30 hover:opacity-70 touch-none"
+          title="Drag to reorder"
+        >
+          ⋮⋮
+        </button>
+      )}
+      {task.completed && <span className="w-6" />}
+      
+      <button
+        onClick={() => onToggleComplete(task)}
+        className={`w-5 h-5 rounded border flex items-center justify-center transition flex-shrink-0 ${
+          task.completed
+            ? "bg-green-500 border-green-500 text-white"
+            : "border-black/30 dark:border-white/30 hover:border-green-500"
+        }`}
+      >
+        {task.completed && "✓"}
+      </button>
+      
+      {isEditing ? (
+        <input
+          type="text"
+          value={editingTaskName}
+          onChange={(e) => onEditingNameChange(e.target.value)}
+          onBlur={() => onUpdateName(task)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onUpdateName(task);
+            }
+            if (e.key === "Escape") {
+              onCancelEdit();
+            }
+          }}
+          className="flex-1 px-2 py-0.5 text-sm border border-blue-500 rounded bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+          autoFocus
+        />
+      ) : (
+        <span
+          onClick={() => onStartEdit(task)}
+          className={`flex-1 cursor-text hover:bg-black/5 dark:hover:bg-white/5 px-1 rounded ${
+            task.completed ? "line-through" : ""
+          }`}
+          title="Click to edit"
+        >
+          {task.name}
+        </span>
+      )}
+      
+      <button
+        onClick={() => onShowDetail(task)}
+        className="px-1.5 py-0.5 rounded text-sm flex-shrink-0 transition bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-blue-500/15 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/30 opacity-0 group-hover:opacity-100"
+        title="View details"
+      >
+        ℹ️
+      </button>
+      <button
+        onClick={() => onToggleNowFocus(task)}
+        className={`px-1.5 py-0.5 rounded text-sm flex-shrink-0 transition flex items-center gap-0.5 ${
+          task.focus === "now"
+            ? "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
+            : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10"
+        }`}
+        title={task.focus === "now" ? "Remove focus" : "Focus now"}
+      >
+        🔥
+        {task.focus === "now" && <span className="text-xs">Focus</span>}
+      </button>
+      <button
+        onClick={() => onToggleFocus(task)}
+        className={`px-1.5 py-0.5 rounded text-sm flex-shrink-0 transition flex items-center gap-0.5 ${
+          task.focus === "today"
+            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+            : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10"
+        }`}
+        title={task.focus === "today" ? "Remove from Today" : "Add to Today"}
+      >
+        ☀️
+        {task.focus === "today" && <span className="text-xs">Today</span>}
+      </button>
+    </div>
+  );
+}
+
 export default function TasksClient() {
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -47,6 +205,113 @@ export default function TasksClient() {
   const [newTaskIdeaId, setNewTaskIdeaId] = useState<string | null>(null);
   const [newTaskName, setNewTaskName] = useState("");
   const [creatingTask, setCreatingTask] = useState(false);
+
+  // Inline task editing
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingTaskName, setEditingTaskName] = useState("");
+
+  // Task detail modal
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
+  const [modalEditName, setModalEditName] = useState("");
+  const [modalEditNote, setModalEditNote] = useState("");
+  const [modalSaving, setModalSaving] = useState(false);
+
+  // Initialize modal edit fields when task changes
+  const openTaskDetail = (task: Task) => {
+    setDetailTask(task);
+    setModalEditName(task.name);
+    setModalEditNote(task.note || "");
+  };
+
+  // Save task from modal
+  const saveModalTask = async () => {
+    if (!detailTask || modalSaving) return;
+    
+    setModalSaving(true);
+    try {
+      const res = await fetch("/api/admin/tasks/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: detailTask.id,
+          name: modalEditName.trim(),
+          note: modalEditNote.trim() || null,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to save");
+
+      // Update local state
+      const updatedTask = { ...detailTask, name: modalEditName.trim(), note: modalEditNote.trim() || null };
+      setTasks((prev) =>
+        prev.map((t) => (t.id === detailTask.id ? updatedTask : t))
+      );
+      setDetailTask(updatedTask);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save task");
+    } finally {
+      setModalSaving(false);
+    }
+  };
+
+  // Toggle task completion from modal
+  const toggleModalTaskComplete = async () => {
+    if (!detailTask) return;
+    await toggleTaskComplete(detailTask);
+    // Update detailTask to reflect the change
+    setDetailTask((prev) => prev ? { 
+      ...prev, 
+      completed: !prev.completed, 
+      completed_at: !prev.completed ? new Date().toISOString() : null,
+      focus: (!prev.completed && prev.focus === "now") ? "" : prev.focus
+    } : null);
+  };
+
+  // Toggle focus from modal
+  const toggleModalFocus = async (focusType: "now" | "today") => {
+    if (!detailTask) return;
+    
+    const newFocus = detailTask.focus === focusType ? "" : focusType;
+    try {
+      const res = await fetch("/api/admin/tasks/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: detailTask.id, focus: newFocus }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update");
+
+      // Update local state
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (t.id === detailTask.id) return { ...t, focus: newFocus };
+          if (focusType === "now" && t.focus === "now") return { ...t, focus: "" };
+          return t;
+        })
+      );
+      setDetailTask((prev) => prev ? { ...prev, focus: newFocus } : null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update");
+    }
+  };
+
+  // Delete task from modal
+  const deleteModalTask = async () => {
+    if (!detailTask || !confirm("Delete this task?")) return;
+    
+    try {
+      const res = await fetch(`/api/admin/tasks/tasks?id=${detailTask.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete");
+
+      setTasks((prev) => prev.filter((t) => t.id !== detailTask.id));
+      setDetailTask(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete task");
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -171,11 +436,17 @@ export default function TasksClient() {
         throw new Error(data.error || "Failed to update task");
       }
 
-      // Optimistic update
+      // Optimistic update - also clear "now" focus when completing
       setTasks((prev) =>
         prev.map((t) =>
           t.id === task.id
-            ? { ...t, completed: !t.completed, completed_at: !t.completed ? new Date().toISOString() : null }
+            ? { 
+                ...t, 
+                completed: !t.completed, 
+                completed_at: !t.completed ? new Date().toISOString() : null,
+                // Clear "now" focus when completing a task
+                focus: (!t.completed && t.focus === "now") ? "" : t.focus
+              }
             : t
         )
       );
@@ -245,6 +516,70 @@ export default function TasksClient() {
     }
   };
 
+  // Update task name inline
+  const updateTaskName = async (task: Task) => {
+    const name = editingTaskName.trim();
+    if (!name) {
+      setEditingTaskId(null);
+      setEditingTaskName("");
+      return;
+    }
+
+    // Delete task if name is "xxx"
+    if (name.toLowerCase() === "xxx") {
+      await deleteTask(task);
+      setEditingTaskId(null);
+      setEditingTaskName("");
+      return;
+    }
+
+    // No change
+    if (name === task.name) {
+      setEditingTaskId(null);
+      setEditingTaskName("");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/admin/tasks/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: task.id, name }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update task");
+      }
+
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, name } : t))
+      );
+      setEditingTaskId(null);
+      setEditingTaskName("");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update task");
+    }
+  };
+
+  // Delete task
+  const deleteTask = async (task: Task) => {
+    try {
+      const res = await fetch(`/api/admin/tasks/tasks?id=${task.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete task");
+      }
+
+      setTasks((prev) => prev.filter((t) => t.id !== task.id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete task");
+    }
+  };
+
   const getTasksForIdea = (ideaId: string) => {
     return tasks
       .filter((t) => t.idea_id === ideaId && !t.parent_task_id)
@@ -253,6 +588,66 @@ export default function TasksClient() {
         if (a.completed !== b.completed) return a.completed ? 1 : -1;
         return a.sort_order - b.sort_order;
       });
+  };
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end for reordering tasks within an idea
+  const handleDragEnd = async (ideaId: string, event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const ideaTasks = getTasksForIdea(ideaId).filter((t) => !t.completed);
+    const oldIndex = ideaTasks.findIndex((t) => t.id === active.id);
+    const newIndex = ideaTasks.findIndex((t) => t.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Optimistically update the UI
+    const reorderedTasks = arrayMove(ideaTasks, oldIndex, newIndex);
+
+    // Update tasks state with new sort orders
+    const updatedTasks = tasks.map((task) => {
+      const reorderedIndex = reorderedTasks.findIndex((t) => t.id === task.id);
+      if (reorderedIndex !== -1 && !task.completed && task.idea_id === ideaId) {
+        return { ...task, sort_order: reorderedIndex + 1 };
+      }
+      return task;
+    });
+    setTasks(updatedTasks);
+
+    // Persist to server
+    try {
+      const reorderData = reorderedTasks.map((task, index) => ({
+        id: task.id,
+        sort_order: index + 1,
+      }));
+
+      const res = await fetch("/api/admin/tasks/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reorder: reorderData }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to reorder tasks");
+      }
+    } catch (err) {
+      console.error("Failed to save task order:", err);
+      // Revert on error
+      fetchData();
+    }
   };
 
   const todayTasks = tasks.filter((t) => t.focus === "today" && !t.completed);
@@ -300,6 +695,12 @@ export default function TasksClient() {
             className="px-4 py-2 border border-black/10 dark:border-white/15 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition"
           >
             🎯 Milestones
+          </Link>
+          <Link
+            href="/dashboard/tasks/activity"
+            className="px-4 py-2 border border-black/10 dark:border-white/15 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition"
+          >
+            📋 Activity
           </Link>
         </div>
       </div>
@@ -443,67 +844,54 @@ export default function TasksClient() {
                 </div>
 
                 {/* Tasks Preview */}
-                <div className="divide-y divide-black/5 dark:divide-white/5">
-                  {ideaTasks.slice(0, 5).map((task) => (
-                    <div
-                      key={task.id}
-                      className={`p-3 flex items-center gap-3 ${
-                        task.completed ? "opacity-50" : ""
-                      }`}
-                    >
-                      <button
-                        onClick={() => toggleTaskComplete(task)}
-                        className={`w-5 h-5 rounded border flex items-center justify-center transition ${
-                          task.completed
-                            ? "bg-green-500 border-green-500 text-white"
-                            : "border-black/30 dark:border-white/30 hover:border-green-500"
-                        }`}
-                      >
-                        {task.completed && "✓"}
-                      </button>
-                      <span
-                        className={`flex-1 ${task.completed ? "line-through" : ""}`}
-                      >
-                        {task.name}
-                      </span>
-                      <button
-                        onClick={() => toggleNowFocus(task)}
-                        className={`text-lg ${
-                          task.focus === "now"
-                            ? "text-red-500"
-                            : "opacity-30 hover:opacity-70"
-                        } transition`}
-                        title={task.focus === "now" ? "Remove focus" : "Focus now"}
-                      >
-                        🔥
-                      </button>
-                      <button
-                        onClick={() => toggleTaskFocus(task)}
-                        className={`text-lg ${
-                          task.focus === "today"
-                            ? "text-amber-500"
-                            : "opacity-30 hover:opacity-70"
-                        } transition`}
-                        title={task.focus === "today" ? "Remove from Today" : "Add to Today"}
-                      >
-                        ☀️
-                      </button>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(event) => handleDragEnd(idea.id, event)}
+                >
+                  <SortableContext
+                    items={ideaTasks.filter((t) => !t.completed).slice(0, 5).map((t) => t.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div>
+                      {ideaTasks.slice(0, 5).map((task) => (
+                        <SortableTaskItem
+                          key={task.id}
+                          task={task}
+                          isEditing={editingTaskId === task.id}
+                          editingTaskName={editingTaskName}
+                          onToggleComplete={toggleTaskComplete}
+                          onToggleNowFocus={toggleNowFocus}
+                          onToggleFocus={toggleTaskFocus}
+                          onStartEdit={(t) => {
+                            setEditingTaskId(t.id);
+                            setEditingTaskName(t.name);
+                          }}
+                          onUpdateName={updateTaskName}
+                          onCancelEdit={() => {
+                            setEditingTaskId(null);
+                            setEditingTaskName("");
+                          }}
+                          onEditingNameChange={setEditingTaskName}
+                          onShowDetail={openTaskDetail}
+                        />
+                      ))}
                     </div>
-                  ))}
-                  {ideaTasks.length > 5 && (
-                    <Link
-                      href={`/dashboard/tasks/${idea.id}`}
-                      className="block p-3 text-sm text-center opacity-70 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 transition"
-                    >
-                      +{ideaTasks.length - 5} more tasks
-                    </Link>
-                  )}
-                  {ideaTasks.length === 0 && (
-                    <div className="p-3 text-sm opacity-50 text-center">
-                      No tasks yet
-                    </div>
-                  )}
-                </div>
+                  </SortableContext>
+                </DndContext>
+                {ideaTasks.length > 5 && (
+                  <Link
+                    href={`/dashboard/tasks/${idea.id}`}
+                    className="block p-3 text-sm text-center opacity-70 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 transition border-t border-black/5 dark:border-white/5"
+                  >
+                    +{ideaTasks.length - 5} more tasks
+                  </Link>
+                )}
+                {ideaTasks.length === 0 && (
+                  <div className="p-3 text-sm opacity-50 text-center">
+                    No tasks yet
+                  </div>
+                )}
 
                 {/* Quick Add Task */}
                 <div className="p-3 border-t border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02]">
@@ -557,6 +945,178 @@ export default function TasksClient() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Task Detail Modal */}
+      {detailTask && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setDetailTask(null)}
+        >
+          <div 
+            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-black/10 dark:border-white/10 flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    onClick={toggleModalTaskComplete}
+                    className={`w-6 h-6 rounded border flex items-center justify-center text-sm transition ${
+                      detailTask.completed
+                        ? "bg-green-500 border-green-500 text-white"
+                        : "border-black/30 dark:border-white/30 hover:border-green-500"
+                    }`}
+                  >
+                    {detailTask.completed && "✓"}
+                  </button>
+                  <input
+                    type="text"
+                    value={modalEditName}
+                    onChange={(e) => setModalEditName(e.target.value)}
+                    onBlur={saveModalTask}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        saveModalTask();
+                      }
+                    }}
+                    className={`flex-1 text-lg font-semibold bg-transparent border-b border-transparent hover:border-black/20 dark:hover:border-white/20 focus:border-blue-500 focus:outline-none transition ${
+                      detailTask.completed ? "line-through opacity-60" : ""
+                    }`}
+                  />
+                </div>
+                {detailTask.idea_title && (
+                  <Link
+                    href={`/dashboard/tasks/${detailTask.idea_id}`}
+                    className="text-sm opacity-60 hover:opacity-100 transition"
+                  >
+                    📁 {detailTask.idea_title}
+                  </Link>
+                )}
+              </div>
+              <button
+                onClick={() => setDetailTask(null)}
+                className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 space-y-4">
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => toggleModalFocus("now")}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
+                    detailTask.focus === "now"
+                      ? "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
+                      : "bg-black/5 dark:bg-white/5 text-black/60 dark:text-white/60 border border-transparent hover:bg-black/10 dark:hover:bg-white/10"
+                  }`}
+                >
+                  🔥 {detailTask.focus === "now" ? "In Focus" : "Focus"}
+                </button>
+                <button
+                  onClick={() => toggleModalFocus("today")}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
+                    detailTask.focus === "today"
+                      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                      : "bg-black/5 dark:bg-white/5 text-black/60 dark:text-white/60 border border-transparent hover:bg-black/10 dark:hover:bg-white/10"
+                  }`}
+                >
+                  ☀️ {detailTask.focus === "today" ? "Today" : "Add to Today"}
+                </button>
+                {detailTask.milestone_name && (
+                  <span className="px-3 py-1.5 rounded-lg text-sm font-medium bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                    🎯 {detailTask.milestone_name}
+                  </span>
+                )}
+              </div>
+
+              {/* Note */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide opacity-50 mb-2">Note</h3>
+                <textarea
+                  value={modalEditNote}
+                  onChange={(e) => setModalEditNote(e.target.value)}
+                  onBlur={saveModalTask}
+                  placeholder="Add a note..."
+                  rows={4}
+                  className="w-full text-sm bg-black/5 dark:bg-white/5 rounded-lg p-3 border border-transparent hover:border-black/10 dark:hover:border-white/10 focus:border-blue-500 focus:outline-none resize-none transition"
+                />
+              </div>
+
+              {/* Milestone deadline */}
+              {detailTask.milestone_target_date && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide opacity-50 mb-1">Milestone Deadline</h3>
+                  <p className="text-sm">
+                    {new Date(detailTask.milestone_target_date).toLocaleDateString("en-US", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              )}
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-4 text-sm pt-2 border-t border-black/5 dark:border-white/5">
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide opacity-50 mb-1">Created</h3>
+                  <p className="opacity-70">{new Date(detailTask.created_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}</p>
+                </div>
+                {detailTask.completed_at && (
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide opacity-50 mb-1">Completed</h3>
+                    <p className="opacity-70">{new Date(detailTask.completed_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-black/10 dark:border-white/10 flex justify-between items-center">
+              <button
+                onClick={deleteModalTask}
+                className="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-500/10 rounded transition"
+              >
+                🗑️ Delete
+              </button>
+              <div className="flex gap-2">
+                <Link
+                  href={`/dashboard/tasks/${detailTask.idea_id}`}
+                  className="px-4 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 rounded transition"
+                >
+                  Open Idea →
+                </Link>
+                <button
+                  onClick={() => setDetailTask(null)}
+                  className="px-4 py-1.5 text-sm bg-black/5 dark:bg-white/10 rounded hover:bg-black/10 dark:hover:bg-white/15 transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

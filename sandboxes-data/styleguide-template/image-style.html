@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Image Style – Brand Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="sidebar-nav.css" />
+  <style>
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: auto;
+      padding: 32px 16px 64px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: var(--font-family-sans);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-family: var(--font-family-sans);
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--neutral-600);
+      margin: 0 0 28px;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--neutral-900);
+    }
+
+    /* Prompt Section */
+    .prompt {
+      font-family: var(--font-family-mono, monospace);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--neutral-800);
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
+      border-radius: 10px;
+      padding: 16px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .prompt-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .prompt-btn {
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--neutral-300);
+      border-radius: 8px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      cursor: pointer;
+      transition: border-color 150ms ease, box-shadow 150ms ease, transform 80ms ease;
+      white-space: nowrap;
+    }
+
+    .prompt-btn:hover {
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .prompt-btn:active {
+      transform: translateY(1px);
+    }
+
+    .prompt-btn.copied {
+      background: var(--brand-secondary-100);
+      border-color: var(--brand-secondary-500);
+      color: var(--brand-secondary-800);
+    }
+
+    /* Scenes Grid */
+    .scene-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .scene {
+      border: 1px solid var(--neutral-200);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--neutral-0);
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 16px;
+      padding: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .scene {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .scene-body {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 4px;
+    }
+
+    .scene-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--neutral-900);
+    }
+
+    .scene-desc {
+      margin: 0;
+      font-size: 14px;
+      color: var(--neutral-600);
+      line-height: 1.5;
+    }
+
+    .scene-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .scene-tag {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--neutral-100);
+      border: 1px solid var(--neutral-200);
+      color: var(--neutral-600);
+      font-weight: 500;
+    }
+
+    .scene-shot {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--neutral-200);
+      background: var(--neutral-100);
+    }
+
+    .scene-shot img {
+      width: 100%;
+      display: block;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      background: var(--neutral-100);
+    }
+
+    .scene-label {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .img-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding: 8px;
+    }
+
+    .img-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--neutral-300);
+      border-radius: 6px;
+      background: var(--neutral-0);
+      color: var(--neutral-700);
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color 150ms ease, background 150ms ease;
+    }
+
+    .img-btn:hover {
+      border-color: var(--brand-primary-500);
+      background: var(--brand-primary-50);
+      color: var(--brand-primary-700);
+    }
+
+    /* Tips Section */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .tip-card {
+      padding: 16px;
+      background: var(--neutral-50);
+      border-radius: 10px;
+      border: 1px solid var(--neutral-100);
+    }
+
+    .tip-card h4 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--neutral-900);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tip-card p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--neutral-600);
+      line-height: 1.5;
+    }
+
+    .tip-card ul {
+      margin: 8px 0 0;
+      padding: 0 0 0 18px;
+      font-size: 13px;
+      color: var(--neutral-600);
+      line-height: 1.6;
+    }
+
+    .tip-card a {
+      color: var(--brand-primary-600);
+      text-decoration: none;
+    }
+
+    .tip-card a:hover {
+      text-decoration: underline;
+    }
+
+    /* Placeholder Note */
+    .placeholder-note {
+      padding: 16px;
+      background: var(--brand-primary-50);
+      border: 1px dashed var(--brand-primary-300);
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .placeholder-note h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--brand-primary-800);
+    }
+
+    .placeholder-note p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--brand-primary-700);
+      line-height: 1.5;
+    }
+
+    .placeholder-note code {
+      background: var(--brand-primary-100);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-family-mono, monospace);
+      font-size: 12px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Image Style</h1>
+    <p class="subtitle">Creative direction, AI prompts, and example scenes for consistent brand imagery.</p>
+
+    <!-- AI Prompt -->
+    <div class="card" id="promptCard">
+      <div class="card-header">
+        <h2 class="section-title">AI Image Prompt</h2>
+        <div class="prompt-actions">
+          <button type="button" class="prompt-btn" id="copyPrompt">Copy prompt</button>
+        </div>
+      </div>
+      <div class="prompt" id="promptBlock"></div>
+    </div>
+
+    <!-- Scenes -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="section-title">Example Scenes</h2>
+      </div>
+
+      <div class="placeholder-note">
+        <h3>📷 Customize your scenes</h3>
+        <p>
+          Edit the <code>scenes</code> array in the script below to add your own reference images and styled outputs.
+          Each scene shows the workflow: <strong>Reference → AI-styled output</strong>.
+        </p>
+      </div>
+
+      <div id="sceneGrid" class="scene-grid"></div>
+    </div>
+
+    <!-- Sourcing Tips -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="section-title">Image Sourcing</h2>
+      </div>
+      <div class="tips-grid">
+        <div class="tip-card">
+          <h4>📸 Stock Photos</h4>
+          <p>Free, high-quality reference images:</p>
+          <ul>
+            <li><a href="https://unsplash.com" target="_blank">Unsplash</a> - Best for lifestyle</li>
+            <li><a href="https://pexels.com" target="_blank">Pexels</a> - Good variety</li>
+            <li><a href="https://pixabay.com" target="_blank">Pixabay</a> - Illustrations too</li>
+          </ul>
+        </div>
+        <div class="tip-card">
+          <h4>🤖 AI Generation</h4>
+          <p>Create custom images with AI:</p>
+          <ul>
+            <li><a href="https://midjourney.com" target="_blank">Midjourney</a> - Best quality</li>
+            <li><a href="https://openai.com/dall-e-3" target="_blank">DALL-E 3</a> - Great for concepts</li>
+            <li><a href="https://ideogram.ai" target="_blank">Ideogram</a> - Good with text</li>
+          </ul>
+        </div>
+        <div class="tip-card">
+          <h4>📱 DIY Tips</h4>
+          <p>Get great shots with your phone:</p>
+          <ul>
+            <li>Use natural light (near windows)</li>
+            <li>Clean, simple backgrounds</li>
+            <li>Rule of thirds for composition</li>
+            <li>Edit with Lightroom Mobile (free)</li>
+          </ul>
+        </div>
+        <div class="tip-card">
+          <h4>📐 Common Sizes</h4>
+          <p>Quick reference for exports:</p>
+          <ul>
+            <li><strong>Hero:</strong> 1920×1080 (16:9)</li>
+            <li><strong>Social:</strong> 1200×630 (OG image)</li>
+            <li><strong>Square:</strong> 1080×1080 (Instagram)</li>
+            <li><strong>Product:</strong> 800×800 (e-commerce)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="sidebar-nav.js"></script>
+  <script>
+    // ============================================
+    // CUSTOMIZE YOUR IMAGE STYLE HERE
+    // ============================================
+
+    // Your AI prompt for generating styled images
+    // Copy this into Midjourney, DALL-E, or other AI image tools
+    const promptText = `Create an image in a modern, clean brand style with the following characteristics:
+
+- Soft, natural lighting with gentle shadows
+- Warm, optimistic color palette aligned with brand colors
+- Clean composition with breathing room
+- Authentic, relatable subjects (not overly polished stock-photo feel)
+- Slightly desaturated, muted tones for sophistication
+- 4:3 aspect ratio for web use
+
+Style reference: Modern startup aesthetic, approachable yet professional.`;
+
+    // Your example scenes
+    // Each scene shows: description, reference image (core), and styled output
+    const scenes = [
+      {
+        title: "Hero banner",
+        description: "Primary website hero image showing the product or service in an aspirational context.",
+        tags: ["hero", "website", "primary"],
+        srcCore: "images/image-placeholder.jpeg",
+        srcStyled: "images/image-placeholder.jpeg",
+        altCore: "Reference image for hero banner",
+        altStyled: "Styled hero banner in brand style"
+      },
+      {
+        title: "Product in context",
+        description: "Product shot showing the offering being used in a real-world setting.",
+        tags: ["product", "lifestyle", "context"],
+        srcCore: "images/image-placeholder.jpeg",
+        srcStyled: "images/image-placeholder.jpeg",
+        altCore: "Reference image for product shot",
+        altStyled: "Styled product image in brand style"
+      },
+      {
+        title: "Team / About",
+        description: "Team photo or founder headshot for the about page, approachable and professional.",
+        tags: ["team", "headshot", "about"],
+        srcCore: "images/image-placeholder.jpeg",
+        srcStyled: "images/image-placeholder.jpeg",
+        altCore: "Reference image for team photo",
+        altStyled: "Styled team photo in brand style"
+      }
+    ];
+
+    // ============================================
+    // RENDERING LOGIC (no need to edit below)
+    // ============================================
+
+    function renderPrompt() {
+      const promptEl = document.getElementById("promptBlock");
+      if (promptEl) promptEl.textContent = promptText;
+    }
+
+    function renderScenes() {
+      const grid = document.getElementById("sceneGrid");
+      if (!grid) return;
+
+      grid.innerHTML = scenes.map(scene => `
+        <article class="scene">
+          <div class="scene-body">
+            <h3 class="scene-title">${scene.title}</h3>
+            <p class="scene-desc">${scene.description}</p>
+            <div class="scene-tags">
+              ${scene.tags.map(tag => `<span class="scene-tag">${tag}</span>`).join("")}
+            </div>
+          </div>
+          <figure class="scene-shot">
+            <div class="scene-label">Reference</div>
+            <img src="${scene.srcCore}" alt="${scene.altCore}" loading="lazy" />
+            <div class="img-actions">
+              <a class="img-btn" href="${scene.srcCore}" download>Download</a>
+            </div>
+          </figure>
+          <figure class="scene-shot">
+            <div class="scene-label">Styled</div>
+            <img src="${scene.srcStyled}" alt="${scene.altStyled}" loading="lazy" />
+            <div class="img-actions">
+              <a class="img-btn" href="${scene.srcStyled}" download>Download</a>
+            </div>
+          </figure>
+        </article>
+      `).join("");
+    }
+
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        // Fallback for older browsers
+        const el = document.createElement("textarea");
+        el.value = text;
+        el.setAttribute("readonly", "");
+        el.style.position = "fixed";
+        el.style.top = "-9999px";
+        document.body.appendChild(el);
+        el.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(el);
+        return ok;
+      }
+    }
+
+    document.addEventListener("click", async (event) => {
+      if (event.target.id === "copyPrompt") {
+        const btn = event.target;
+        const ok = await copyToClipboard(promptText);
+        const original = btn.textContent;
+        btn.textContent = ok ? "Copied!" : "Failed";
+        btn.classList.toggle("copied", ok);
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove("copied");
+          btn.disabled = false;
+        }, 1500);
+      }
+    });
+
+    // Initialize
+    renderPrompt();
+    renderScenes();
+  </script>
+</body>
+</html>

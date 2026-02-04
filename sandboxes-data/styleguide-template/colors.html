@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Color Palette – Brand Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="sidebar-nav.css" />
+
+  <style>
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: auto;
+      padding: 32px 16px 64px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: var(--font-family-sans);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-family: var(--font-family-sans);
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--neutral-600);
+      margin: 0 0 28px;
+      line-height: 1.5;
+    }
+
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card h2 {
+      margin: 0;
+      padding: 16px 16px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--neutral-600);
+      background: transparent;
+      border-bottom: none;
+    }
+
+    .section {
+      padding: 12px;
+    }
+
+    .swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+    }
+
+    .swatch {
+      flex: 1 1 0;
+      min-width: 80px;
+      border-radius: 0;
+      border: none;
+      border-right: 1px solid var(--neutral-200);
+      overflow: hidden;
+      background: var(--neutral-0);
+      cursor: pointer;
+      transition: box-shadow 120ms ease;
+    }
+
+    .swatch:last-child {
+      border-right: none;
+    }
+
+    .swatch:hover {
+      box-shadow: inset 0 0 0 2px var(--brand-primary-400);
+      z-index: 1;
+      position: relative;
+    }
+
+    .swatch:focus-visible {
+      outline: 2px solid var(--brand-primary-500);
+      outline-offset: -2px;
+      z-index: 2;
+      position: relative;
+    }
+
+    .color {
+      height: 48px;
+    }
+
+    .meta {
+      padding: 8px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--neutral-900);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      align-items: flex-start;
+      background: var(--neutral-0);
+    }
+
+    .meta .token {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .meta .hex {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--neutral-500);
+      display: block;
+      cursor: pointer;
+      transition: color 120ms ease;
+    }
+
+    .swatch:hover .hex {
+      color: var(--neutral-500);
+    }
+
+    .hex:hover {
+      color: var(--brand-primary-600);
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .swatch {
+        min-width: 70px;
+        flex: 1 1 70px;
+      }
+      .meta .token {
+        font-size: 10px;
+      }
+      .meta .hex {
+        font-size: 9px;
+      }
+    }
+
+    footer {
+      margin-top: 32px;
+      font-size: 12px;
+      color: var(--neutral-500);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      background: var(--neutral-900);
+      color: var(--neutral-0);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 150ms ease, transform 150ms ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    /* Color tiles section */
+    .button-samples {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .button-sample {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--neutral-200);
+    }
+
+    .button-sample-preview {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      text-align: center;
+    }
+
+    .button-sample-preview h3 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .button-sample-preview p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .button-sample-preview .sample-btn {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .button-sample-meta {
+      padding: 12px 16px;
+      background: var(--neutral-50);
+      border-top: 1px solid var(--neutral-200);
+    }
+
+    .button-sample-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--neutral-800);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>Color Palette</h1>
+    <p class="subtitle">Brand colors using Tailwind CSS defaults. Click any swatch to copy the hex value.</p>
+    
+    <div class="controls">
+      <label class="control">
+        <input type="checkbox" id="includeHash" checked />
+        <span>Include # when copying</span>
+      </label>
+    </div>
+
+    <div class="cards">
+      <div class="card" id="brandPrimaryCard">
+        <h2>Primary · Indigo (50 → 950)</h2>
+        <div class="section">
+          <div class="swatches" id="brandPrimary"></div>
+        </div>
+      </div>
+
+      <div class="card" id="brandSecondaryCard">
+        <h2>Secondary · Amber (50 → 950)</h2>
+        <div class="section">
+          <div class="swatches" id="brandSecondary"></div>
+        </div>
+      </div>
+
+      <div class="card" id="brandTertiaryCard">
+        <h2>Tertiary · Cyan (50 → 950)</h2>
+        <div class="section">
+          <div class="swatches" id="brandTertiary"></div>
+        </div>
+      </div>
+
+      <div class="card" id="neutralsCard">
+        <h2>Neutrals · Slate (Light → Dark)</h2>
+        <div class="section">
+          <div class="swatches" id="neutrals"></div>
+        </div>
+      </div>
+
+      <div class="card" id="buttonSamplesCard">
+        <h2>Color Tiles</h2>
+        <div class="section">
+          <div class="button-samples" id="buttonSamples"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>Rule of thumb: use 500 for defaults, lighter shades for surfaces, darker shades for hover, focus, and emphasis.</footer>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const ramps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+
+    const includeHashControl = document.getElementById("includeHash");
+    let includeHash = includeHashControl?.checked ?? true;
+    const toastEl = document.getElementById("toast");
+    let toastTimer = null;
+
+    function cssVar(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function swatchHTML(tokenName, value) {
+      const safeValue = value || "";
+      const label = tokenName.replace(/^--/, "");
+      const numberMatch = label.match(/\d+$/);
+      const displayLabel = numberMatch ? numberMatch[0] : label;
+      
+      return `
+        <div class="swatch" data-hex="${safeValue}" data-token="${label}" tabindex="0" aria-label="Copy ${label} (${safeValue})">
+          <div class="color" style="background: var(${tokenName});"></div>
+          <div class="meta">
+            <span class="token">${displayLabel}</span>
+            <span class="hex">${safeValue}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderRamp(containerId, prefix, stops = ramps) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = stops
+        .map(s => {
+          const token = `--${prefix}-${s}`;
+          return swatchHTML(token, cssVar(token));
+        })
+        .join("");
+    }
+
+    function renderList(containerId, tokens) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = tokens
+        .map(t => swatchHTML(t, cssVar(t)))
+        .join("");
+    }
+
+    function renderAll() {
+      renderRamp("brandPrimary", "brand-primary", ramps);
+      renderRamp("brandSecondary", "brand-secondary", ramps);
+      renderRamp("brandTertiary", "brand-tertiary", ramps);
+      const neutralTokens = ramps.map(stop => `--neutral-${stop}`);
+      renderList("neutrals", neutralTokens);
+    }
+
+    function copyHexToClipboard(hex) {
+      if (!hex) return;
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(hex).catch(() => legacyCopy(hex));
+      } else {
+        legacyCopy(hex);
+      }
+    }
+
+    function legacyCopy(hex) {
+      const textarea = document.createElement("textarea");
+      textarea.value = hex;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+
+    function formatHexForCopy(hex) {
+      const value = (hex || "").trim();
+      if (!value) return "";
+      const normalized = value.startsWith("#") ? value.slice(1) : value;
+      return includeHash ? `#${normalized}` : normalized;
+    }
+
+    function handleSwatchCopy(target) {
+      const swatch = target.closest(".swatch");
+      if (!swatch) return;
+      const value = formatHexForCopy(swatch.dataset.hex);
+      copyHexToClipboard(value);
+      showToast(`Copied ${value}`);
+    }
+
+    document.addEventListener("click", event => {
+      handleSwatchCopy(event.target);
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const swatch = event.target.closest(".swatch");
+      if (!swatch) return;
+      event.preventDefault();
+      handleSwatchCopy(swatch);
+    });
+
+    includeHashControl?.addEventListener("change", () => {
+      includeHash = includeHashControl.checked;
+    });
+
+    function showToast(message) {
+      if (!toastEl) return;
+      toastEl.textContent = message;
+      toastEl.classList.add("show");
+      if (toastTimer) {
+        clearTimeout(toastTimer);
+      }
+      toastTimer = setTimeout(() => {
+        toastEl.classList.remove("show");
+      }, 1500);
+    }
+
+    // Color tiles
+    const colorTiles = [
+      {
+        name: 'Primary Light',
+        bg: '--brand-primary-50',
+        text: '--brand-primary-900',
+        body: '--brand-primary-700',
+        btnBg: '--brand-primary-500',
+        btnText: '--neutral-0'
+      },
+      {
+        name: 'Primary Dark',
+        bg: '--brand-primary-900',
+        text: '--brand-primary-100',
+        body: '--brand-primary-200',
+        btnBg: '--brand-primary-500',
+        btnText: '--neutral-0'
+      },
+      {
+        name: 'Secondary Light',
+        bg: '--brand-secondary-50',
+        text: '--brand-secondary-900',
+        body: '--brand-secondary-700',
+        btnBg: '--brand-secondary-500',
+        btnText: '--neutral-900'
+      },
+      {
+        name: 'Secondary Dark',
+        bg: '--brand-secondary-900',
+        text: '--brand-secondary-100',
+        body: '--brand-secondary-200',
+        btnBg: '--brand-secondary-500',
+        btnText: '--neutral-900'
+      },
+      {
+        name: 'Tertiary Light',
+        bg: '--brand-tertiary-50',
+        text: '--brand-tertiary-900',
+        body: '--brand-tertiary-700',
+        btnBg: '--brand-tertiary-500',
+        btnText: '--neutral-0'
+      },
+      {
+        name: 'Neutral Light',
+        bg: '--neutral-50',
+        text: '--neutral-900',
+        body: '--neutral-600',
+        btnBg: '--neutral-900',
+        btnText: '--neutral-0'
+      },
+    ];
+
+    function renderColorTiles() {
+      const container = document.getElementById('buttonSamples');
+      if (!container) return;
+
+      container.innerHTML = colorTiles.map(tile => `
+        <div class="button-sample">
+          <div class="button-sample-preview" style="background: var(${tile.bg});">
+            <h3 style="color: var(${tile.text});">Heading</h3>
+            <p style="color: var(${tile.body});">Body text demonstrates readability with this color combination.</p>
+            <button class="sample-btn" style="background: var(${tile.btnBg}); color: var(${tile.btnText});">
+              Button
+            </button>
+          </div>
+          <div class="button-sample-meta">
+            <div class="button-sample-title">${tile.name}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    renderAll();
+    renderColorTiles();
+  </script>
+  <script src="sidebar-nav.js"></script>
+</body>
+</html>

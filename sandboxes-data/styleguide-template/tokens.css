@@ -1,0 +1,98 @@
+/**
+ * Design Tokens
+ * Shared design system variables for the styleguide
+ * Using Tailwind CSS default color scales
+ * 
+ * TO CUSTOMIZE: Replace these color values with your brand colors
+ */
+
+:root {
+  /* =====================================================
+     FONTS
+  ===================================================== */
+  --font-family-display: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+  /* =====================================================
+     BRAND – PRIMARY (Tailwind Indigo)
+     Replace with your primary brand color
+  ===================================================== */
+  --brand-primary-50:  #EEF2FF;
+  --brand-primary-100: #E0E7FF;
+  --brand-primary-200: #C7D2FE;
+  --brand-primary-300: #A5B4FC;
+  --brand-primary-400: #818CF8;
+  --brand-primary-500: #6366F1;
+  --brand-primary-600: #4F46E5;
+  --brand-primary-700: #4338CA;
+  --brand-primary-800: #3730A3;
+  --brand-primary-900: #312E81;
+  --brand-primary-950: #1E1B4B;
+
+  /* =====================================================
+     BRAND – SECONDARY (Tailwind Amber)
+     Replace with your secondary brand color
+  ===================================================== */
+  --brand-secondary-50:  #FFFBEB;
+  --brand-secondary-100: #FEF3C7;
+  --brand-secondary-200: #FDE68A;
+  --brand-secondary-300: #FCD34D;
+  --brand-secondary-400: #FBBF24;
+  --brand-secondary-500: #F59E0B;
+  --brand-secondary-600: #D97706;
+  --brand-secondary-700: #B45309;
+  --brand-secondary-800: #92400E;
+  --brand-secondary-900: #78350F;
+  --brand-secondary-950: #451A03;
+
+  /* =====================================================
+     BRAND – TERTIARY (Tailwind Cyan)
+     Replace with your tertiary/accent brand color
+  ===================================================== */
+  --brand-tertiary-50:  #ECFEFF;
+  --brand-tertiary-100: #CFFAFE;
+  --brand-tertiary-200: #A5F3FC;
+  --brand-tertiary-300: #67E8F9;
+  --brand-tertiary-400: #22D3EE;
+  --brand-tertiary-500: #06B6D4;
+  --brand-tertiary-600: #0891B2;
+  --brand-tertiary-700: #0E7490;
+  --brand-tertiary-800: #155E75;
+  --brand-tertiary-900: #164E63;
+  --brand-tertiary-950: #083344;
+
+  /* =====================================================
+     NEUTRALS (Tailwind Slate)
+  ===================================================== */
+  --neutral-0:   #FFFFFF;
+  --neutral-50:  #F8FAFC;
+  --neutral-100: #F1F5F9;
+  --neutral-200: #E2E8F0;
+  --neutral-300: #CBD5E1;
+  --neutral-400: #94A3B8;
+  --neutral-500: #64748B;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1E293B;
+  --neutral-900: #0F172A;
+  --neutral-950: #020617;
+
+  /* =====================================================
+     UI STATES
+  ===================================================== */
+  --success-primary:   #10B981;
+  --success-secondary: #07533A;
+
+  --fail-primary:      #EF4444;
+  --fail-secondary:    #7F1D1D;
+
+  /* =====================================================
+     COMMON STYLES
+  ===================================================== */
+  --radius: 12px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+  --shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
+}

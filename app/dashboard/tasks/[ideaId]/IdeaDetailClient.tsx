@@ -81,6 +81,7 @@ type SortableTaskItemProps = {
   subtasks: Task[];
   isEditing: boolean;
   isEditingNote: boolean;
+  editingTaskId: string | null;
   editingTaskName: string;
   editingNoteText: string;
   addingSubtaskTo: string | null;
@@ -108,6 +109,7 @@ function SortableTaskItem({
   subtasks,
   isEditing,
   isEditingNote,
+  editingTaskId,
   editingTaskName,
   editingNoteText,
   addingSubtaskTo,
@@ -247,43 +249,50 @@ function SortableTaskItem({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={() => onToggleNowFocus(task)}
-            className={`p-1.5 rounded transition ${
+            className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
               task.focus === "now"
-                ? "text-red-500"
-                : "opacity-30 hover:opacity-70"
+                ? "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
+                : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10 hover:text-black/70 dark:hover:text-white/70"
             }`}
             title={task.focus === "now" ? "Remove focus" : "Focus now"}
           >
             🔥
+            <span className="text-xs">{task.focus === "now" ? "Focus" : ""}</span>
           </button>
           <button
             onClick={() => onToggleFocus(task)}
-            className={`p-1.5 rounded transition ${
+            className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
               task.focus === "today"
-                ? "text-amber-500"
-                : "opacity-30 hover:opacity-70"
+                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10 hover:text-black/70 dark:hover:text-white/70"
             }`}
             title={task.focus === "today" ? "Remove from Today" : "Add to Today"}
           >
             ☀️
+            <span className="text-xs">{task.focus === "today" ? "Today" : ""}</span>
           </button>
           <button
             onClick={() => onSetMilestoneModal(task)}
-            className={`p-1.5 rounded transition ${
+            className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
               task.milestone_id
-                ? "text-purple-500"
-                : "opacity-30 hover:opacity-70"
+                ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30"
+                : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10 hover:text-black/70 dark:hover:text-white/70"
             }`}
             title="Set milestone"
           >
             🎯
+            <span className="text-xs">{task.milestone_id ? "Set" : ""}</span>
           </button>
           <button
             onClick={() => onSetAddingSubtask(addingSubtaskTo === task.id ? null : task.id)}
-            className="p-1.5 rounded opacity-30 hover:opacity-70 transition"
+            className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
+              addingSubtaskTo === task.id
+                ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30"
+                : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10 hover:text-black/70 dark:hover:text-white/70"
+            }`}
             title="Add subtask"
           >
             ➕
@@ -292,7 +301,7 @@ function SortableTaskItem({
             onClick={() => {
               if (confirm("Delete this task?")) onDelete(task);
             }}
-            className="p-1.5 rounded opacity-30 hover:opacity-70 hover:text-red-500 transition"
+            className="px-2 py-1 rounded-md text-sm font-medium transition bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500/30"
             title="Delete"
           >
             🗑️
@@ -320,19 +329,41 @@ function SortableTaskItem({
               >
                 {sub.completed && "✓"}
               </button>
-              <span
-                onClick={() => onEditTaskName(sub)}
-                className={`flex-1 text-sm cursor-text ${sub.completed ? "line-through" : ""}`}
-              >
-                {sub.name}
-              </span>
+              {editingTaskId === sub.id ? (
+                <input
+                  type="text"
+                  value={editingTaskName}
+                  onChange={(e) => onEditingTaskNameChange(e.target.value)}
+                  onBlur={() => onUpdateTaskName(sub)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      onUpdateTaskName(sub);
+                    }
+                    if (e.key === "Escape") {
+                      onCancelEditTask();
+                    }
+                  }}
+                  className="flex-1 px-2 py-0.5 text-sm border border-blue-500 rounded bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+              ) : (
+                <span
+                  onClick={() => onEditTaskName(sub)}
+                  className={`flex-1 text-sm cursor-text hover:bg-black/5 dark:hover:bg-white/5 px-1 rounded ${sub.completed ? "line-through" : ""}`}
+                  title="Click to edit"
+                >
+                  {sub.name}
+                </span>
+              )}
               <button
                 onClick={() => onToggleFocus(sub)}
-                className={`text-sm transition ${
+                className={`px-1.5 py-0.5 rounded text-xs transition ${
                   sub.focus === "today"
-                    ? "text-amber-500"
-                    : "opacity-30 hover:opacity-70"
+                    ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                    : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10"
                 }`}
+                title={sub.focus === "today" ? "Remove from Today" : "Add to Today"}
               >
                 ☀️
               </button>
@@ -543,10 +574,16 @@ export default function IdeaDetailClient({ ideaId }: Props) {
 
       if (!res.ok) throw new Error("Failed to update");
 
+      // Also clear "now" focus when completing
       setTasks((prev) =>
         prev.map((t) =>
           t.id === task.id
-            ? { ...t, completed: !t.completed, completed_at: !t.completed ? new Date().toISOString() : null }
+            ? { 
+                ...t, 
+                completed: !t.completed, 
+                completed_at: !t.completed ? new Date().toISOString() : null,
+                focus: (!t.completed && t.focus === "now") ? "" : t.focus
+              }
             : t
         )
       );
@@ -1260,6 +1297,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
                     subtasks={getSubtasks(task.id)}
                     isEditing={editingTaskId === task.id}
                     isEditingNote={editingNoteId === task.id}
+                    editingTaskId={editingTaskId}
                     editingTaskName={editingTaskName}
                     editingNoteText={editingNoteText}
                     addingSubtaskTo={addingSubtaskTo}

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brand Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <style>
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 960px;
+      margin: auto;
+      padding: 32px 16px 64px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .logo {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 20px;
+      object-fit: contain;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: var(--font-family-sans);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--neutral-900);
+    }
+
+    .subtitle {
+      font-family: var(--font-family-sans);
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--neutral-600);
+      margin: 0 0 28px;
+      line-height: 1.5;
+    }
+
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .nav-card {
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
+    }
+
+    .nav-card:hover {
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .nav-card:active {
+      transform: translateY(0);
+    }
+
+    .nav-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .nav-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--neutral-900);
+    }
+
+    .nav-desc {
+      margin: 0;
+      font-size: 14px;
+      color: var(--neutral-500);
+      line-height: 1.5;
+    }
+
+    .nav-arrow {
+      margin-top: auto;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--brand-primary-500);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .nav-arrow svg {
+      width: 14px;
+      height: 14px;
+      transition: transform 150ms ease;
+    }
+
+    .nav-card:hover .nav-arrow svg {
+      transform: translateX(3px);
+    }
+
+    .footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--neutral-200);
+      text-align: center;
+      font-size: 13px;
+      color: var(--neutral-400);
+    }
+
+    .footer a {
+      color: var(--neutral-500);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      color: var(--brand-primary-500);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="header">
+      <!-- TODO: Replace with your brand logo -->
+      <img src="images/logo-placeholder.png" alt="Brand logo" class="logo" />
+      <h1>Brand Styleguide</h1>
+      <p class="subtitle">Visual identity guidelines, assets, and design tokens.</p>
+    </header>
+
+    <nav class="nav-grid">
+      <a href="colors.html" class="nav-card">
+        <div class="nav-icon">🎨</div>
+        <h2 class="nav-title">Colors</h2>
+        <p class="nav-desc">Brand palette, color pairings, contrast ratios, and button samples.</p>
+        <span class="nav-arrow">
+          View colors
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+
+      <a href="fonts.html" class="nav-card">
+        <div class="nav-icon">🔤</div>
+        <h2 class="nav-title">Typography</h2>
+        <p class="nav-desc">Type scale, font families, weights, and usage guidelines.</p>
+        <span class="nav-arrow">
+          View typography
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+
+      <a href="logo-style.html" class="nav-card">
+        <div class="nav-icon">🏷️</div>
+        <h2 class="nav-title">Logo</h2>
+        <p class="nav-desc">Brand marks, color variants, and downloadable assets.</p>
+        <span class="nav-arrow">
+          View logos
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+
+      <a href="image-style.html" class="nav-card">
+        <div class="nav-icon">🖼️</div>
+        <h2 class="nav-title">Image Style</h2>
+        <p class="nav-desc">Creative direction, photography examples, and style guidelines.</p>
+        <span class="nav-arrow">
+          View image style
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+
+      <a href="style-tiles.html" class="nav-card">
+        <div class="nav-icon">📱</div>
+        <h2 class="nav-title">Style Tiles</h2>
+        <p class="nav-desc">Layout mockups showing brand elements in context.</p>
+        <span class="nav-arrow">
+          View tiles
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+
+      <a href="profiles.html" class="nav-card">
+        <div class="nav-icon">👤</div>
+        <h2 class="nav-title">User Profiles</h2>
+        <p class="nav-desc">Target personas with goals, pain points, and behaviors.</p>
+        <span class="nav-arrow">
+          View profiles
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+
+      <a href="user-journey.html" class="nav-card">
+        <div class="nav-icon">🗺️</div>
+        <h2 class="nav-title">User Journey</h2>
+        <p class="nav-desc">User journey stages, touchpoints, and experience mapping.</p>
+        <span class="nav-arrow">
+          View journey
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+
+      <a href="changelog.html" class="nav-card">
+        <div class="nav-icon">📋</div>
+        <h2 class="nav-title">Changelog</h2>
+        <p class="nav-desc">History of updates and changes to the brand styleguide.</p>
+        <span class="nav-arrow">
+          View changelog
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+    </nav>
+
+    <footer class="footer">
+      <!-- TODO: Replace with your brand name -->
+      <p>Brand Styleguide Template</p>
+    </footer>
+  </div>
+</body>
+</html>

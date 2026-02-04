@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Changelog – Brand Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="sidebar-nav.css" />
+  <style>
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 900px;
+      margin: auto;
+      padding: 32px 16px 64px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: var(--font-family-sans);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-family: var(--font-family-sans);
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--neutral-600);
+      margin: 0 0 28px;
+      line-height: 1.5;
+    }
+
+    .changelog-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .changelog-entry {
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .changelog-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--neutral-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .changelog-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--neutral-900);
+    }
+
+    .changelog-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    .changelog-version {
+      padding: 4px 10px;
+      background: var(--brand-primary-100);
+      color: var(--brand-primary-800);
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .changelog-date {
+      color: var(--neutral-500);
+    }
+
+    .changelog-body {
+      padding: 16px 20px;
+    }
+
+    .changelog-changes {
+      margin: 0;
+      padding: 0 0 0 20px;
+      list-style: disc;
+    }
+
+    .changelog-changes li {
+      font-size: 14px;
+      color: var(--neutral-700);
+      line-height: 1.6;
+      margin-bottom: 6px;
+    }
+
+    .changelog-changes li:last-child {
+      margin-bottom: 0;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--neutral-500);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Changelog</h1>
+    <p class="subtitle">History of updates and changes to the brand styleguide.</p>
+
+    <div id="changelogList" class="changelog-list">
+      <div class="loading">Loading changelog...</div>
+    </div>
+  </div>
+
+  <script>
+    async function loadChangelog() {
+      const container = document.getElementById('changelogList');
+      
+      try {
+        const response = await fetch('changelog.json');
+        if (!response.ok) throw new Error('Failed to load changelog');
+        
+        const data = await response.json();
+        const entries = data.entries || [];
+
+        if (entries.length === 0) {
+          container.innerHTML = '<div class="loading">No changelog entries yet.</div>';
+          return;
+        }
+
+        container.innerHTML = entries.map(entry => `
+          <article class="changelog-entry">
+            <header class="changelog-header">
+              <h2 class="changelog-title">${entry.title}</h2>
+              <div class="changelog-meta">
+                <span class="changelog-version">v${entry.version}</span>
+                <span class="changelog-date">${formatDate(entry.date)}</span>
+              </div>
+            </header>
+            <div class="changelog-body">
+              <ul class="changelog-changes">
+                ${entry.changes.map(change => `<li>${change}</li>`).join('')}
+              </ul>
+            </div>
+          </article>
+        `).join('');
+
+      } catch (error) {
+        console.error('Error loading changelog:', error);
+        container.innerHTML = '<div class="loading">Failed to load changelog.</div>';
+      }
+    }
+
+    function formatDate(dateStr) {
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+      } catch {
+        return dateStr;
+      }
+    }
+
+    loadChangelog();
+  </script>
+  <script src="sidebar-nav.js"></script>
+</body>
+</html>

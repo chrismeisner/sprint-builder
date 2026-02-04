@@ -191,10 +191,16 @@ export default function TodayClient() {
 
       if (!res.ok) throw new Error("Failed to update");
 
+      // Also clear "now" focus when completing
       setTasks((prev) =>
         prev.map((t) =>
           t.id === task.id
-            ? { ...t, completed: !t.completed, completed_at: !t.completed ? new Date().toISOString() : null }
+            ? { 
+                ...t, 
+                completed: !t.completed, 
+                completed_at: !t.completed ? new Date().toISOString() : null,
+                focus: (!t.completed && t.focus === "now") ? "today" : t.focus // Keep on Today list but remove "now"
+              }
             : t
         )
       );

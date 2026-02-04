@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>User Profiles – Brand Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="sidebar-nav.css" />
+  <style>
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: auto;
+      padding: 32px 16px 64px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: var(--font-family-sans);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-family: var(--font-family-sans);
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--neutral-600);
+      margin: 0 0 32px;
+      line-height: 1.5;
+    }
+
+    /* Placeholder Note */
+    .placeholder-note {
+      padding: 16px 20px;
+      background: var(--brand-primary-50);
+      border: 1px dashed var(--brand-primary-300);
+      border-radius: 10px;
+      margin-bottom: 24px;
+    }
+
+    .placeholder-note h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--brand-primary-800);
+    }
+
+    .placeholder-note p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--brand-primary-700);
+      line-height: 1.6;
+    }
+
+    .placeholder-note code {
+      background: var(--brand-primary-100);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-family-mono, monospace);
+      font-size: 12px;
+    }
+
+    /* Profiles Grid */
+    .profiles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 24px;
+    }
+
+    @media (max-width: 440px) {
+      .profiles-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Profile Card */
+    .profile-card {
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Profile Header */
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 24px;
+      background: linear-gradient(135deg, var(--brand-primary-50) 0%, var(--neutral-50) 100%);
+      border-bottom: 1px solid var(--neutral-100);
+    }
+
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--neutral-200);
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 3px solid var(--neutral-0);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .profile-avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      background: var(--brand-primary-100);
+      color: var(--brand-primary-600);
+    }
+
+    .profile-identity {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .profile-name {
+      margin: 0 0 4px;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--neutral-900);
+    }
+
+    .profile-role {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--brand-primary-600);
+    }
+
+    .profile-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .profile-tag {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: var(--neutral-100);
+      color: var(--neutral-600);
+    }
+
+    /* Profile Quote */
+    .profile-quote {
+      padding: 20px 24px;
+      background: var(--neutral-50);
+      border-bottom: 1px solid var(--neutral-100);
+    }
+
+    .profile-quote blockquote {
+      margin: 0;
+      font-size: 15px;
+      font-style: italic;
+      line-height: 1.5;
+      color: var(--neutral-700);
+      position: relative;
+      padding-left: 20px;
+    }
+
+    .profile-quote blockquote::before {
+      content: '"';
+      position: absolute;
+      left: 0;
+      top: -4px;
+      font-size: 28px;
+      font-style: normal;
+      color: var(--brand-primary-300);
+      font-family: Georgia, serif;
+    }
+
+    /* Profile Body */
+    .profile-body {
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      flex: 1;
+    }
+
+    .profile-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .profile-section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .profile-section-icon {
+      font-size: 16px;
+    }
+
+    .profile-section-title {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--neutral-500);
+    }
+
+    .profile-section-content {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--neutral-700);
+    }
+
+    .profile-section-content ul {
+      margin: 0;
+      padding: 0 0 0 18px;
+    }
+
+    .profile-section-content li {
+      margin-bottom: 4px;
+    }
+
+    .profile-section-content li:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Goals & Pain Points - colored callouts */
+    .profile-goals {
+      padding: 12px 14px;
+      background: var(--brand-secondary-50, #f0fdf4);
+      border: 1px solid var(--brand-secondary-200, #bbf7d0);
+      border-radius: 8px;
+    }
+
+    .profile-goals .profile-section-title {
+      color: var(--brand-secondary-700, #15803d);
+    }
+
+    .profile-goals .profile-section-content {
+      color: var(--brand-secondary-800, #166534);
+    }
+
+    .profile-pains {
+      padding: 12px 14px;
+      background: var(--brand-tertiary-50, #fef2f2);
+      border: 1px solid var(--brand-tertiary-200, #fecaca);
+      border-radius: 8px;
+    }
+
+    .profile-pains .profile-section-title {
+      color: var(--brand-tertiary-700, #b91c1c);
+    }
+
+    .profile-pains .profile-section-content {
+      color: var(--brand-tertiary-800, #991b1b);
+    }
+
+    /* Profile Footer - Journey Stages */
+    .profile-footer {
+      padding: 16px 24px;
+      background: var(--neutral-50);
+      border-top: 1px solid var(--neutral-100);
+    }
+
+    .journey-connection {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .journey-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--neutral-500);
+    }
+
+    .journey-stages {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .journey-stage-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--brand-primary-100);
+      color: var(--brand-primary-700);
+    }
+
+    /* Demographics Grid */
+    .demographics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px 16px;
+    }
+
+    .demographic-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .demographic-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--neutral-400);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .demographic-value {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--neutral-800);
+    }
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>User Profiles</h1>
+    <p class="subtitle">Target user personas that guide product decisions and inform the user journey.</p>
+
+    <div class="placeholder-note">
+      <h3>👤 Customize your personas</h3>
+      <p>
+        Edit the <code>PERSONAS</code> array in <code>personas-data.js</code> to define your target users.
+        This data is shared with the <a href="user-journey.html">User Journey</a> page for filtering.
+        Good personas are based on real user research, not assumptions. Start with 2-3 primary personas.
+      </p>
+    </div>
+
+    <div id="profilesGrid" class="profiles-grid"></div>
+  </div>
+
+  <script src="sidebar-nav.js"></script>
+  <script src="personas-data.js"></script>
+  <script>
+    // ============================================
+    // RENDERING LOGIC
+    // Persona data is loaded from personas-data.js
+    // ============================================
+    const personas = PERSONAS;
+
+    function renderPersonas() {
+      const grid = document.getElementById('profilesGrid');
+      if (!grid) return;
+
+      grid.innerHTML = personas.map(persona => `
+        <article class="profile-card">
+          <div class="profile-header">
+            <div class="profile-avatar">
+              ${persona.avatar 
+                ? `<img src="${persona.avatar}" alt="${persona.name}" />`
+                : `<div class="profile-avatar-placeholder">${persona.emoji || '👤'}</div>`
+              }
+            </div>
+            <div class="profile-identity">
+              <h2 class="profile-name">${persona.name}</h2>
+              <p class="profile-role">${persona.role}</p>
+              <div class="profile-tags">
+                ${persona.tags.map(tag => `<span class="profile-tag">${tag}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-quote">
+            <blockquote>${persona.quote}</blockquote>
+          </div>
+
+          <div class="profile-body">
+            <div class="profile-section">
+              <div class="profile-section-header">
+                <span class="profile-section-icon">📊</span>
+                <h3 class="profile-section-title">Demographics</h3>
+              </div>
+              <div class="profile-section-content">
+                <div class="demographics">
+                  <div class="demographic-item">
+                    <span class="demographic-label">Age</span>
+                    <span class="demographic-value">${persona.demographics.age}</span>
+                  </div>
+                  <div class="demographic-item">
+                    <span class="demographic-label">Location</span>
+                    <span class="demographic-value">${persona.demographics.location}</span>
+                  </div>
+                  <div class="demographic-item">
+                    <span class="demographic-label">Tech Level</span>
+                    <span class="demographic-value">${persona.demographics.techLevel}</span>
+                  </div>
+                  <div class="demographic-item">
+                    <span class="demographic-label">Budget</span>
+                    <span class="demographic-value">${persona.demographics.budget}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-section profile-goals">
+              <div class="profile-section-header">
+                <span class="profile-section-icon">🎯</span>
+                <h3 class="profile-section-title">Goals</h3>
+              </div>
+              <div class="profile-section-content">
+                <ul>
+                  ${persona.goals.map(goal => `<li>${goal}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+
+            <div class="profile-section profile-pains">
+              <div class="profile-section-header">
+                <span class="profile-section-icon">😤</span>
+                <h3 class="profile-section-title">Pain Points</h3>
+              </div>
+              <div class="profile-section-content">
+                <ul>
+                  ${persona.painPoints.map(pain => `<li>${pain}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+
+            <div class="profile-section">
+              <div class="profile-section-header">
+                <span class="profile-section-icon">🔄</span>
+                <h3 class="profile-section-title">Behaviors</h3>
+              </div>
+              <div class="profile-section-content">
+                <ul>
+                  ${persona.behaviors.map(behavior => `<li>${behavior}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-footer">
+            <div class="journey-connection">
+              <span class="journey-label">Key Journey Stages:</span>
+              <div class="journey-stages">
+                ${persona.journeyStages.map(stage => `<span class="journey-stage-tag">${stage}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    // Initialize
+    renderPersonas();
+  </script>
+</body>
+</html>

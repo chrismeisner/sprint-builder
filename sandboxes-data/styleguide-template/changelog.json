@@ -1,0 +1,16 @@
+{
+  "entries": [
+    {
+      "version": "1.0.0",
+      "date": "2024-01-01",
+      "title": "Initial styleguide",
+      "changes": [
+        "Created brand styleguide template",
+        "Added color palette with Tailwind defaults",
+        "Added typography scale using Inter",
+        "Added logo and image style pages",
+        "Added style tiles for visual reference"
+      ]
+    }
+  ]
+}

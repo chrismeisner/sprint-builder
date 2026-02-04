@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Style Tiles – Brand Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="sidebar-nav.css" />
+  <style>
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: auto;
+      padding: 32px 16px 64px;
+    }
+
+    /* Page Header */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .page-header-content h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .page-header-content .subtitle {
+      font-size: 15px;
+      color: var(--neutral-600);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .control-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--neutral-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .control-select {
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--neutral-300);
+      border-radius: 8px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      cursor: pointer;
+      transition: border-color 150ms ease;
+    }
+
+    .control-select:hover {
+      border-color: var(--brand-primary-500);
+    }
+
+    .control-select:focus {
+      outline: none;
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 0 0 3px var(--brand-primary-100);
+    }
+
+    .toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--neutral-300);
+      border-radius: 8px;
+      background: var(--neutral-0);
+      color: var(--neutral-700);
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .toggle-btn:hover {
+      border-color: var(--brand-primary-500);
+    }
+
+    .toggle-btn.active {
+      background: var(--brand-primary-50);
+      border-color: var(--brand-primary-500);
+      color: var(--brand-primary-700);
+    }
+
+    .toggle-indicator {
+      width: 32px;
+      height: 18px;
+      border-radius: 9px;
+      background: var(--neutral-300);
+      position: relative;
+      transition: background 150ms ease;
+    }
+
+    .toggle-indicator::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: transform 150ms ease;
+    }
+
+    .toggle-btn.active .toggle-indicator {
+      background: var(--brand-primary-500);
+    }
+
+    .toggle-btn.active .toggle-indicator::after {
+      transform: translateX(14px);
+    }
+
+    /* Tiles Container */
+    #tilesContainer {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      transition: background-color 300ms ease;
+    }
+
+    /* Individual Tiles */
+    .tile {
+      position: relative;
+      padding: 60px 40px;
+      transition: background-color 300ms ease, color 300ms ease;
+    }
+
+    @media (max-width: 768px) {
+      .tile {
+        padding: 40px 20px;
+      }
+    }
+
+    .tile-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ========================================
+       TILE: Hero
+    ======================================== */
+    .tile-hero {
+      background: var(--tile-bg, var(--brand-primary-50));
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+    }
+
+    .hero-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .hero-logo {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+    }
+
+    .hero-eyebrow {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--tile-accent, var(--brand-primary-600));
+    }
+
+    .hero-title {
+      margin: 0;
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      color: var(--tile-heading, var(--brand-primary-900));
+    }
+
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 36px;
+      }
+    }
+
+    .hero-body {
+      font-size: 18px;
+      line-height: 1.6;
+      color: var(--tile-body, var(--brand-primary-700));
+      margin: 0;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-self: flex-start;
+      padding: 14px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      background: var(--tile-btn-bg, var(--brand-primary-500));
+      color: var(--tile-btn-text, var(--neutral-0));
+      cursor: pointer;
+      transition: background 150ms ease, transform 100ms ease;
+      text-decoration: none;
+    }
+
+    .hero-cta:hover {
+      background: var(--tile-btn-hover, var(--brand-primary-600));
+    }
+
+    .hero-cta:active {
+      transform: translateY(1px);
+    }
+
+    .hero-image {
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      background: var(--neutral-200);
+    }
+
+    .hero-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* ========================================
+       TILE: Features / Cards
+    ======================================== */
+    .tile-features {
+      background: var(--tile-bg, var(--neutral-0));
+    }
+
+    .features-header {
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 48px;
+    }
+
+    .features-eyebrow {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--tile-accent, var(--brand-primary-500));
+      margin-bottom: 12px;
+    }
+
+    .features-title {
+      margin: 0 0 16px;
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--tile-heading, var(--neutral-900));
+    }
+
+    .features-subtitle {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--tile-body, var(--neutral-600));
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .feature-card {
+      background: var(--card-bg, var(--neutral-50));
+      border: 1px solid var(--card-border, var(--neutral-200));
+      border-radius: 12px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      background: var(--tile-accent-bg, var(--brand-primary-100));
+      color: var(--tile-accent, var(--brand-primary-600));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .feature-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--tile-heading, var(--neutral-900));
+    }
+
+    .feature-desc {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--tile-body, var(--neutral-600));
+    }
+
+    .feature-link {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--tile-accent, var(--brand-primary-600));
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: auto;
+    }
+
+    .feature-link:hover {
+      text-decoration: underline;
+    }
+
+    /* ========================================
+       TILE: CTA / Footer
+    ======================================== */
+    .tile-cta {
+      background: var(--tile-bg, var(--brand-primary-600));
+      text-align: center;
+    }
+
+    .cta-content {
+      max-width: 500px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .cta-title {
+      margin: 0;
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--tile-heading, var(--neutral-0));
+    }
+
+    .cta-body {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--tile-body, var(--brand-primary-100));
+    }
+
+    .cta-form {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    @media (max-width: 500px) {
+      .cta-form {
+        flex-direction: column;
+      }
+    }
+
+    .cta-input {
+      flex: 1;
+      padding: 14px 16px;
+      font-size: 15px;
+      border: none;
+      border-radius: 8px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+    }
+
+    .cta-input::placeholder {
+      color: var(--neutral-400);
+    }
+
+    .cta-btn {
+      padding: 14px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      background: var(--tile-btn-bg, var(--brand-primary-800));
+      color: var(--tile-btn-text, var(--neutral-0));
+      cursor: pointer;
+      transition: background 150ms ease;
+      white-space: nowrap;
+    }
+
+    .cta-btn:hover {
+      background: var(--tile-btn-hover, var(--brand-primary-900));
+    }
+
+    /* ========================================
+       THEME VARIATIONS
+    ======================================== */
+    
+    /* Light themes use CSS variables from tokens */
+    
+    /* Dark theme base */
+    #tilesContainer.theme-dark {
+      --neutral-0: #1f2937;
+      --neutral-50: #111827;
+      --neutral-100: #1f2937;
+      --neutral-200: #374151;
+      --neutral-600: #d1d5db;
+      --neutral-700: #e5e7eb;
+      --neutral-900: #f9fafb;
+    }
+
+    /* Primary Light (default) */
+    #tilesContainer.theme-primary-light .tile-hero {
+      --tile-bg: var(--brand-primary-50);
+      --tile-accent: var(--brand-primary-600);
+      --tile-heading: var(--brand-primary-900);
+      --tile-body: var(--brand-primary-700);
+      --tile-btn-bg: var(--brand-primary-500);
+      --tile-btn-hover: var(--brand-primary-600);
+      --tile-btn-text: var(--neutral-0);
+    }
+
+    #tilesContainer.theme-primary-light .tile-features {
+      --tile-bg: var(--neutral-0);
+      --tile-accent: var(--brand-primary-600);
+      --tile-accent-bg: var(--brand-primary-100);
+      --tile-heading: var(--neutral-900);
+      --tile-body: var(--neutral-600);
+      --card-bg: var(--neutral-50);
+      --card-border: var(--neutral-200);
+    }
+
+    #tilesContainer.theme-primary-light .tile-cta {
+      --tile-bg: var(--brand-primary-600);
+      --tile-heading: var(--neutral-0);
+      --tile-body: var(--brand-primary-100);
+      --tile-btn-bg: var(--brand-primary-800);
+      --tile-btn-hover: var(--brand-primary-900);
+      --tile-btn-text: var(--neutral-0);
+    }
+
+    /* Primary Dark */
+    #tilesContainer.theme-primary-dark .tile-hero {
+      --tile-bg: var(--brand-primary-900);
+      --tile-accent: var(--brand-primary-400);
+      --tile-heading: var(--brand-primary-100);
+      --tile-body: var(--brand-primary-200);
+      --tile-btn-bg: var(--brand-primary-500);
+      --tile-btn-hover: var(--brand-primary-400);
+      --tile-btn-text: var(--neutral-0);
+    }
+
+    #tilesContainer.theme-primary-dark .tile-features {
+      --tile-bg: var(--brand-primary-950, #0a1f0d);
+      --tile-accent: var(--brand-primary-400);
+      --tile-accent-bg: var(--brand-primary-800);
+      --tile-heading: var(--brand-primary-100);
+      --tile-body: var(--brand-primary-300);
+      --card-bg: var(--brand-primary-900);
+      --card-border: var(--brand-primary-800);
+    }
+
+    #tilesContainer.theme-primary-dark .tile-cta {
+      --tile-bg: var(--brand-primary-800);
+      --tile-heading: var(--brand-primary-100);
+      --tile-body: var(--brand-primary-200);
+      --tile-btn-bg: var(--brand-primary-500);
+      --tile-btn-hover: var(--brand-primary-400);
+      --tile-btn-text: var(--neutral-0);
+    }
+
+    /* Secondary Light */
+    #tilesContainer.theme-secondary-light .tile-hero {
+      --tile-bg: var(--brand-secondary-50);
+      --tile-accent: var(--brand-secondary-600);
+      --tile-heading: var(--brand-secondary-900);
+      --tile-body: var(--brand-secondary-700);
+      --tile-btn-bg: var(--brand-secondary-500);
+      --tile-btn-hover: var(--brand-secondary-600);
+      --tile-btn-text: var(--neutral-900);
+    }
+
+    #tilesContainer.theme-secondary-light .tile-features {
+      --tile-bg: var(--neutral-0);
+      --tile-accent: var(--brand-secondary-600);
+      --tile-accent-bg: var(--brand-secondary-100);
+      --tile-heading: var(--neutral-900);
+      --tile-body: var(--neutral-600);
+      --card-bg: var(--neutral-50);
+      --card-border: var(--neutral-200);
+    }
+
+    #tilesContainer.theme-secondary-light .tile-cta {
+      --tile-bg: var(--brand-secondary-500);
+      --tile-heading: var(--neutral-900);
+      --tile-body: var(--brand-secondary-800);
+      --tile-btn-bg: var(--brand-secondary-800);
+      --tile-btn-hover: var(--brand-secondary-900);
+      --tile-btn-text: var(--neutral-0);
+    }
+
+    /* Neutral Light */
+    #tilesContainer.theme-neutral-light .tile-hero {
+      --tile-bg: var(--neutral-100);
+      --tile-accent: var(--neutral-600);
+      --tile-heading: var(--neutral-900);
+      --tile-body: var(--neutral-700);
+      --tile-btn-bg: var(--neutral-900);
+      --tile-btn-hover: var(--neutral-800);
+      --tile-btn-text: var(--neutral-0);
+    }
+
+    #tilesContainer.theme-neutral-light .tile-features {
+      --tile-bg: var(--neutral-0);
+      --tile-accent: var(--neutral-700);
+      --tile-accent-bg: var(--neutral-200);
+      --tile-heading: var(--neutral-900);
+      --tile-body: var(--neutral-600);
+      --card-bg: var(--neutral-50);
+      --card-border: var(--neutral-200);
+    }
+
+    #tilesContainer.theme-neutral-light .tile-cta {
+      --tile-bg: var(--neutral-900);
+      --tile-heading: var(--neutral-0);
+      --tile-body: var(--neutral-300);
+      --tile-btn-bg: var(--neutral-0);
+      --tile-btn-hover: var(--neutral-100);
+      --tile-btn-text: var(--neutral-900);
+    }
+
+    /* Neutral Dark */
+    #tilesContainer.theme-neutral-dark .tile-hero {
+      --tile-bg: var(--neutral-900);
+      --tile-accent: var(--neutral-400);
+      --tile-heading: var(--neutral-100);
+      --tile-body: var(--neutral-300);
+      --tile-btn-bg: var(--neutral-0);
+      --tile-btn-hover: var(--neutral-100);
+      --tile-btn-text: var(--neutral-900);
+    }
+
+    #tilesContainer.theme-neutral-dark .tile-features {
+      --tile-bg: var(--neutral-800);
+      --tile-accent: var(--neutral-300);
+      --tile-accent-bg: var(--neutral-700);
+      --tile-heading: var(--neutral-100);
+      --tile-body: var(--neutral-400);
+      --card-bg: var(--neutral-900);
+      --card-border: var(--neutral-700);
+    }
+
+    #tilesContainer.theme-neutral-dark .tile-cta {
+      --tile-bg: var(--neutral-950, #030712);
+      --tile-heading: var(--neutral-0);
+      --tile-body: var(--neutral-400);
+      --tile-btn-bg: var(--neutral-0);
+      --tile-btn-hover: var(--neutral-200);
+      --tile-btn-text: var(--neutral-900);
+    }
+
+    /* ========================================
+       TYPOGRAPHY LABELS (hover)
+    ======================================== */
+    .cursor-label {
+      position: fixed;
+      top: 0;
+      left: 0;
+      transform: translate(-50%, -140%);
+      background: rgba(17, 24, 39, 0.95);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 500;
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: opacity 120ms ease;
+      z-index: 9999;
+    }
+
+    .cursor-label.show {
+      opacity: 1;
+    }
+
+    .cursor-label__style {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .cursor-label__meta {
+      font-size: 10px;
+      opacity: 0.8;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-content">
+        <h1>Style Tiles</h1>
+        <p class="subtitle">Interactive layouts showing how brand elements work together in real UI context.</p>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <span class="control-label">Theme</span>
+          <select id="themeSelector" class="control-select">
+            <option value="primary-light">Primary Light</option>
+            <option value="primary-dark">Primary Dark</option>
+            <option value="secondary-light">Secondary Light</option>
+            <option value="neutral-light">Neutral Light</option>
+            <option value="neutral-dark">Neutral Dark</option>
+          </select>
+        </div>
+        <button id="toggleLabelsBtn" class="toggle-btn">
+          <span class="toggle-indicator"></span>
+          Show Labels
+        </button>
+      </div>
+    </div>
+
+    <!-- Tiles Container -->
+    <div id="tilesContainer" class="theme-primary-light">
+      
+      <!-- Hero Tile -->
+      <section class="tile tile-hero">
+        <div class="tile-inner">
+          <div class="hero-grid">
+            <div class="hero-content">
+              <img src="images/logo-placeholder.png" alt="Logo" class="hero-logo" />
+              <span class="hero-eyebrow" data-style="Eyebrow">Your tagline here</span>
+              <h1 class="hero-title" data-style="H1">Build something people love</h1>
+              <p class="hero-body" data-style="Body / L">A clear, compelling description of what you offer and why it matters to your customers. Keep it concise and benefit-focused.</p>
+              <a href="#" class="hero-cta" data-style="Button">Get Started Free</a>
+            </div>
+            <div class="hero-image">
+              <img src="images/image-placeholder.jpeg" alt="Hero image" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features Tile -->
+      <section class="tile tile-features">
+        <div class="tile-inner">
+          <div class="features-header">
+            <p class="features-eyebrow" data-style="Overline">Features</p>
+            <h2 class="features-title" data-style="H2">Everything you need to succeed</h2>
+            <p class="features-subtitle" data-style="Body / M">A brief overview of the key benefits or features that set your product apart from alternatives.</p>
+          </div>
+          <div class="features-grid">
+            <article class="feature-card">
+              <div class="feature-icon">⚡</div>
+              <h3 class="feature-title" data-style="H4">Lightning Fast</h3>
+              <p class="feature-desc" data-style="Body / S">Describe this feature and how it helps users achieve their goals faster and more efficiently.</p>
+              <a href="#" class="feature-link" data-style="Link">Learn more →</a>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon">🔒</div>
+              <h3 class="feature-title" data-style="H4">Secure by Default</h3>
+              <p class="feature-desc" data-style="Body / S">Explain the security benefits and why customers can trust you with their data.</p>
+              <a href="#" class="feature-link" data-style="Link">Learn more →</a>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon">📊</div>
+              <h3 class="feature-title" data-style="H4">Actionable Insights</h3>
+              <p class="feature-desc" data-style="Body / S">Highlight analytics, reporting, or data features that provide real business value.</p>
+              <a href="#" class="feature-link" data-style="Link">Learn more →</a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA Tile -->
+      <section class="tile tile-cta">
+        <div class="tile-inner">
+          <div class="cta-content">
+            <h2 class="cta-title" data-style="H2">Ready to get started?</h2>
+            <p class="cta-body" data-style="Body / M">Join thousands of happy customers. Sign up for early access and be the first to know when we launch.</p>
+            <form class="cta-form" onsubmit="return false;">
+              <input type="email" class="cta-input" placeholder="Enter your email" data-style="Input" />
+              <button type="submit" class="cta-btn" data-style="Button">Notify Me</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="sidebar-nav.js"></script>
+  <script>
+    // ============================================
+    // THEME SELECTOR
+    // ============================================
+    (function initThemeSelector() {
+      const selector = document.getElementById('themeSelector');
+      const container = document.getElementById('tilesContainer');
+      if (!selector || !container) return;
+
+      const allThemes = [
+        'theme-primary-light',
+        'theme-primary-dark',
+        'theme-secondary-light',
+        'theme-neutral-light',
+        'theme-neutral-dark'
+      ];
+
+      function applyTheme(theme) {
+        allThemes.forEach(t => container.classList.remove(t));
+        container.classList.add('theme-' + theme);
+        
+        // Save preference
+        try {
+          localStorage.setItem('styleguide-tile-theme', theme);
+        } catch (e) {}
+      }
+
+      // Load saved preference
+      try {
+        const saved = localStorage.getItem('styleguide-tile-theme');
+        if (saved && allThemes.includes('theme-' + saved)) {
+          selector.value = saved;
+          applyTheme(saved);
+        }
+      } catch (e) {}
+
+      selector.addEventListener('change', (e) => {
+        applyTheme(e.target.value);
+      });
+    })();
+
+    // ============================================
+    // TYPOGRAPHY LABELS ON HOVER
+    // ============================================
+    (function initTypographyLabels() {
+      const toggleBtn = document.getElementById('toggleLabelsBtn');
+      if (!toggleBtn) return;
+
+      // Create cursor label
+      const labelEl = document.createElement('div');
+      labelEl.className = 'cursor-label';
+      labelEl.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(labelEl);
+
+      let enabled = false;
+      let active = false;
+
+      function updateLabel(event) {
+        if (!enabled) return;
+
+        const x = event.clientX;
+        const y = event.clientY;
+        const elements = document.elementsFromPoint(x, y);
+
+        let target = null;
+        for (const el of elements) {
+          if (!el || el.nodeType !== 1) continue;
+          if (el === labelEl) continue;
+          
+          if (el.hasAttribute('data-style')) {
+            target = el;
+            break;
+          }
+          
+          const closest = el.closest('[data-style]');
+          if (closest) {
+            target = closest;
+            break;
+          }
+        }
+
+        if (target) {
+          const styleName = target.getAttribute('data-style') || '';
+          const computed = getComputedStyle(target);
+          const fontFamily = (computed.fontFamily || '').split(',')[0].replace(/["']/g, '').trim();
+          const fontWeight = computed.fontWeight || '';
+          const fontSize = computed.fontSize || '';
+
+          labelEl.innerHTML = `
+            <div class="cursor-label__style">${styleName}</div>
+            <div class="cursor-label__meta">${fontFamily} · ${fontWeight} · ${fontSize}</div>
+          `;
+          labelEl.style.top = `${y}px`;
+          labelEl.style.left = `${x}px`;
+          
+          if (!active) {
+            labelEl.classList.add('show');
+            active = true;
+          }
+        } else if (active) {
+          labelEl.classList.remove('show');
+          active = false;
+        }
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        enabled = !enabled;
+        toggleBtn.classList.toggle('active', enabled);
+        
+        if (!enabled) {
+          labelEl.classList.remove('show');
+          active = false;
+        }
+      });
+
+      document.addEventListener('mousemove', updateLabel);
+      document.addEventListener('mouseleave', () => {
+        labelEl.classList.remove('show');
+        active = false;
+      });
+    })();
+  </script>
+</body>
+</html>

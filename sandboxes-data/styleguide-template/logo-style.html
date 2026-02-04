@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Logo Style – Brand Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="sidebar-nav.css" />
+  <style>
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: auto;
+      padding: 32px 16px 64px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: var(--font-family-sans);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-family: var(--font-family-sans);
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--neutral-600);
+      margin: 0 0 28px;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--neutral-900);
+    }
+
+    /* Color Note */
+    .color-note {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--neutral-700);
+      margin: 0 0 20px;
+      padding: 14px 16px;
+      background: var(--neutral-50);
+      border-radius: 10px;
+      border: 1px solid var(--neutral-200);
+    }
+
+    .color-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .color-note code {
+      font-family: var(--font-family-mono, monospace);
+      font-size: 13px;
+      background: var(--neutral-100);
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: var(--neutral-900);
+    }
+
+    /* Logo Grid */
+    .logo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .logo-card {
+      border: 1px solid var(--neutral-200);
+      border-radius: 12px;
+      background: var(--neutral-0);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-shot {
+      position: relative;
+      background: var(--neutral-100);
+      padding: 32px 24px;
+      display: grid;
+      place-items: center;
+      min-height: 180px;
+      transition: background-color 200ms ease;
+    }
+
+    .logo-shot.dark-bg {
+      background: var(--neutral-800);
+    }
+
+    .logo-shot img {
+      width: 100%;
+      height: auto;
+      max-width: 200px;
+      max-height: 120px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .logo-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .logo-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--neutral-900);
+    }
+
+    .logo-desc {
+      margin: 0;
+      font-size: 13px;
+      color: var(--neutral-600);
+      line-height: 1.5;
+    }
+
+    /* Color Select */
+    .color-select {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-family-sans);
+      border: 1px solid var(--neutral-300);
+      border-radius: 8px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      cursor: pointer;
+      transition: border-color 150ms ease;
+      margin-top: auto;
+    }
+
+    .color-select:hover {
+      border-color: var(--brand-primary-500);
+    }
+
+    .color-select:focus {
+      outline: none;
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 0 0 3px var(--brand-primary-100);
+    }
+
+    /* Logo Actions */
+    .logo-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 16px 16px;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--neutral-300);
+      border-radius: 8px;
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 150ms ease, box-shadow 150ms ease, transform 80ms ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      border-color: var(--brand-primary-500);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Placeholder Note */
+    .placeholder-note {
+      padding: 16px;
+      background: var(--brand-primary-50);
+      border: 1px dashed var(--brand-primary-300);
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .placeholder-note h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--brand-primary-800);
+    }
+
+    .placeholder-note p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--brand-primary-700);
+      line-height: 1.6;
+    }
+
+    .placeholder-note code {
+      background: var(--brand-primary-100);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-family-mono, monospace);
+      font-size: 12px;
+    }
+
+    /* Usage Guidelines */
+    .guidelines-list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .guideline-item {
+      display: flex;
+      gap: 14px;
+      padding: 16px;
+      background: var(--neutral-50);
+      border-radius: 10px;
+      border: 1px solid var(--neutral-100);
+    }
+
+    .guideline-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .guideline-content h4 {
+      margin: 0 0 4px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--neutral-900);
+    }
+
+    .guideline-content p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--neutral-600);
+      line-height: 1.5;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Logo</h1>
+    <p class="subtitle">Brand marks, color variants, and downloadable assets.</p>
+
+    <div class="card">
+      <div class="section-header">
+        <h2 class="section-title">Logo Assets</h2>
+      </div>
+
+      <div class="placeholder-note">
+        <h3>📁 Customize your logos</h3>
+        <p>
+          Edit the <code>logos</code> array in the script below to add your own logo files and color variants.
+          Recommended formats: <strong>SVG</strong> for web (scalable), <strong>PNG</strong> at 2x resolution for raster contexts.
+        </p>
+      </div>
+
+      <div class="color-note">
+        <span class="color-swatch" style="background: var(--brand-primary-500);"></span>
+        <span>Primary logo uses <strong>Brand Primary</strong> from your color palette <code>--brand-primary-500</code></span>
+      </div>
+
+      <div id="logoGrid" class="logo-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-header">
+        <h2 class="section-title">Usage Guidelines</h2>
+      </div>
+      <div class="guidelines-list">
+        <div class="guideline-item">
+          <span class="guideline-icon">📏</span>
+          <div class="guideline-content">
+            <h4>Clear Space</h4>
+            <p>Maintain minimum clear space equal to the height of the logo mark around all sides. This ensures the logo has visual breathing room.</p>
+          </div>
+        </div>
+        <div class="guideline-item">
+          <span class="guideline-icon">🔍</span>
+          <div class="guideline-content">
+            <h4>Minimum Size</h4>
+            <p>Do not use the logo smaller than 24px in height for digital, or 10mm for print. Below this, details become illegible.</p>
+          </div>
+        </div>
+        <div class="guideline-item">
+          <span class="guideline-icon">🎨</span>
+          <div class="guideline-content">
+            <h4>Color Usage</h4>
+            <p>Use the primary color variant on light backgrounds. Use white/reversed on dark backgrounds or photography. Ensure sufficient contrast.</p>
+          </div>
+        </div>
+        <div class="guideline-item">
+          <span class="guideline-icon">🚫</span>
+          <div class="guideline-content">
+            <h4>Don'ts</h4>
+            <p>Do not rotate, stretch, add effects, change opacity, or modify the logo colors outside of approved variants.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="sidebar-nav.js"></script>
+  <script>
+    // ============================================
+    // CUSTOMIZE YOUR LOGOS HERE
+    // ============================================
+    // Each logo can have multiple color variants.
+    // The first variant is shown by default.
+    // Set darkBg: true for variants that need a dark preview background.
+    
+    const logos = [
+      {
+        title: "Primary Logo",
+        desc: "Main logo mark for most uses. SVG preferred for web; PNG for contexts that don't support vectors.",
+        variants: [
+          {
+            name: "Color (on light)",
+            png: "images/logo-placeholder.png",
+            svg: "images/logo-placeholder.svg",
+            darkBg: false
+          },
+          {
+            name: "White (on dark)",
+            png: "images/logo-placeholder.png",
+            svg: "images/logo-placeholder.svg",
+            darkBg: true,
+            filter: "brightness(0) invert(1)" // Makes placeholder white
+          },
+          {
+            name: "Black",
+            png: "images/logo-placeholder.png",
+            svg: "images/logo-placeholder.svg",
+            darkBg: false,
+            filter: "brightness(0)" // Makes placeholder black
+          }
+        ]
+      },
+      {
+        title: "Wordmark",
+        desc: "Full wordmark for marketing materials and larger applications where the name should be prominent.",
+        variants: [
+          {
+            name: "Color (on light)",
+            png: "images/logo-placeholder.png",
+            svg: "images/logo-placeholder.svg",
+            darkBg: false
+          },
+          {
+            name: "White (on dark)",
+            png: "images/logo-placeholder.png",
+            svg: "images/logo-placeholder.svg",
+            darkBg: true,
+            filter: "brightness(0) invert(1)"
+          }
+        ]
+      },
+      {
+        title: "Icon / Favicon",
+        desc: "Compact icon for small spaces: favicons, app icons, social avatars. Should work at very small sizes.",
+        variants: [
+          {
+            name: "Color",
+            png: "images/logo-placeholder.png",
+            svg: "images/logo-placeholder.svg",
+            darkBg: false
+          },
+          {
+            name: "White",
+            png: "images/logo-placeholder.png",
+            svg: "images/logo-placeholder.svg",
+            darkBg: true,
+            filter: "brightness(0) invert(1)"
+          }
+        ]
+      }
+    ];
+
+    // ============================================
+    // RENDERING LOGIC (no need to edit below)
+    // ============================================
+
+    function renderLogos() {
+      const grid = document.getElementById("logoGrid");
+      if (!grid) return;
+
+      grid.innerHTML = logos.map((logo, logoIndex) => {
+        const defaultVariant = logo.variants[0];
+        const filterStyle = defaultVariant.filter ? `filter: ${defaultVariant.filter};` : '';
+        const darkBgClass = defaultVariant.darkBg ? 'dark-bg' : '';
+
+        return `
+          <article class="logo-card">
+            <div class="logo-shot ${darkBgClass}" id="logo-shot-${logoIndex}">
+              <img 
+                id="logo-preview-${logoIndex}" 
+                src="${defaultVariant.png}" 
+                alt="${logo.title}"
+                style="${filterStyle}"
+                loading="lazy"
+              />
+            </div>
+            <div class="logo-body">
+              <h3 class="logo-title">${logo.title}</h3>
+              <p class="logo-desc">${logo.desc}</p>
+              ${logo.variants.length > 1 ? `
+                <select 
+                  class="color-select" 
+                  id="variant-select-${logoIndex}"
+                  onchange="updateLogoVariant(${logoIndex}, this.value)"
+                  aria-label="Select variant for ${logo.title}"
+                >
+                  ${logo.variants.map((variant, variantIndex) => `
+                    <option value="${variantIndex}">${variant.name}</option>
+                  `).join('')}
+                </select>
+              ` : ''}
+            </div>
+            <div class="logo-actions">
+              <button class="btn" id="svg-btn-${logoIndex}" onclick="downloadFile('${defaultVariant.svg}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                SVG
+              </button>
+              <button class="btn" id="png-btn-${logoIndex}" onclick="downloadFile('${defaultVariant.png}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                PNG
+              </button>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function updateLogoVariant(logoIndex, variantIndex) {
+      const logo = logos[logoIndex];
+      const variant = logo.variants[variantIndex];
+
+      // Update preview image
+      const previewImg = document.getElementById(`logo-preview-${logoIndex}`);
+      if (previewImg) {
+        previewImg.src = variant.png;
+        previewImg.style.filter = variant.filter || '';
+      }
+
+      // Update background
+      const logoShot = document.getElementById(`logo-shot-${logoIndex}`);
+      if (logoShot) {
+        logoShot.classList.toggle('dark-bg', variant.darkBg);
+      }
+
+      // Update download buttons
+      const svgBtn = document.getElementById(`svg-btn-${logoIndex}`);
+      const pngBtn = document.getElementById(`png-btn-${logoIndex}`);
+
+      if (svgBtn) {
+        svgBtn.onclick = () => downloadFile(variant.svg);
+      }
+      if (pngBtn) {
+        pngBtn.onclick = () => downloadFile(variant.png);
+      }
+    }
+
+    function downloadFile(filePath) {
+      const filename = filePath.split('/').pop();
+
+      fetch(filePath)
+        .then(response => {
+          if (!response.ok) throw new Error('File not found');
+          return response.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        })
+        .catch(error => {
+          console.error('Download failed:', error);
+          // Fallback: open in new tab
+          window.open(filePath, '_blank');
+        });
+    }
+
+    // Initialize
+    renderLogos();
+  </script>
+</body>
+</html>

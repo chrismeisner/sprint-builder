@@ -204,7 +204,7 @@ export async function PATCH(request: NextRequest) {
 
     // Get current task state for event logging
     const currentTaskResult = await pool.query(
-      `SELECT id, idea_id, name, completed, focus FROM admin_tasks WHERE id = $1`,
+      `SELECT id, idea_id, name, note, completed, focus, milestone_id FROM admin_tasks WHERE id = $1`,
       [id]
     );
     const currentTask = currentTaskResult.rows[0];
@@ -229,6 +229,12 @@ export async function PATCH(request: NextRequest) {
       values.push(completed);
       updates.push(`completed_at = $${paramCount++}`);
       values.push(completed ? new Date().toISOString() : null);
+      
+      // If completing a task that's "in focus", clear the focus
+      if (completed && currentTask.focus === "now") {
+        updates.push(`focus = $${paramCount++}`);
+        values.push("");
+      }
     }
     if (focus !== undefined) {
       // If setting focus to "now", clear any other task's "now" focus first
@@ -297,6 +303,24 @@ export async function PATCH(request: NextRequest) {
           name: updatedTask.name,
         });
       }
+    }
+
+    // Note changed
+    if (note !== undefined && note !== currentTask.note) {
+      await logTaskEvent(id, currentTask.idea_id, "note_updated", {
+        name: updatedTask.name,
+        had_note: !!currentTask.note,
+        has_note: !!note,
+      });
+    }
+
+    // Milestone changed
+    if (milestone_id !== undefined && milestone_id !== currentTask.milestone_id) {
+      await logTaskEvent(id, currentTask.idea_id, "milestone_changed", {
+        name: updatedTask.name,
+        previous_milestone_id: currentTask.milestone_id,
+        new_milestone_id: milestone_id,
+      });
     }
 
     return NextResponse.json({ task: updatedTask });
