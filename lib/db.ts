@@ -885,6 +885,102 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sprint_links_sprint ON sprint_links(sprint_id);
   `);
   
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Admin Tasks Feature: Ideas, Tasks, Milestones for admin task management
+  // ─────────────────────────────────────────────────────────────────────────────
+  
+  // Admin Ideas: High-level goals/projects for the admin
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_ideas (
+      id text PRIMARY KEY,
+      title text NOT NULL,
+      summary text,
+      sort_order integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_admin_ideas_sort ON admin_ideas(sort_order);
+  `);
+
+  // Add milestone_id to admin_ideas (linking ideas to milestones)
+  await pool.query(`
+    ALTER TABLE admin_ideas
+    ADD COLUMN IF NOT EXISTS milestone_id text REFERENCES admin_milestones(id) ON DELETE SET NULL;
+  `).catch(() => {
+    // Column might already exist or milestones table might not exist yet - we'll try again after milestones table is created
+  });
+  
+  // Admin Milestones: Deadlines/checkpoints that tasks can be linked to
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_milestones (
+      id text PRIMARY KEY,
+      name text NOT NULL,
+      target_date timestamptz,
+      notes text,
+      completed boolean NOT NULL DEFAULT false,
+      completed_at timestamptz,
+      sort_order integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_admin_milestones_sort ON admin_milestones(sort_order);
+    CREATE INDEX IF NOT EXISTS idx_admin_milestones_target ON admin_milestones(target_date);
+  `);
+
+  // Add milestone_id to admin_ideas (retry now that milestones table exists)
+  await pool.query(`
+    ALTER TABLE admin_ideas
+    ADD COLUMN IF NOT EXISTS milestone_id text REFERENCES admin_milestones(id) ON DELETE SET NULL;
+    CREATE INDEX IF NOT EXISTS idx_admin_ideas_milestone ON admin_ideas(milestone_id);
+  `).catch(() => { /* Column may already exist */ });
+
+  // Add project_id to admin_ideas (linking ideas to client projects)
+  await pool.query(`
+    ALTER TABLE admin_ideas
+    ADD COLUMN IF NOT EXISTS project_id text REFERENCES projects(id) ON DELETE SET NULL;
+    CREATE INDEX IF NOT EXISTS idx_admin_ideas_project ON admin_ideas(project_id);
+  `).catch(() => { /* Column may already exist */ });
+  
+  // Admin Tasks: Tasks under ideas, with subtask support
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_tasks (
+      id text PRIMARY KEY,
+      idea_id text REFERENCES admin_ideas(id) ON DELETE CASCADE,
+      parent_task_id text REFERENCES admin_tasks(id) ON DELETE CASCADE,
+      milestone_id text REFERENCES admin_milestones(id) ON DELETE SET NULL,
+      name text NOT NULL,
+      note text,
+      completed boolean NOT NULL DEFAULT false,
+      completed_at timestamptz,
+      focus text DEFAULT '',
+      sort_order integer NOT NULL DEFAULT 0,
+      sub_sort_order integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_admin_tasks_idea ON admin_tasks(idea_id);
+    CREATE INDEX IF NOT EXISTS idx_admin_tasks_parent ON admin_tasks(parent_task_id);
+    CREATE INDEX IF NOT EXISTS idx_admin_tasks_milestone ON admin_tasks(milestone_id);
+    CREATE INDEX IF NOT EXISTS idx_admin_tasks_focus ON admin_tasks(focus);
+    CREATE INDEX IF NOT EXISTS idx_admin_tasks_sort ON admin_tasks(sort_order);
+    CREATE INDEX IF NOT EXISTS idx_admin_tasks_completed ON admin_tasks(completed);
+  `);
+
+  // Admin Task Events: Log task activities for analytics
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_task_events (
+      id text PRIMARY KEY,
+      task_id text REFERENCES admin_tasks(id) ON DELETE CASCADE,
+      idea_id text,
+      event_type text NOT NULL,
+      event_data jsonb,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_admin_task_events_task ON admin_task_events(task_id);
+    CREATE INDEX IF NOT EXISTS idx_admin_task_events_type ON admin_task_events(event_type);
+    CREATE INDEX IF NOT EXISTS idx_admin_task_events_created ON admin_task_events(created_at);
+  `);
+  
   global._schemaInitialized = true;
 }
 

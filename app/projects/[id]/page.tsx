@@ -8,6 +8,7 @@ import Typography from "@/components/ui/Typography";
 const DeleteSprintButton = dynamicImport(() => import("../DeleteSprintButton"), { ssr: false });
 const ProjectDocuments = dynamicImport(() => import("../ProjectDocuments"), { ssr: false });
 const ProjectDemos = dynamicImport(() => import("../ProjectDemos"), { ssr: false });
+const ProjectTasks = dynamicImport(() => import("../ProjectTasks"), { ssr: false });
 const AddAppLinkButton = dynamicImport(() => import("../AddAppLinkButton"), { ssr: false });
 const EditAppLinkButton = dynamicImport(() => import("../EditAppLinkButton"), { ssr: false });
 const MemberCard = dynamicImport(() => import("../MemberCard"), { ssr: false });
@@ -346,6 +347,13 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           </div>
         )}
       </section>
+
+      {/* Tasks (admin only) */}
+      {isAdmin && (
+        <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-4">
+          <ProjectTasks projectId={project.id} />
+        </section>
+      )}
 
       {/* Demos (admin only) */}
       {isAdmin && (

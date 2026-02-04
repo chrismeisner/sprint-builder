@@ -47,6 +47,11 @@ export default async function Header() {
           <div className="flex items-center gap-3">
             {user ? (
               <>
+                {user.isAdmin && (
+                  <Button as={Link} href="/dashboard/tasks" variant="secondary" size="sm" className="normal-case tracking-normal">
+                    Tasks
+                  </Button>
+                )}
                 <Button as={Link} href="/projects" variant="secondary" size="sm" className="normal-case tracking-normal">
                   Projects
                 </Button>
