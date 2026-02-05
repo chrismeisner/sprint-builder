@@ -682,21 +682,12 @@
     background: var(--neutral-50);
   }
   
-  /* Container tweaks for better swipe */
-  .carousel-container {
-    margin: 0 -8px;
-    padding: 0 8px;
-    overflow: visible;
-  }
-  
-  .journey-carousel {
-    overflow: hidden;
-  }
-  
   /* Stage card mobile optimizations */
   .journey-stage {
-    /* Add slight shadow to indicate it's swipeable */
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px var(--neutral-200);
+    /* Full width minus padding for proper fit */
+    flex: 0 0 100%;
+    max-width: 100%;
+    box-shadow: var(--shadow);
   }
   
   /* Reduce stage content padding on mobile */
@@ -711,42 +702,9 @@
   
 }
 
-/* Edge fade indicators - positioned on the carousel wrapper */
+/* Journey carousel wrapper */
 .journey-carousel {
   position: relative;
-}
-
-.journey-carousel::before,
-.journey-carousel::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 24px;
-  pointer-events: none;
-  z-index: 10;
-  opacity: 0;
-  transition: opacity 200ms ease;
-}
-
-.journey-carousel::before {
-  left: 0;
-  background: linear-gradient(to right, var(--neutral-50), transparent);
-}
-
-.journey-carousel::after {
-  right: 0;
-  background: linear-gradient(to left, var(--neutral-50), transparent);
-}
-
-@media (max-width: 600px) {
-  .journey-carousel.show-left-fade::before {
-    opacity: 1;
-  }
-  
-  .journey-carousel.show-right-fade::after {
-    opacity: 1;
-  }
 }
 
 /* Progress bar for mobile */

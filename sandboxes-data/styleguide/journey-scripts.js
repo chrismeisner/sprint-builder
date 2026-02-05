@@ -343,13 +343,6 @@
         progress.style.width = `${percentage}%`;
       }
       
-      // Update edge fade indicators
-      if (isMobileView()) {
-        carousel.classList.toggle('show-left-fade', currentIndex > 0);
-        carousel.classList.toggle('show-right-fade', currentIndex < getMaxIndex());
-      } else {
-        carousel.classList.remove('show-left-fade', 'show-right-fade');
-      }
     }
 
     function hideSwipeHint() {
