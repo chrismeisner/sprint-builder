@@ -575,7 +575,16 @@
         selectorsContainer.appendChild(selector);
       });
       
-      slideshow.appendChild(selectorsContainer);
+      // Find the stage header to append selectors there (right-aligned with title)
+      const stageCard = slideshow.closest('.journey-stage');
+      const stageHeader = stageCard ? stageCard.querySelector('.stage-header') : null;
+      
+      if (stageHeader) {
+        stageHeader.appendChild(selectorsContainer);
+      } else {
+        // Fallback to slideshow if header not found
+        slideshow.appendChild(selectorsContainer);
+      }
       
       // Mark as JS-initialized so CSS knows to use .active class
       slideshow.classList.add('js-initialized');
