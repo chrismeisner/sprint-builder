@@ -246,6 +246,7 @@
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     const dotsContainer = document.getElementById('carouselDots');
+    const controlsContainer = carousel.querySelector('.carousel-controls');
     
     let currentIndex = 0;
     const totalStages = stages.length;
@@ -253,15 +254,53 @@
 
     let isDragging = false;
     let startX = 0;
+    let startY = 0;
     let currentTranslate = 0;
     let prevTranslate = 0;
     let animationId = null;
+    let hasInteracted = false;
+    let isHorizontalSwipe = null;
+
+    // ============================================
+    // MOBILE UI ELEMENTS
+    // ============================================
+    
+    // Create step counter for mobile
+    const stepCounter = document.createElement('div');
+    stepCounter.className = 'carousel-step-counter';
+    stepCounter.innerHTML = `
+      <span class="carousel-step-counter-text">Step</span>
+      <span class="carousel-step-counter-current" id="stepCounterCurrent">1</span>
+      <span class="carousel-step-counter-total">of ${totalStages}</span>
+    `;
+    carousel.insertBefore(stepCounter, container);
+    
+    // Create swipe hint for mobile
+    const swipeHint = document.createElement('div');
+    swipeHint.className = 'carousel-swipe-hint';
+    swipeHint.innerHTML = `
+      <span>Swipe to navigate</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    `;
+    carousel.insertBefore(swipeHint, container);
+    
+    // Create progress bar for mobile
+    const progressBar = document.createElement('div');
+    progressBar.className = 'carousel-progress';
+    progressBar.innerHTML = '<div class="carousel-progress-bar" id="progressBar"></div>';
+    controlsContainer.insertAdjacentElement('afterend', progressBar);
 
     function getVisibleCount() {
       const width = carousel.offsetWidth;
       if (width <= 600) return 1;
       if (width <= 900) return 2;
       return 3;
+    }
+
+    function isMobileView() {
+      return window.innerWidth <= 600;
     }
 
     function getMaxIndex() {
@@ -289,13 +328,44 @@
       track.style.transform = `translateX(${currentTranslate}px)`;
     }
 
+    function updateMobileUI() {
+      // Update step counter
+      const stepCounterCurrent = document.getElementById('stepCounterCurrent');
+      if (stepCounterCurrent) {
+        stepCounterCurrent.textContent = currentIndex + 1;
+      }
+      
+      // Update progress bar
+      const progress = document.getElementById('progressBar');
+      if (progress) {
+        const maxIndex = getMaxIndex();
+        const percentage = maxIndex > 0 ? ((currentIndex / maxIndex) * 100) : 100;
+        progress.style.width = `${percentage}%`;
+      }
+      
+      // Update edge fade indicators
+      if (isMobileView()) {
+        carousel.classList.toggle('show-left-fade', currentIndex > 0);
+        carousel.classList.toggle('show-right-fade', currentIndex < getMaxIndex());
+      } else {
+        carousel.classList.remove('show-left-fade', 'show-right-fade');
+      }
+    }
+
+    function hideSwipeHint() {
+      if (!hasInteracted) {
+        hasInteracted = true;
+        swipeHint.classList.add('hidden');
+      }
+    }
+
     function updateCarousel(animate = true) {
       const slideWidth = getSlideWidth();
       currentTranslate = -currentIndex * slideWidth;
       prevTranslate = currentTranslate;
       
       if (animate) {
-        track.style.transition = 'transform 0.4s ease';
+        track.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
       }
       setTrackPosition();
       
@@ -306,17 +376,22 @@
 
       prevBtn.disabled = currentIndex === 0;
       nextBtn.disabled = currentIndex >= getMaxIndex();
+      
+      // Update mobile-specific UI
+      updateMobileUI();
     }
 
     function goToSlide(index) {
       currentIndex = Math.max(0, Math.min(index, getMaxIndex()));
       updateCarousel();
+      hideSwipeHint();
     }
 
     function nextSlide() {
       if (currentIndex < getMaxIndex()) {
         currentIndex++;
         updateCarousel();
+        hideSwipeHint();
       }
     }
 
@@ -324,6 +399,7 @@
       if (currentIndex > 0) {
         currentIndex--;
         updateCarousel();
+        hideSwipeHint();
       }
     }
 
@@ -331,9 +407,15 @@
       return e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
     }
 
+    function getPositionY(e) {
+      return e.type.includes('mouse') ? e.pageY : e.touches[0].clientY;
+    }
+
     function dragStart(e) {
       isDragging = true;
+      isHorizontalSwipe = null; // Reset direction detection
       startX = getPositionX(e);
+      startY = getPositionY(e);
       prevTranslate = -currentIndex * getSlideWidth();
       
       container.classList.add('is-dragging');
@@ -347,16 +429,35 @@
       if (!isDragging) return;
       
       const currentX = getPositionX(e);
-      const diff = currentX - startX;
-      currentTranslate = prevTranslate + diff;
+      const currentY = getPositionY(e);
+      const diffX = currentX - startX;
+      const diffY = currentY - startY;
+      
+      // Determine swipe direction on first significant movement
+      if (isHorizontalSwipe === null && (Math.abs(diffX) > 10 || Math.abs(diffY) > 10)) {
+        isHorizontalSwipe = Math.abs(diffX) > Math.abs(diffY);
+      }
+      
+      // Only handle horizontal swipes
+      if (isHorizontalSwipe === false) {
+        return;
+      }
+      
+      // Prevent vertical scrolling during horizontal swipe on mobile
+      if (isHorizontalSwipe && e.cancelable) {
+        e.preventDefault();
+      }
+      
+      currentTranslate = prevTranslate + diffX;
       
       const maxTranslate = 0;
       const minTranslate = -getMaxIndex() * getSlideWidth();
       
+      // Rubber band effect at edges
       if (currentTranslate > maxTranslate) {
-        currentTranslate = maxTranslate + (currentTranslate - maxTranslate) * 0.3;
+        currentTranslate = maxTranslate + (currentTranslate - maxTranslate) * 0.25;
       } else if (currentTranslate < minTranslate) {
-        currentTranslate = minTranslate + (currentTranslate - minTranslate) * 0.3;
+        currentTranslate = minTranslate + (currentTranslate - minTranslate) * 0.25;
       }
     }
 
@@ -367,16 +468,23 @@
       container.classList.remove('is-dragging');
       cancelAnimationFrame(animationId);
       
-      const slideWidth = getSlideWidth();
-      const movedBy = currentTranslate - prevTranslate;
-      const threshold = slideWidth * 0.2;
-      
-      if (movedBy < -threshold && currentIndex < getMaxIndex()) {
-        currentIndex++;
-      } else if (movedBy > threshold && currentIndex > 0) {
-        currentIndex--;
+      // Only process if it was a horizontal swipe
+      if (isHorizontalSwipe !== false) {
+        const slideWidth = getSlideWidth();
+        const movedBy = currentTranslate - prevTranslate;
+        // Lower threshold on mobile for easier swiping
+        const threshold = isMobileView() ? slideWidth * 0.15 : slideWidth * 0.2;
+        
+        if (movedBy < -threshold && currentIndex < getMaxIndex()) {
+          currentIndex++;
+          hideSwipeHint();
+        } else if (movedBy > threshold && currentIndex > 0) {
+          currentIndex--;
+          hideSwipeHint();
+        }
       }
       
+      isHorizontalSwipe = null;
       updateCarousel(true);
     }
 
@@ -393,9 +501,9 @@
     container.addEventListener('mouseup', dragEnd);
     container.addEventListener('mouseleave', dragEnd);
 
-    // Touch events
+    // Touch events - use passive: false to allow preventDefault for horizontal swipes
     container.addEventListener('touchstart', dragStart, { passive: true });
-    container.addEventListener('touchmove', drag, { passive: true });
+    container.addEventListener('touchmove', drag, { passive: false });
     container.addEventListener('touchend', dragEnd);
 
     // Prevent drag on links/buttons inside cards
@@ -412,6 +520,15 @@
     // Button click handlers
     prevBtn.addEventListener('click', prevSlide);
     nextBtn.addEventListener('click', nextSlide);
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') {
+        prevSlide();
+      } else if (e.key === 'ArrowRight') {
+        nextSlide();
+      }
+    });
 
     // Handle resize
     let resizeTimeout;

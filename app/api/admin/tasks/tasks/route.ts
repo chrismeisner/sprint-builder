@@ -62,8 +62,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (focus) {
-      query += ` AND t.focus = $${paramCount++}`;
-      values.push(focus);
+      // Support compound focus values - "today" matches "today" and "now,today"
+      query += ` AND t.focus LIKE $${paramCount++}`;
+      values.push(`%${focus}%`);
     }
 
     if (!includeCompleted) {
@@ -236,16 +237,18 @@ export async function PATCH(request: NextRequest) {
       updates.push(`completed_at = $${paramCount++}`);
       values.push(completed ? new Date().toISOString() : null);
       
-      // If completing a task that's "in focus", clear the focus
-      if (completed && currentTask.focus === "now") {
+      // If completing a task that's "in focus", remove the "now" but keep "today" if present
+      if (completed && currentTask.focus.includes("now")) {
         updates.push(`focus = $${paramCount++}`);
-        values.push("");
+        const newFocus = currentTask.focus.includes("today") ? "today" : "";
+        values.push(newFocus);
       }
     }
     if (focus !== undefined) {
-      // If setting focus to "now", clear any other task's "now" focus first
-      if (focus === "now") {
-        await pool.query(`UPDATE admin_tasks SET focus = '' WHERE focus = 'now'`);
+      // If setting focus to "now", clear any other task's "now" focus first (but keep their "today" if set)
+      if (focus.includes("now")) {
+        // For tasks with "now,today", change to "today"; for just "now", change to ""
+        await pool.query(`UPDATE admin_tasks SET focus = CASE WHEN focus LIKE '%today%' THEN 'today' ELSE '' END WHERE focus LIKE '%now%'`);
       }
       updates.push(`focus = $${paramCount++}`);
       values.push(focus);
@@ -289,22 +292,27 @@ export async function PATCH(request: NextRequest) {
 
     // Focus changed
     if (focus !== undefined && focus !== currentTask.focus) {
-      if (focus === "now") {
+      const wasNow = currentTask.focus.includes("now");
+      const isNow = focus.includes("now");
+      const wasToday = currentTask.focus.includes("today");
+      const isToday = focus.includes("today");
+      
+      if (isNow && !wasNow) {
         await logTaskEvent(id, currentTask.idea_id, "focused", {
           name: updatedTask.name,
           previous_focus: currentTask.focus,
         });
-      } else if (currentTask.focus === "now") {
+      } else if (wasNow && !isNow) {
         await logTaskEvent(id, currentTask.idea_id, "unfocused", {
           name: updatedTask.name,
           new_focus: focus,
         });
       }
-      if (focus === "today" && currentTask.focus !== "today") {
+      if (isToday && !wasToday) {
         await logTaskEvent(id, currentTask.idea_id, "added_to_today", {
           name: updatedTask.name,
         });
-      } else if (currentTask.focus === "today" && focus !== "today") {
+      } else if (wasToday && !isToday) {
         await logTaskEvent(id, currentTask.idea_id, "removed_from_today", {
           name: updatedTask.name,
         });

@@ -171,11 +171,11 @@ function SortableTodayTask({
       <button
         onClick={() => onToggleNowFocus(task)}
         className={`text-lg ${
-          task.focus === "now"
+          task.focus.includes("now")
             ? "text-red-500"
             : "opacity-30 hover:opacity-70"
         } transition`}
-        title="Focus now"
+        title={task.focus.includes("now") ? "Remove focus" : "Focus now"}
       >
         🔥
       </button>
@@ -256,7 +256,7 @@ export default function TodayClient() {
 
       if (!res.ok) throw new Error("Failed to update");
 
-      // Also clear "now" focus when completing
+      // Also clear "now" focus when completing (but keep "today" if present)
       setTasks((prev) =>
         prev.map((t) =>
           t.id === task.id
@@ -264,7 +264,10 @@ export default function TodayClient() {
                 ...t, 
                 completed: !t.completed, 
                 completed_at: !t.completed ? new Date().toISOString() : null,
-                focus: (!t.completed && t.focus === "now") ? "today" : t.focus // Keep on Today list but remove "now"
+                // Clear "now" but keep "today" if present
+                focus: (!t.completed && t.focus.includes("now")) 
+                  ? (t.focus.includes("today") ? "today" : "") 
+                  : t.focus
               }
             : t
         )
@@ -275,27 +278,10 @@ export default function TodayClient() {
   };
 
   const removeFromToday = async (task: Task) => {
-    try {
-      const res = await fetch("/api/admin/tasks/tasks", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: task.id,
-          focus: "",
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to update");
-
-      setTasks((prev) => prev.filter((t) => t.id !== task.id));
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update task");
-    }
-  };
-
-  // Toggle "now" focus - only one task can be "in focus" at a time
-  const toggleNowFocus = async (task: Task) => {
-    const newFocus = task.focus === "now" ? "today" : "now";
+    // Remove "today" but keep "now" if present
+    const hasNow = task.focus.includes("now");
+    const newFocus = hasNow ? "now" : "";
+    
     try {
       const res = await fetch("/api/admin/tasks/tasks", {
         method: "PATCH",
@@ -308,15 +294,44 @@ export default function TodayClient() {
 
       if (!res.ok) throw new Error("Failed to update");
 
-      // Clear "now" from all other tasks and set on this one
+      // If task still has "now" focus, keep it in the list; otherwise remove it
+      if (hasNow) {
+        setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, focus: newFocus } : t));
+      } else {
+        setTasks((prev) => prev.filter((t) => t.id !== task.id));
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update task");
+    }
+  };
+
+  // Toggle "now" focus - only one task can be "in focus" at a time
+  const toggleNowFocus = async (task: Task) => {
+    // All tasks in Today view have "today" focus, so toggle "now" while keeping "today"
+    const hasNow = task.focus.includes("now");
+    const newFocus = hasNow ? "today" : "now,today";
+    
+    try {
+      const res = await fetch("/api/admin/tasks/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: task.id,
+          focus: newFocus,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update");
+
+      // Clear "now" from all other tasks (keep their "today") and set on this one
       setTasks((prev) =>
         prev.map((t) => {
           if (t.id === task.id) {
             return { ...t, focus: newFocus };
           }
-          // If another task was "now", set it back to "today"
-          if (t.focus === "now") {
-            return { ...t, focus: "today" };
+          // If another task had "now", remove it but keep "today"
+          if (t.focus.includes("now")) {
+            return { ...t, focus: t.focus.includes("today") ? "today" : "" };
           }
           return t;
         })
@@ -377,8 +392,8 @@ export default function TodayClient() {
   };
 
   // Separate completed and incomplete tasks
-  const incompleteTasks = tasks.filter((t) => !t.completed && t.focus !== "now").sort((a, b) => a.sort_order - b.sort_order);
-  const inFocusTask = tasks.find((t) => t.focus === "now" && !t.completed);
+  const incompleteTasks = tasks.filter((t) => !t.completed && !t.focus.includes("now")).sort((a, b) => a.sort_order - b.sort_order);
+  const inFocusTask = tasks.find((t) => t.focus.includes("now") && !t.completed);
   const completedTasks = tasks.filter((t) => t.completed);
   const completedToday = completedTasks.filter((t) => {
     if (!t.completed_at) return false;
@@ -486,9 +501,16 @@ export default function TodayClient() {
             <div className="flex items-center gap-3">
               <span className="text-2xl">🔥</span>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
-                  In Focus
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
+                    In Focus
+                  </p>
+                  {inFocusTask.focus.includes("today") && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                      ☀️ Today
+                    </span>
+                  )}
+                </div>
                 {editingTaskId === inFocusTask.id ? (
                   <input
                     type="text"

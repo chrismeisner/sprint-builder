@@ -264,26 +264,26 @@ function SortableTaskItem({
           <button
             onClick={() => onToggleNowFocus(task)}
             className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
-              task.focus === "now"
+              task.focus.includes("now")
                 ? "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
                 : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10 hover:text-black/70 dark:hover:text-white/70"
             }`}
-            title={task.focus === "now" ? "Remove focus" : "Focus now"}
+            title={task.focus.includes("now") ? "Remove focus" : "Focus now"}
           >
             🔥
-            <span className="text-xs">{task.focus === "now" ? "Focus" : ""}</span>
+            <span className="text-xs">{task.focus.includes("now") ? "Focus" : ""}</span>
           </button>
           <button
             onClick={() => onToggleFocus(task)}
             className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
-              task.focus === "today"
+              task.focus.includes("today")
                 ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
                 : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10 hover:text-black/70 dark:hover:text-white/70"
             }`}
-            title={task.focus === "today" ? "Remove from Today" : "Add to Today"}
+            title={task.focus.includes("today") ? "Remove from Today" : "Add to Today"}
           >
             ☀️
-            <span className="text-xs">{task.focus === "today" ? "Today" : ""}</span>
+            <span className="text-xs">{task.focus.includes("today") ? "Today" : ""}</span>
           </button>
           <button
             onClick={() => onSetMilestoneModal(task)}
@@ -370,11 +370,11 @@ function SortableTaskItem({
               <button
                 onClick={() => onToggleFocus(sub)}
                 className={`px-1.5 py-0.5 rounded text-xs transition ${
-                  sub.focus === "today"
+                  sub.focus.includes("today")
                     ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
                     : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10"
                 }`}
-                title={sub.focus === "today" ? "Remove from Today" : "Add to Today"}
+                title={sub.focus.includes("today") ? "Remove from Today" : "Add to Today"}
               >
                 ☀️
               </button>
@@ -585,7 +585,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
 
       if (!res.ok) throw new Error("Failed to update");
 
-      // Also clear "now" focus when completing
+      // Also clear "now" focus when completing (but keep "today" if present)
       setTasks((prev) =>
         prev.map((t) =>
           t.id === task.id
@@ -593,7 +593,10 @@ export default function IdeaDetailClient({ ideaId }: Props) {
                 ...t, 
                 completed: !t.completed, 
                 completed_at: !t.completed ? new Date().toISOString() : null,
-                focus: (!t.completed && t.focus === "now") ? "" : t.focus
+                // Clear "now" focus when completing a task (but keep "today" if present)
+                focus: (!t.completed && t.focus.includes("now")) 
+                  ? (t.focus.includes("today") ? "today" : "") 
+                  : t.focus
               }
             : t
         )
@@ -604,7 +607,18 @@ export default function IdeaDetailClient({ ideaId }: Props) {
   };
 
   const toggleTaskFocus = async (task: Task) => {
-    const newFocus = task.focus === "today" ? "" : "today";
+    // Toggle "today" while preserving "now" if set
+    const hasToday = task.focus.includes("today");
+    const hasNow = task.focus.includes("now");
+    let newFocus: string;
+    if (hasToday) {
+      // Remove today, keep now if present
+      newFocus = hasNow ? "now" : "";
+    } else {
+      // Add today, keep now if present
+      newFocus = hasNow ? "now,today" : "today";
+    }
+    
     try {
       const res = await fetch("/api/admin/tasks/tasks", {
         method: "PATCH",
@@ -624,7 +638,18 @@ export default function IdeaDetailClient({ ideaId }: Props) {
 
   // Toggle "now" focus - only one task can be "in focus" at a time
   const toggleNowFocus = async (task: Task) => {
-    const newFocus = task.focus === "now" ? "" : "now";
+    // Toggle "now" while preserving "today" if set
+    const hasNow = task.focus.includes("now");
+    const hasToday = task.focus.includes("today");
+    let newFocus: string;
+    if (hasNow) {
+      // Remove now, keep today if present
+      newFocus = hasToday ? "today" : "";
+    } else {
+      // Add now, keep today if present
+      newFocus = hasToday ? "now,today" : "now";
+    }
+    
     try {
       const res = await fetch("/api/admin/tasks/tasks", {
         method: "PATCH",
@@ -634,15 +659,15 @@ export default function IdeaDetailClient({ ideaId }: Props) {
 
       if (!res.ok) throw new Error("Failed to update");
 
-      // Clear "now" from all other tasks and set on this one
+      // Clear "now" from all other tasks (but keep their "today" if set) and set on this one
       setTasks((prev) =>
         prev.map((t) => {
           if (t.id === task.id) {
             return { ...t, focus: newFocus };
           }
-          // If another task was "now", clear it
-          if (t.focus === "now") {
-            return { ...t, focus: "" };
+          // If another task had "now", remove it but keep "today" if present
+          if (t.focus.includes("now")) {
+            return { ...t, focus: t.focus.includes("today") ? "today" : "" };
           }
           return t;
         })

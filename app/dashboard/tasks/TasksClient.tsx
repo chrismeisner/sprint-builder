@@ -193,26 +193,26 @@ function SortableTaskItem({
       <button
         onClick={() => onToggleNowFocus(task)}
         className={`px-1.5 py-0.5 rounded text-sm flex-shrink-0 transition flex items-center gap-0.5 ${
-          task.focus === "now"
+          task.focus.includes("now")
             ? "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
             : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10"
         }`}
-        title={task.focus === "now" ? "Remove focus" : "Focus now"}
+        title={task.focus.includes("now") ? "Remove focus" : "Focus now"}
       >
         🔥
-        {task.focus === "now" && <span className="text-xs">Focus</span>}
+        {task.focus.includes("now") && <span className="text-xs">Focus</span>}
       </button>
       <button
         onClick={() => onToggleFocus(task)}
         className={`px-1.5 py-0.5 rounded text-sm flex-shrink-0 transition flex items-center gap-0.5 ${
-          task.focus === "today"
+          task.focus.includes("today")
             ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
             : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10"
         }`}
-        title={task.focus === "today" ? "Remove from Today" : "Add to Today"}
+        title={task.focus.includes("today") ? "Remove from Today" : "Add to Today"}
       >
         ☀️
-        {task.focus === "today" && <span className="text-xs">Today</span>}
+        {task.focus.includes("today") && <span className="text-xs">Today</span>}
       </button>
     </div>
   );
@@ -390,12 +390,14 @@ export default function TasksClient() {
   const toggleModalTaskComplete = async () => {
     if (!detailTask) return;
     await toggleTaskComplete(detailTask);
-    // Update detailTask to reflect the change
+    // Update detailTask to reflect the change (clear "now" but keep "today" if present)
     setDetailTask((prev) => prev ? { 
       ...prev, 
       completed: !prev.completed, 
       completed_at: !prev.completed ? new Date().toISOString() : null,
-      focus: (!prev.completed && prev.focus === "now") ? "" : prev.focus
+      focus: (!prev.completed && prev.focus.includes("now")) 
+        ? (prev.focus.includes("today") ? "today" : "") 
+        : prev.focus
     } : null);
   };
 
@@ -403,7 +405,20 @@ export default function TasksClient() {
   const toggleModalFocus = async (focusType: "now" | "today") => {
     if (!detailTask) return;
     
-    const newFocus = detailTask.focus === focusType ? "" : focusType;
+    const hasFocusType = detailTask.focus.includes(focusType);
+    const hasOtherType = focusType === "now" 
+      ? detailTask.focus.includes("today") 
+      : detailTask.focus.includes("now");
+    
+    let newFocus: string;
+    if (hasFocusType) {
+      // Remove this focus type, keep the other if present
+      newFocus = hasOtherType ? (focusType === "now" ? "today" : "now") : "";
+    } else {
+      // Add this focus type, keep the other if present
+      newFocus = hasOtherType ? "now,today" : focusType;
+    }
+    
     try {
       const res = await fetch("/api/admin/tasks/tasks", {
         method: "PATCH",
@@ -417,7 +432,10 @@ export default function TasksClient() {
       setTasks((prev) =>
         prev.map((t) => {
           if (t.id === detailTask.id) return { ...t, focus: newFocus };
-          if (focusType === "now" && t.focus === "now") return { ...t, focus: "" };
+          // If setting "now", clear it from other tasks (but keep their "today")
+          if (focusType === "now" && !hasFocusType && t.focus.includes("now")) {
+            return { ...t, focus: t.focus.includes("today") ? "today" : "" };
+          }
           return t;
         })
       );
@@ -568,7 +586,7 @@ export default function TasksClient() {
         throw new Error(data.error || "Failed to update task");
       }
 
-      // Optimistic update - also clear "now" focus when completing
+      // Optimistic update - also clear "now" focus when completing (but keep "today" if present)
       setTasks((prev) =>
         prev.map((t) =>
           t.id === task.id
@@ -576,8 +594,10 @@ export default function TasksClient() {
                 ...t, 
                 completed: !t.completed, 
                 completed_at: !t.completed ? new Date().toISOString() : null,
-                // Clear "now" focus when completing a task
-                focus: (!t.completed && t.focus === "now") ? "" : t.focus
+                // Clear "now" focus when completing a task (but keep "today" if present)
+                focus: (!t.completed && t.focus.includes("now")) 
+                  ? (t.focus.includes("today") ? "today" : "") 
+                  : t.focus
               }
             : t
         )
@@ -588,7 +608,18 @@ export default function TasksClient() {
   };
 
   const toggleTaskFocus = async (task: Task) => {
-    const newFocus = task.focus === "today" ? "" : "today";
+    // Toggle "today" while preserving "now" if set
+    const hasToday = task.focus.includes("today");
+    const hasNow = task.focus.includes("now");
+    let newFocus: string;
+    if (hasToday) {
+      // Remove today, keep now if present
+      newFocus = hasNow ? "now" : "";
+    } else {
+      // Add today, keep now if present
+      newFocus = hasNow ? "now,today" : "today";
+    }
+    
     try {
       const res = await fetch("/api/admin/tasks/tasks", {
         method: "PATCH",
@@ -614,7 +645,18 @@ export default function TasksClient() {
 
   // Toggle "now" focus - only one task can be "in focus" at a time
   const toggleNowFocus = async (task: Task) => {
-    const newFocus = task.focus === "now" ? "" : "now";
+    // Toggle "now" while preserving "today" if set
+    const hasNow = task.focus.includes("now");
+    const hasToday = task.focus.includes("today");
+    let newFocus: string;
+    if (hasNow) {
+      // Remove now, keep today if present
+      newFocus = hasToday ? "today" : "";
+    } else {
+      // Add now, keep today if present
+      newFocus = hasToday ? "now,today" : "now";
+    }
+    
     try {
       const res = await fetch("/api/admin/tasks/tasks", {
         method: "PATCH",
@@ -630,15 +672,15 @@ export default function TasksClient() {
         throw new Error(data.error || "Failed to update task");
       }
 
-      // Clear "now" from all other tasks and set on this one
+      // Clear "now" from all other tasks (but keep their "today" if set) and set on this one
       setTasks((prev) =>
         prev.map((t) => {
           if (t.id === task.id) {
             return { ...t, focus: newFocus };
           }
-          // If another task was "now", clear it
-          if (t.focus === "now") {
-            return { ...t, focus: "" };
+          // If another task had "now", remove it but keep "today" if present
+          if (t.focus.includes("now")) {
+            return { ...t, focus: t.focus.includes("today") ? "today" : "" };
           }
           return t;
         })
@@ -782,8 +824,8 @@ export default function TasksClient() {
     }
   };
 
-  const todayTasks = tasks.filter((t) => t.focus === "today" && !t.completed);
-  const inFocusTask = tasks.find((t) => t.focus === "now" && !t.completed);
+  const todayTasks = tasks.filter((t) => t.focus.includes("today") && !t.completed);
+  const inFocusTask = tasks.find((t) => t.focus.includes("now") && !t.completed);
 
   if (loading) {
     return (
@@ -844,9 +886,16 @@ export default function TasksClient() {
             <div className="flex items-center gap-3">
               <span className="text-2xl">🔥</span>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
-                  In Focus
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
+                    In Focus
+                  </p>
+                  {inFocusTask.focus.includes("today") && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                      ☀️ Today
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={() => openTaskDetail(inFocusTask)}
                   className="font-medium mt-0.5 text-left hover:underline"
@@ -1156,22 +1205,22 @@ export default function TasksClient() {
                 <button
                   onClick={() => toggleModalFocus("now")}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
-                    detailTask.focus === "now"
+                    detailTask.focus.includes("now")
                       ? "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
                       : "bg-black/5 dark:bg-white/5 text-black/60 dark:text-white/60 border border-transparent hover:bg-black/10 dark:hover:bg-white/10"
                   }`}
                 >
-                  🔥 {detailTask.focus === "now" ? "In Focus" : "Focus"}
+                  🔥 {detailTask.focus.includes("now") ? "In Focus" : "Focus"}
                 </button>
                 <button
                   onClick={() => toggleModalFocus("today")}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
-                    detailTask.focus === "today"
+                    detailTask.focus.includes("today")
                       ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
                       : "bg-black/5 dark:bg-white/5 text-black/60 dark:text-white/60 border border-transparent hover:bg-black/10 dark:hover:bg-white/10"
                   }`}
                 >
-                  ☀️ {detailTask.focus === "today" ? "Today" : "Add to Today"}
+                  ☀️ {detailTask.focus.includes("today") ? "Today" : "Add to Today"}
                 </button>
                 {detailTask.milestone_name && (
                   <span className="px-3 py-1.5 rounded-lg text-sm font-medium bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
