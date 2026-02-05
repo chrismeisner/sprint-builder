@@ -689,6 +689,19 @@
     padding: 16px 16px 12px;
   }
   
+  /* Image selectors - ensure visible on mobile with good touch targets */
+  .stage-image-selectors {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  
+  .stage-image-selector {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    min-width: 28px;
+  }
+  
 }
 
 /* Journey carousel wrapper */
