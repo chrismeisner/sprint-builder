@@ -7,17 +7,6 @@
  *   trackEvent('purchase', { value: 299, currency: 'USD', item_name: 'Design Sprint' });
  */
 
-// Extend Window interface for gtag
-declare global {
-  interface Window {
-    gtag?: (
-      command: 'config' | 'event' | 'js' | 'set',
-      targetId: string,
-      params?: Record<string, unknown>
-    ) => void;
-  }
-}
-
 type EventParams = Record<string, string | number | boolean | undefined>;
 
 /**
@@ -26,7 +15,7 @@ type EventParams = Record<string, string | number | boolean | undefined>;
  * @param params - Optional parameters to include with the event
  */
 export function trackEvent(eventName: string, params?: EventParams): void {
-  if (typeof window === 'undefined' || !window.gtag) {
+  if (typeof window === 'undefined' || typeof window.gtag !== 'function') {
     return;
   }
   window.gtag('event', eventName, params);

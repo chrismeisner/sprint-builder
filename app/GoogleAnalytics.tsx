@@ -12,7 +12,7 @@ function GoogleAnalyticsTracker() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (!measurementId || !pathname) return;
+    if (!measurementId || !pathname || typeof window.gtag !== 'function') return;
 
     // Build the full URL path including search params
     const url = searchParams?.toString()
@@ -20,7 +20,7 @@ function GoogleAnalyticsTracker() {
       : pathname;
 
     // Track pageview on route change
-    window.gtag?.('config', measurementId, {
+    window.gtag('config', measurementId, {
       page_path: url,
     });
   }, [pathname, searchParams]);
