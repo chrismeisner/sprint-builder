@@ -21,11 +21,22 @@ type Profile = {
 type Project = {
   id: string;
   name: string;
+  status: ProjectStatus;
   createdAt: string | Date;
   updatedAt: string | Date;
   accountId?: string | null;
   isOwner?: boolean | null;
 };
+
+// Valid project status values (admin-only single select)
+const PROJECT_STATUSES = [
+  { value: 'active', label: 'Active' },
+  { value: 'on_hold', label: 'On Hold' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+] as const;
+
+type ProjectStatus = typeof PROJECT_STATUSES[number]['value'];
 
 type ProfileData = {
   profile: Profile;
@@ -57,6 +68,7 @@ export default function ProjectsClient() {
   const [memberRemovingEmail, setMemberRemovingEmail] = useState<string | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [welcomeSaving, setWelcomeSaving] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
@@ -262,6 +274,45 @@ export default function ProjectsClient() {
       setMemberModalError(err instanceof Error ? err.message : "Failed to remove member");
     } finally {
       setMemberRemovingEmail(null);
+    }
+  };
+
+  const handleStatusChange = async (projectId: string, newStatus: ProjectStatus) => {
+    try {
+      setStatusUpdating(projectId);
+      const res = await fetch("/api/projects", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: projectId, status: newStatus }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to update status");
+      }
+
+      await fetchProfile();
+      showToast("Project status updated", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to update status", "error");
+    } finally {
+      setStatusUpdating(null);
+    }
+  };
+
+  const getStatusBadgeClasses = (status: ProjectStatus) => {
+    const baseClasses = "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium";
+    switch (status) {
+      case 'active':
+        return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300`;
+      case 'on_hold':
+        return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300`;
+      case 'completed':
+        return `${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300`;
+      case 'cancelled':
+        return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300`;
+      default:
+        return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300`;
     }
   };
 
@@ -483,6 +534,9 @@ export default function ProjectsClient() {
                     Project
                   </th>
                   <th className={`px-4 py-3 ${tableHeadingClass}`}>
+                    Status
+                  </th>
+                  <th className={`px-4 py-3 ${tableHeadingClass}`}>
                     Created
                   </th>
                   <th className={`px-4 py-3 ${tableHeadingClass}`}>
@@ -504,6 +558,26 @@ export default function ProjectsClient() {
                         <div className={`${bodyClass} font-medium hover:underline`}>{project.name}</div>
                         <div className={monoMetaClass}>{project.id.slice(0, 8)}...</div>
                       </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      {data.profile.isAdmin ? (
+                        <select
+                          value={project.status || 'active'}
+                          onChange={(e) => handleStatusChange(project.id, e.target.value as ProjectStatus)}
+                          disabled={statusUpdating === project.id}
+                          className={`${bodySmClass} px-2 py-1 rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
+                        >
+                          {PROJECT_STATUSES.map((s) => (
+                            <option key={s.value} value={s.value}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={getStatusBadgeClasses(project.status || 'active')}>
+                          {PROJECT_STATUSES.find(s => s.value === (project.status || 'active'))?.label || 'Active'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span className={helperTextClass}>

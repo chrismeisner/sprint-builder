@@ -37,6 +37,7 @@ export async function GET() {
       SELECT DISTINCT
         p.id,
         p.name,
+        p.status,
         p.created_at,
         p.updated_at,
         p.account_id,
@@ -144,6 +145,7 @@ export async function GET() {
       projects: projectsResult.rows.map((row) => ({
         id: row.id as string,
         name: row.name as string,
+        status: (row.status as string) ?? 'active',
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         accountId: row.account_id,

@@ -1,0 +1,608 @@
+/**
+ * Journey Carousel Component
+ * Shared styles for user journey carousel sections
+ * Import this file in pages that need journey/carousel components
+ */
+
+/* =====================================================
+   JOURNEY USER CARD
+   Shows the persona for this journey
+===================================================== */
+.journey-user {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--neutral-0);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius);
+  margin-bottom: 28px;
+  box-shadow: var(--shadow);
+}
+
+.journey-user-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--neutral-400);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+}
+
+.journey-user-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--brand-primary-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.journey-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.journey-user-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--neutral-900);
+  margin: 0 0 2px;
+}
+
+.journey-user-role {
+  font-size: 13px;
+  color: var(--brand-primary-600);
+  margin: 0 0 6px;
+}
+
+.journey-user-quote {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--neutral-500);
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.journey-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.journey-user-info-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--neutral-200);
+  background: var(--neutral-0);
+  color: var(--neutral-500);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 150ms ease;
+}
+
+.journey-user-info-btn:hover {
+  border-color: var(--brand-primary-400);
+  color: var(--brand-primary-600);
+  background: var(--brand-primary-50);
+}
+
+.journey-user-info-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 600px) {
+  .journey-user {
+    flex-wrap: wrap;
+  }
+  .journey-user-label {
+    writing-mode: horizontal-tb;
+    transform: none;
+    width: 100%;
+  }
+}
+
+/* =====================================================
+   JOURNEY CAROUSEL
+===================================================== */
+.journey-carousel {
+  position: relative;
+  margin-bottom: 48px;
+}
+
+.carousel-container {
+  overflow: hidden;
+  cursor: grab;
+}
+
+.carousel-container:active {
+  cursor: grabbing;
+}
+
+.carousel-container.is-dragging {
+  cursor: grabbing;
+}
+
+.carousel-container.is-dragging .carousel-track {
+  transition: none;
+}
+
+.carousel-track {
+  display: flex;
+  gap: 20px;
+  transition: transform 0.4s ease;
+}
+
+/* =====================================================
+   JOURNEY STAGE CARD
+===================================================== */
+.journey-stage {
+  flex: 0 0 calc((100% - 40px) / 3);
+  background: var(--neutral-0);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tablet: 2 cards */
+@media (max-width: 900px) {
+  .journey-stage {
+    flex: 0 0 calc((100% - 20px) / 2);
+  }
+}
+
+/* Mobile: 1 card */
+@media (max-width: 600px) {
+  .journey-stage {
+    flex: 0 0 100%;
+  }
+}
+
+.stage-image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  position: relative;
+  background: var(--neutral-100);
+}
+
+.stage-image > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--neutral-100);
+}
+
+/* No Image Fallback Placeholder */
+.stage-image-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--neutral-100);
+  color: var(--neutral-400);
+  gap: 8px;
+}
+
+.stage-image-placeholder-icon {
+  width: 48px;
+  height: 48px;
+  opacity: 0.5;
+}
+
+.stage-image-placeholder-text {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stage-image-placeholder-hint {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--neutral-300);
+  font-family: var(--font-family-mono, monospace);
+}
+
+/* =====================================================
+   STAGE IMAGE SLIDESHOW
+   For stages with multiple images - auto-fading carousel
+===================================================== */
+.stage-image-slideshow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.stage-image-slideshow img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+
+/* First image visible by default (CSS fallback) */
+.stage-image-slideshow img:first-child {
+  opacity: 1;
+}
+
+/* When JS adds .active class, it takes over */
+.stage-image-slideshow.js-initialized img {
+  opacity: 0;
+}
+
+.stage-image-slideshow.js-initialized img.active {
+  opacity: 1;
+}
+
+/* Slideshow numbered selectors */
+.stage-image-selectors {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.stage-image-selector {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-family-sans);
+  cursor: pointer;
+  transition: all 200ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  pointer-events: auto;
+}
+
+.stage-image-selector:hover {
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #fff;
+}
+
+.stage-image-selector.active {
+  background: var(--brand-primary-500);
+  border-color: var(--brand-primary-500);
+  color: #fff;
+}
+
+/* Paused indicator when auto-cycle is stopped */
+.stage-image-slideshow.paused .stage-image-selectors::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+}
+
+.stage-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--neutral-100);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stage-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--brand-primary-500);
+  color: var(--neutral-0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.stage-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--neutral-900);
+}
+
+.stage-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.stage-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.stage-section {
+  margin: 0;
+}
+
+.stage-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--neutral-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.stage-text {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--neutral-700);
+  margin: 0;
+}
+
+.stage-list {
+  margin: 0;
+  padding: 0 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--neutral-700);
+}
+
+/* =====================================================
+   MILES ACTIONS (System/Technology Section)
+===================================================== */
+.stage-section-system {
+  /* No special styling - matches regular sections */
+}
+
+/* =====================================================
+   EMOTION INDICATORS
+===================================================== */
+.emotion-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.emotion-positive {
+  background: var(--brand-primary-100);
+  color: var(--brand-primary-800);
+}
+
+.emotion-neutral {
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+}
+
+.emotion-negative {
+  background: var(--brand-secondary-100);
+  color: var(--brand-secondary-800);
+}
+
+/* =====================================================
+   STAGE CALLOUTS (Pain Points & Opportunities)
+===================================================== */
+.stage-callouts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--neutral-100);
+}
+
+.stage-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.stage-callout-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.stage-callout-content {
+  flex: 1;
+}
+
+.stage-callout-label {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+/* Pain point callout - uses secondary (sand/warning) colors */
+.callout-pain {
+  background: var(--brand-secondary-50);
+  border: 1px solid var(--brand-secondary-200);
+}
+
+.callout-pain .stage-callout-label {
+  color: var(--brand-secondary-700);
+}
+
+.callout-pain .stage-callout-text {
+  color: var(--brand-secondary-600);
+}
+
+/* Opportunity callout - uses primary (green/success) colors */
+.callout-opportunity {
+  background: var(--brand-primary-50);
+  border: 1px solid var(--brand-primary-200);
+}
+
+.callout-opportunity .stage-callout-label {
+  color: var(--brand-primary-700);
+}
+
+.callout-opportunity .stage-callout-text {
+  color: var(--brand-primary-600);
+}
+
+/* =====================================================
+   CAROUSEL CONTROLS
+===================================================== */
+.carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.carousel-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--neutral-200);
+  background: var(--neutral-0);
+  color: var(--neutral-700);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 150ms ease;
+}
+
+.carousel-btn:hover:not(:disabled) {
+  border-color: var(--brand-primary-500);
+  color: var(--brand-primary-500);
+}
+
+.carousel-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.carousel-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.carousel-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.carousel-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background: var(--neutral-200);
+  cursor: pointer;
+  padding: 0;
+  transition: all 150ms ease;
+}
+
+.carousel-dot:hover {
+  background: var(--neutral-400);
+}
+
+.carousel-dot.active {
+  background: var(--brand-primary-500);
+  transform: scale(1.2);
+}
+
+.carousel-counter {
+  font-size: 14px;
+  color: var(--neutral-500);
+  font-weight: 500;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* =====================================================
+   JOURNEY SECTION HEADER
+===================================================== */
+.journey-section-header {
+  margin-bottom: 24px;
+}
+
+.journey-section-title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--neutral-900);
+}
+
+.journey-section-subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: var(--neutral-600);
+  line-height: 1.5;
+}
+
+/* =====================================================
+   DARK MODE SUPPORT (when inside themed containers)
+===================================================== */
+.theme-primary-dark .journey-stage,
+.theme-secondary-dark .journey-stage,
+.theme-surface-dark .journey-stage {
+  background: var(--neutral-100);
+  border-color: var(--neutral-200);
+}
+
+.theme-primary-dark .stage-name,
+.theme-secondary-dark .stage-name,
+.theme-surface-dark .stage-name {
+  color: var(--neutral-900);
+}
+
+.theme-primary-dark .stage-text,
+.theme-secondary-dark .stage-text,
+.theme-surface-dark .stage-text,
+.theme-primary-dark .stage-list,
+.theme-secondary-dark .stage-list,
+.theme-surface-dark .stage-list {
+  color: var(--neutral-700);
+}

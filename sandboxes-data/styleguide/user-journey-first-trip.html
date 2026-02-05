@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>First Trip Journey – Miles Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="typography-styles.css" />
+  <link rel="stylesheet" href="journey-carousel.css" />
+  <link rel="stylesheet" href="sidebar-nav.css" />
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      -webkit-font-smoothing: antialiased;
+      opacity: 0;
+      animation: globalFadeIn 600ms ease forwards;
+    }
+
+    @keyframes globalFadeIn {
+      to { opacity: 1; }
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: auto;
+      padding: 32px 16px 64px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .page-header-content {
+      flex: 1;
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .breadcrumb a {
+      color: var(--neutral-500);
+      text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+      color: var(--brand-primary-600);
+      text-decoration: underline;
+    }
+
+    .breadcrumb-separator {
+      color: var(--neutral-400);
+    }
+
+    .breadcrumb-current {
+      color: var(--neutral-700);
+      font-weight: 500;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: var(--font-family-sans);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .journey-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      background: var(--brand-primary-100);
+      color: var(--brand-primary-700);
+    }
+
+    .subtitle {
+      font-family: var(--font-family-sans);
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--neutral-600);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .page-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .export-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--neutral-200);
+      background: var(--neutral-0);
+      font-family: var(--font-family-sans);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--neutral-700);
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .export-btn:hover {
+      border-color: var(--brand-primary-400);
+      color: var(--brand-primary-600);
+      background: var(--brand-primary-50);
+    }
+
+    .export-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    @media (max-width: 500px) {
+      .page-header {
+        flex-direction: column;
+      }
+      .page-actions {
+        width: 100%;
+      }
+      .export-btn {
+        flex: 1;
+        justify-content: center;
+      }
+    }
+
+    /* User Modal */
+    .user-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+      padding: 16px;
+    }
+
+    .user-modal-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .user-modal {
+      background: var(--neutral-0);
+      border-radius: var(--radius);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      max-width: 480px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(20px);
+      transition: transform 0.2s ease;
+      position: relative;
+    }
+
+    .user-modal-overlay.visible .user-modal {
+      transform: translateY(0);
+    }
+
+    .user-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 24px;
+      background: linear-gradient(135deg, var(--brand-primary-50) 0%, var(--neutral-50) 100%);
+      border-bottom: 1px solid var(--neutral-100);
+    }
+
+    .user-modal-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--brand-primary-100);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      flex-shrink: 0;
+      border: 3px solid var(--neutral-0);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .user-modal-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .user-modal-identity { flex: 1; }
+
+    .user-modal-name {
+      margin: 0 0 4px;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--neutral-900);
+    }
+
+    .user-modal-role {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--brand-primary-600);
+    }
+
+    .user-modal-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .user-modal-tag {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: var(--neutral-100);
+      color: var(--neutral-600);
+    }
+
+    .user-modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: var(--neutral-0);
+      color: var(--neutral-500);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 150ms ease;
+    }
+
+    .user-modal-close:hover {
+      background: var(--neutral-100);
+      color: var(--neutral-700);
+    }
+
+    .user-modal-close svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .user-modal-quote {
+      padding: 20px 24px;
+      background: var(--neutral-50);
+      border-bottom: 1px solid var(--neutral-100);
+    }
+
+    .user-modal-quote blockquote {
+      margin: 0;
+      font-size: 15px;
+      font-style: italic;
+      line-height: 1.5;
+      color: var(--neutral-700);
+      position: relative;
+      padding-left: 20px;
+    }
+
+    .user-modal-quote blockquote::before {
+      content: '"';
+      position: absolute;
+      left: 0;
+      top: -4px;
+      font-size: 28px;
+      font-style: normal;
+      color: var(--brand-primary-300);
+      font-family: Georgia, serif;
+    }
+
+    .user-modal-body {
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .user-modal-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .user-modal-section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-modal-section-icon { font-size: 16px; }
+
+    .user-modal-section-title {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--neutral-500);
+    }
+
+    .user-modal-section-content {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--neutral-700);
+    }
+
+    .user-modal-section-content ul {
+      margin: 0;
+      padding: 0 0 0 18px;
+    }
+
+    .user-modal-section-content li {
+      margin-bottom: 4px;
+    }
+
+    .user-modal-section-content li:last-child {
+      margin-bottom: 0;
+    }
+
+    .user-modal-goals {
+      padding: 12px 14px;
+      background: var(--brand-primary-50);
+      border: 1px solid var(--brand-primary-200);
+      border-radius: 8px;
+    }
+
+    .user-modal-goals .user-modal-section-title { color: var(--brand-primary-700); }
+    .user-modal-goals .user-modal-section-content { color: var(--brand-primary-800); }
+
+    .user-modal-pains {
+      padding: 12px 14px;
+      background: var(--brand-secondary-50);
+      border: 1px solid var(--brand-secondary-200);
+      border-radius: 8px;
+    }
+
+    .user-modal-pains .user-modal-section-title { color: var(--brand-secondary-700); }
+    .user-modal-pains .user-modal-section-content { color: var(--brand-secondary-800); }
+
+    .user-modal-footer {
+      padding: 16px 24px;
+      background: var(--neutral-50);
+      border-top: 1px solid var(--neutral-100);
+    }
+
+    .user-modal-stages {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .user-modal-stages-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--neutral-500);
+    }
+
+    .user-modal-stage-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--brand-primary-100);
+      color: var(--brand-primary-700);
+    }
+
+    .view-all-profiles {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--brand-primary-600);
+      text-decoration: none;
+      transition: color 150ms ease;
+    }
+
+    .view-all-profiles:hover {
+      color: var(--brand-primary-700);
+      text-decoration: underline;
+    }
+
+    .view-all-profiles svg {
+      width: 14px;
+      height: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="page-header">
+      <div class="page-header-content">
+        <div class="breadcrumb">
+          <a href="user-journeys.html">User Journeys</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">First Trip</span>
+        </div>
+        <h1>
+          First Trip Journey
+          <span class="journey-badge">Primary</span>
+        </h1>
+        <p class="subtitle">The core product loop: Setting up the dongle, driving hands-free, and seeing a trip summary that builds trust.</p>
+      </div>
+      <div class="page-actions">
+        <button class="export-btn" id="exportCsvBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- User for this Journey -->
+    <div class="journey-user" id="journeyUser">
+      <span class="journey-user-label">User</span>
+      <div class="journey-user-avatar" id="journeyUserAvatar"></div>
+      <div class="journey-user-info">
+        <h3 class="journey-user-name" id="journeyUserName"></h3>
+        <p class="journey-user-role" id="journeyUserRole"></p>
+        <p class="journey-user-quote" id="journeyUserQuote"></p>
+      </div>
+      <div class="journey-user-actions">
+        <button class="journey-user-info-btn" id="openUserModal" type="button" aria-label="View user details">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4M12 8h.01"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- User Detail Modal -->
+    <div class="user-modal-overlay" id="userModalOverlay">
+      <div class="user-modal" role="dialog" aria-labelledby="modalUserName">
+        <button class="user-modal-close" id="closeUserModal" type="button" aria-label="Close modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+        <div class="user-modal-header">
+          <div class="user-modal-avatar" id="modalUserAvatar"></div>
+          <div class="user-modal-identity">
+            <h2 class="user-modal-name" id="modalUserName"></h2>
+            <p class="user-modal-role" id="modalUserRole"></p>
+            <div class="user-modal-tags" id="modalUserTags"></div>
+          </div>
+        </div>
+        <div class="user-modal-quote">
+          <blockquote id="modalUserQuote"></blockquote>
+        </div>
+        <div class="user-modal-body">
+          <div class="user-modal-section user-modal-goals">
+            <div class="user-modal-section-header">
+              <span class="user-modal-section-icon">🎯</span>
+              <h3 class="user-modal-section-title">Goals</h3>
+            </div>
+            <div class="user-modal-section-content">
+              <ul id="modalUserGoals"></ul>
+            </div>
+          </div>
+          <div class="user-modal-section user-modal-pains">
+            <div class="user-modal-section-header">
+              <span class="user-modal-section-icon">😤</span>
+              <h3 class="user-modal-section-title">Pain Points</h3>
+            </div>
+            <div class="user-modal-section-content">
+              <ul id="modalUserPains"></ul>
+            </div>
+          </div>
+          <div class="user-modal-section">
+            <div class="user-modal-section-header">
+              <span class="user-modal-section-icon">🔄</span>
+              <h3 class="user-modal-section-title">Jobs to be Done</h3>
+            </div>
+            <div class="user-modal-section-content">
+              <ul id="modalUserBehaviors"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="user-modal-footer">
+          <div class="user-modal-stages">
+            <span class="user-modal-stages-label">Key Journey Stages:</span>
+            <div id="modalUserStages"></div>
+          </div>
+          <a href="profiles.html" class="view-all-profiles">
+            View all user profiles
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Journey Carousel -->
+    <div class="journey-carousel" id="journeyCarousel">
+      <div class="carousel-container">
+        <div class="carousel-track" id="carouselTrack">
+          
+          <!-- Stage 1: Setup -->
+          <article class="journey-stage">
+            <div class="stage-image">
+              <div class="stage-image-slideshow" data-interval="4000">
+                <img src="./images/journey-first-trip-1a.jpg" alt="Setup stage - unboxing" data-expected-filename="journey-first-trip-1a.jpg" />
+                <img src="./images/journey-first-trip-1b.jpg" alt="Setup stage - installing" data-expected-filename="journey-first-trip-1b.jpg" />
+              </div>
+            </div>
+            <div class="stage-header">
+              <div class="stage-number">1</div>
+              <h2 class="stage-name">Setup</h2>
+            </div>
+            <div class="stage-body">
+              <div class="stage-content">
+                <div class="stage-section">
+                  <div class="stage-label">User Goal</div>
+                  <p class="stage-text">Get the dongle installed and connected once, confidently, with minimal effort</p>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Actions</div>
+                  <ul class="stage-list">
+                    <li>Unbox and confirm car/phone compatibility</li>
+                    <li>Download app, create account, grant permissions</li>
+                    <li>Locate OBD port and plug in dongle</li>
+                    <li>Pair device and enter vehicle + safety contact info</li>
+                  </ul>
+                </div>
+                <div class="stage-section stage-section-system">
+                  <div class="stage-label">Miles Actions</div>
+                  <ul class="stage-list">
+                    <li>Dongle powers on from OBD + confirms "alive"</li>
+                    <li>Bind device → account + run firmware check/update if needed</li>
+                    <li>Establish baseline connectivity + readiness to detect trips</li>
+                    <li>Get VIN number and initial car details</li>
+                  </ul>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Touchpoints</div>
+                  <p class="stage-text">Packaging insert, quick start guide, app onboarding, OS permission prompts, in-car install, help center</p>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Emotion</div>
+                  <span class="emotion-indicator emotion-neutral">😬 Cautious optimism → mild anxiety</span>
+                </div>
+                <div class="stage-callouts">
+                  <div class="stage-callout callout-pain">
+                    <span class="stage-callout-icon">⚠️</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Pain Point</div>
+                      <div class="stage-callout-text">"Am I doing this right?" — OBD port location, compatibility uncertainty, too many steps, fear of breaking something</div>
+                    </div>
+                  </div>
+                  <div class="stage-callout callout-opportunity">
+                    <span class="stage-callout-icon">💡</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Opportunity</div>
+                      <div class="stage-callout-text">Make the journey legible in 3–4 steps; instant "device detected" reassurance; compatibility check upfront; clear "do later" options; human tone that avoids "insurance dongle" vibes</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Stage 2: Trigger -->
+          <article class="journey-stage">
+            <div class="stage-image">
+              <img src="./images/journey-first-trip-2.jpg" alt="Trigger stage - starting to drive" data-expected-filename="journey-first-trip-2.jpg" />
+            </div>
+            <div class="stage-header">
+              <div class="stage-number">2</div>
+              <h2 class="stage-name">Trigger</h2>
+            </div>
+            <div class="stage-body">
+              <div class="stage-content">
+                <div class="stage-section">
+                  <div class="stage-label">User Goal</div>
+                  <p class="stage-text">Start driving normally without needing to remember to do anything</p>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Actions</div>
+                  <ul class="stage-list">
+                    <li>Start the car</li>
+                    <li>Drive normally</li>
+                  </ul>
+                </div>
+                <div class="stage-section stage-section-system">
+                  <div class="stage-label">Miles Actions</div>
+                  <ul class="stage-list">
+                    <li>Detect ignition via OBD voltage change</li>
+                    <li>Begin trip recording automatically</li>
+                    <li>Start collecting sensor data (speed, RPM, accelerometer)</li>
+                    <li>Buffer data locally on device</li>
+                  </ul>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Touchpoints</div>
+                  <p class="stage-text">Car ignition/motion; optional passive app state (no interaction required)</p>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Emotion</div>
+                  <span class="emotion-indicator emotion-positive">😌 Relief (if truly hands-off)</span>
+                </div>
+                <div class="stage-callouts">
+                  <div class="stage-callout callout-pain">
+                    <span class="stage-callout-icon">⚠️</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Pain Point</div>
+                      <div class="stage-callout-text">Uncertainty that it actually started logging; temptation to check phone while driving</div>
+                    </div>
+                  </div>
+                  <div class="stage-callout callout-opportunity">
+                    <span class="stage-callout-icon">💡</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Opportunity</div>
+                      <div class="stage-callout-text">Communicate clearly before the drive: "You don't need to press anything." Optionally provide a non-distracting "we've got it" signal only when parked</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Stage 3: Interpretation -->
+          <article class="journey-stage">
+            <div class="stage-image">
+              <img src="./images/journey-first-trip-3.jpg" alt="Interpretation stage - trip detection" data-expected-filename="journey-first-trip-3.jpg" />
+            </div>
+            <div class="stage-header">
+              <div class="stage-number">3</div>
+              <h2 class="stage-name">Interpretation</h2>
+            </div>
+            <div class="stage-body">
+              <div class="stage-content">
+                <div class="stage-section">
+                  <div class="stage-label">User Goal</div>
+                  <p class="stage-text">Have Miles correctly understand "this was a trip" with clean boundaries</p>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Actions</div>
+                  <ul class="stage-list">
+                    <li>(No user action required)</li>
+                  </ul>
+                </div>
+                <div class="stage-section stage-section-system">
+                  <div class="stage-label">Miles Actions</div>
+                  <ul class="stage-list">
+                    <li>Process raw sensor data into trip segments</li>
+                    <li>Apply trip boundary logic (start/end thresholds)</li>
+                    <li>Handle edge cases (short stops, idling, connectivity gaps)</li>
+                    <li>Determine trip end when ignition off + timeout elapsed</li>
+                  </ul>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Touchpoints</div>
+                  <p class="stage-text">Device sensing, background app services, backend processing</p>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Emotion</div>
+                  <span class="emotion-indicator emotion-neutral">🤞 Invisible trust-building (or skepticism if flaky)</span>
+                </div>
+                <div class="stage-callouts">
+                  <div class="stage-callout callout-pain">
+                    <span class="stage-callout-icon">⚠️</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Pain Point</div>
+                      <div class="stage-callout-text">Missed trips, split trips, or weird boundaries (short stops, idling, intermittent connectivity)</div>
+                    </div>
+                  </div>
+                  <div class="stage-callout callout-opportunity">
+                    <span class="stage-callout-icon">💡</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Opportunity</div>
+                      <div class="stage-callout-text">Graceful trip-boundary logic (start/end thresholds); "we're finalizing your trip" messaging vs errors; clear definitions in-product ("what counts as a trip")</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Stage 4: Action -->
+          <article class="journey-stage">
+            <div class="stage-image">
+              <div class="stage-image-slideshow" data-interval="5000">
+                <img src="./images/journey-first-trip-4a.jpg" alt="Action stage - syncing" data-expected-filename="journey-first-trip-4a.jpg" />
+                <img src="./images/journey-first-trip-4b.jpg" alt="Action stage - processing" data-expected-filename="journey-first-trip-4b.jpg" />
+              </div>
+            </div>
+            <div class="stage-header">
+              <div class="stage-number">4</div>
+              <h2 class="stage-name">Action</h2>
+            </div>
+            <div class="stage-body">
+              <div class="stage-content">
+                <div class="stage-section">
+                  <div class="stage-label">User Goal</div>
+                  <p class="stage-text">Turn the drive into a usable artifact (not raw data)</p>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Actions</div>
+                  <ul class="stage-list">
+                    <li>Park the car</li>
+                    <li>Optionally open app later</li>
+                    <li>Optionally allow syncing</li>
+                  </ul>
+                </div>
+                <div class="stage-section stage-section-system">
+                  <div class="stage-label">Miles Actions</div>
+                  <ul class="stage-list">
+                    <li>Store trip data locally on device</li>
+                    <li>Sync data to phone when in Bluetooth range</li>
+                    <li>Upload to cloud for processing</li>
+                    <li>Generate trip summary and basic insights</li>
+                  </ul>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Touchpoints</div>
+                  <p class="stage-text">Device storage, phone sync (when near), cloud processing, notifications (if relevant)</p>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Emotion</div>
+                  <span class="emotion-indicator emotion-neutral">⏳ Neutral patience (if progress is clear)</span>
+                </div>
+                <div class="stage-callouts">
+                  <div class="stage-callout callout-pain">
+                    <span class="stage-callout-icon">⚠️</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Pain Point</div>
+                      <div class="stage-callout-text">Latency: "Why don't I see it yet?" Confusion about where data lives or when it uploads</div>
+                    </div>
+                  </div>
+                  <div class="stage-callout callout-opportunity">
+                    <span class="stage-callout-icon">💡</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Opportunity</div>
+                      <div class="stage-callout-text">Transparent progress state ("Saving / Summarizing"); set expectations ("Trips appear after you park"); design for offline-first reality; avoid making user troubleshoot connectivity</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Stage 5: Resolution -->
+          <article class="journey-stage">
+            <div class="stage-image">
+              <img src="./images/journey-first-trip-5.jpg" alt="Resolution stage - viewing trip" data-expected-filename="journey-first-trip-5.jpg" />
+            </div>
+            <div class="stage-header">
+              <div class="stage-number">5</div>
+              <h2 class="stage-name">Resolution</h2>
+            </div>
+            <div class="stage-body">
+              <div class="stage-content">
+                <div class="stage-section">
+                  <div class="stage-label">User Goal</div>
+                  <p class="stage-text">See proof it worked + a helpful summary that feels encouraging</p>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Actions</div>
+                  <ul class="stage-list">
+                    <li>Open app</li>
+                    <li>View first Trip card</li>
+                    <li>Tap into trip details</li>
+                  </ul>
+                </div>
+                <div class="stage-section stage-section-system">
+                  <div class="stage-label">Miles Actions</div>
+                  <ul class="stage-list">
+                    <li>Compile trip into viewable card format</li>
+                    <li>Calculate scores, metrics, or highlights</li>
+                    <li>Render map route and trip timeline</li>
+                    <li>Queue "first trip complete" celebration if applicable</li>
+                  </ul>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Touchpoints</div>
+                  <p class="stage-text">App home / Trips view, trip detail screen, optional "share" affordance</p>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Emotion</div>
+                  <span class="emotion-indicator emotion-positive">😊 Satisfaction + confidence</span>
+                </div>
+                <div class="stage-callouts">
+                  <div class="stage-callout callout-pain">
+                    <span class="stage-callout-icon">⚠️</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Pain Point</div>
+                      <div class="stage-callout-text">If the first result is empty, overly technical, or judgmental, the user churns</div>
+                    </div>
+                  </div>
+                  <div class="stage-callout callout-opportunity">
+                    <span class="stage-callout-icon">💡</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Opportunity</div>
+                      <div class="stage-callout-text">Make the first Trip card a "receipt of value" (simple, legible); supportive tone; highlight wins; if something's missing, say what's still processing—not "error"</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Stage 6: Follow Up -->
+          <article class="journey-stage">
+            <div class="stage-image">
+              <div class="stage-image-slideshow" data-interval="4500">
+                <img src="./images/journey-first-trip-6a.jpg" alt="Follow up stage - building habit" data-expected-filename="journey-first-trip-6a.jpg" />
+                <img src="./images/journey-first-trip-6b.jpg" alt="Follow up stage - weekly recap" data-expected-filename="journey-first-trip-6b.jpg" />
+              </div>
+            </div>
+            <div class="stage-header">
+              <div class="stage-number">6</div>
+              <h2 class="stage-name">Follow Up</h2>
+            </div>
+            <div class="stage-body">
+              <div class="stage-content">
+                <div class="stage-section">
+                  <div class="stage-label">User Goal</div>
+                  <p class="stage-text">Build habit + deepen setup without regret or overwhelm</p>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Actions</div>
+                  <ul class="stage-list">
+                    <li>Drive again</li>
+                    <li>Optionally complete deferred setup</li>
+                    <li>Add household members, set preferences</li>
+                    <li>Respond to gentle nudges</li>
+                  </ul>
+                </div>
+                <div class="stage-section stage-section-system">
+                  <div class="stage-label">Miles Actions</div>
+                  <ul class="stage-list">
+                    <li>Track driving patterns over time</li>
+                    <li>Generate weekly/monthly insights and trends</li>
+                    <li>Manage notification frequency based on engagement</li>
+                    <li>Monitor device health + connectivity status</li>
+                  </ul>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Touchpoints</div>
+                  <p class="stage-text">Push notifications, in-app nudges, weekly recap, settings, support, email receipts</p>
+                </div>
+                <div class="stage-section">
+                  <div class="stage-label">Emotion</div>
+                  <span class="emotion-indicator emotion-positive">🤝 Growing trust (or annoyance if naggy)</span>
+                </div>
+                <div class="stage-callouts">
+                  <div class="stage-callout callout-pain">
+                    <span class="stage-callout-icon">⚠️</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Pain Point</div>
+                      <div class="stage-callout-text">Too many prompts; unclear long-term value; perceived surveillance/punitive vibe</div>
+                    </div>
+                  </div>
+                  <div class="stage-callout callout-opportunity">
+                    <span class="stage-callout-icon">💡</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Opportunity</div>
+                      <div class="stage-callout-text">Progressive disclosure: ask for more only when it unlocks value; "finish later" pathways; reinforce trust + control; show trend-based insights after a few trips without overpromising day one</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <div class="carousel-controls">
+        <button class="carousel-btn" id="prevBtn" aria-label="Previous stage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <div class="carousel-dots" id="carouselDots"></div>
+        <button class="carousel-btn" id="nextBtn" aria-label="Next stage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+  <script src="sidebar-nav.js"></script>
+  <script src="personas-data.js"></script>
+  <script src="journey-scripts.js"></script>
+</body>
+</html>

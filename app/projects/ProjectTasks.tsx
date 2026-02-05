@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Typography from "@/components/ui/Typography";
 
@@ -25,29 +25,67 @@ export default function ProjectTasks({ projectId }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchIdeas = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch("/api/admin/tasks/ideas");
-        if (!res.ok) throw new Error("Failed to fetch");
-        
-        const data = await res.json();
-        // Filter to only ideas linked to this project
-        const projectIdeas = data.ideas.filter(
-          (idea: Idea & { project_id: string | null }) => idea.project_id === projectId
-        );
-        setIdeas(projectIdeas);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load tasks");
-      } finally {
-        setLoading(false);
-      }
-    };
+  // New idea modal state
+  const [showNewIdeaModal, setShowNewIdeaModal] = useState(false);
+  const [newIdeaTitle, setNewIdeaTitle] = useState("");
+  const [newIdeaSummary, setNewIdeaSummary] = useState("");
+  const [creatingIdea, setCreatingIdea] = useState(false);
 
-    fetchIdeas();
+  const fetchIdeas = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/admin/tasks/ideas");
+      if (!res.ok) throw new Error("Failed to fetch");
+      
+      const data = await res.json();
+      // Filter to only ideas linked to this project
+      const projectIdeas = data.ideas.filter(
+        (idea: Idea & { project_id: string | null }) => idea.project_id === projectId
+      );
+      setIdeas(projectIdeas);
+      setError(null);
+    } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load ideas");
+    } finally {
+      setLoading(false);
+    }
   }, [projectId]);
+
+  useEffect(() => {
+    fetchIdeas();
+  }, [fetchIdeas]);
+
+  const createIdea = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newIdeaTitle.trim()) return;
+
+    try {
+      setCreatingIdea(true);
+      const res = await fetch("/api/admin/tasks/ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newIdeaTitle,
+          summary: newIdeaSummary || null,
+          project_id: projectId,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to create idea");
+      }
+
+      setNewIdeaTitle("");
+      setNewIdeaSummary("");
+      setShowNewIdeaModal(false);
+      await fetchIdeas();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to create idea");
+    } finally {
+      setCreatingIdea(false);
+    }
+  };
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return null;
@@ -62,7 +100,7 @@ export default function ProjectTasks({ projectId }: Props) {
 
   if (loading) {
     return (
-      <div className="py-4 text-sm opacity-70">Loading tasks...</div>
+      <div className="py-4 text-sm opacity-70">Loading ideas...</div>
     );
   }
 
@@ -77,25 +115,40 @@ export default function ProjectTasks({ projectId }: Props) {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <Typography as="h2" scale="h3">
-            Tasks
+            Ideas
           </Typography>
           <Typography as="span" scale="body-sm" className="opacity-60">
-            {ideas.length} idea{ideas.length !== 1 ? "s" : ""} linked
+            {ideas.length} total
           </Typography>
         </div>
-        <Link
-          href="/dashboard/tasks"
-          className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
-        >
-          Manage all tasks →
-        </Link>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowNewIdeaModal(true)}
+            className="inline-flex items-center rounded-md bg-black text-white dark:bg-white dark:text-black px-3 py-1.5 text-sm hover:bg-black/80 dark:hover:bg-white/80 transition"
+          >
+            + New idea
+          </button>
+          <Link
+            href="/dashboard/tasks"
+            className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
+          >
+            Manage all ideas →
+          </Link>
+        </div>
       </div>
 
       {ideas.length === 0 ? (
         <Typography as="div" scale="body-sm" className="opacity-70">
-          No ideas linked to this project. Link ideas from the{" "}
+          No ideas yet.{" "}
+          <button
+            onClick={() => setShowNewIdeaModal(true)}
+            className="text-blue-600 hover:underline"
+          >
+            Create a new idea
+          </button>{" "}
+          or link existing ideas from the{" "}
           <Link href="/dashboard/tasks" className="text-blue-600 hover:underline">
-            Tasks dashboard
+            Ideas dashboard
           </Link>
           .
         </Typography>
@@ -156,6 +209,86 @@ export default function ProjectTasks({ projectId }: Props) {
               </Link>
             );
           })}
+        </div>
+      )}
+
+      {/* New Idea Modal */}
+      {showNewIdeaModal && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowNewIdeaModal(false)}
+        >
+          <div 
+            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
+              <Typography as="h3" scale="h3">
+                New Idea
+              </Typography>
+              <button
+                onClick={() => setShowNewIdeaModal(false)}
+                className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={createIdea} className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newIdeaTitle}
+                  onChange={(e) => setNewIdeaTitle(e.target.value)}
+                  placeholder="What's the idea?"
+                  className="w-full px-3 py-2 border border-black/10 dark:border-white/15 rounded-md bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={creatingIdea}
+                  autoFocus
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Summary <span className="opacity-50">(optional)</span>
+                </label>
+                <textarea
+                  value={newIdeaSummary}
+                  onChange={(e) => setNewIdeaSummary(e.target.value)}
+                  placeholder="Add more details..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-black/10 dark:border-white/15 rounded-md bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  disabled={creatingIdea}
+                />
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNewIdeaModal(false);
+                    setNewIdeaTitle("");
+                    setNewIdeaSummary("");
+                  }}
+                  className="px-4 py-2 text-sm border border-black/10 dark:border-white/15 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingIdea || !newIdeaTitle.trim()}
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {creatingIdea ? "Creating..." : "Create Idea"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

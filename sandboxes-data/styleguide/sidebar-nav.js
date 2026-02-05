@@ -7,6 +7,7 @@
   'use strict';
 
   const STORAGE_KEY = 'styleguide-sidebar-open';
+  const SUBMENU_STORAGE_KEY = 'styleguide-submenu-open';
 
   const NAV_ITEMS = [
     { href: 'logo-style.html', label: 'Logo', icon: '🏷️' },
@@ -14,6 +15,8 @@
     { href: 'fonts.html', label: 'Typography', icon: '🔤' },
     { href: 'image-style.html', label: 'Images', icon: '🖼️' },
     { href: 'style-tiles.html', label: 'Style Tiles', icon: '📱' },
+    { href: 'profiles.html', label: 'User Profiles', icon: '👤' },
+    { href: 'user-journeys.html', label: 'User Journeys', icon: '🗺️' },
     { href: 'changelog.html', label: 'Changelog', icon: '📋' }
   ];
 
@@ -21,6 +24,28 @@
     const path = window.location.pathname;
     const filename = path.split('/').pop() || 'index.html';
     return filename;
+  }
+
+  function isChildActive(item, currentPage) {
+    if (!item.children) return false;
+    return item.children.some(child => child.href === currentPage);
+  }
+
+  function getSubmenuState(key) {
+    try {
+      const saved = localStorage.getItem(SUBMENU_STORAGE_KEY + '-' + key);
+      return saved === 'true';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function saveSubmenuState(key, isOpen) {
+    try {
+      localStorage.setItem(SUBMENU_STORAGE_KEY + '-' + key, String(isOpen));
+    } catch (e) {
+      // Storage not available
+    }
   }
 
   function getSavedState() {
@@ -44,6 +69,50 @@
     const currentPage = getCurrentPage();
     const isOpen = getSavedState();
 
+    // Generate nav item HTML (handles both regular and items with children)
+    function renderNavItem(item) {
+      const isActive = currentPage === item.href;
+      const hasChildren = item.children && item.children.length > 0;
+      const childActive = isChildActive(item, currentPage);
+      const submenuOpen = childActive || getSubmenuState(item.label);
+      
+      if (hasChildren) {
+        return `
+          <li class="sidebar-item-with-children ${submenuOpen ? 'expanded' : ''}">
+            <div class="sidebar-link-wrapper">
+              <a href="${item.href}" class="sidebar-link ${isActive || childActive ? 'active' : ''}" ${isActive ? 'aria-current="page"' : ''}>
+                <span class="sidebar-link-icon">${item.icon}</span>
+                <span>${item.label}</span>
+              </a>
+              <button class="sidebar-submenu-toggle" type="button" aria-label="Toggle submenu" data-submenu="${item.label}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
+            <ul class="sidebar-submenu">
+              ${item.children.map(child => `
+                <li>
+                  <a href="${child.href}" class="sidebar-sublink ${currentPage === child.href ? 'active' : ''}" ${currentPage === child.href ? 'aria-current="page"' : ''}>
+                    ${child.label}
+                  </a>
+                </li>
+              `).join('')}
+            </ul>
+          </li>
+        `;
+      }
+      
+      return `
+        <li>
+          <a href="${item.href}" class="sidebar-link ${isActive ? 'active' : ''}" ${isActive ? 'aria-current="page"' : ''}>
+            <span class="sidebar-link-icon">${item.icon}</span>
+            <span>${item.label}</span>
+          </a>
+        </li>
+      `;
+    }
+
     // Create sidebar HTML
     const sidebarHTML = `
       <nav class="sidebar-nav ${isOpen ? '' : 'collapsed'}" id="sidebarNav" aria-label="Styleguide navigation">
@@ -59,14 +128,7 @@
           </button>
         </div>
         <ul class="sidebar-menu">
-          ${NAV_ITEMS.map(item => `
-            <li>
-              <a href="${item.href}" class="sidebar-link ${currentPage === item.href ? 'active' : ''}" ${currentPage === item.href ? 'aria-current="page"' : ''}>
-                <span class="sidebar-link-icon">${item.icon}</span>
-                <span>${item.label}</span>
-              </a>
-            </li>
-          `).join('')}
+          ${NAV_ITEMS.map(item => renderNavItem(item)).join('')}
         </ul>
         <div class="sidebar-footer">
           <a href="index.html" class="sidebar-home-link">
@@ -141,6 +203,20 @@
         e.preventDefault();
         toggleSidebar();
       }
+    });
+
+    // Submenu toggle functionality
+    const submenuToggles = sidebar.querySelectorAll('.sidebar-submenu-toggle');
+    submenuToggles.forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const parent = this.closest('.sidebar-item-with-children');
+        const submenuKey = this.getAttribute('data-submenu');
+        const isExpanded = parent.classList.contains('expanded');
+        
+        parent.classList.toggle('expanded');
+        saveSubmenuState(submenuKey, !isExpanded);
+      });
     });
   }
 

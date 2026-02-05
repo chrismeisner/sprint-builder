@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>User Profiles – Miles Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="typography-styles.css" />
+  <link rel="stylesheet" href="profile-cards.css" />
+  <link rel="stylesheet" href="sidebar-nav.css" />
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: auto;
+      padding: 32px 16px 64px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: var(--font-family-sans);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-family: var(--font-family-sans);
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--neutral-600);
+      margin: 0 0 32px;
+      line-height: 1.5;
+    }
+
+    /* Global fade-in on page load */
+    body {
+      opacity: 0;
+      animation: globalFadeIn 600ms ease forwards;
+    }
+
+    @keyframes globalFadeIn {
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* Staggered fade-in for profile cards */
+    .profile-card {
+      opacity: 0;
+      transform: translateY(16px);
+      animation: cardFadeIn 400ms ease forwards;
+    }
+
+    .profile-card:nth-child(1) { animation-delay: 100ms; }
+    .profile-card:nth-child(2) { animation-delay: 200ms; }
+    .profile-card:nth-child(3) { animation-delay: 300ms; }
+    .profile-card:nth-child(4) { animation-delay: 400ms; }
+
+    @keyframes cardFadeIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* =====================================================
+       JTBD PERSONA CARD STYLES
+    ===================================================== */
+    
+    /* Core Job Statement */
+    .jtbd-statement {
+      padding: 20px 24px;
+      background: linear-gradient(135deg, var(--brand-primary-50) 0%, var(--neutral-50) 100%);
+      border-bottom: 1px solid var(--neutral-100);
+    }
+
+    .jtbd-label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--brand-primary-600);
+      margin-bottom: 8px;
+    }
+
+    .jtbd-text {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.5;
+      color: var(--neutral-800);
+      font-style: italic;
+    }
+
+    /* Role & Relationship */
+    .role-relationship-section {
+      padding: 16px 24px;
+      background: var(--neutral-100);
+      border-bottom: 1px solid var(--neutral-200);
+    }
+
+    .role-relationship-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px 16px;
+      align-items: baseline;
+    }
+
+    .role-label, .relationship-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--neutral-500);
+    }
+
+    .role-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--neutral-900);
+    }
+
+    .relationship-value {
+      font-size: 13px;
+      color: var(--neutral-700);
+      line-height: 1.4;
+    }
+
+    /* Section Common Styles */
+    .persona-section {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--neutral-100);
+    }
+
+    .persona-section:last-child {
+      border-bottom: none;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .section-icon {
+      font-size: 16px;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--neutral-500);
+    }
+
+    .section-subtitle {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--neutral-400);
+      margin-left: auto;
+    }
+
+    /* Trigger Moments */
+    .trigger-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .trigger-list li {
+      position: relative;
+      padding: 6px 0 6px 20px;
+      font-size: 13px;
+      color: var(--neutral-700);
+      line-height: 1.4;
+    }
+
+    .trigger-list li::before {
+      content: '⚡';
+      position: absolute;
+      left: 0;
+      font-size: 12px;
+    }
+
+    /* Must-Have Outcomes */
+    .outcomes-section {
+      background: var(--brand-primary-50);
+    }
+
+    .outcomes-section .section-title {
+      color: var(--brand-primary-700);
+    }
+
+    .outcome-item {
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .outcome-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .outcome-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--brand-primary-800);
+      margin-bottom: 2px;
+    }
+
+    .outcome-desc {
+      margin: 0;
+      font-size: 12px;
+      color: var(--brand-primary-700);
+      line-height: 1.4;
+    }
+
+    /* Trust & Fairness Rules */
+    .trust-rules-section {
+      background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+    }
+
+    .trust-rules-section .section-title {
+      color: #92400e;
+    }
+
+    .trust-rules-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .trust-rules-list li {
+      position: relative;
+      padding: 8px 0 8px 24px;
+      font-size: 13px;
+      color: #78350f;
+      line-height: 1.4;
+      border-bottom: 1px solid rgba(252, 211, 77, 0.3);
+    }
+
+    .trust-rules-list li:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .trust-rules-list li::before {
+      content: '🚫';
+      position: absolute;
+      left: 0;
+      font-size: 12px;
+    }
+
+    /* Default Visibility */
+    .visibility-section {
+      background: linear-gradient(135deg, #ede9fe 0%, #f3e8ff 100%);
+    }
+
+    .visibility-section .section-title {
+      color: #5b21b6;
+    }
+
+    .visibility-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .visibility-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+    }
+
+    .visibility-sees {
+      background: rgba(255, 255, 255, 0.6);
+      border-left: 3px solid #22c55e;
+    }
+
+    .visibility-not-sees {
+      background: rgba(255, 255, 255, 0.4);
+      border-left: 3px solid #ef4444;
+    }
+
+    .visibility-positioning {
+      background: rgba(255, 255, 255, 0.5);
+      border-left: 3px solid #6d28d9;
+    }
+
+    .visibility-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 4px;
+    }
+
+    .visibility-sees .visibility-label {
+      color: #16a34a;
+    }
+
+    .visibility-not-sees .visibility-label {
+      color: #dc2626;
+    }
+
+    .visibility-positioning .visibility-label {
+      color: #6d28d9;
+    }
+
+    .visibility-value {
+      margin: 0;
+      font-size: 13px;
+      color: #4c1d95;
+      line-height: 1.4;
+    }
+
+    /* What Success Looks Like */
+    .success-section {
+      background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
+    }
+
+    .success-section .section-title {
+      color: #047857;
+    }
+
+    .success-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .success-list li {
+      position: relative;
+      padding: 8px 0 8px 24px;
+      font-size: 13px;
+      color: #065f46;
+      line-height: 1.4;
+    }
+
+    .success-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: #10b981;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>User Personas</h1>
+    <p class="subtitle">Target user personas for Miles — the families, parents, and teens we're designing for.</p>
+
+    <div class="placeholder-note">
+      <h3>👨‍👧 The Two Sides of Miles</h3>
+      <p>
+        Miles serves two users with different needs: the <strong>parent</strong> seeking peace of mind without being overbearing, 
+        and the <strong>teen</strong> wanting independence while proving they're responsible. Both must feel the app is fair 
+        for Miles to succeed. These personas use the JTBD (Jobs To Be Done) framework to capture what matters most.
+      </p>
+    </div>
+
+    <div id="profilesGrid" class="profiles-grid"></div>
+  </div>
+
+  <script src="sidebar-nav.js"></script>
+  <script src="personas-data.js"></script>
+  <script>
+    // ============================================
+    // RENDERING LOGIC
+    // Persona data is loaded from personas-data.js
+    // ============================================
+    const personas = typeof PERSONAS !== 'undefined' ? PERSONAS : [];
+
+    function renderPersonas() {
+      const grid = document.getElementById('profilesGrid');
+      if (!grid) return;
+
+      if (!personas.length) {
+        grid.innerHTML = '<p style="color: var(--neutral-500); font-size: 14px;">No personas defined. Add them to personas-data.js</p>';
+        return;
+      }
+
+      grid.innerHTML = personas.map((persona, index) => `
+        <article class="profile-card">
+          <!-- HEADER: Avatar, Name -->
+          <div class="profile-header">
+            <div class="profile-avatar">
+              ${persona.avatar 
+                ? `<img src="${persona.avatar}" alt="${persona.name}" />`
+                : `<div class="profile-avatar-placeholder">${persona.emoji || '👤'}</div>`
+              }
+            </div>
+            <div class="profile-identity">
+              <h2 class="profile-name">Persona ${index + 1}: ${persona.name}</h2>
+            </div>
+          </div>
+
+          <!-- ROLE & RELATIONSHIP -->
+          <div class="role-relationship-section">
+            <div class="role-relationship-grid">
+              <span class="role-label">Role:</span>
+              <span class="role-value">${persona.role}</span>
+              <span class="relationship-label">Relationship:</span>
+              <span class="relationship-value">${persona.relationship}</span>
+            </div>
+          </div>
+
+          <!-- CORE JOB (JTBD) -->
+          <div class="jtbd-statement">
+            <span class="jtbd-label">Core Job (JTBD)</span>
+            <p class="jtbd-text">${persona.coreJob}</p>
+          </div>
+
+          <div class="profile-body">
+            <!-- TRIGGER MOMENTS -->
+            <div class="persona-section">
+              <div class="section-header">
+                <span class="section-icon">⚡</span>
+                <h3 class="section-title">Trigger Moments</h3>
+                <span class="section-subtitle">why they open Miles</span>
+              </div>
+              <ul class="trigger-list">
+                ${persona.triggerMoments.map(item => `<li>${item}</li>`).join('')}
+              </ul>
+            </div>
+
+            <!-- MUST-HAVE OUTCOMES -->
+            <div class="persona-section outcomes-section">
+              <div class="section-header">
+                <span class="section-icon">🎯</span>
+                <h3 class="section-title">Must-Have Outcomes</h3>
+                <span class="section-subtitle">non-negotiables</span>
+              </div>
+              <div class="outcomes-list">
+                ${persona.mustHaveOutcomes.map(item => `
+                  <div class="outcome-item">
+                    <span class="outcome-label">${item.label}:</span>
+                    <p class="outcome-desc">${item.description}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- TRUST & FAIRNESS RULES -->
+            <div class="persona-section trust-rules-section">
+              <div class="section-header">
+                <span class="section-icon">🤝</span>
+                <h3 class="section-title">Trust & Fairness Rules</h3>
+                <span class="section-subtitle">what can't be violated</span>
+              </div>
+              <ul class="trust-rules-list">
+                ${persona.trustFairnessRules.map(item => `<li>${item}</li>`).join('')}
+              </ul>
+            </div>
+
+            <!-- DEFAULT VISIBILITY MODEL -->
+            <div class="persona-section visibility-section">
+              <div class="section-header">
+                <span class="section-icon">👁️</span>
+                <h3 class="section-title">Default Visibility Model</h3>
+                <span class="section-subtitle">how Miles should behave</span>
+              </div>
+              <div class="visibility-grid">
+                ${persona.defaultVisibility.sees ? `
+                  <div class="visibility-item visibility-sees">
+                    <span class="visibility-label">${persona.id === 'driving-parent' ? 'Parent sees' : 'Teen sees'}:</span>
+                    <p class="visibility-value">${persona.defaultVisibility.sees}</p>
+                  </div>
+                ` : ''}
+                ${persona.defaultVisibility.doesNotSee ? `
+                  <div class="visibility-item visibility-not-sees">
+                    <span class="visibility-label">${persona.id === 'driving-parent' ? 'Parent does NOT see' : 'Teen does NOT see'}:</span>
+                    <p class="visibility-value">${persona.defaultVisibility.doesNotSee}</p>
+                  </div>
+                ` : ''}
+                ${persona.defaultVisibility.productPositioning ? `
+                  <div class="visibility-item visibility-positioning">
+                    <span class="visibility-label">Product Positioning:</span>
+                    <p class="visibility-value">${persona.defaultVisibility.productPositioning}</p>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- WHAT SUCCESS LOOKS LIKE -->
+            <div class="persona-section success-section">
+              <div class="section-header">
+                <span class="section-icon">✨</span>
+                <h3 class="section-title">What Success Looks Like</h3>
+              </div>
+              <ul class="success-list">
+                ${persona.successLooksLike.map(item => `<li>${item}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    // Initialize
+    renderPersonas();
+  </script>
+</body>
+</html>

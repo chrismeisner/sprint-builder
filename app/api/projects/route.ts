@@ -6,9 +6,14 @@ import { randomUUID } from "crypto";
 type ProjectRow = {
   id: string;
   name: string;
+  status: string;
   created_at: string | Date;
   updated_at: string | Date;
 };
+
+// Valid project status values (admin-only single select)
+const VALID_PROJECT_STATUSES = ['active', 'on_hold', 'completed', 'cancelled'] as const;
+type ProjectStatus = typeof VALID_PROJECT_STATUSES[number];
 
 export async function GET() {
   try {
@@ -24,6 +29,7 @@ export async function GET() {
       SELECT DISTINCT
         p.id,
         p.name,
+        p.status,
         p.created_at,
         p.updated_at,
         p.account_id,
@@ -43,6 +49,7 @@ export async function GET() {
       projects: result.rows.map((row) => ({
         id: row.id as string,
         name: row.name as string,
+        status: (row as ProjectRow).status ?? 'active',
         createdAt: new Date((row as ProjectRow).created_at).toISOString(),
         updatedAt: new Date((row as ProjectRow).updated_at).toISOString(),
         accountId: (row as ProjectRow & { account_id?: string }).account_id ?? null,
@@ -127,19 +134,37 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { id, name } = body as { id?: unknown; name?: unknown };
+    const { id, name, status } = body as { id?: unknown; name?: unknown; status?: unknown };
 
     if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json({ error: "Project id is required" }, { status: 400 });
     }
-    if (typeof name !== "string" || !name.trim()) {
-      return NextResponse.json({ error: "Project name is required" }, { status: 400 });
+
+    // At least one field to update must be provided
+    const hasNameUpdate = typeof name === "string" && name.trim();
+    const hasStatusUpdate = typeof status === "string" && status.trim();
+    
+    if (!hasNameUpdate && !hasStatusUpdate) {
+      return NextResponse.json({ error: "At least name or status is required" }, { status: 400 });
+    }
+
+    // Validate status value if provided
+    if (hasStatusUpdate && !VALID_PROJECT_STATUSES.includes(status as ProjectStatus)) {
+      return NextResponse.json(
+        { error: `Invalid status. Must be one of: ${VALID_PROJECT_STATUSES.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Status updates are admin-only
+    if (hasStatusUpdate && !user.isAdmin) {
+      return NextResponse.json({ error: "Only admins can update project status" }, { status: 403 });
     }
 
     await ensureSchema();
     const pool = getPool();
 
-    // Ensure ownership
+    // Ensure ownership (or admin for status updates)
     const ownerCheck = await pool.query(
       `SELECT account_id FROM projects WHERE id = $1 LIMIT 1`,
       [id.trim()]
@@ -148,17 +173,38 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
     const accountId = (ownerCheck.rows[0] as { account_id: string | null }).account_id;
-    if (!accountId || accountId !== user.accountId) {
+    
+    // For name updates, require ownership. For status-only updates, require admin.
+    if (hasNameUpdate && !user.isAdmin && (!accountId || accountId !== user.accountId)) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
+    // Build dynamic update query
+    const updates: string[] = [];
+    const params: (string | null)[] = [];
+    let paramIndex = 1;
+
+    if (hasNameUpdate) {
+      updates.push(`name = $${paramIndex}`);
+      params.push((name as string).trim());
+      paramIndex++;
+    }
+
+    if (hasStatusUpdate) {
+      updates.push(`status = $${paramIndex}`);
+      params.push((status as string).trim());
+      paramIndex++;
+    }
+
+    updates.push("updated_at = now()");
+    params.push(id.trim());
+
     const result = await pool.query(
       `UPDATE projects
-       SET name = $1,
-           updated_at = now()
-       WHERE id = $2
-       RETURNING id, name, created_at, updated_at, account_id`,
-      [name.trim(), id.trim()]
+       SET ${updates.join(", ")}
+       WHERE id = $${paramIndex}
+       RETURNING id, name, status, created_at, updated_at, account_id`,
+      params
     );
 
     const row = result.rows[0] as ProjectRow & { account_id: string | null };
@@ -167,6 +213,7 @@ export async function PATCH(request: Request) {
       project: {
         id: row.id,
         name: row.name,
+        status: row.status ?? 'active',
         createdAt: new Date(row.created_at).toISOString(),
         updatedAt: new Date(row.updated_at).toISOString(),
         accountId: row.account_id,

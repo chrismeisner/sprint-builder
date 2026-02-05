@@ -1,0 +1,651 @@
+/**
+ * Profile Cards Component
+ * Shared styles for user persona profile cards
+ * Updated for Miles-specific template with:
+ * - Role + Relationship
+ * - Trust & Fairness
+ * - Triggers + Jobs
+ * - Permissions & Visibility
+ * - Moments That Matter
+ * - Design Implications
+ */
+
+/* =====================================================
+   PROFILES GRID
+===================================================== */
+.profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 24px;
+}
+
+@media (max-width: 480px) {
+  .profiles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =====================================================
+   PROFILE CARD
+===================================================== */
+.profile-card {
+  background: var(--neutral-0);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =====================================================
+   PROFILE HEADER
+===================================================== */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--brand-primary-50) 0%, var(--neutral-50) 100%);
+  border-bottom: 1px solid var(--neutral-100);
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--neutral-200);
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 3px solid var(--neutral-0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  background: var(--brand-primary-100);
+  color: var(--brand-primary-600);
+}
+
+.profile-identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--neutral-900);
+}
+
+.profile-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.profile-tag {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--neutral-100);
+  color: var(--neutral-600);
+}
+
+/* =====================================================
+   PROFILE QUOTE
+===================================================== */
+.profile-quote {
+  padding: 20px 24px;
+  background: var(--neutral-50);
+  border-bottom: 1px solid var(--neutral-100);
+}
+
+.profile-quote blockquote {
+  margin: 0;
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--neutral-700);
+  position: relative;
+  padding-left: 20px;
+}
+
+.profile-quote blockquote::before {
+  content: '"';
+  position: absolute;
+  left: 0;
+  top: -4px;
+  font-size: 28px;
+  font-style: normal;
+  color: var(--brand-primary-300);
+  font-family: Georgia, serif;
+}
+
+/* =====================================================
+   PROFILE BODY
+===================================================== */
+.profile-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+}
+
+.profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-section-icon {
+  font-size: 16px;
+}
+
+.profile-section-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--neutral-500);
+}
+
+.profile-section-content {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--neutral-700);
+}
+
+.profile-section-content ul {
+  margin: 0;
+  padding: 0 0 0 18px;
+}
+
+.profile-section-content li {
+  margin-bottom: 4px;
+}
+
+.profile-section-content li:last-child {
+  margin-bottom: 0;
+}
+
+/* =====================================================
+   A) ROLE + RELATIONSHIP
+===================================================== */
+.profile-role-relationship {
+  padding: 14px 16px;
+  background: var(--neutral-100);
+  border-radius: 8px;
+}
+
+.profile-role-relationship .profile-section-title {
+  color: var(--neutral-600);
+}
+
+.role-meta {
+  margin-bottom: 8px;
+}
+
+.role-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: var(--brand-primary-600);
+  color: var(--neutral-0);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.relationship-desc {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--neutral-700);
+  line-height: 1.5;
+}
+
+.tension-callout {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--brand-secondary-50);
+  border-left: 3px solid var(--brand-secondary-400);
+  border-radius: 0 6px 6px 0;
+}
+
+.tension-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-secondary-700);
+}
+
+.tension-value {
+  font-size: 13px;
+  color: var(--brand-secondary-800);
+  font-weight: 500;
+}
+
+/* =====================================================
+   DEMOGRAPHICS (Compact inline)
+===================================================== */
+.profile-demographics-compact .profile-section-content {
+  padding: 0;
+}
+
+.demographics-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--neutral-600);
+}
+
+.demo-sep {
+  color: var(--neutral-300);
+}
+
+/* =====================================================
+   GOALS - Colored Callout
+===================================================== */
+.profile-goals {
+  padding: 12px 14px;
+  background: var(--brand-primary-50);
+  border: 1px solid var(--brand-primary-200);
+  border-radius: 8px;
+}
+
+.profile-goals .profile-section-title {
+  color: var(--brand-primary-700);
+}
+
+.profile-goals .profile-section-content {
+  color: var(--brand-primary-800);
+}
+
+/* =====================================================
+   B) TRUST & FAIRNESS
+===================================================== */
+.profile-trust {
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+}
+
+.profile-trust .profile-section-title {
+  color: #92400e;
+}
+
+.trust-subsection {
+  margin-bottom: 12px;
+}
+
+.trust-subsection:last-child {
+  margin-bottom: 0;
+}
+
+.trust-subsection-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #78350f;
+}
+
+.trust-subsection ul {
+  margin: 0;
+  padding: 0 0 0 16px;
+}
+
+.trust-subsection li {
+  font-size: 13px;
+  color: #92400e;
+  margin-bottom: 3px;
+}
+
+.trust-breaks {
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 6px;
+  border-left: 3px solid #ef4444;
+}
+
+.trust-breaks .trust-subsection-title {
+  color: #991b1b;
+}
+
+.trust-breaks li {
+  color: #991b1b;
+}
+
+/* =====================================================
+   C) TRIGGERS + JOBS
+===================================================== */
+.profile-triggers {
+  padding: 14px 16px;
+  background: var(--neutral-50);
+  border: 1px solid var(--neutral-200);
+  border-radius: 8px;
+}
+
+.triggers-subsection {
+  margin-bottom: 12px;
+}
+
+.triggers-subsection:last-child {
+  margin-bottom: 0;
+}
+
+.triggers-subsection-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--neutral-500);
+}
+
+.triggers-subsection ul {
+  margin: 0;
+  padding: 0 0 0 16px;
+}
+
+.triggers-subsection li {
+  font-size: 13px;
+  color: var(--neutral-700);
+  margin-bottom: 3px;
+}
+
+/* =====================================================
+   D) PERMISSIONS & VISIBILITY
+===================================================== */
+.profile-permissions {
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #ede9fe 0%, #f3e8ff 100%);
+  border: 1px solid #c4b5fd;
+  border-radius: 8px;
+}
+
+.profile-permissions .profile-section-title {
+  color: #5b21b6;
+}
+
+.permission-item {
+  margin-bottom: 10px;
+}
+
+.permission-item:last-child {
+  margin-bottom: 0;
+}
+
+.permission-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6d28d9;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 2px;
+}
+
+.permission-value {
+  margin: 0;
+  font-size: 13px;
+  color: #4c1d95;
+  line-height: 1.4;
+}
+
+/* =====================================================
+   E) MOMENTS THAT MATTER
+===================================================== */
+.profile-moments {
+  padding: 14px 16px;
+  background: var(--neutral-50);
+  border: 1px solid var(--neutral-200);
+  border-radius: 8px;
+}
+
+.moments-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 12px;
+}
+
+.moments-timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    var(--brand-primary-200),
+    var(--brand-primary-400),
+    var(--brand-primary-600),
+    var(--brand-secondary-500),
+    var(--brand-primary-400)
+  );
+  border-radius: 1px;
+}
+
+.moment-item {
+  position: relative;
+  padding: 6px 0 6px 14px;
+}
+
+.moment-item::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 12px;
+  width: 8px;
+  height: 8px;
+  background: var(--neutral-0);
+  border: 2px solid var(--brand-primary-400);
+  border-radius: 50%;
+}
+
+.moment-item:nth-child(4)::before {
+  border-color: var(--brand-secondary-500);
+  background: var(--brand-secondary-100);
+}
+
+.moment-stage {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-primary-600);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 2px;
+}
+
+.moment-item:nth-child(4) .moment-stage {
+  color: var(--brand-secondary-600);
+}
+
+.moment-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--neutral-700);
+  line-height: 1.4;
+}
+
+/* =====================================================
+   F) DESIGN IMPLICATIONS
+===================================================== */
+.profile-design-implications {
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
+  border: 1px solid #6ee7b7;
+  border-radius: 8px;
+}
+
+.profile-design-implications .profile-section-title {
+  color: #047857;
+}
+
+.implication-item {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+}
+
+.implication-item:last-child {
+  margin-bottom: 0;
+}
+
+.implication-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 3px;
+}
+
+.implication-value {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.implication-should .implication-label {
+  color: #047857;
+}
+
+.implication-should .implication-value {
+  color: #065f46;
+}
+
+.implication-avoid {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.implication-avoid .implication-label {
+  color: #dc2626;
+}
+
+.implication-avoid .implication-value {
+  color: #991b1b;
+}
+
+.implication-must .implication-label {
+  color: #0369a1;
+}
+
+.implication-must .implication-value {
+  color: #0c4a6e;
+}
+
+/* =====================================================
+   PROFILE FOOTER - Journey Stages
+===================================================== */
+.profile-footer {
+  padding: 16px 24px;
+  background: var(--neutral-50);
+  border-top: 1px solid var(--neutral-100);
+}
+
+.journey-connection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.journey-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--neutral-500);
+}
+
+.journey-stages {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.journey-stage-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--brand-primary-100);
+  color: var(--brand-primary-700);
+  text-decoration: none;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.journey-stage-tag:hover {
+  background: var(--brand-primary-200);
+  color: var(--brand-primary-800);
+}
+
+/* =====================================================
+   PLACEHOLDER NOTE
+===================================================== */
+.placeholder-note {
+  padding: 16px 20px;
+  background: var(--brand-primary-50);
+  border: 1px dashed var(--brand-primary-300);
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+
+.placeholder-note h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-primary-800);
+}
+
+.placeholder-note p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--brand-primary-700);
+  line-height: 1.6;
+}
+
+.placeholder-note code {
+  background: var(--brand-primary-100);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-family-mono, monospace);
+  font-size: 12px;
+}
+
+.placeholder-note a {
+  color: var(--brand-primary-700);
+  font-weight: 500;
+}
+
+.placeholder-note a:hover {
+  color: var(--brand-primary-800);
+}

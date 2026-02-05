@@ -473,6 +473,27 @@ export async function ensureSchema(): Promise<void> {
     ALTER TABLE projects
     DROP COLUMN IF EXISTS description;
   `);
+  // Add status column for project tracking (admin-only single select)
+  await pool.query(`
+    ALTER TABLE projects
+    ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
+  `);
+  // Add constraint to validate status values
+  await pool.query(`
+    DO $$ 
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'projects_status_check'
+      ) THEN
+        ALTER TABLE projects 
+        ADD CONSTRAINT projects_status_check 
+        CHECK (status IN ('active', 'on_hold', 'completed', 'cancelled'));
+      END IF;
+    END $$;
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+  `);
   // Project membership (share projects by email)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS project_members (

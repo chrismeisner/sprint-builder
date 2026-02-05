@@ -847,11 +847,16 @@ export default function TasksClient() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
                   In Focus
                 </p>
-                <p className="font-medium mt-0.5">{inFocusTask.name}</p>
+                <button
+                  onClick={() => openTaskDetail(inFocusTask)}
+                  className="font-medium mt-0.5 text-left hover:underline"
+                >
+                  {inFocusTask.name}
+                </button>
                 {inFocusTask.idea_title && (
                   <Link
                     href={`/dashboard/tasks/${inFocusTask.idea_id}`}
-                    className="text-xs opacity-70 hover:opacity-100 transition"
+                    className="text-xs opacity-70 hover:opacity-100 transition block"
                   >
                     📁 {inFocusTask.idea_title}
                   </Link>
@@ -859,6 +864,13 @@ export default function TasksClient() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => openTaskDetail(inFocusTask)}
+                className="px-3 py-1.5 text-sm border border-black/10 dark:border-white/15 rounded hover:bg-black/5 dark:hover:bg-white/10 transition"
+                title="View details"
+              >
+                ℹ️ Details
+              </button>
               <button
                 onClick={() => toggleTaskComplete(inFocusTask)}
                 className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"

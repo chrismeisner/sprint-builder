@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     await ensureSchema();
 
     const body = await request.json();
-    const { title, summary } = body;
+    const { title, summary, project_id } = body;
 
     if (!title?.trim()) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -57,10 +57,10 @@ export async function POST(request: NextRequest) {
 
     const id = crypto.randomUUID();
     const result = await pool.query(
-      `INSERT INTO admin_ideas (id, title, summary, sort_order)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO admin_ideas (id, title, summary, sort_order, project_id)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [id, title.trim(), summary?.trim() || null, sortOrder]
+      [id, title.trim(), summary?.trim() || null, sortOrder, project_id || null]
     );
 
     return NextResponse.json({ idea: result.rows[0] });

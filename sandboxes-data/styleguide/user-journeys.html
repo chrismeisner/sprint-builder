@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>User Journeys – Miles Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="typography-styles.css" />
+  <link rel="stylesheet" href="sidebar-nav.css" />
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-900);
+      -webkit-font-smoothing: antialiased;
+      opacity: 0;
+      animation: globalFadeIn 600ms ease forwards;
+    }
+
+    @keyframes globalFadeIn {
+      to { opacity: 1; }
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: auto;
+      padding: 32px 16px 64px;
+    }
+
+    .page-header {
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: var(--font-family-sans);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-family: var(--font-family-sans);
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--neutral-600);
+      margin: 0;
+      line-height: 1.5;
+      max-width: 600px;
+    }
+
+    /* Journey Cards Grid */
+    .journey-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .journey-card {
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: 12px;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+    }
+
+    .journey-card:hover {
+      border-color: var(--brand-primary-300);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .journey-card-image {
+      width: 100%;
+      height: 160px;
+      background: var(--neutral-100);
+      overflow: hidden;
+    }
+
+    .journey-card-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .journey-card-content {
+      padding: 20px;
+    }
+
+    .journey-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .journey-card-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--neutral-900);
+    }
+
+    .journey-card-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      flex-shrink: 0;
+    }
+
+    .journey-card-badge-primary {
+      background: var(--brand-primary-100);
+      color: var(--brand-primary-700);
+    }
+
+    .journey-card-badge-secondary {
+      background: var(--neutral-100);
+      color: var(--neutral-600);
+    }
+
+    .journey-card-badge-core {
+      background: var(--brand-secondary-100);
+      color: var(--brand-secondary-700);
+    }
+
+    .journey-card-description {
+      margin: 0 0 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--neutral-600);
+    }
+
+    .journey-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--neutral-100);
+    }
+
+    .journey-card-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--neutral-500);
+    }
+
+    .journey-card-meta-item svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .journey-card-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .journey-card-user-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--neutral-200);
+      overflow: hidden;
+    }
+
+    .journey-card-user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .journey-card-user-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--neutral-700);
+    }
+
+    /* Coming Soon Card */
+    .journey-card-coming-soon {
+      border-style: dashed;
+      border-color: var(--neutral-300);
+      background: var(--neutral-50);
+    }
+
+    .journey-card-coming-soon:hover {
+      border-color: var(--neutral-400);
+      box-shadow: none;
+      transform: none;
+    }
+
+    .journey-card-coming-soon .journey-card-image {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--neutral-100);
+    }
+
+    .journey-card-coming-soon .journey-card-image-icon {
+      font-size: 48px;
+      opacity: 0.4;
+    }
+
+    .journey-card-coming-soon .journey-card-title {
+      color: var(--neutral-500);
+    }
+
+    .journey-card-coming-soon .journey-card-description {
+      color: var(--neutral-500);
+    }
+
+    /* Section divider */
+    .section-divider {
+      margin: 48px 0 32px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--neutral-200);
+    }
+
+    .section-divider h2 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--neutral-500);
+    }
+
+    @media (max-width: 500px) {
+      .journey-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="page-header">
+      <h1>User Journeys</h1>
+      <p class="subtitle">Maps of user stages, touchpoints, emotions, and opportunities across key flows in the Miles experience.</p>
+    </div>
+
+    <div class="journey-cards">
+      <!-- First Trip Journey -->
+      <a href="user-journey-first-trip.html" class="journey-card">
+        <div class="journey-card-image">
+          <img src="./images/journey-first-trip-1a.jpg" alt="First trip journey" />
+        </div>
+        <div class="journey-card-content">
+          <div class="journey-card-header">
+            <h3 class="journey-card-title">First Trip</h3>
+            <span class="journey-card-badge journey-card-badge-primary">Primary</span>
+          </div>
+          <p class="journey-card-description">The core product loop: Setting up the dongle, driving hands-free, and seeing a trip summary that builds trust.</p>
+          <div class="journey-card-meta">
+            <div class="journey-card-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              6 stages
+            </div>
+            <div class="journey-card-user">
+              <div class="journey-card-user-avatar">
+                <img src="./images/journey-first-trip-1a.jpg" alt="Any Driver" />
+              </div>
+              <span class="journey-card-user-name">Any Driver</span>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <!-- Teen Onboarding Journey -->
+      <a href="user-journey-teen.html" class="journey-card">
+        <div class="journey-card-image">
+          <img src="./images/journey-teen-1.jpg" alt="Teen onboarding journey" />
+        </div>
+        <div class="journey-card-content">
+          <div class="journey-card-header">
+            <h3 class="journey-card-title">Teen Onboarding</h3>
+            <span class="journey-card-badge journey-card-badge-secondary">Secondary</span>
+          </div>
+          <p class="journey-card-description">The teen's perspective: Receiving an invite from a parent, understanding the deal, and signing up.</p>
+          <div class="journey-card-meta">
+            <div class="journey-card-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              5 stages
+            </div>
+            <div class="journey-card-user">
+              <div class="journey-card-user-avatar">
+                <img src="./images/journey-teen-1.jpg" alt="The New Driver" />
+              </div>
+              <span class="journey-card-user-name">The New Driver</span>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+  <script src="sidebar-nav.js"></script>
+</body>
+</html>
