@@ -631,15 +631,6 @@
 
 /* Mobile-specific controls layout */
 @media (max-width: 600px) {
-  /* Show step counter on mobile */
-  .carousel-step-counter {
-    display: flex;
-  }
-  
-  /* Show swipe hint initially on mobile */
-  .carousel-swipe-hint {
-    display: flex;
-  }
   
   /* Hide dots on mobile, show counter instead */
   .carousel-dots {
