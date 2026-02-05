@@ -11,7 +11,7 @@
 
   // ============================================
   // PERSONA DISPLAY
-  // Determines which persona to use based on page
+  // Populates users per stage based on JOURNEY_STAGE_USERS config
   // ============================================
   let currentPersona = null;
 
@@ -21,6 +21,49 @@
     return 0; // Default to parent (first persona)
   }
 
+  function renderStageUsers() {
+    if (typeof PERSONAS === 'undefined' || !PERSONAS.length) return;
+    
+    // Get the stage users config, or default to showing the first persona in all stages
+    const stageUsersConfig = window.JOURNEY_STAGE_USERS || {};
+    
+    const stageUsersSections = document.querySelectorAll('.stage-users');
+    
+    stageUsersSections.forEach((section) => {
+      const stageNumber = parseInt(section.dataset.stage, 10);
+      const usersList = section.querySelector('.stage-users-list');
+      if (!usersList) return;
+      
+      // Get persona indices for this stage, default to [0] (first persona) if not configured
+      const personaIndices = stageUsersConfig[stageNumber] || [0];
+      
+      usersList.innerHTML = personaIndices.map(index => {
+        const persona = PERSONAS[index];
+        if (!persona) return '';
+        
+        const avatarContent = persona.avatar 
+          ? `<img src="${persona.avatar}" alt="${persona.name}" />`
+          : (persona.emoji || '👤');
+        
+        return `
+          <button class="stage-user-chip" data-persona-index="${index}" type="button">
+            <div class="stage-user-chip-avatar">${avatarContent}</div>
+            <span class="stage-user-chip-name">${persona.name}</span>
+          </button>
+        `;
+      }).join('');
+      
+      // Add click handlers to open modal
+      usersList.querySelectorAll('.stage-user-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const personaIndex = parseInt(chip.dataset.personaIndex, 10);
+          openUserModal(personaIndex);
+        });
+      });
+    });
+  }
+
+  // Legacy function for backward compatibility (top-level user card)
   function renderJourneyUser() {
     if (typeof PERSONAS === 'undefined' || !PERSONAS.length) return;
     
@@ -50,61 +93,79 @@
   // ============================================
   // USER DETAIL MODAL
   // ============================================
+  
+  // Global function to open modal with a specific persona
+  function openUserModal(personaIndex) {
+    if (typeof PERSONAS === 'undefined' || !PERSONAS.length) return;
+    
+    const persona = PERSONAS[personaIndex];
+    if (!persona) return;
+    
+    // Update currentPersona for export functionality
+    currentPersona = persona;
+    
+    const modalOverlay = document.getElementById('userModalOverlay');
+    if (!modalOverlay) return;
+    
+    const modalAvatarEl = document.getElementById('modalUserAvatar');
+    if (persona.avatar) {
+      modalAvatarEl.innerHTML = `<img src="${persona.avatar}" alt="${persona.name}" />`;
+    } else {
+      modalAvatarEl.textContent = persona.emoji || '👤';
+    }
+    
+    const role = persona.roleRelationship?.role || persona.role || '';
+    const painPoints = persona.trustFairness?.breaksTrust || persona.painPoints || [];
+    const behaviors = persona.triggersJobs?.jobsToBeDone || persona.behaviors || [];
+    
+    document.getElementById('modalUserName').textContent = persona.name;
+    document.getElementById('modalUserRole').textContent = role;
+    document.getElementById('modalUserQuote').textContent = persona.quote;
+    
+    document.getElementById('modalUserTags').innerHTML = (persona.tags || [])
+      .map(tag => `<span class="user-modal-tag">${tag}</span>`)
+      .join('');
+    
+    document.getElementById('modalUserGoals').innerHTML = (persona.goals || [])
+      .map(goal => `<li>${goal}</li>`)
+      .join('');
+    
+    document.getElementById('modalUserPains').innerHTML = painPoints
+      .map(pain => `<li>${pain}</li>`)
+      .join('');
+    
+    document.getElementById('modalUserBehaviors').innerHTML = behaviors
+      .map(behavior => `<li>${behavior}</li>`)
+      .join('');
+    
+    document.getElementById('modalUserStages').innerHTML = (persona.journeyStages || [])
+      .map(stage => `<span class="user-modal-stage-tag">${stage}</span>`)
+      .join('');
+    
+    modalOverlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+
   function initModal() {
     const modalOverlay = document.getElementById('userModalOverlay');
     const openModalBtn = document.getElementById('openUserModal');
     const closeModalBtn = document.getElementById('closeUserModal');
     
-    if (!modalOverlay || !openModalBtn) return;
-
-    function openModal() {
-      if (!currentPersona) return;
-      
-      const modalAvatarEl = document.getElementById('modalUserAvatar');
-      if (currentPersona.avatar) {
-        modalAvatarEl.innerHTML = `<img src="${currentPersona.avatar}" alt="${currentPersona.name}" />`;
-      } else {
-        modalAvatarEl.textContent = currentPersona.emoji || '👤';
-      }
-      
-      const role = currentPersona.roleRelationship?.role || currentPersona.role || '';
-      const painPoints = currentPersona.trustFairness?.breaksTrust || currentPersona.painPoints || [];
-      const behaviors = currentPersona.triggersJobs?.jobsToBeDone || currentPersona.behaviors || [];
-      
-      document.getElementById('modalUserName').textContent = currentPersona.name;
-      document.getElementById('modalUserRole').textContent = role;
-      document.getElementById('modalUserQuote').textContent = currentPersona.quote;
-      
-      document.getElementById('modalUserTags').innerHTML = (currentPersona.tags || [])
-        .map(tag => `<span class="user-modal-tag">${tag}</span>`)
-        .join('');
-      
-      document.getElementById('modalUserGoals').innerHTML = (currentPersona.goals || [])
-        .map(goal => `<li>${goal}</li>`)
-        .join('');
-      
-      document.getElementById('modalUserPains').innerHTML = painPoints
-        .map(pain => `<li>${pain}</li>`)
-        .join('');
-      
-      document.getElementById('modalUserBehaviors').innerHTML = behaviors
-        .map(behavior => `<li>${behavior}</li>`)
-        .join('');
-      
-      document.getElementById('modalUserStages').innerHTML = (currentPersona.journeyStages || [])
-        .map(stage => `<span class="user-modal-stage-tag">${stage}</span>`)
-        .join('');
-      
-      modalOverlay.classList.add('visible');
-      document.body.style.overflow = 'hidden';
-    }
+    if (!modalOverlay) return;
 
     function closeModal() {
       modalOverlay.classList.remove('visible');
       document.body.style.overflow = '';
     }
 
-    openModalBtn.addEventListener('click', openModal);
+    // Support legacy top-level user card button if it exists
+    if (openModalBtn) {
+      openModalBtn.addEventListener('click', () => {
+        const index = getPersonaIndex();
+        openUserModal(index);
+      });
+    }
+    
     if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
     
     modalOverlay.addEventListener('click', (e) => {
@@ -691,7 +752,8 @@
   // INITIALIZE
   // ============================================
   function init() {
-    renderJourneyUser();
+    renderJourneyUser();   // Legacy support for top-level user card
+    renderStageUsers();    // New: populate users per stage
     initModal();
     initExport();
     initImageFallbacks();

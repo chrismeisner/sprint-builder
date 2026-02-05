@@ -450,25 +450,6 @@
       </div>
     </div>
 
-    <!-- User for this Journey -->
-    <div class="journey-user" id="journeyUser">
-      <span class="journey-user-label">User</span>
-      <div class="journey-user-avatar" id="journeyUserAvatar"></div>
-      <div class="journey-user-info">
-        <h3 class="journey-user-name" id="journeyUserName"></h3>
-        <p class="journey-user-role" id="journeyUserRole"></p>
-        <p class="journey-user-quote" id="journeyUserQuote"></p>
-      </div>
-      <div class="journey-user-actions">
-        <button class="journey-user-info-btn" id="openUserModal" type="button" aria-label="View user details">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 16v-4M12 8h.01"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-
     <!-- User Detail Modal -->
     <div class="user-modal-overlay" id="userModalOverlay">
       <div class="user-modal" role="dialog" aria-labelledby="modalUserName">
@@ -552,6 +533,10 @@
             </div>
             <div class="stage-body">
               <div class="stage-content">
+                <div class="stage-users" data-stage="1">
+                  <div class="stage-users-label">Users in this step</div>
+                  <div class="stage-users-list"></div>
+                </div>
                 <div class="stage-section">
                   <div class="stage-label">User Goal</div>
                   <p class="stage-text">Get the dongle installed and connected once, confidently, with minimal effort</p>
@@ -613,6 +598,10 @@
             </div>
             <div class="stage-body">
               <div class="stage-content">
+                <div class="stage-users" data-stage="2">
+                  <div class="stage-users-label">Users in this step</div>
+                  <div class="stage-users-list"></div>
+                </div>
                 <div class="stage-section">
                   <div class="stage-label">User Goal</div>
                   <p class="stage-text">Start driving normally without needing to remember to do anything</p>
@@ -672,6 +661,10 @@
             </div>
             <div class="stage-body">
               <div class="stage-content">
+                <div class="stage-users" data-stage="3">
+                  <div class="stage-users-label">Users in this step</div>
+                  <div class="stage-users-list"></div>
+                </div>
                 <div class="stage-section">
                   <div class="stage-label">User Goal</div>
                   <p class="stage-text">Have Miles correctly understand "this was a trip" with clean boundaries</p>
@@ -733,6 +726,10 @@
             </div>
             <div class="stage-body">
               <div class="stage-content">
+                <div class="stage-users" data-stage="4">
+                  <div class="stage-users-label">Users in this step</div>
+                  <div class="stage-users-list"></div>
+                </div>
                 <div class="stage-section">
                   <div class="stage-label">User Goal</div>
                   <p class="stage-text">Turn the drive into a usable artifact (not raw data)</p>
@@ -793,6 +790,10 @@
             </div>
             <div class="stage-body">
               <div class="stage-content">
+                <div class="stage-users" data-stage="5">
+                  <div class="stage-users-label">Users in this step</div>
+                  <div class="stage-users-list"></div>
+                </div>
                 <div class="stage-section">
                   <div class="stage-label">User Goal</div>
                   <p class="stage-text">See proof it worked + a helpful summary that feels encouraging</p>
@@ -856,6 +857,10 @@
             </div>
             <div class="stage-body">
               <div class="stage-content">
+                <div class="stage-users" data-stage="6">
+                  <div class="stage-users-label">Users in this step</div>
+                  <div class="stage-users-list"></div>
+                </div>
                 <div class="stage-section">
                   <div class="stage-label">User Goal</div>
                   <p class="stage-text">Build habit + deepen setup without regret or overwhelm</p>
@@ -927,6 +932,19 @@
   </div>
   <script src="sidebar-nav.js"></script>
   <script src="personas-data.js"></script>
+  <script>
+    // Configure users per stage for the First Trip journey
+    // For this journey, all steps have the same user (parent), but the pattern supports different users per step
+    // This must be defined BEFORE journey-scripts.js loads
+    window.JOURNEY_STAGE_USERS = {
+      1: [0], // Setup - parent persona (index 0)
+      2: [0], // Trigger - parent persona
+      3: [0], // Interpretation - parent persona
+      4: [0], // Action - parent persona
+      5: [0], // Resolution - parent persona
+      6: [0]  // Follow Up - parent persona
+    };
+  </script>
   <script src="journey-scripts.js"></script>
 </body>
 </html>
