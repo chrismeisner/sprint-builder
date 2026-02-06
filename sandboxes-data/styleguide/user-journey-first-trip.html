@@ -188,25 +188,27 @@
 
     .user-modal-header {
       display: flex;
+      flex-direction: column;
       align-items: center;
       gap: 16px;
-      padding: 24px;
+      padding: 28px 24px 24px;
       background: linear-gradient(135deg, var(--brand-primary-50) 0%, var(--neutral-50) 100%);
       border-bottom: 1px solid var(--neutral-100);
+      text-align: center;
     }
 
     .user-modal-avatar {
-      width: 72px;
-      height: 72px;
+      width: 128px;
+      height: 128px;
       border-radius: 50%;
       background: var(--brand-primary-100);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 36px;
+      font-size: 56px;
       flex-shrink: 0;
-      border: 3px solid var(--neutral-0);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border: 4px solid var(--neutral-0);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
       overflow: hidden;
     }
 
@@ -216,7 +218,11 @@
       object-fit: cover;
     }
 
-    .user-modal-identity { flex: 1; }
+    .user-modal-identity {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
 
     .user-modal-name {
       margin: 0 0 4px;
@@ -244,6 +250,7 @@
     .user-modal-tags {
       display: flex;
       flex-wrap: wrap;
+      justify-content: center;
       gap: 6px;
       margin-top: 4px;
     }
@@ -550,16 +557,16 @@
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">👤 User Goal</div>
-                  <p class="stage-text">• Get the dongle installed and connected once, confidently, with minimal effort</p>
+                  <p class="stage-text">Get the dongle installed and connected once, confidently, with minimal effort</p>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>• Download app, create account, grant permissions (BLE, notifications)</li>
-                    <li>• Unbox package, review contents and quick-start guide</li>
-                    <li>• Go to car — app guides user to OBD-II port location for their vehicle</li>
-                    <li>• Scan QR code on device to link it to account</li>
-                    <li>• Plug in dongle and start ignition (order TBD with vendor)</li>
+                    <li>Download app, create account, grant permissions (BLE, notifications)</li>
+                    <li>Unbox package, review contents and quick-start guide</li>
+                    <li>Go to car — app guides user to OBD-II port location for their vehicle</li>
+                    <li>Scan QR code on device to link it to account</li>
+                    <li>Plug in dongle and start ignition (order TBD with vendor)</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
@@ -576,12 +583,12 @@
                 <div class="stage-section">
                   <div class="stage-label">⚙️ Touchpoints</div>
                   <ul class="stage-list">
-                    <li>• App onboarding (indoors)</li>
-                    <li>• QR code scan</li>
-                    <li>• OS permission prompts</li>
-                    <li>• In-car install guided by app</li>
-                    <li>• Quick-start guide</li>
-                    <li>• Help center</li>
+                    <li>App onboarding (indoors)</li>
+                    <li>QR code scan</li>
+                    <li>OS permission prompts</li>
+                    <li>In-car install guided by app</li>
+                    <li>Quick-start guide</li>
+                    <li>Help center</li>
                   </ul>
                 </div>
                 <div class="stage-section">
@@ -628,13 +635,13 @@
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">👤 User Goal</div>
-                  <p class="stage-text">• Start driving normally without needing to remember to do anything</p>
+                  <p class="stage-text">Start driving normally without needing to remember to do anything</p>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>• Start the car</li>
-                    <li>• Drive normally</li>
+                    <li>Start the car</li>
+                    <li>Drive normally</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
@@ -651,9 +658,9 @@
                 <div class="stage-section">
                   <div class="stage-label">⚙️ Touchpoints</div>
                   <ul class="stage-list">
-                    <li>• Car ignition/motion</li>
-                    <li>• Optional real-time view in app (live map, speed, health)</li>
-                    <li>• No interaction required</li>
+                    <li>Car ignition/motion</li>
+                    <li>Optional real-time view in app (live map, speed, health)</li>
+                    <li>No interaction required</li>
                   </ul>
                 </div>
                 <div class="stage-section">
@@ -700,12 +707,12 @@
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">👤 User Goal</div>
-                  <p class="stage-text">• Have Miles correctly understand "this was a trip" with clean boundaries</p>
+                  <p class="stage-text">Have Miles correctly understand "this was a trip" with clean boundaries</p>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>• (No user action required)</li>
+                    <li>(No user action required)</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
@@ -720,9 +727,9 @@
                 <div class="stage-section">
                   <div class="stage-label">⚙️ Touchpoints</div>
                   <ul class="stage-list">
-                    <li>• Device sensing</li>
-                    <li>• Background app services</li>
-                    <li>• Backend processing</li>
+                    <li>Device sensing</li>
+                    <li>Background app services</li>
+                    <li>Backend processing</li>
                   </ul>
                 </div>
                 <div class="stage-section">
@@ -769,13 +776,13 @@
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">👤 User Goal</div>
-                  <p class="stage-text">• Turn the drive into a usable artifact (not raw data)</p>
+                  <p class="stage-text">Turn the drive into a usable artifact (not raw data)</p>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>• Park the car</li>
-                    <li>• Optionally open app to review trip</li>
+                    <li>Park the car</li>
+                    <li>Optionally open app to review trip</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
@@ -790,9 +797,9 @@
                 <div class="stage-section">
                   <div class="stage-label">⚙️ Touchpoints</div>
                   <ul class="stage-list">
-                    <li>• Cloud processing</li>
-                    <li>• App notification (trip ready)</li>
-                    <li>• Trip detail view</li>
+                    <li>Cloud processing</li>
+                    <li>App notification (trip ready)</li>
+                    <li>Trip detail view</li>
                   </ul>
                 </div>
                 <div class="stage-section">
@@ -839,14 +846,14 @@
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">👤 User Goal</div>
-                  <p class="stage-text">• See proof it worked + a helpful summary that feels encouraging</p>
+                  <p class="stage-text">See proof it worked + a helpful summary that feels encouraging</p>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>• Open app</li>
-                    <li>• View first Trip card</li>
-                    <li>• Tap into trip details</li>
+                    <li>Open app</li>
+                    <li>View first Trip card</li>
+                    <li>Tap into trip details</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
@@ -861,9 +868,9 @@
                 <div class="stage-section">
                   <div class="stage-label">⚙️ Touchpoints</div>
                   <ul class="stage-list">
-                    <li>• App home / Trips view</li>
-                    <li>• Trip detail screen</li>
-                    <li>• Optional "share" affordance</li>
+                    <li>App home / Trips view</li>
+                    <li>Trip detail screen</li>
+                    <li>Optional "share" affordance</li>
                   </ul>
                 </div>
                 <div class="stage-section">
@@ -910,15 +917,15 @@
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">👤 User Goal</div>
-                  <p class="stage-text">• Build habit + deepen setup without regret or overwhelm</p>
+                  <p class="stage-text">Build habit + deepen setup without regret or overwhelm</p>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>• Drive again</li>
-                    <li>• Optionally complete deferred setup</li>
-                    <li>• Add household members, set preferences</li>
-                    <li>• Respond to gentle nudges</li>
+                    <li>Drive again</li>
+                    <li>Optionally complete deferred setup</li>
+                    <li>Add household members, set preferences</li>
+                    <li>Respond to gentle nudges</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
@@ -933,12 +940,12 @@
                 <div class="stage-section">
                   <div class="stage-label">⚙️ Touchpoints</div>
                   <ul class="stage-list">
-                    <li>• Push notifications</li>
-                    <li>• In-app nudges</li>
-                    <li>• Weekly recap</li>
-                    <li>• Settings</li>
-                    <li>• Support</li>
-                    <li>• Email receipts</li>
+                    <li>Push notifications</li>
+                    <li>In-app nudges</li>
+                    <li>Weekly recap</li>
+                    <li>Settings</li>
+                    <li>Support</li>
+                    <li>Email receipts</li>
                   </ul>
                 </div>
                 <div class="stage-section">

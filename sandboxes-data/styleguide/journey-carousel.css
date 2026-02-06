@@ -376,15 +376,20 @@
 
 .stage-list {
   margin: 0;
-  padding: 0 0 0 24px;
+  padding: 0 0 0 20px;
   font-size: 13px;
   line-height: 1.5;
   color: var(--neutral-700);
-  list-style: none;
+  list-style: disc;
 }
 
 .stage-list li {
   position: relative;
+  padding-left: 2px;
+}
+
+.stage-list li::marker {
+  color: var(--neutral-400);
 }
 
 /* =====================================================

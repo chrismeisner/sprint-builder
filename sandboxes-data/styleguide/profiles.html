@@ -527,6 +527,112 @@
       font-weight: 700;
       color: #10b981;
     }
+
+    /* =====================================================
+       JOURNEYS SECTION
+    ===================================================== */
+
+    .journeys-section {
+      background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+    }
+
+    .journeys-section .section-title {
+      color: #1e40af;
+    }
+
+    .journey-link-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .journey-link-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(59, 130, 246, 0.15);
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--neutral-800);
+      transition: all 150ms ease;
+    }
+
+    .journey-link-item:hover {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(59, 130, 246, 0.35);
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .journey-link-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #dbeafe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .journey-link-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .journey-link-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e40af;
+      display: block;
+      line-height: 1.3;
+    }
+
+    .journey-link-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 3px;
+    }
+
+    .journey-link-badge--primary {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .journey-link-badge--secondary {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    .journey-link-arrow {
+      width: 16px;
+      height: 16px;
+      color: #93c5fd;
+      flex-shrink: 0;
+      transition: transform 150ms ease, color 150ms ease;
+    }
+
+    .journey-link-item:hover .journey-link-arrow {
+      color: #3b82f6;
+      transform: translateX(2px);
+    }
+
+    .journey-empty {
+      font-size: 13px;
+      color: #64748b;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -574,6 +680,16 @@
     // Persona data is loaded from personas-data.js
     // ============================================
     const personas = typeof PERSONAS !== 'undefined' ? PERSONAS : [];
+
+    // Journey mapping: which persona indices appear in which journeys
+    const PERSONA_JOURNEYS = {
+      0: [
+        { name: 'First Trip Journey', url: 'user-journey-first-trip.html', badge: 'Primary', icon: '🚗' }
+      ],
+      1: [
+        { name: 'Teen Onboarding Journey', url: 'user-journey-teen.html', badge: 'Secondary', icon: '🎓' }
+      ]
+    };
 
     function renderPersonas() {
       const grid = document.getElementById('profilesGrid');
@@ -707,6 +823,31 @@
               <ul class="success-list">
                 ${persona.successLooksLike.map(item => `<li>${item}</li>`).join('')}
               </ul>
+            </div>
+
+            <!-- JOURNEYS THIS PERSONA IS IN -->
+            <div class="persona-section journeys-section">
+              <div class="section-header">
+                <span class="section-icon">🗺️</span>
+                <h3 class="section-title">Journeys This Persona Is In</h3>
+              </div>
+              ${(PERSONA_JOURNEYS[index] && PERSONA_JOURNEYS[index].length)
+                ? `<div class="journey-link-list">
+                    ${PERSONA_JOURNEYS[index].map(journey => `
+                      <a href="${journey.url}" class="journey-link-item">
+                        <div class="journey-link-icon">${journey.icon}</div>
+                        <div class="journey-link-content">
+                          <span class="journey-link-name">${journey.name}</span>
+                          <span class="journey-link-badge journey-link-badge--${journey.badge.toLowerCase()}">${journey.badge}</span>
+                        </div>
+                        <svg class="journey-link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                      </a>
+                    `).join('')}
+                  </div>`
+                : `<p class="journey-empty">No journeys mapped yet.</p>`
+              }
             </div>
           </div>
         </article>
