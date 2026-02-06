@@ -215,9 +215,7 @@ function SortableTodayTask({
                 width: `${task.progress ?? 0}%`,
                 backgroundColor: (task.progress ?? 0) === 100 
                   ? '#22c55e' 
-                  : (task.progress ?? 0) >= 70 
-                    ? '#eab308' 
-                    : '#3b82f6',
+                  : '#3b82f6',
               }}
             />
           </div>
@@ -710,9 +708,7 @@ export default function TodayClient() {
                         width: `${inFocusTask.progress ?? 0}%`,
                         backgroundColor: (inFocusTask.progress ?? 0) === 100 
                           ? '#22c55e' 
-                          : (inFocusTask.progress ?? 0) >= 70 
-                            ? '#eab308' 
-                            : '#3b82f6',
+                          : '#3b82f6',
                       }}
                     />
                   </div>
