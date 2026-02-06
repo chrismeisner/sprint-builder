@@ -16,7 +16,7 @@
     { href: 'image-style.html', label: 'Images', icon: '🖼️' },
     { href: 'style-tiles.html', label: 'Style Tiles', icon: '📱' },
     { href: 'profiles.html', label: 'User Profiles', icon: '👤' },
-    { href: 'user-journeys.html', label: 'User Journeys', icon: '🗺️' },
+    { href: 'user-journeys.html', label: 'User Journeys', icon: '🗺️', activePattern: /^user-journey/ },
     { href: 'changelog.html', label: 'Changelog', icon: '📋' }
   ];
 
@@ -71,7 +71,7 @@
 
     // Generate nav item HTML (handles both regular and items with children)
     function renderNavItem(item) {
-      const isActive = currentPage === item.href;
+      const isActive = currentPage === item.href || (item.activePattern && item.activePattern.test(currentPage));
       const hasChildren = item.children && item.children.length > 0;
       const childActive = isChildActive(item, currentPage);
       const submenuOpen = childActive || getSubmenuState(item.label);
