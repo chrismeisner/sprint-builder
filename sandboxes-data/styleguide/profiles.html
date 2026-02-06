@@ -651,6 +651,7 @@
     </div>
 
     <div class="shuffle-bar">
+      <button id="toggleControlsBtn" class="shuffle-btn" title="Toggle persona controls visibility">👁 Hide Controls</button>
       <button id="shuffleAllBtn" class="shuffle-btn" title="Randomize all persona images">⟳ Shuffle</button>
     </div>
 
@@ -966,6 +967,30 @@
         updateAvatar(idx);
       });
     });
+
+    // ============================================
+    // HIDE / SHOW CONTROLS TOGGLE
+    // ============================================
+    (function() {
+      const toggleBtn = document.getElementById('toggleControlsBtn');
+      let controlsHidden = false;
+
+      // Restore persisted state
+      if (localStorage.getItem('profiles-controls-hidden') === '1') {
+        controlsHidden = true;
+        toggleBtn.textContent = '👁 Show Controls';
+        document.querySelectorAll('.persona-variation-controls').forEach(el => el.style.display = 'none');
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        controlsHidden = !controlsHidden;
+        localStorage.setItem('profiles-controls-hidden', controlsHidden ? '1' : '0');
+        toggleBtn.textContent = controlsHidden ? '👁 Show Controls' : '👁 Hide Controls';
+        document.querySelectorAll('.persona-variation-controls').forEach(el => {
+          el.style.display = controlsHidden ? 'none' : '';
+        });
+      });
+    })();
 
     // Auto-shuffle on page load
     document.getElementById('shuffleAllBtn').click();
