@@ -534,8 +534,8 @@
             <div class="stage-image">
               <div class="stage-image-slideshow" data-interval="4000">
                 <img src="./images/journey-first-trip-1a.jpg" alt="Setup stage - unboxing" data-expected-filename="journey-first-trip-1a.jpg" />
-                <img src="./images/journey-first-trip-1b.png" alt="Setup stage - installing" data-expected-filename="journey-first-trip-1b.png" />
-                <img src="./images/journey-first-trip-1c.png" alt="Setup stage - pairing" data-expected-filename="journey-first-trip-1c.png" />
+                <img src="./images/journey-first-trip-1b.jpg" alt="Setup stage - installing" data-expected-filename="journey-first-trip-1b.jpg" />
+                <img src="./images/journey-first-trip-1c.jpg" alt="Setup stage - pairing" data-expected-filename="journey-first-trip-1c.jpg" />
               </div>
             </div>
             <div class="stage-header">
@@ -549,30 +549,40 @@
                   <div class="stage-users-list"></div>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">User Goal</div>
-                  <p class="stage-text">Get the dongle installed and connected once, confidently, with minimal effort</p>
+                  <div class="stage-label">👤 User Goal</div>
+                  <p class="stage-text">• Get the dongle installed and connected once, confidently, with minimal effort</p>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">Actions</div>
+                  <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>Unbox and confirm car/phone compatibility</li>
-                    <li>Download app, create account, grant permissions</li>
-                    <li>Locate OBD port and plug in dongle</li>
-                    <li>Pair device and enter vehicle + safety contact info</li>
+                    <li>• Download app, create account, grant permissions (BLE, notifications)</li>
+                    <li>• Unbox package, review contents and quick-start guide</li>
+                    <li>• Go to car — app guides user to OBD-II port location for their vehicle</li>
+                    <li>• Scan QR code on device to link it to account</li>
+                    <li>• Plug in dongle and start ignition (order TBD with vendor)</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
-                  <div class="stage-label">Miles Actions</div>
+                  <div class="stage-label">⚡️ Miles Actions</div>
                   <ul class="stage-list">
+                    <li>Capture email at sign-up for abandoned-setup recovery</li>
+                    <li>Bind device → account via QR scan + run firmware check/update</li>
                     <li>Dongle powers on from OBD + confirms "alive"</li>
-                    <li>Bind device → account + run firmware check/update if needed</li>
+                    <li>Read VIN automatically from OBD-II; fall back to camera scan if unsupported</li>
                     <li>Establish baseline connectivity + readiness to detect trips</li>
-                    <li>Get VIN number and initial car details</li>
+                    <li>Begin 21-day free trial period</li>
                   </ul>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">Touchpoints</div>
-                  <p class="stage-text">Packaging insert, quick start guide, app onboarding, OS permission prompts, in-car install, help center</p>
+                  <div class="stage-label">⚙️ Touchpoints</div>
+                  <ul class="stage-list">
+                    <li>• App onboarding (indoors)</li>
+                    <li>• QR code scan</li>
+                    <li>• OS permission prompts</li>
+                    <li>• In-car install guided by app</li>
+                    <li>• Quick-start guide</li>
+                    <li>• Help center</li>
+                  </ul>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">Emotion</div>
@@ -590,7 +600,7 @@
                     <span class="stage-callout-icon">💡</span>
                     <div class="stage-callout-content">
                       <div class="stage-callout-label">Opportunity</div>
-                      <div class="stage-callout-text">Make the journey legible in 3–4 steps; instant "device detected" reassurance; compatibility check upfront; clear "do later" options; human tone that avoids "insurance dongle" vibes</div>
+                      <div class="stage-callout-text">Indoor-first flow: maximize setup before going to the car; app guides to OBD-II port by vehicle; instant "device detected" reassurance; email capture enables follow-up if setup abandoned; 21-day trial removes commitment anxiety</div>
                     </div>
                   </div>
                 </div>
@@ -601,7 +611,10 @@
           <!-- Stage 2: Trigger -->
           <article class="journey-stage">
             <div class="stage-image">
-              <img src="./images/journey-first-trip-2.jpg" alt="Trigger stage - starting to drive" data-expected-filename="journey-first-trip-2.jpg" />
+              <div class="stage-image-slideshow" data-interval="4500">
+                <img src="./images/journey-first-trip-2a.jpg" alt="Trigger stage - starting to drive" data-expected-filename="journey-first-trip-2a.jpg" />
+                <img src="./images/journey-first-trip-2b.jpg" alt="Trigger stage - on the road" data-expected-filename="journey-first-trip-2b.jpg" />
+              </div>
             </div>
             <div class="stage-header">
               <div class="stage-number">2</div>
@@ -614,28 +627,34 @@
                   <div class="stage-users-list"></div>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">User Goal</div>
-                  <p class="stage-text">Start driving normally without needing to remember to do anything</p>
+                  <div class="stage-label">👤 User Goal</div>
+                  <p class="stage-text">• Start driving normally without needing to remember to do anything</p>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">Actions</div>
+                  <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>Start the car</li>
-                    <li>Drive normally</li>
+                    <li>• Start the car</li>
+                    <li>• Drive normally</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
-                  <div class="stage-label">Miles Actions</div>
+                  <div class="stage-label">⚡️ Miles Actions</div>
                   <ul class="stage-list">
                     <li>Detect ignition via OBD voltage change</li>
                     <li>Begin trip recording automatically</li>
-                    <li>Start collecting sensor data (speed, RPM, accelerometer)</li>
-                    <li>Buffer data locally on device</li>
+                    <li>Collect sensor data (speed, RPM, accelerometer, location)</li>
+                    <li>Transmit trip data to cloud via device's cellular radio (independent of phone)</li>
+                    <li>If app is open: stream real-time trip status (live map, speed, vehicle health)</li>
+                    <li>If app is closed: same data is logged and stored in cloud, accessible later</li>
                   </ul>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">Touchpoints</div>
-                  <p class="stage-text">Car ignition/motion; optional passive app state (no interaction required)</p>
+                  <div class="stage-label">⚙️ Touchpoints</div>
+                  <ul class="stage-list">
+                    <li>• Car ignition/motion</li>
+                    <li>• Optional real-time view in app (live map, speed, health)</li>
+                    <li>• No interaction required</li>
+                  </ul>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">Emotion</div>
@@ -664,7 +683,10 @@
           <!-- Stage 3: Interpretation -->
           <article class="journey-stage">
             <div class="stage-image">
-              <img src="./images/journey-first-trip-3.jpg" alt="Interpretation stage - trip detection" data-expected-filename="journey-first-trip-3.jpg" />
+              <div class="stage-image-slideshow" data-interval="4500">
+                <img src="./images/journey-first-trip-3a.jpg" alt="Interpretation stage - trip detection" data-expected-filename="journey-first-trip-3a.jpg" />
+                <img src="./images/journey-first-trip-3b.jpg" alt="Interpretation stage - processing data" data-expected-filename="journey-first-trip-3b.jpg" />
+              </div>
             </div>
             <div class="stage-header">
               <div class="stage-number">3</div>
@@ -677,17 +699,17 @@
                   <div class="stage-users-list"></div>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">User Goal</div>
-                  <p class="stage-text">Have Miles correctly understand "this was a trip" with clean boundaries</p>
+                  <div class="stage-label">👤 User Goal</div>
+                  <p class="stage-text">• Have Miles correctly understand "this was a trip" with clean boundaries</p>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">Actions</div>
+                  <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>(No user action required)</li>
+                    <li>• (No user action required)</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
-                  <div class="stage-label">Miles Actions</div>
+                  <div class="stage-label">⚡️ Miles Actions</div>
                   <ul class="stage-list">
                     <li>Process raw sensor data into trip segments</li>
                     <li>Apply trip boundary logic (start/end thresholds)</li>
@@ -696,8 +718,12 @@
                   </ul>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">Touchpoints</div>
-                  <p class="stage-text">Device sensing, background app services, backend processing</p>
+                  <div class="stage-label">⚙️ Touchpoints</div>
+                  <ul class="stage-list">
+                    <li>• Device sensing</li>
+                    <li>• Background app services</li>
+                    <li>• Backend processing</li>
+                  </ul>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">Emotion</div>
@@ -715,7 +741,7 @@
                     <span class="stage-callout-icon">💡</span>
                     <div class="stage-callout-content">
                       <div class="stage-callout-label">Opportunity</div>
-                      <div class="stage-callout-text">Graceful trip-boundary logic (start/end thresholds); "we're finalizing your trip" messaging vs errors; clear definitions in-product ("what counts as a trip")</div>
+                      <div class="stage-callout-text">Graceful trip-boundary logic (start/end thresholds); "we're finalizing your trip" messaging vs errors; trip naming/tagging (e.g. "work", "school") to enable comparisons and AI insights: "your average drive to school takes 15 min", "you've used X gas on trips to work"</div>
                     </div>
                   </div>
                 </div>
@@ -742,29 +768,32 @@
                   <div class="stage-users-list"></div>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">User Goal</div>
-                  <p class="stage-text">Turn the drive into a usable artifact (not raw data)</p>
+                  <div class="stage-label">👤 User Goal</div>
+                  <p class="stage-text">• Turn the drive into a usable artifact (not raw data)</p>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">Actions</div>
+                  <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>Park the car</li>
-                    <li>Optionally open app later</li>
-                    <li>Optionally allow syncing</li>
+                    <li>• Park the car</li>
+                    <li>• Optionally open app to review trip</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
-                  <div class="stage-label">Miles Actions</div>
+                  <div class="stage-label">⚡️ Miles Actions</div>
                   <ul class="stage-list">
-                    <li>Store trip data locally on device</li>
-                    <li>Sync data to phone when in Bluetooth range</li>
-                    <li>Upload to cloud for processing</li>
-                    <li>Generate trip summary and basic insights</li>
+                    <li>Trip data already transmitted to cloud via device cellular radio</li>
+                    <li>Process and finalize trip boundaries and data</li>
+                    <li>Generate trip summary, scores, and basic insights</li>
+                    <li>Make trip available in app with full details</li>
                   </ul>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">Touchpoints</div>
-                  <p class="stage-text">Device storage, phone sync (when near), cloud processing, notifications (if relevant)</p>
+                  <div class="stage-label">⚙️ Touchpoints</div>
+                  <ul class="stage-list">
+                    <li>• Cloud processing</li>
+                    <li>• App notification (trip ready)</li>
+                    <li>• Trip detail view</li>
+                  </ul>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">Emotion</div>
@@ -775,14 +804,14 @@
                     <span class="stage-callout-icon">⚠️</span>
                     <div class="stage-callout-content">
                       <div class="stage-callout-label">Pain Point</div>
-                      <div class="stage-callout-text">Latency: "Why don't I see it yet?" Confusion about where data lives or when it uploads</div>
+                      <div class="stage-callout-text">Latency: "Why don't I see it yet?" Processing time between trip end and summary availability</div>
                     </div>
                   </div>
                   <div class="stage-callout callout-opportunity">
                     <span class="stage-callout-icon">💡</span>
                     <div class="stage-callout-content">
                       <div class="stage-callout-label">Opportunity</div>
-                      <div class="stage-callout-text">Transparent progress state ("Saving / Summarizing"); set expectations ("Trips appear after you park"); design for offline-first reality; avoid making user troubleshoot connectivity</div>
+                      <div class="stage-callout-text">Transparent progress state ("Saving / Summarizing"); set expectations ("Trips appear shortly after you park"); data already in cloud — no user action needed for sync</div>
                     </div>
                   </div>
                 </div>
@@ -793,7 +822,10 @@
           <!-- Stage 5: Resolution -->
           <article class="journey-stage">
             <div class="stage-image">
-              <img src="./images/journey-first-trip-5.jpg" alt="Resolution stage - viewing trip" data-expected-filename="journey-first-trip-5.jpg" />
+              <div class="stage-image-slideshow" data-interval="4500">
+                <img src="./images/journey-first-trip-5a.jpg" alt="Resolution stage - viewing trip" data-expected-filename="journey-first-trip-5a.jpg" />
+                <img src="./images/journey-first-trip-5b.jpg" alt="Resolution stage - trip details" data-expected-filename="journey-first-trip-5b.jpg" />
+              </div>
             </div>
             <div class="stage-header">
               <div class="stage-number">5</div>
@@ -806,19 +838,19 @@
                   <div class="stage-users-list"></div>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">User Goal</div>
-                  <p class="stage-text">See proof it worked + a helpful summary that feels encouraging</p>
+                  <div class="stage-label">👤 User Goal</div>
+                  <p class="stage-text">• See proof it worked + a helpful summary that feels encouraging</p>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">Actions</div>
+                  <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>Open app</li>
-                    <li>View first Trip card</li>
-                    <li>Tap into trip details</li>
+                    <li>• Open app</li>
+                    <li>• View first Trip card</li>
+                    <li>• Tap into trip details</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
-                  <div class="stage-label">Miles Actions</div>
+                  <div class="stage-label">⚡️ Miles Actions</div>
                   <ul class="stage-list">
                     <li>Compile trip into viewable card format</li>
                     <li>Calculate scores, metrics, or highlights</li>
@@ -827,8 +859,12 @@
                   </ul>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">Touchpoints</div>
-                  <p class="stage-text">App home / Trips view, trip detail screen, optional "share" affordance</p>
+                  <div class="stage-label">⚙️ Touchpoints</div>
+                  <ul class="stage-list">
+                    <li>• App home / Trips view</li>
+                    <li>• Trip detail screen</li>
+                    <li>• Optional "share" affordance</li>
+                  </ul>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">Emotion</div>
@@ -859,7 +895,7 @@
             <div class="stage-image">
               <div class="stage-image-slideshow" data-interval="4500">
                 <img src="./images/journey-first-trip-6a.jpg" alt="Follow up stage - building habit" data-expected-filename="journey-first-trip-6a.jpg" />
-                <img src="./images/journey-first-trip-6b.jpg" alt="Follow up stage - weekly recap" data-expected-filename="journey-first-trip-6b.jpg" />
+                <img src="./images/journey-first-trip-6b.jpg" alt="Follow up stage - deepening engagement" data-expected-filename="journey-first-trip-6b.jpg" />
               </div>
             </div>
             <div class="stage-header">
@@ -873,20 +909,20 @@
                   <div class="stage-users-list"></div>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">User Goal</div>
-                  <p class="stage-text">Build habit + deepen setup without regret or overwhelm</p>
+                  <div class="stage-label">👤 User Goal</div>
+                  <p class="stage-text">• Build habit + deepen setup without regret or overwhelm</p>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">Actions</div>
+                  <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>Drive again</li>
-                    <li>Optionally complete deferred setup</li>
-                    <li>Add household members, set preferences</li>
-                    <li>Respond to gentle nudges</li>
+                    <li>• Drive again</li>
+                    <li>• Optionally complete deferred setup</li>
+                    <li>• Add household members, set preferences</li>
+                    <li>• Respond to gentle nudges</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
-                  <div class="stage-label">Miles Actions</div>
+                  <div class="stage-label">⚡️ Miles Actions</div>
                   <ul class="stage-list">
                     <li>Track driving patterns over time</li>
                     <li>Generate weekly/monthly insights and trends</li>
@@ -895,8 +931,15 @@
                   </ul>
                 </div>
                 <div class="stage-section">
-                  <div class="stage-label">Touchpoints</div>
-                  <p class="stage-text">Push notifications, in-app nudges, weekly recap, settings, support, email receipts</p>
+                  <div class="stage-label">⚙️ Touchpoints</div>
+                  <ul class="stage-list">
+                    <li>• Push notifications</li>
+                    <li>• In-app nudges</li>
+                    <li>• Weekly recap</li>
+                    <li>• Settings</li>
+                    <li>• Support</li>
+                    <li>• Email receipts</li>
+                  </ul>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">Emotion</div>

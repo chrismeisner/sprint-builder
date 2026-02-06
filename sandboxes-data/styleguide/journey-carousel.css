@@ -306,12 +306,9 @@
   color: #fff;
 }
 
-/* Paused indicator when auto-cycle is stopped */
-.stage-image-slideshow.paused ~ .stage-header .stage-image-selectors::after {
-  content: '⏸';
-  font-size: 10px;
-  margin-left: 4px;
-  color: var(--neutral-400);
+/* Hover hint: cursor changes to indicate interactive slideshow */
+.stage-image-slideshow {
+  cursor: default;
 }
 
 .stage-header {
@@ -379,10 +376,15 @@
 
 .stage-list {
   margin: 0;
-  padding: 0 0 0 16px;
+  padding: 0 0 0 24px;
   font-size: 13px;
   line-height: 1.5;
   color: var(--neutral-700);
+  list-style: none;
+}
+
+.stage-list li {
+  position: relative;
 }
 
 /* =====================================================

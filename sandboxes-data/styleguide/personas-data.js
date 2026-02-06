@@ -17,7 +17,8 @@ const PERSONAS = [
     id: "driving-parent",
     name: "The Driving Parent",
     emoji: "👨‍👧",
-    avatar: "./images/scene-01.jpg",
+    avatar: "./images/persona-1-male-light.jpg",
+    avatarBase: "./images/persona-1",  // variants: {base}-{gender}-{skintone}.jpg
     
     // Role & Relationship
     role: "Account Owner (Admin)",
@@ -79,7 +80,8 @@ const PERSONAS = [
     id: "new-teen-driver",
     name: "The New Driver",
     emoji: "🚗",
-    avatar: "./images/scene-02.jpg",
+    avatar: "./images/persona-2-male-light.jpg",
+    avatarBase: "./images/persona-2",  // variants: {base}-{gender}-{skintone}.jpg
     
     // Role & Relationship
     role: "Driver (consent-needed participant)",

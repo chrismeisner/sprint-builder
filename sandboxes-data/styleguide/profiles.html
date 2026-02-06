@@ -78,6 +78,167 @@
     }
 
     /* =====================================================
+       PERSONA VARIATION SELECTORS
+    ===================================================== */
+
+    .persona-variation-controls {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .variation-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .variation-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--neutral-500);
+      min-width: 38px;
+      flex-shrink: 0;
+    }
+
+    .variation-select {
+      font-size: 13px;
+      font-family: var(--font-family-sans);
+      padding: 4px 24px 4px 8px;
+      border: 1px solid var(--neutral-200);
+      border-radius: 6px;
+      background: var(--neutral-0);
+      color: var(--neutral-700);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      min-width: 90px;
+      transition: border-color 150ms ease;
+    }
+
+    .variation-select:hover {
+      border-color: var(--neutral-300);
+    }
+
+    .variation-select:focus {
+      outline: none;
+      border-color: var(--brand-primary-400);
+      box-shadow: 0 0 0 2px var(--brand-primary-100);
+    }
+
+    /* Dismiss button */
+    .placeholder-note {
+      position: relative;
+    }
+
+    .dismiss-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--brand-primary-400);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 150ms ease, color 150ms ease;
+    }
+
+    .dismiss-btn:hover {
+      background: var(--brand-primary-100);
+      color: var(--brand-primary-700);
+    }
+
+    /* Shuffle bar */
+    .shuffle-bar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+    }
+
+    .shuffle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-family-sans);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border: 1px solid var(--neutral-200);
+      border-radius: 6px;
+      background: var(--neutral-0);
+      color: var(--neutral-600);
+      cursor: pointer;
+      transition: border-color 150ms ease, background 150ms ease;
+    }
+
+    .shuffle-btn:hover {
+      border-color: var(--neutral-300);
+      background: var(--neutral-50);
+      color: var(--neutral-800);
+    }
+
+    .shuffle-btn:active {
+      background: var(--neutral-100);
+    }
+
+    /* Download button */
+    .download-avatar-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border: 1px solid var(--neutral-200);
+      border-radius: 6px;
+      background: var(--neutral-0);
+      color: var(--neutral-600);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 150ms ease, background 150ms ease;
+      flex-shrink: 0;
+    }
+
+    .download-avatar-btn:hover {
+      border-color: var(--neutral-300);
+      background: var(--neutral-50);
+      color: var(--neutral-800);
+    }
+
+    .download-avatar-btn:active {
+      background: var(--neutral-100);
+    }
+
+    /* Image loading state */
+    .profile-avatar img {
+      transition: opacity 200ms ease;
+    }
+
+    .profile-avatar img.loading {
+      opacity: 0.4;
+    }
+
+    .profile-avatar-wrap {
+      position: relative;
+    }
+
+    /* =====================================================
        JTBD PERSONA CARD STYLES
     ===================================================== */
     
@@ -373,7 +534,8 @@
     <h1>User Personas</h1>
     <p class="subtitle">Target user personas for Miles — the families, parents, and teens we're designing for.</p>
 
-    <div class="placeholder-note">
+    <div class="placeholder-note" id="introNote">
+      <button class="dismiss-btn" id="dismissIntro" title="Dismiss">×</button>
       <h3>👨‍👧 The Two Sides of Miles</h3>
       <p>
         Miles serves two users with different needs: the <strong>parent</strong> seeking peace of mind without being overbearing, 
@@ -382,12 +544,31 @@
       </p>
     </div>
 
+    <div class="shuffle-bar">
+      <button id="shuffleAllBtn" class="shuffle-btn" title="Randomize all persona images">⟳ Shuffle</button>
+    </div>
+
     <div id="profilesGrid" class="profiles-grid"></div>
   </div>
 
   <script src="sidebar-nav.js"></script>
   <script src="personas-data.js"></script>
   <script>
+    // ============================================
+    // DISMISS INTRO NOTE
+    // ============================================
+    (function() {
+      const note = document.getElementById('introNote');
+      const btn = document.getElementById('dismissIntro');
+      if (localStorage.getItem('profiles-intro-dismissed') === '1') {
+        note.style.display = 'none';
+      }
+      btn.addEventListener('click', () => {
+        note.style.display = 'none';
+        localStorage.setItem('profiles-intro-dismissed', '1');
+      });
+    })();
+
     // ============================================
     // RENDERING LOGIC
     // Persona data is loaded from personas-data.js
@@ -404,17 +585,29 @@
       }
 
       grid.innerHTML = personas.map((persona, index) => `
-        <article class="profile-card">
-          <!-- HEADER: Avatar, Name -->
-          <div class="profile-header">
-            <div class="profile-avatar">
-              ${persona.avatar 
-                ? `<img src="${persona.avatar}" alt="${persona.name}" />`
-                : `<div class="profile-avatar-placeholder">${persona.emoji || '👤'}</div>`
-              }
+        <article class="profile-card" data-persona-id="${persona.id}" data-persona-index="${index}">
+          <!-- HEADER: Name → Avatar → Selectors (stacked, centered) -->
+          <div class="profile-header profile-header--stacked">
+            <h2 class="profile-name">Persona ${index + 1}: ${persona.name}</h2>
+            <div class="profile-avatar-wrap">
+              <div class="profile-avatar profile-avatar--large">
+                ${persona.avatar 
+                  ? `<img src="${persona.avatar}" alt="${persona.name}" id="avatar-${index}" />`
+                  : `<div class="profile-avatar-placeholder">${persona.emoji || '👤'}</div>`
+                }
+              </div>
             </div>
-            <div class="profile-identity">
-              <h2 class="profile-name">Persona ${index + 1}: ${persona.name}</h2>
+            <div class="persona-variation-controls">
+              <select class="variation-select" id="gender-${index}" data-variation="gender" data-persona="${index}">
+                <option value="male" selected>Male</option>
+                <option value="female">Female</option>
+              </select>
+              <select class="variation-select" id="skintone-${index}" data-variation="skintone" data-persona="${index}">
+                <option value="light" selected>Light</option>
+                <option value="medium">Medium</option>
+                <option value="dark">Dark</option>
+              </select>
+              <button class="download-avatar-btn" data-persona="${index}" title="Download profile image">↓</button>
             </div>
           </div>
 
@@ -522,6 +715,119 @@
 
     // Initialize
     renderPersonas();
+
+    // ============================================
+    // PERSONA VARIATION SELECTOR LOGIC
+    // ============================================
+
+    // Track current selections per persona
+    const personaSelections = personas.map(() => ({
+      gender: 'male',
+      skintone: 'light'
+    }));
+
+    // Image existence cache to avoid repeated 404s
+    const imageCache = {};
+
+    function buildVariantPath(persona, gender, skintone) {
+      if (!persona.avatarBase) return persona.avatar;
+      return `${persona.avatarBase}-${gender}-${skintone}.jpg`;
+    }
+
+    function checkImageExists(url) {
+      return new Promise((resolve) => {
+        if (imageCache[url] !== undefined) {
+          resolve(imageCache[url]);
+          return;
+        }
+        const img = new Image();
+        img.onload = () => { imageCache[url] = true; resolve(true); };
+        img.onerror = () => { imageCache[url] = false; resolve(false); };
+        img.src = url;
+      });
+    }
+
+    async function updateAvatar(personaIndex) {
+      const persona = personas[personaIndex];
+      const sel = personaSelections[personaIndex];
+      const imgEl = document.getElementById(`avatar-${personaIndex}`);
+      if (!imgEl) return;
+
+      // Build variant path
+      const variantPath = buildVariantPath(persona, sel.gender, sel.skintone);
+
+      // Add loading state
+      imgEl.classList.add('loading');
+
+      // Try variant, fall back to default
+      const exists = await checkImageExists(variantPath);
+      if (exists) {
+        imgEl.src = variantPath;
+      } else {
+        imgEl.src = persona.avatar; // fallback to default
+      }
+
+      imgEl.classList.remove('loading');
+    }
+
+    // Event delegation for variation dropdowns
+    document.addEventListener('change', (e) => {
+      const select = e.target.closest('.variation-select');
+      if (!select) return;
+
+      const personaIdx = parseInt(select.dataset.persona, 10);
+      const variationType = select.dataset.variation;
+      const value = select.value;
+
+      personaSelections[personaIdx][variationType] = value;
+      updateAvatar(personaIdx);
+    });
+
+    // Download button handler
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.download-avatar-btn');
+      if (!btn) return;
+
+      const personaIdx = parseInt(btn.dataset.persona, 10);
+      const imgEl = document.getElementById(`avatar-${personaIdx}`);
+      if (!imgEl || !imgEl.src) return;
+
+      const a = document.createElement('a');
+      a.href = imgEl.src;
+      // Extract the filename from the src path
+      const parts = imgEl.src.split('/');
+      a.download = parts[parts.length - 1].split('?')[0]; // strip any query params
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+
+    // Shuffle button handler — randomize gender + skintone for all personas
+    const genderOptions = ['male', 'female'];
+    const skintoneOptions = ['light', 'medium', 'dark'];
+
+    function pickRandom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    document.getElementById('shuffleAllBtn').addEventListener('click', () => {
+      personas.forEach((_, idx) => {
+        const gender = pickRandom(genderOptions);
+        const skintone = pickRandom(skintoneOptions);
+
+        personaSelections[idx].gender = gender;
+        personaSelections[idx].skintone = skintone;
+
+        // Sync the dropdowns
+        document.getElementById(`gender-${idx}`).value = gender;
+        document.getElementById(`skintone-${idx}`).value = skintone;
+
+        updateAvatar(idx);
+      });
+    });
+
+    // Auto-shuffle on page load
+    document.getElementById('shuffleAllBtn').click();
   </script>
 </body>
 </html>

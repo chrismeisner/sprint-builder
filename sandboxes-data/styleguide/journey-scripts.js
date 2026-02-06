@@ -636,7 +636,7 @@
       if (images.length <= 1) return; // No slideshow needed for single image
       
       let currentIndex = 0;
-      let isPaused = false;
+      let interval = null;
       const intervalTime = parseInt(slideshow.dataset.interval) || 4000; // Default 4 seconds
       
       // Create numbered selectors
@@ -653,8 +653,6 @@
         selector.textContent = index + 1;
         selector.setAttribute('aria-label', `Show image ${index + 1}`);
         selector.addEventListener('click', () => {
-          // Stop auto-cycling when user clicks
-          stopAutoCycle();
           goToImage(index);
         });
         selectorsContainer.appendChild(selector);
@@ -690,28 +688,29 @@
         goToImage(nextIndex);
       }
       
+      function startAutoCycle() {
+        if (interval) return; // Already running
+        interval = setInterval(nextImage, intervalTime);
+      }
+      
       function stopAutoCycle() {
-        if (!isPaused) {
-          isPaused = true;
+        if (interval) {
           clearInterval(interval);
-          slideshow.classList.add('paused');
+          interval = null;
         }
       }
       
-      // Auto-advance
-      let interval = setInterval(nextImage, intervalTime);
+      // Use the .stage-image container as the hover target
+      const stageImageContainer = slideshow.closest('.stage-image');
+      const hoverTarget = stageImageContainer || slideshow;
       
-      // Pause on hover (but don't permanently stop)
-      slideshow.addEventListener('mouseenter', () => {
-        if (!isPaused) {
-          clearInterval(interval);
-        }
+      // Start cycling on hover, stop when mouse leaves
+      hoverTarget.addEventListener('mouseenter', () => {
+        startAutoCycle();
       });
       
-      slideshow.addEventListener('mouseleave', () => {
-        if (!isPaused) {
-          interval = setInterval(nextImage, intervalTime);
-        }
+      hoverTarget.addEventListener('mouseleave', () => {
+        stopAutoCycle();
       });
     });
   }

@@ -7,7 +7,7 @@ import { getPool, ensureSchema } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 // Allowed files that can be written to (for security)
-const WRITABLE_FILES = ["changelog.json"];
+const WRITABLE_FILES = ["changelog.json", "journey-statuses.json"];
 
 // Helper to create login redirect URL
 function loginRedirect(request: NextRequest): NextResponse {
@@ -190,8 +190,14 @@ export async function GET(
     // Set appropriate headers
     const headers: Record<string, string> = {
       "Content-Type": mimeType,
-      // Don't cache CSS files to allow live updates during development
-      "Cache-Control": mimeType === "text/css" ? "no-cache, no-store, must-revalidate" : "private, max-age=3600",
+      // Don't cache sandbox files to allow live updates during development
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      // Include Last-Modified so browsers know when the file actually changed
+      "Last-Modified": stat.mtime.toUTCString(),
+      // ETag based on mtime + size so the browser can validate freshness
+      "ETag": `"${stat.mtimeMs.toString(36)}-${stat.size.toString(36)}"`,
     };
 
     // Add CORS headers for font files
@@ -202,9 +208,45 @@ export async function GET(
     // Allow HTML files to be framed (for the viewer)
     if (mimeType === "text/html") {
       headers["X-Frame-Options"] = "SAMEORIGIN";
+
+      // Check if this is an individual journey page (user-journey-*.html but NOT user-journeys.html)
+      const journeyPageMatch = filePath.match(/^(user-journey-[^/]+\.html)$/);
+      const isJourneyDetailPage = journeyPageMatch && filePath !== "user-journeys.html";
+
+      if (isJourneyDetailPage) {
+        // Server-side draft protection: block non-admin access to draft journeys
+        const statusFilePath = path.join(sandboxesDir, folderName, "journey-statuses.json");
+        let journeyStatus = "draft"; // Default to draft if no status file
+        try {
+          if (fs.existsSync(statusFilePath)) {
+            const statusData = JSON.parse(fs.readFileSync(statusFilePath, "utf-8"));
+            journeyStatus = statusData?.statuses?.[filePath] || "draft";
+          }
+        } catch {
+          // If status file is unreadable, default to draft (safe fallback)
+        }
+
+        const user = await getCurrentUser();
+        const isAdmin = user?.isAdmin || false;
+
+        if (journeyStatus === "draft" && !isAdmin) {
+          // Non-admin trying to access a draft journey — redirect to listing
+          const listingUrl = new URL(
+            `/api/sandbox-files/${folderName}/user-journeys.html`,
+            request.url
+          );
+          return NextResponse.redirect(listingUrl);
+        }
+      }
       
       // Inject user admin status for admin-only controls
-      if (filePath.includes("style-tiles.html") || filePath.includes("colors.html") || filePath.includes("fonts.html")) {
+      const needsAdminInjection =
+        filePath.includes("style-tiles.html") ||
+        filePath.includes("colors.html") ||
+        filePath.includes("fonts.html") ||
+        filePath.includes("user-journey");
+
+      if (needsAdminInjection) {
         const user = await getCurrentUser();
         const isAdmin = user?.isAdmin || false;
         const userInfoScript = `<script>window.__USER_IS_ADMIN__ = ${isAdmin};</script>`;

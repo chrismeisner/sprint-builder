@@ -192,6 +192,128 @@
       color: var(--neutral-700);
     }
 
+    /* Status badge in card header */
+    .journey-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      flex-shrink: 0;
+      cursor: default;
+    }
+
+    .journey-status-badge-active {
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .journey-status-badge-draft {
+      background: var(--neutral-100);
+      color: var(--neutral-500);
+    }
+
+    .journey-status-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .journey-status-badge-active .journey-status-badge-dot {
+      background: #059669;
+    }
+
+    .journey-status-badge-draft .journey-status-badge-dot {
+      background: var(--neutral-400);
+    }
+
+    /* Admin status toggle */
+    .journey-status-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      flex-shrink: 0;
+      border: none;
+      cursor: pointer;
+      transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .journey-status-toggle:hover {
+      box-shadow: 0 0 0 2px var(--neutral-300);
+    }
+
+    .journey-status-toggle:focus-visible {
+      outline: 2px solid var(--brand-primary-500);
+      outline-offset: 2px;
+    }
+
+    .journey-status-toggle-active {
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .journey-status-toggle-active:hover {
+      background: #d1fae5;
+    }
+
+    .journey-status-toggle-draft {
+      background: var(--neutral-100);
+      color: var(--neutral-500);
+    }
+
+    .journey-status-toggle-draft:hover {
+      background: var(--neutral-200);
+    }
+
+    .journey-status-toggle-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .journey-status-toggle-active .journey-status-toggle-dot {
+      background: #059669;
+    }
+
+    .journey-status-toggle-draft .journey-status-toggle-dot {
+      background: var(--neutral-400);
+    }
+
+    /* Draft card (non-admin) */
+    .journey-card-draft {
+      opacity: 0.5;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .journey-card-draft:hover {
+      border-color: var(--neutral-200);
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* Admin sees draft cards with a subtle dashed border */
+    .journey-card-draft-admin {
+      border-style: dashed;
+      border-color: var(--neutral-300);
+    }
+
+    .journey-card-draft-admin:hover {
+      border-color: var(--brand-primary-300);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+    }
+
     /* Coming Soon Card */
     .journey-card-coming-soon {
       border-style: dashed;
@@ -255,16 +377,16 @@
       <p class="subtitle">Maps of user stages, touchpoints, emotions, and opportunities across key flows in the Miles experience.</p>
     </div>
 
-    <div class="journey-cards">
+    <div class="journey-cards" id="journeyCards">
       <!-- First Trip Journey -->
-      <a href="user-journey-first-trip.html" class="journey-card">
+      <a href="user-journey-first-trip.html" class="journey-card" data-journey="user-journey-first-trip.html">
         <div class="journey-card-image">
           <img src="./images/journey-first-trip-1a.jpg" alt="First trip journey" />
         </div>
         <div class="journey-card-content">
           <div class="journey-card-header">
             <h3 class="journey-card-title">First Trip</h3>
-            <span class="journey-card-badge journey-card-badge-primary">Primary</span>
+            <span class="journey-status-slot" data-status-slot="user-journey-first-trip.html"></span>
           </div>
           <p class="journey-card-description">The core product loop: Setting up the dongle, driving hands-free, and seeing a trip summary that builds trust.</p>
           <div class="journey-card-meta">
@@ -279,23 +401,23 @@
             </div>
             <div class="journey-card-user">
               <div class="journey-card-user-avatar">
-                <img src="./images/journey-first-trip-1a.jpg" alt="Any Driver" />
+                <img src="./images/persona-1.jpg" alt="The Driving Parent" />
               </div>
-              <span class="journey-card-user-name">Any Driver</span>
+              <span class="journey-card-user-name">The Driving Parent</span>
             </div>
           </div>
         </div>
       </a>
 
       <!-- Teen Onboarding Journey -->
-      <a href="user-journey-teen.html" class="journey-card">
+      <a href="user-journey-teen.html" class="journey-card" data-journey="user-journey-teen.html">
         <div class="journey-card-image">
-          <img src="./images/journey-teen-1.jpg" alt="Teen onboarding journey" />
+          <img src="./images/teen-1a.jpg" alt="Teen onboarding journey" />
         </div>
         <div class="journey-card-content">
           <div class="journey-card-header">
             <h3 class="journey-card-title">Teen Onboarding</h3>
-            <span class="journey-card-badge journey-card-badge-secondary">Secondary</span>
+            <span class="journey-status-slot" data-status-slot="user-journey-teen.html"></span>
           </div>
           <p class="journey-card-description">The teen's perspective: Receiving an invite from a parent, understanding the deal, and signing up.</p>
           <div class="journey-card-meta">
@@ -310,7 +432,7 @@
             </div>
             <div class="journey-card-user">
               <div class="journey-card-user-avatar">
-                <img src="./images/journey-teen-1.jpg" alt="The New Driver" />
+                <img src="./images/persona-2.jpg" alt="The New Driver" />
               </div>
               <span class="journey-card-user-name">The New Driver</span>
             </div>
@@ -320,5 +442,142 @@
     </div>
   </div>
   <script src="sidebar-nav.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    const isAdmin = window.__USER_IS_ADMIN__ === true;
+    let journeyStatuses = {};
+
+    // Determine base path for API calls
+    function getBasePath() {
+      const path = window.location.pathname;
+      const parts = path.split('/');
+      // Find 'sandbox-files' or 'styleguide' in path to build correct API URL
+      const sbIdx = parts.indexOf('sandbox-files');
+      if (sbIdx !== -1) {
+        // We're served via /api/sandbox-files/styleguide/...
+        return parts.slice(0, sbIdx + 2).join('/');
+      }
+      // Fallback
+      return '/api/sandbox-files/styleguide';
+    }
+
+    const basePath = getBasePath();
+
+    // Load statuses from JSON
+    async function loadStatuses() {
+      try {
+        const resp = await fetch(basePath + '/journey-statuses.json');
+        if (resp.ok) {
+          const data = await resp.json();
+          journeyStatuses = data.statuses || {};
+        }
+      } catch (e) {
+        console.warn('Could not load journey statuses:', e);
+      }
+      applyStatuses();
+    }
+
+    // Save statuses to JSON (admin only)
+    async function saveStatuses() {
+      try {
+        await fetch(basePath + '/journey-statuses.json', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ statuses: journeyStatuses })
+        });
+      } catch (e) {
+        console.error('Failed to save journey statuses:', e);
+      }
+    }
+
+    // Apply statuses to all cards
+    function applyStatuses() {
+      const cards = document.querySelectorAll('.journey-card[data-journey]');
+      cards.forEach(function(card) {
+        const journeyKey = card.getAttribute('data-journey');
+        const status = journeyStatuses[journeyKey] || 'draft';
+        const isDraft = status === 'draft';
+        const slot = card.querySelector('.journey-status-slot');
+
+        // Remove existing classes
+        card.classList.remove('journey-card-draft', 'journey-card-draft-admin');
+
+        if (isAdmin) {
+          // Admin: always clickable, show toggle button
+          if (isDraft) {
+            card.classList.add('journey-card-draft-admin');
+          }
+          if (slot) {
+            slot.innerHTML = createToggleHTML(journeyKey, status);
+          }
+        } else {
+          // Non-admin: draft cards are not clickable
+          if (isDraft) {
+            card.classList.add('journey-card-draft');
+          }
+          if (slot) {
+            slot.innerHTML = createBadgeHTML(status);
+          }
+        }
+      });
+
+      // Bind toggle click events (admin only)
+      if (isAdmin) {
+        document.querySelectorAll('.journey-status-toggle').forEach(function(btn) {
+          btn.addEventListener('click', handleToggleClick);
+        });
+      }
+    }
+
+    // Create read-only status badge HTML
+    function createBadgeHTML(status) {
+      const isActive = status === 'active';
+      const cls = isActive ? 'journey-status-badge-active' : 'journey-status-badge-draft';
+      const label = isActive ? 'Active' : 'Draft';
+      return '<span class="journey-status-badge ' + cls + '">' +
+        '<span class="journey-status-badge-dot"></span>' +
+        label +
+        '</span>';
+    }
+
+    // Create admin toggle button HTML
+    function createToggleHTML(journeyKey, status) {
+      const isActive = status === 'active';
+      const cls = isActive ? 'journey-status-toggle-active' : 'journey-status-toggle-draft';
+      const label = isActive ? 'Active' : 'Draft';
+      return '<button type="button" class="journey-status-toggle ' + cls + '" ' +
+        'data-toggle-journey="' + journeyKey + '" ' +
+        'aria-label="Toggle status for this journey" ' +
+        'title="Click to change status">' +
+        '<span class="journey-status-toggle-dot"></span>' +
+        label +
+        '</button>';
+    }
+
+    // Handle admin toggle click
+    function handleToggleClick(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      var btn = e.currentTarget;
+      var journeyKey = btn.getAttribute('data-toggle-journey');
+      var currentStatus = journeyStatuses[journeyKey] || 'draft';
+      var newStatus = currentStatus === 'active' ? 'draft' : 'active';
+
+      journeyStatuses[journeyKey] = newStatus;
+      saveStatuses();
+      applyStatuses();
+    }
+
+    // Initialize
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadStatuses);
+    } else {
+      loadStatuses();
+    }
+  })();
+  </script>
 </body>
 </html>
