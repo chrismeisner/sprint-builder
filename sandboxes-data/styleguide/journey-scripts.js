@@ -114,19 +114,29 @@
       modalAvatarEl.textContent = persona.emoji || '👤';
     }
     
-    const role = persona.roleRelationship?.role || persona.role || '';
-    const painPoints = persona.trustFairness?.breaksTrust || persona.painPoints || [];
-    const behaviors = persona.triggersJobs?.jobsToBeDone || persona.behaviors || [];
+    // Map the actual persona data structure
+    const role = persona.role || '';
+    const relationship = persona.relationship || '';
+    const roleDisplay = relationship ? `${role} — ${relationship}` : role;
+    
+    // Extract data from the actual schema
+    const quote = persona.coreJob || '';
+    const goals = persona.mustHaveOutcomes?.map(outcome => 
+      outcome.description ? `${outcome.label}: ${outcome.description}` : outcome.label
+    ) || [];
+    const painPoints = persona.trustFairnessRules || [];
+    const behaviors = persona.triggerMoments || [];
+    const tags = persona.successLooksLike || [];
     
     document.getElementById('modalUserName').textContent = persona.name;
-    document.getElementById('modalUserRole').textContent = role;
-    document.getElementById('modalUserQuote').textContent = persona.quote;
+    document.getElementById('modalUserRole').textContent = roleDisplay;
+    document.getElementById('modalUserQuote').textContent = quote;
     
-    document.getElementById('modalUserTags').innerHTML = (persona.tags || [])
+    document.getElementById('modalUserTags').innerHTML = tags
       .map(tag => `<span class="user-modal-tag">${tag}</span>`)
       .join('');
     
-    document.getElementById('modalUserGoals').innerHTML = (persona.goals || [])
+    document.getElementById('modalUserGoals').innerHTML = goals
       .map(goal => `<li>${goal}</li>`)
       .join('');
     
@@ -138,7 +148,16 @@
       .map(behavior => `<li>${behavior}</li>`)
       .join('');
     
-    document.getElementById('modalUserStages').innerHTML = (persona.journeyStages || [])
+    // For journey stages, use the visibility model info if available
+    const visibilityInfo = [];
+    if (persona.defaultVisibility?.sees) {
+      visibilityInfo.push(`Sees: ${persona.defaultVisibility.sees}`);
+    }
+    if (persona.defaultVisibility?.doesNotSee) {
+      visibilityInfo.push(`Does not see: ${persona.defaultVisibility.doesNotSee}`);
+    }
+    
+    document.getElementById('modalUserStages').innerHTML = visibilityInfo
       .map(stage => `<span class="user-modal-stage-tag">${stage}</span>`)
       .join('');
     
@@ -250,31 +269,36 @@
       });
 
       if (currentPersona) {
-        const role = currentPersona.roleRelationship?.role || currentPersona.role || '';
-        const painPoints = currentPersona.trustFairness?.breaksTrust || currentPersona.painPoints || [];
-        const behaviors = currentPersona.triggersJobs?.jobsToBeDone || currentPersona.behaviors || [];
-        const goals = currentPersona.goals || [];
-        const tags = currentPersona.tags || [];
-        const journeyStages = currentPersona.journeyStages || [];
+        const role = currentPersona.role || '';
+        const relationship = currentPersona.relationship || '';
+        const roleDisplay = relationship ? `${role} — ${relationship}` : role;
+        
+        const painPoints = currentPersona.trustFairnessRules || [];
+        const behaviors = currentPersona.triggerMoments || [];
+        const goals = currentPersona.mustHaveOutcomes?.map(outcome => 
+          outcome.description ? `${outcome.label}: ${outcome.description}` : outcome.label
+        ) || [];
+        const tags = currentPersona.successLooksLike || [];
+        
+        const visibilityInfo = [];
+        if (currentPersona.defaultVisibility?.sees) {
+          visibilityInfo.push(`Sees: ${currentPersona.defaultVisibility.sees}`);
+        }
+        if (currentPersona.defaultVisibility?.doesNotSee) {
+          visibilityInfo.push(`Does not see: ${currentPersona.defaultVisibility.doesNotSee}`);
+        }
         
         csv += '\n';
         csv += 'User Profile\n';
         csv += `Name,${escapeCSV(currentPersona.name)}\n`;
-        csv += `Role,${escapeCSV(role)}\n`;
-        csv += `Tags,${escapeCSV(tags.join('; '))}\n`;
-        csv += `Quote,${escapeCSV(currentPersona.quote)}\n`;
+        csv += `Role,${escapeCSV(roleDisplay)}\n`;
+        csv += `Core Job (JTBD),${escapeCSV(currentPersona.coreJob || '')}\n`;
+        csv += `Success Looks Like,${escapeCSV(tags.join('; '))}\n`;
         csv += '\n';
-        csv += 'Demographics\n';
-        if (currentPersona.demographics) {
-          csv += `Age,${escapeCSV(currentPersona.demographics.age || '')}\n`;
-          csv += `Location,${escapeCSV(currentPersona.demographics.location || '')}\n`;
-          csv += `Tech Level,${escapeCSV(currentPersona.demographics.techLevel || '')}\n`;
-        }
-        csv += '\n';
-        csv += `Goals,${escapeCSV(goals.join('; '))}\n`;
-        csv += `Pain Points,${escapeCSV(painPoints.join('; '))}\n`;
-        csv += `Jobs to be Done,${escapeCSV(behaviors.join('; '))}\n`;
-        csv += `Key Journey Stages,${escapeCSV(journeyStages.join('; '))}\n`;
+        csv += `Must-Have Outcomes,${escapeCSV(goals.join('; '))}\n`;
+        csv += `Trust & Fairness Rules,${escapeCSV(painPoints.join('; '))}\n`;
+        csv += `Trigger Moments,${escapeCSV(behaviors.join('; '))}\n`;
+        csv += `Default Visibility,${escapeCSV(visibilityInfo.join('; '))}\n`;
       }
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

@@ -993,6 +993,12 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS attachments jsonb DEFAULT '[]'::jsonb
   `);
 
+  // Add progress column to admin_tasks (0-100 percentage, increments of 10)
+  await pool.query(`
+    ALTER TABLE admin_tasks
+    ADD COLUMN IF NOT EXISTS progress integer NOT NULL DEFAULT 0
+  `).catch(() => { /* Column may already exist */ });
+
   // Admin Task Events: Log task activities for analytics
   await pool.query(`
     CREATE TABLE IF NOT EXISTS admin_task_events (

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Modal Data Mapping</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 { color: #333; }
+    .test-section {
+      background: #f5f5f5;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
+    .test-section h2 {
+      margin-top: 0;
+      color: #666;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .test-section ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .test-section li {
+      margin: 5px 0;
+    }
+    .tag {
+      display: inline-block;
+      background: #4CAF50;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin: 4px;
+      font-size: 12px;
+    }
+    button {
+      background: #2196F3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 10px 10px 0;
+    }
+    button:hover {
+      background: #1976D2;
+    }
+  </style>
+</head>
+<body>
+  <h1>User Modal Data Test</h1>
+  <p>This page tests the data mapping for the user modal to ensure all persona data is correctly displayed.</p>
+  
+  <button onclick="showPersona(0)">Show Parent Persona</button>
+  <button onclick="showPersona(1)">Show Teen Persona</button>
+  
+  <div id="output"></div>
+  
+  <script src="personas-data.js"></script>
+  <script>
+    function showPersona(index) {
+      const persona = PERSONAS[index];
+      if (!persona) {
+        document.getElementById('output').innerHTML = '<p>Persona not found</p>';
+        return;
+      }
+      
+      // Map the actual persona data structure (same as in journey-scripts.js)
+      const role = persona.role || '';
+      const relationship = persona.relationship || '';
+      const roleDisplay = relationship ? `${role} — ${relationship}` : role;
+      
+      const quote = persona.coreJob || '';
+      const goals = persona.mustHaveOutcomes?.map(outcome => 
+        outcome.description ? `${outcome.label}: ${outcome.description}` : outcome.label
+      ) || [];
+      const painPoints = persona.trustFairnessRules || [];
+      const behaviors = persona.triggerMoments || [];
+      const tags = persona.successLooksLike || [];
+      
+      const visibilityInfo = [];
+      if (persona.defaultVisibility?.sees) {
+        visibilityInfo.push(`Sees: ${persona.defaultVisibility.sees}`);
+      }
+      if (persona.defaultVisibility?.doesNotSee) {
+        visibilityInfo.push(`Does not see: ${persona.defaultVisibility.doesNotSee}`);
+      }
+      
+      let html = `
+        <div class="test-section">
+          <h2>Name & Role</h2>
+          <p><strong>Name:</strong> ${persona.name} ${persona.emoji}</p>
+          <p><strong>Role:</strong> ${roleDisplay}</p>
+        </div>
+        
+        <div class="test-section">
+          <h2>Core Job (Quote in Modal)</h2>
+          <p>"${quote}"</p>
+        </div>
+        
+        <div class="test-section">
+          <h2>What Success Looks Like (Tags in Modal)</h2>
+          ${tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+        </div>
+        
+        <div class="test-section">
+          <h2>Must-Have Outcomes (Goals Section)</h2>
+          <ul>
+            ${goals.map(goal => `<li>${goal}</li>`).join('')}
+          </ul>
+        </div>
+        
+        <div class="test-section">
+          <h2>Trust & Fairness Rules (Pain Points Section)</h2>
+          <ul>
+            ${painPoints.map(pain => `<li>${pain}</li>`).join('')}
+          </ul>
+        </div>
+        
+        <div class="test-section">
+          <h2>Trigger Moments (Behaviors Section)</h2>
+          <ul>
+            ${behaviors.map(behavior => `<li>${behavior}</li>`).join('')}
+          </ul>
+        </div>
+        
+        <div class="test-section">
+          <h2>Default Visibility (Footer Section)</h2>
+          ${visibilityInfo.length > 0 ? `
+            <ul>
+              ${visibilityInfo.map(info => `<li>${info}</li>`).join('')}
+            </ul>
+          ` : '<p>No visibility info available</p>'}
+        </div>
+      `;
+      
+      document.getElementById('output').innerHTML = html;
+    }
+    
+    // Show first persona by default
+    showPersona(0);
+  </script>
+</body>
+</html>

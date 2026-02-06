@@ -232,10 +232,20 @@
       color: var(--brand-primary-600);
     }
 
+    .user-modal-tags-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--neutral-500);
+      margin-bottom: 4px;
+    }
+
     .user-modal-tags {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
+      margin-top: 4px;
     }
 
     .user-modal-tag {
@@ -243,8 +253,8 @@
       font-weight: 500;
       padding: 3px 8px;
       border-radius: 4px;
-      background: var(--neutral-100);
-      color: var(--neutral-600);
+      background: var(--brand-success-100);
+      color: var(--brand-success-700);
     }
 
     .user-modal-close {
@@ -463,6 +473,7 @@
           <div class="user-modal-identity">
             <h2 class="user-modal-name" id="modalUserName"></h2>
             <p class="user-modal-role" id="modalUserRole"></p>
+            <div class="user-modal-tags-label">What Success Looks Like:</div>
             <div class="user-modal-tags" id="modalUserTags"></div>
           </div>
         </div>
@@ -473,7 +484,7 @@
           <div class="user-modal-section user-modal-goals">
             <div class="user-modal-section-header">
               <span class="user-modal-section-icon">🎯</span>
-              <h3 class="user-modal-section-title">Goals</h3>
+              <h3 class="user-modal-section-title">Must-Have Outcomes</h3>
             </div>
             <div class="user-modal-section-content">
               <ul id="modalUserGoals"></ul>
@@ -481,8 +492,8 @@
           </div>
           <div class="user-modal-section user-modal-pains">
             <div class="user-modal-section-header">
-              <span class="user-modal-section-icon">😤</span>
-              <h3 class="user-modal-section-title">Pain Points</h3>
+              <span class="user-modal-section-icon">🔒</span>
+              <h3 class="user-modal-section-title">Trust & Fairness Rules</h3>
             </div>
             <div class="user-modal-section-content">
               <ul id="modalUserPains"></ul>
@@ -490,8 +501,8 @@
           </div>
           <div class="user-modal-section">
             <div class="user-modal-section-header">
-              <span class="user-modal-section-icon">🔄</span>
-              <h3 class="user-modal-section-title">Jobs to be Done</h3>
+              <span class="user-modal-section-icon">⚡</span>
+              <h3 class="user-modal-section-title">Trigger Moments</h3>
             </div>
             <div class="user-modal-section-content">
               <ul id="modalUserBehaviors"></ul>
@@ -500,7 +511,7 @@
         </div>
         <div class="user-modal-footer">
           <div class="user-modal-stages">
-            <span class="user-modal-stages-label">Key Journey Stages:</span>
+            <span class="user-modal-stages-label">Default Visibility:</span>
             <div id="modalUserStages"></div>
           </div>
           <a href="profiles.html" class="view-all-profiles">

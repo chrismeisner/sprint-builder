@@ -46,6 +46,7 @@ type Task = {
   focus: string;
   sort_order: number;
   sub_sort_order: number;
+  progress: number;
   idea_title: string | null;
   milestone_name: string | null;
   milestone_target_date: string | null;
@@ -59,6 +60,7 @@ type SortableTodayTaskProps = {
   onToggleComplete: (task: Task) => void;
   onRemoveFromToday: (task: Task) => void;
   onToggleNowFocus: (task: Task) => void;
+  onUpdateProgress: (task: Task, delta: number) => void;
   isEditing: boolean;
   editValue: string;
   onStartEdit: (task: Task) => void;
@@ -72,6 +74,7 @@ function SortableTodayTask({
   onToggleComplete, 
   onRemoveFromToday, 
   onToggleNowFocus,
+  onUpdateProgress,
   isEditing,
   editValue,
   onStartEdit,
@@ -166,6 +169,36 @@ function SortableTodayTask({
               📎 {task.attachments.length}
             </span>
           )}
+        </div>
+        {/* Progress bar */}
+        <div className="flex items-center gap-2 mt-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onUpdateProgress(task, -10); }}
+            className="text-xs w-5 h-5 rounded flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 transition"
+            title="Decrease progress by 10%"
+          >
+            −
+          </button>
+          <div 
+            className="flex-1 h-2 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); onUpdateProgress(task, 10); }}
+            title={`${task.progress ?? 0}% — Click to add 10%`}
+          >
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{
+                width: `${task.progress ?? 0}%`,
+                backgroundColor: (task.progress ?? 0) === 100 
+                  ? '#22c55e' 
+                  : (task.progress ?? 0) >= 70 
+                    ? '#eab308' 
+                    : '#3b82f6',
+              }}
+            />
+          </div>
+          <span className="text-xs font-medium tabular-nums w-8 text-right opacity-60">
+            {task.progress ?? 0}%
+          </span>
         </div>
       </div>
       <button
@@ -264,6 +297,8 @@ export default function TodayClient() {
                 ...t, 
                 completed: !t.completed, 
                 completed_at: !t.completed ? new Date().toISOString() : null,
+                // Set progress to 100 when completing, revert to 90 when uncompleting
+                progress: !t.completed ? 100 : ((t.progress ?? 0) >= 100 ? 90 : (t.progress ?? 0)),
                 // Clear "now" but keep "today" if present
                 focus: (!t.completed && t.focus.includes("now")) 
                   ? (t.focus.includes("today") ? "today" : "") 
@@ -338,6 +373,33 @@ export default function TodayClient() {
       );
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to update task");
+    }
+  };
+
+  // Update task progress by a delta (typically +10 or -10)
+  const updateProgress = async (task: Task, delta: number) => {
+    const newProgress = Math.max(0, Math.min(100, (task.progress ?? 0) + delta));
+    if (newProgress === (task.progress ?? 0)) return;
+    
+    try {
+      const res = await fetch("/api/admin/tasks/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: task.id,
+          progress: newProgress,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update progress");
+
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id ? { ...t, progress: newProgress } : t
+        )
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update progress");
     }
   };
 
@@ -546,6 +608,36 @@ export default function TodayClient() {
                     📁 {inFocusTask.idea_title}
                   </Link>
                 )}
+                {/* In Focus Progress Bar */}
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    onClick={() => updateProgress(inFocusTask, -10)}
+                    className="text-xs w-5 h-5 rounded flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 transition"
+                    title="Decrease progress by 10%"
+                  >
+                    −
+                  </button>
+                  <div 
+                    className="flex-1 h-2.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden cursor-pointer"
+                    onClick={() => updateProgress(inFocusTask, 10)}
+                    title={`${inFocusTask.progress ?? 0}% — Click to add 10%`}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: `${inFocusTask.progress ?? 0}%`,
+                        backgroundColor: (inFocusTask.progress ?? 0) === 100 
+                          ? '#22c55e' 
+                          : (inFocusTask.progress ?? 0) >= 70 
+                            ? '#eab308' 
+                            : '#3b82f6',
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium tabular-nums w-8 text-right opacity-60">
+                    {inFocusTask.progress ?? 0}%
+                  </span>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -672,6 +764,7 @@ export default function TodayClient() {
                         onToggleComplete={toggleTaskComplete}
                         onRemoveFromToday={removeFromToday}
                         onToggleNowFocus={toggleNowFocus}
+                        onUpdateProgress={updateProgress}
                         isEditing={editingTaskId === task.id}
                         editValue={editValue}
                         onStartEdit={startEdit}
@@ -737,6 +830,13 @@ export default function TodayClient() {
                           📁 {task.idea_title}
                         </div>
                       )}
+                      {/* Completed progress bar (always 100%) */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex-1 h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-full bg-green-500 rounded-full w-full" />
+                        </div>
+                        <span className="text-xs font-medium tabular-nums opacity-50">100%</span>
+                      </div>
                     </div>
                   </div>
                 ))}

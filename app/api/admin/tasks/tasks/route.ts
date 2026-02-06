@@ -203,7 +203,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Handle single task update
-    const { id, name, note, completed, focus, milestone_id } = body;
+    const { id, name, note, completed, focus, milestone_id, progress } = body;
     
     if (!id) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
@@ -211,7 +211,7 @@ export async function PATCH(request: NextRequest) {
 
     // Get current task state for event logging
     const currentTaskResult = await pool.query(
-      `SELECT id, idea_id, name, note, completed, focus, milestone_id FROM admin_tasks WHERE id = $1`,
+      `SELECT id, idea_id, name, note, completed, focus, milestone_id, progress FROM admin_tasks WHERE id = $1`,
       [id]
     );
     const currentTask = currentTaskResult.rows[0];
@@ -237,6 +237,16 @@ export async function PATCH(request: NextRequest) {
       updates.push(`completed_at = $${paramCount++}`);
       values.push(completed ? new Date().toISOString() : null);
       
+      // Auto-set progress to 100 when completing, revert to previous when uncompleting
+      if (completed) {
+        updates.push(`progress = $${paramCount++}`);
+        values.push(100);
+      } else if (progress === undefined) {
+        // When uncompleting, set progress back to 90 (or keep current if explicitly provided)
+        updates.push(`progress = $${paramCount++}`);
+        values.push(currentTask.progress >= 100 ? 90 : currentTask.progress);
+      }
+      
       // If completing a task that's "in focus", remove the "now" but keep "today" if present
       if (completed && currentTask.focus.includes("now")) {
         updates.push(`focus = $${paramCount++}`);
@@ -252,6 +262,12 @@ export async function PATCH(request: NextRequest) {
       }
       updates.push(`focus = $${paramCount++}`);
       values.push(focus);
+    }
+    if (progress !== undefined && completed === undefined) {
+      // Clamp progress between 0 and 100
+      const clampedProgress = Math.max(0, Math.min(100, progress));
+      updates.push(`progress = $${paramCount++}`);
+      values.push(clampedProgress);
     }
     if (milestone_id !== undefined) {
       updates.push(`milestone_id = $${paramCount++}`);
@@ -334,6 +350,15 @@ export async function PATCH(request: NextRequest) {
         name: updatedTask.name,
         previous_milestone_id: currentTask.milestone_id,
         new_milestone_id: milestone_id,
+      });
+    }
+
+    // Progress changed
+    if (updatedTask.progress !== currentTask.progress) {
+      await logTaskEvent(id, currentTask.idea_id, "progress_updated", {
+        name: updatedTask.name,
+        previous_progress: currentTask.progress,
+        new_progress: updatedTask.progress,
       });
     }
 
