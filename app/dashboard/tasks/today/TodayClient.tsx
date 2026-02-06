@@ -61,6 +61,7 @@ type SortableTodayTaskProps = {
   onRemoveFromToday: (task: Task) => void;
   onToggleNowFocus: (task: Task) => void;
   onUpdateProgress: (task: Task, delta: number) => void;
+  onSetProgress: (task: Task, value: number) => void;
   isEditing: boolean;
   editValue: string;
   onStartEdit: (task: Task) => void;
@@ -75,6 +76,7 @@ function SortableTodayTask({
   onRemoveFromToday, 
   onToggleNowFocus,
   onUpdateProgress,
+  onSetProgress,
   isEditing,
   editValue,
   onStartEdit,
@@ -82,6 +84,29 @@ function SortableTodayTask({
   onSaveEdit,
   onCancelEdit,
 }: SortableTodayTaskProps) {
+  const [progressInput, setProgressInput] = useState("");
+  const [showProgressInput, setShowProgressInput] = useState(false);
+
+  const handleProgressInputSubmit = () => {
+    const value = parseInt(progressInput, 10);
+    if (!isNaN(value) && value >= 0 && value <= 100) {
+      onSetProgress(task, value);
+    }
+    setShowProgressInput(false);
+    setProgressInput("");
+  };
+
+  const handleProgressInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleProgressInputSubmit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setShowProgressInput(false);
+      setProgressInput("");
+    }
+  };
+
   const {
     attributes,
     listeners,
@@ -196,9 +221,35 @@ function SortableTodayTask({
               }}
             />
           </div>
-          <span className="text-xs font-medium tabular-nums w-8 text-right opacity-60">
-            {task.progress ?? 0}%
-          </span>
+          {showProgressInput ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={progressInput}
+                onChange={(e) => setProgressInput(e.target.value)}
+                onKeyDown={handleProgressInputKeyDown}
+                onBlur={handleProgressInputSubmit}
+                autoFocus
+                className="w-12 h-6 text-xs px-1 border border-blue-500 rounded bg-white dark:bg-black text-center"
+                placeholder="0-100"
+              />
+              <span className="text-xs opacity-60">%</span>
+            </div>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setProgressInput(String(task.progress ?? 0));
+                setShowProgressInput(true);
+              }}
+              className="text-xs font-medium tabular-nums w-8 text-right opacity-60 hover:opacity-100 hover:underline transition cursor-pointer"
+              title="Click to set exact percentage"
+            >
+              {task.progress ?? 0}%
+            </button>
+          )}
         </div>
       </div>
       <button
@@ -236,6 +287,10 @@ export default function TodayClient() {
   // Inline editing state
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+
+  // Progress input state for In Focus task
+  const [focusProgressInput, setFocusProgressInput] = useState("");
+  const [showFocusProgressInput, setShowFocusProgressInput] = useState(false);
 
   // Load target time from localStorage
   useEffect(() => {
@@ -379,6 +434,33 @@ export default function TodayClient() {
   // Update task progress by a delta (typically +10 or -10)
   const updateProgress = async (task: Task, delta: number) => {
     const newProgress = Math.max(0, Math.min(100, (task.progress ?? 0) + delta));
+    if (newProgress === (task.progress ?? 0)) return;
+    
+    try {
+      const res = await fetch("/api/admin/tasks/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: task.id,
+          progress: newProgress,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update progress");
+
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id ? { ...t, progress: newProgress } : t
+        )
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update progress");
+    }
+  };
+
+  // Set task progress to an exact value (0-100)
+  const setProgress = async (task: Task, value: number) => {
+    const newProgress = Math.max(0, Math.min(100, value));
     if (newProgress === (task.progress ?? 0)) return;
     
     try {
@@ -634,9 +716,55 @@ export default function TodayClient() {
                       }}
                     />
                   </div>
-                  <span className="text-xs font-medium tabular-nums w-8 text-right opacity-60">
-                    {inFocusTask.progress ?? 0}%
-                  </span>
+                  {showFocusProgressInput ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={focusProgressInput}
+                        onChange={(e) => setFocusProgressInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const value = parseInt(focusProgressInput, 10);
+                            if (!isNaN(value) && value >= 0 && value <= 100) {
+                              setProgress(inFocusTask, value);
+                            }
+                            setShowFocusProgressInput(false);
+                            setFocusProgressInput("");
+                          } else if (e.key === "Escape") {
+                            e.preventDefault();
+                            setShowFocusProgressInput(false);
+                            setFocusProgressInput("");
+                          }
+                        }}
+                        onBlur={() => {
+                          const value = parseInt(focusProgressInput, 10);
+                          if (!isNaN(value) && value >= 0 && value <= 100) {
+                            setProgress(inFocusTask, value);
+                          }
+                          setShowFocusProgressInput(false);
+                          setFocusProgressInput("");
+                        }}
+                        autoFocus
+                        className="w-12 h-6 text-xs px-1 border border-blue-500 rounded bg-white dark:bg-black text-center"
+                        placeholder="0-100"
+                      />
+                      <span className="text-xs opacity-60">%</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setFocusProgressInput(String(inFocusTask.progress ?? 0));
+                        setShowFocusProgressInput(true);
+                      }}
+                      className="text-xs font-medium tabular-nums w-8 text-right opacity-60 hover:opacity-100 hover:underline transition cursor-pointer"
+                      title="Click to set exact percentage"
+                    >
+                      {inFocusTask.progress ?? 0}%
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -765,6 +893,7 @@ export default function TodayClient() {
                         onRemoveFromToday={removeFromToday}
                         onToggleNowFocus={toggleNowFocus}
                         onUpdateProgress={updateProgress}
+                        onSetProgress={setProgress}
                         isEditing={editingTaskId === task.id}
                         editValue={editValue}
                         onStartEdit={startEdit}
