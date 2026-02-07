@@ -114,7 +114,7 @@
     }
 
     .export-btn {
-      display: inline-flex;
+      display: none; /* Hidden by default, shown only for admins */
       align-items: center;
       gap: 8px;
       padding: 10px 16px;
@@ -127,6 +127,10 @@
       color: var(--neutral-700);
       cursor: pointer;
       transition: all 150ms ease;
+    }
+
+    .export-btn.admin-visible {
+      display: inline-flex;
     }
 
     .export-btn:hover {
@@ -994,6 +998,17 @@
   <script src="sidebar-nav.js"></script>
   <script src="personas-data.js"></script>
   <script>
+    // Show export button only for admin users
+    (function() {
+      const isAdmin = window.__USER_IS_ADMIN__ === true;
+      if (isAdmin) {
+        const exportBtn = document.getElementById('exportCsvBtn');
+        if (exportBtn) {
+          exportBtn.classList.add('admin-visible');
+        }
+      }
+    })();
+
     // Configure users per stage for the First Trip journey
     // For this journey, all steps have the same user (parent), but the pattern supports different users per step
     // This must be defined BEFORE journey-scripts.js loads
