@@ -148,7 +148,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   , activityDates[0]);
 
   return (
-    <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6 font-inter">
+    <main className="min-h-screen max-w-6xl mx-auto p-6 space-y-6 font-inter">
       <div className="flex items-center justify-between">
         <div>
           <Typography as="p" scale="mono-sm" className="opacity-70">
@@ -208,44 +208,44 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
+              <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
                 <tr>
                   <th className="text-left px-4 py-2 font-semibold">Title</th>
-                  <th className="text-left px-4 py-2 font-semibold">Status</th>
-                  <th className="text-right px-4 py-2 font-semibold">Deliverables</th>
-                  <th className="text-right px-4 py-2 font-semibold">Price</th>
-                  <th className="text-right px-4 py-2 font-semibold">Created</th>
-                  <th className="text-left px-4 py-2 font-semibold">Links</th>
-                  {isAdmin && <th className="text-right px-4 py-2 font-semibold">Actions</th>}
+                  <th className="text-left px-4 py-2 font-semibold w-32">Status</th>
+                  <th className="text-left px-4 py-2 font-semibold w-24">Deliverables</th>
+                  <th className="text-left px-4 py-2 font-semibold w-32">Price</th>
+                  <th className="text-left px-4 py-2 font-semibold w-32">Created</th>
+                  <th className="text-left px-4 py-2 font-semibold">Actions</th>
+                  {isAdmin && <th className="text-left px-4 py-2 font-semibold w-24">Admin</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-black/10 dark:divide-white/15">
+              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
                 {sprints.map((s) => (
-                  <tr key={s.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
+                  <tr key={s.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150">
                     <td className="px-4 py-2">
-                      <Link href={`/sprints/${s.id}`} className="font-medium hover:underline">
+                      <span className="font-medium text-neutral-900 dark:text-neutral-100">
                         {s.title || "Untitled sprint"}
-                      </Link>
+                      </span>
                     </td>
                     <td className="px-4 py-2">
-                      <span className="inline-flex items-center rounded-full bg-black/10 dark:bg-white/10 px-2 py-0.5 text-xs">
+                      <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs">
                         {s.status || "draft"}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-4 py-2 tabular-nums text-neutral-600 dark:text-neutral-400">
                       {s.deliverable_count != null ? s.deliverable_count : 0}
                     </td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-4 py-2 tabular-nums text-neutral-600 dark:text-neutral-400">
                       {s.total_fixed_price != null ? `$${Number(s.total_fixed_price).toLocaleString()}` : "—"}
                     </td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-4 py-2 text-neutral-600 dark:text-neutral-400">
                       {new Date(s.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-2">
-                      <SprintShareLink sprintId={s.id} shareToken={s.share_token} status={s.status} />
+                      <SprintShareLink sprintId={s.id} shareToken={s.share_token} status={s.status} isAdmin={isAdmin} />
                     </td>
                     {isAdmin && (
-                      <td className="px-4 py-2 text-right">
+                      <td className="px-4 py-2">
                         <DeleteSprintButton sprintId={s.id} />
                       </td>
                     )}
@@ -280,58 +280,46 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
+              <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
                 <tr>
                   <th className="text-left px-4 py-2 font-semibold">Name</th>
-                  <th className="text-left px-4 py-2 font-semibold">Type</th>
-                  <th className="text-left px-4 py-2 font-semibold">Description</th>
-                  <th className="text-left px-4 py-2 font-semibold">Visibility</th>
-                  <th className="text-right px-4 py-2 font-semibold">Actions</th>
+                  <th className="text-left px-4 py-2 font-semibold w-32">Visibility</th>
+                  <th className="text-left px-4 py-2 font-semibold w-24"></th>
+                  <th className="text-left px-4 py-2 font-semibold w-32"></th>
+                  <th className="text-left px-4 py-2 font-semibold w-32"></th>
+                  <th className="text-left px-4 py-2 font-semibold">Actions</th>
+                  {isAdmin && <th className="text-left px-4 py-2 font-semibold w-24"></th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-black/10 dark:divide-white/15">
+              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
                 {appLinks.map((appLink) => {
                   const linkUrl = appLink.link_type === "url" 
                     ? appLink.url 
                     : `/api/sandbox-files/${appLink.folder_name}/index.html`;
                   
                   return (
-                    <tr key={appLink.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
+                    <tr key={appLink.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150">
                       <td className="px-4 py-2">
-                        <a
-                          href={linkUrl || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium hover:underline"
-                        >
+                        <span className="font-medium text-neutral-900 dark:text-neutral-100">
                           {appLink.name}
-                        </a>
-                      </td>
-                      <td className="px-4 py-2">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
-                          appLink.link_type === "url"
-                            ? "bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400"
-                            : "bg-black/10 dark:bg-white/10"
-                        }`}>
-                          {appLink.link_type === "url" ? "URL" : "Folder"}
                         </span>
                       </td>
                       <td className="px-4 py-2">
-                        <span className="opacity-70">{appLink.description || "—"}</span>
-                      </td>
-                      <td className="px-4 py-2">
                         {appLink.is_public ? (
-                          <span className="inline-flex items-center rounded-full bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 px-2 py-0.5 text-xs">
+                          <span className="inline-flex items-center rounded-full bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-2 py-0.5 text-xs">
                             Public
                           </span>
                         ) : (
-                          <span className="inline-flex items-center rounded-full bg-black/10 dark:bg-white/10 px-2 py-0.5 text-xs">
+                          <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs">
                             Private
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-right">
-                        <div className="flex items-center justify-end gap-3">
+                      <td className="px-4 py-2"></td>
+                      <td className="px-4 py-2"></td>
+                      <td className="px-4 py-2"></td>
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2">
                           {isAdmin && (
                             <EditAppLinkButton appLink={appLink} />
                           )}
@@ -339,12 +327,13 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                             href={linkUrl || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-medium hover:underline inline-flex items-center gap-1"
+                            className="inline-flex items-center gap-1 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-2.5 py-1 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors duration-150"
                           >
-                            View ↗
+                            View
                           </a>
                         </div>
                       </td>
+                      {isAdmin && <td className="px-4 py-2"></td>}
                     </tr>
                   );
                 })}

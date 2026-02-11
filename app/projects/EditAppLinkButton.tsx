@@ -109,7 +109,7 @@ export default function EditAppLinkButton({ appLink }: EditAppLinkButtonProps) {
 
       <button
         onClick={() => setIsOpen(true)}
-        className="font-medium hover:underline text-sm"
+        className="inline-flex items-center gap-1 rounded-md border border-neutral-200 dark:border-neutral-700 px-2.5 py-1 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-150"
       >
         Edit
       </button>

@@ -9,17 +9,6 @@ import {
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
-type ToggleOption = {
-  value: ThemeMode;
-  icon: string;
-  label: string;
-};
-
-const OPTIONS: ToggleOption[] = [
-  { value: "light", icon: "☀️", label: "Light mode" },
-  { value: "dark", icon: "🌙", label: "Dark mode" },
-];
-
 function getSystemPreference(): ThemeMode {
   if (typeof window === "undefined") return "light";
   const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;
@@ -56,42 +45,45 @@ export default function ThemeToggle() {
     applyThemeModeClass(initialMode);
   }, []);
 
-  const handleSelect = (newMode: ThemeMode) => {
-    if (newMode === mode) return;
+  const handleToggle = () => {
+    if (mode === null) return;
+    const newMode: ThemeMode = mode === "light" ? "dark" : "light";
     setMode(newMode);
     persistSelection(newMode);
     applyThemeModeClass(newMode);
   };
 
-  // Render a placeholder with consistent styling during SSR/initial render to avoid hydration mismatch
-  // Once mounted, mode will be set and buttons will render correctly
+  const isDark = mode === "dark";
+
   return (
-    <div className="flex items-center gap-1 rounded-full border border-stroke-muted bg-surface-subtle p-1">
-      {OPTIONS.map((option) => {
-        // Before hydration completes, render all buttons in inactive state
-        const isActive = mode !== null && mode === option.value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => handleSelect(option.value)}
-            className={[
-              "flex items-center justify-center rounded-full w-8 h-8 text-lg transition",
-              isActive
-                ? "bg-brand-primary border border-brand-primary"
-                : "hover:bg-surface-strong border border-transparent",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            aria-pressed={isActive}
-            aria-label={option.label}
-            title={option.label}
-          >
-            <span>{option.icon}</span>
-          </button>
-        );
-      })}
+    <button
+      type="button"
+      onClick={handleToggle}
+      className="relative inline-flex h-9 w-16 items-center rounded-full border border-stroke-muted transition-colors duration-300 ease-in-out hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
+      role="switch"
+      aria-checked={isDark}
+      aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
+      title={`Switch to ${isDark ? "light" : "dark"} mode`}
+    >
+      {/* Sliding background */}
+      <span
+        className={`absolute inset-0 rounded-full transition-colors duration-300 ease-in-out ${
+          isDark ? "bg-gray-700" : "bg-gray-200"
+        }`}
+      />
+      
+      {/* Sliding thumb with icon */}
+      <span
+        className={`relative z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md transition-all duration-300 ease-in-out transform ${
+          isDark ? "translate-x-8" : "translate-x-1"
+        }`}
+      >
+        <span className="text-base leading-none">
+          {isDark ? "🌙" : "☀️"}
+        </span>
+      </span>
+
       <span className="sr-only">Current theme: {mode ?? "loading"}</span>
-    </div>
+    </button>
   );
 }

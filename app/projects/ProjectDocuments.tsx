@@ -263,11 +263,11 @@ export default function ProjectDocuments({ projectId }: Props) {
                 <tr key={row.key} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
                   <td className="px-3 py-2">
                     {row.href ? (
-                      <a href={row.href} target="_blank" rel="noreferrer" className="underline hover:opacity-80">
+                      <a href={row.href} target="_blank" rel="noreferrer" className="font-medium text-blue-600 dark:text-blue-400 hover:underline">
                         {row.name}
                       </a>
                     ) : (
-                      row.name
+                      <span className="font-medium">{row.name}</span>
                     )}
                   </td>
                   <td className="px-3 py-2">{row.type}</td>

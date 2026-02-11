@@ -319,12 +319,9 @@ export default async function RootLayout({
 }>) {
   const user = await getCurrentUser();
   const cookieStore = cookies();
-  const themeOverride =
-    user?.isAdmin ? cookieStore.get(THEME_OVERRIDE_COOKIE)?.value ?? null : null;
-  // Non-admins are always light mode; admins can opt into dark via the override cookie.
-  const themeMode = user?.isAdmin
-    ? normalizeThemeCookie(themeOverride)
-    : DEFAULT_THEME_MODE;
+  const themeOverride = cookieStore.get(THEME_OVERRIDE_COOKIE)?.value ?? null;
+  // All users can now choose their theme preference via the override cookie.
+  const themeMode = normalizeThemeCookie(themeOverride);
   const fontClasses = `${inter.variable} ${interTight.variable} ${gooper.variable} ${gooperCondensed.variable} ${gooperSemiCondensed.variable} ${gooperText.variable} ${gtAmerica.variable} ${gtAmericaCompressed.variable} ${akkuratLight.variable} ${akkurat.variable} ${akkuratMono.variable} ${generalGrotesque.variable} ${generalGrotesqueMono.variable} ${notoEmoji.variable}`;
   const htmlClassName = `${themeMode === "dark" ? "dark" : ""} ${fontClasses}`.trim();
 

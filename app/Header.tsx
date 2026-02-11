@@ -43,7 +43,7 @@ export default async function Header() {
         {/* Right side actions */}
         <div className="flex items-center gap-4">
           {user?.isAdmin ? <BrowserWidthIndicator /> : null}
-          {user?.isAdmin ? <ThemeToggle /> : null}
+          <ThemeToggle />
           <div className="flex items-center gap-3">
             {user ? (
               <>

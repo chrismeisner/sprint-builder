@@ -304,7 +304,7 @@ export default function ProjectDemos({ projectId, projectName }: Props) {
                         href={demo.videoUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="font-medium hover:underline"
+                        className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         {demo.title}
                       </a>

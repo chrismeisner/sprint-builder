@@ -142,12 +142,12 @@ export default function ProjectTasks({ projectId }: Props) {
           No ideas yet.{" "}
           <button
             onClick={() => setShowNewIdeaModal(true)}
-            className="text-blue-600 hover:underline"
+            className="text-blue-600 dark:text-blue-400 hover:underline"
           >
             Create a new idea
           </button>{" "}
           or link existing ideas from the{" "}
-          <Link href="/dashboard/tasks" className="text-blue-600 hover:underline">
+          <Link href="/dashboard/tasks" className="text-blue-600 dark:text-blue-400 hover:underline">
             Ideas dashboard
           </Link>
           .
