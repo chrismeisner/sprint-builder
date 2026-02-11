@@ -11,11 +11,9 @@ import WireframeModeHydrator from "./WireframeModeHydrator";
 import { ToastProvider } from "@/lib/toast-context";
 import ToastContainer from "@/components/ui/ToastContainer";
 import {
-  DEFAULT_THEME_MODE,
   normalizeThemeCookie,
   THEME_OVERRIDE_COOKIE,
 } from "@/lib/theme-mode";
-import { getCurrentUser } from "@/lib/auth";
 
 // The root layout reads cookies (via NavShell -> getCurrentUser), so force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -317,7 +315,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await getCurrentUser();
   const cookieStore = cookies();
   const themeOverride = cookieStore.get(THEME_OVERRIDE_COOKIE)?.value ?? null;
   // All users can now choose their theme preference via the override cookie.
