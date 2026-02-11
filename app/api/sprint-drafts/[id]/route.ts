@@ -99,7 +99,7 @@ export async function GET(request: Request, { params }: Params) {
     console.log('[API DEBUG] start_date toString:', sprint.start_date ? String(sprint.start_date) : 'null');
 
     // Helper to format date properly
-    function formatDateISO(dateValue: unknown): string | null {
+    const formatDateISO = (dateValue: unknown): string | null => {
       if (!dateValue) return null;
       if (dateValue instanceof Date) {
         return dateValue.toISOString().slice(0, 10);
@@ -115,7 +115,7 @@ export async function GET(request: Request, { params }: Params) {
         return d.toISOString().slice(0, 10);
       }
       return null;
-    }
+    };
 
     if (sprint.account_id && sprint.account_id !== user.accountId && !user.isAdmin) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
