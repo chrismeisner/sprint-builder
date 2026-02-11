@@ -295,6 +295,32 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json({ success: true });
     }
 
+    // Week notes update (admin only) — lightweight update for week1/week2 overview
+    if (body.week_notes !== undefined) {
+      if (!user.isAdmin) {
+        return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+      }
+      const { weekKey, overview } = body.week_notes as { weekKey: string; overview: string };
+      if (!["week1", "week2"].includes(weekKey)) {
+        return NextResponse.json({ error: "Invalid weekKey" }, { status: 400 });
+      }
+      // Read current draft, merge, write back
+      const draftRes = await pool.query(`SELECT draft FROM sprint_drafts WHERE id = $1`, [params.id]);
+      const existingDraft =
+        draftRes.rows[0]?.draft && typeof draftRes.rows[0].draft === "object"
+          ? (draftRes.rows[0].draft as Record<string, unknown>)
+          : {};
+      const updatedDraft = {
+        ...existingDraft,
+        [weekKey]: { ...((existingDraft[weekKey] as Record<string, unknown>) ?? {}), overview: overview ?? "" },
+      };
+      await pool.query(
+        `UPDATE sprint_drafts SET draft = $1::jsonb, updated_at = now() WHERE id = $2`,
+        [JSON.stringify(updatedDraft), params.id]
+      );
+      return NextResponse.json({ success: true });
+    }
+
     // Full update requires title and projectId
     if (typeof title !== "string" || !title.trim()) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });

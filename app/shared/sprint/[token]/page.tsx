@@ -1,5 +1,6 @@
 import { ensureSchema, getPool } from "@/lib/db";
 import { hoursFromPoints, priceFromPoints } from "@/lib/pricing";
+import { getCurrentUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import SharedSprintView from "./SharedSprintView";
 
@@ -122,5 +123,16 @@ export default async function SharedSprintPage({ params }: Props) {
         : null,
   };
 
-  return <SharedSprintView sprint={sprintData} deliverables={deliverables} />;
+  // Check if current viewer is an admin (non-blocking — null means not logged in)
+  const user = await getCurrentUser().catch(() => null);
+  const isAdmin = !!user?.isAdmin;
+
+  return (
+    <SharedSprintView
+      sprint={sprintData}
+      deliverables={deliverables}
+      sprintId={isAdmin ? (sprint.id as string) : null}
+      isAdmin={isAdmin}
+    />
+  );
 }
