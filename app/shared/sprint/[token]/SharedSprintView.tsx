@@ -24,10 +24,7 @@ type SprintData = {
   totalHours: number;
   totalPrice: number;
   approach: string | null;
-  week1Overview: string | null;
-  week2Overview: string | null;
-  week1Notes: WeekNotes | null;
-  week2Notes: WeekNotes | null;
+  weekNotes: Record<string, WeekNotes>; // "week1" -> notes, "week2" -> notes, etc.
 };
 
 type DeliverableItem = {
@@ -88,35 +85,40 @@ export default function SharedSprintView({
   const metricLabelClass = `${getTypographyClassName("mono-sm")} text-text-secondary`;
   const metricValueClass = `${getTypographyClassName("h3")} text-text-primary`;
 
-  const isTwoWeekSprint = sprint.weeks === 2;
+  const showSprintOutline = sprint.weeks >= 1;
 
   /* ── Week-notes inline edit state ──────────────────────── */
-  const defaultWeekNotes = (wn: WeekNotes | null, fallback: string | null): WeekNotes => ({
-    kickoff: wn?.kickoff ?? fallback ?? "",
+  const defaultWeekNotes = (wn: WeekNotes | null): WeekNotes => ({
+    kickoff: wn?.kickoff ?? "",
     midweek: wn?.midweek ?? "",
     endOfWeek: wn?.endOfWeek ?? "",
   });
 
-  const [week1NotesState, setWeek1NotesState] = useState<WeekNotes>(
-    defaultWeekNotes(sprint.week1Notes, sprint.week1Overview)
-  );
-  const [week2NotesState, setWeek2NotesState] = useState<WeekNotes>(
-    defaultWeekNotes(sprint.week2Notes, sprint.week2Overview)
-  );
-  const [editingWeek, setEditingWeek] = useState<1 | 2 | null>(null);
+  // Dynamic week notes state for all N weeks
+  const [allWeekNotesState, setAllWeekNotesState] = useState<Record<string, WeekNotes>>(() => {
+    const initial: Record<string, WeekNotes> = {};
+    for (let i = 1; i <= sprint.weeks; i++) {
+      const key = `week${i}`;
+      initial[key] = defaultWeekNotes(sprint.weekNotes[key] || null);
+    }
+    return initial;
+  });
+
+  const [editingWeek, setEditingWeek] = useState<number | null>(null);
   const [editKickoff, setEditKickoff] = useState("");
   const [editMidweek, setEditMidweek] = useState("");
   const [editEndOfWeek, setEditEndOfWeek] = useState("");
   const [saving, setSaving] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
-  const openEditor = useCallback((week: 1 | 2) => {
-    const notes = week === 1 ? week1NotesState : week2NotesState;
+  const openEditor = useCallback((week: number) => {
+    const key = `week${week}`;
+    const notes = allWeekNotesState[key] || { kickoff: "", midweek: "", endOfWeek: "" };
     setEditingWeek(week);
     setEditKickoff(notes.kickoff ?? "");
     setEditMidweek(notes.midweek ?? "");
     setEditEndOfWeek(notes.endOfWeek ?? "");
-  }, [week1NotesState, week2NotesState]);
+  }, [allWeekNotesState]);
 
   const closeEditor = useCallback(() => {
     setEditingWeek(null);
@@ -164,12 +166,13 @@ export default function SharedSprintView({
     if (!sprintId || !editingWeek) return;
     setSaving(true);
     try {
+      const weekKey = `week${editingWeek}`;
       const res = await fetch(`/api/sprint-drafts/${sprintId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           week_notes: {
-            weekKey: editingWeek === 1 ? "week1" : "week2",
+            weekKey,
             kickoff: editKickoff,
             midweek: editMidweek,
             endOfWeek: editEndOfWeek,
@@ -182,8 +185,7 @@ export default function SharedSprintView({
           midweek: editMidweek,
           endOfWeek: editEndOfWeek,
         };
-        if (editingWeek === 1) setWeek1NotesState(updated);
-        else setWeek2NotesState(updated);
+        setAllWeekNotesState((prev) => ({ ...prev, [weekKey]: updated }));
         closeEditor();
       }
     } finally {
@@ -364,16 +366,20 @@ export default function SharedSprintView({
           </div>
         </div>
 
-        {/* Sprint Outline (only for 2-week sprints) */}
-        {isTwoWeekSprint && (
+        {/* Sprint Outline — dynamic for N weeks */}
+        {showSprintOutline && (
           <div className="space-y-4">
             <h2 className={h3Class}>Sprint Outline</h2>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              {SPRINT_WEEKS.map((week, idx) => {
-                const weekNum = (idx + 1) as 1 | 2;
-                const notes = weekNum === 1 ? week1NotesState : week2NotesState;
-                const hasAnyNotes = !!(notes.kickoff || notes.midweek || notes.endOfWeek);
+            <div className={`grid gap-4 ${sprint.weeks >= 2 ? "sm:grid-cols-2" : ""}`}>
+              {Array.from({ length: sprint.weeks }, (_, idx) => {
+                const weekNum = idx + 1;
+                const weekKey = `week${weekNum}`;
+                const notes = allWeekNotesState[weekKey] || { kickoff: "", midweek: "", endOfWeek: "" };
+                const weekHasNotes = !!(notes.kickoff || notes.midweek || notes.endOfWeek);
+
+                // Use SPRINT_WEEKS data for weeks 1-2 if available for richer context
+                const sprintWeekData = SPRINT_WEEKS[idx] || null;
 
                 const noteEntries: { label: string; icon: string; value: string | null }[] = [
                   { label: "Kickoff", icon: "🚀", value: notes.kickoff },
@@ -383,16 +389,18 @@ export default function SharedSprintView({
 
                 return (
                   <div
-                    key={week.id}
+                    key={weekKey}
                     className="rounded-md border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 overflow-hidden"
                   >
                     {/* Week header */}
                     <div className="px-6 py-4 border-b border-black/5 dark:border-white/5 bg-neutral-50 dark:bg-neutral-800">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-xl" aria-hidden="true">
-                            {week.icon}
-                          </span>
+                          {sprintWeekData && (
+                            <span className="text-xl" aria-hidden="true">
+                              {sprintWeekData.icon}
+                            </span>
+                          )}
                           <h3 className={cardTitleClass}>
                             Week {weekNum}
                           </h3>
@@ -407,12 +415,14 @@ export default function SharedSprintView({
                           </button>
                         )}
                       </div>
-                      <p className={`${labelClass} mt-1`}>{week.summary}</p>
+                      {sprintWeekData && (
+                        <p className={`${labelClass} mt-1`}>{sprintWeekData.summary}</p>
+                      )}
                     </div>
 
                     {/* Three-phase notes area */}
                     <div className="divide-y divide-black/5 dark:divide-white/5">
-                      {hasAnyNotes ? (
+                      {weekHasNotes ? (
                         noteEntries.map((entry) => (
                           <div key={entry.label} className="px-6 py-3">
                             <div className="flex items-center gap-1.5 mb-1">
@@ -458,11 +468,11 @@ export default function SharedSprintView({
                 <h2 className={cardTitleClass}>
                   Edit Week {editingWeek} Notes
                 </h2>
-                <p className={labelClass}>
-                  {editingWeek === 1
-                    ? SPRINT_WEEKS[0].summary
-                    : SPRINT_WEEKS[1].summary}
-                </p>
+                {editingWeek && SPRINT_WEEKS[editingWeek - 1] && (
+                  <p className={labelClass}>
+                    {SPRINT_WEEKS[editingWeek - 1].summary}
+                  </p>
+                )}
 
                 {/* Kickoff */}
                 <div className="space-y-1">

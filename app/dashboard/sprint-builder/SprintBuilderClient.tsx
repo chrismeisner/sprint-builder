@@ -109,8 +109,20 @@ export default function SprintBuilderClient({
   console.log('[RENDER DEBUG] startDate type:', typeof startDate);
   
   const [approach, setApproach] = useState("");
-  const [week1Overview, setWeek1Overview] = useState("");
-  const [week2Overview, setWeek2Overview] = useState("");
+
+  // Dynamic week notes: keyed by "week1", "week2", etc.
+  type WeekCheckpoints = { kickoff: string; midweek: string; endOfWeek: string };
+  const [weekNotes, setWeekNotes] = useState<Record<string, WeekCheckpoints>>({});
+
+  function updateWeekNote(weekKey: string, field: keyof WeekCheckpoints, value: string) {
+    setWeekNotes((prev) => ({
+      ...prev,
+      [weekKey]: {
+        ...(prev[weekKey] || { kickoff: "", midweek: "", endOfWeek: "" }),
+        [field]: value,
+      },
+    }));
+  }
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [savedShareToken, setSavedShareToken] = useState<string | null>(null);
@@ -150,7 +162,7 @@ export default function SprintBuilderClient({
   const canQuickCreate = isAuthenticated && Boolean(title.trim() && projectId);
   const primaryCtaLabel = isEditing ? "Update sprint" : "Create sprint";
   const primaryCtaBusy = isEditing ? "Updating..." : "Creating...";
-  const showSprintDetailsSection = false; // Hide optional sprint details UI for now
+  // showSprintDetailsSection removed — replaced by Sprint Outline section
 
   // Prefill from existing sprint
   useEffect(() => {
@@ -201,14 +213,21 @@ export default function SprintBuilderClient({
         if (sprint.draft && typeof sprint.draft === "object" && !Array.isArray(sprint.draft)) {
           const d = sprint.draft as Record<string, unknown>;
           if (typeof d.approach === "string") setApproach(d.approach);
-          if (d.week1 && typeof d.week1 === "object") {
-            const w1 = d.week1 as Record<string, unknown>;
-            if (typeof w1.overview === "string") setWeek1Overview(w1.overview);
+
+          // Load week notes dynamically (week1, week2, week3, ...)
+          const loadedNotes: Record<string, WeekCheckpoints> = {};
+          for (let i = 1; i <= 52; i++) {
+            const key = `week${i}`;
+            if (d[key] && typeof d[key] === "object") {
+              const w = d[key] as Record<string, unknown>;
+              loadedNotes[key] = {
+                kickoff: typeof w.kickoff === "string" ? w.kickoff : "",
+                midweek: typeof w.midweek === "string" ? w.midweek : "",
+                endOfWeek: typeof w.endOfWeek === "string" ? w.endOfWeek : "",
+              };
+            }
           }
-          if (d.week2 && typeof d.week2 === "object") {
-            const w2 = d.week2 as Record<string, unknown>;
-            if (typeof w2.overview === "string") setWeek2Overview(w2.overview);
-          }
+          setWeekNotes(loadedNotes);
         }
 
         // Map deliverables to builder state
@@ -378,13 +397,19 @@ export default function SprintBuilderClient({
       if (approach.trim()) {
         customContent.approach = approach.trim();
       }
-      
-      if (week1Overview.trim()) {
-        customContent.week1 = { overview: week1Overview.trim() };
-      }
-      
-      if (week2Overview.trim()) {
-        customContent.week2 = { overview: week2Overview.trim() };
+
+      // Include week notes for each week
+      const weeksToSave = Number.isFinite(weeks) && weeks > 0 ? Math.round(weeks) : 2;
+      for (let i = 1; i <= weeksToSave; i++) {
+        const key = `week${i}`;
+        const notes = weekNotes[key];
+        if (notes && (notes.kickoff.trim() || notes.midweek.trim() || notes.endOfWeek.trim())) {
+          customContent[key] = {
+            kickoff: notes.kickoff.trim(),
+            midweek: notes.midweek.trim(),
+            endOfWeek: notes.endOfWeek.trim(),
+          };
+        }
       }
       
       const body = {
@@ -479,8 +504,20 @@ export default function SprintBuilderClient({
         sprintTitle: title,
       };
       if (approach.trim()) customContent.approach = approach.trim();
-      if (week1Overview.trim()) customContent.week1 = { overview: week1Overview.trim() };
-      if (week2Overview.trim()) customContent.week2 = { overview: week2Overview.trim() };
+
+      // Include week notes for each week
+      const weeksToSaveDraft = Number.isFinite(weeks) && weeks > 0 ? Math.round(weeks) : 2;
+      for (let i = 1; i <= weeksToSaveDraft; i++) {
+        const key = `week${i}`;
+        const notes = weekNotes[key];
+        if (notes && (notes.kickoff.trim() || notes.midweek.trim() || notes.endOfWeek.trim())) {
+          customContent[key] = {
+            kickoff: notes.kickoff.trim(),
+            midweek: notes.midweek.trim(),
+            endOfWeek: notes.endOfWeek.trim(),
+          };
+        }
+      }
 
       const body = {
         title,
@@ -595,8 +632,13 @@ export default function SprintBuilderClient({
     lines.push(`Start Date,${escapeCsv(startDate)}`);
     lines.push(`End Date,${escapeCsv(endDate)}`);
     lines.push(`Approach,${escapeCsv(approach)}`);
-    lines.push(`Week 1 Overview,${escapeCsv(week1Overview)}`);
-    lines.push(`Week 2 Overview,${escapeCsv(week2Overview)}`);
+    for (let i = 1; i <= normalizedWeeks; i++) {
+      const key = `week${i}`;
+      const notes = weekNotes[key] || { kickoff: "", midweek: "", endOfWeek: "" };
+      lines.push(`Week ${i} Kickoff,${escapeCsv(notes.kickoff)}`);
+      lines.push(`Week ${i} Mid-Week,${escapeCsv(notes.midweek)}`);
+      lines.push(`Week ${i} End of Week,${escapeCsv(notes.endOfWeek)}`);
+    }
     lines.push(`Total Complexity,${Number(totalComplexity || 0).toFixed(2)}`);
     lines.push(`Total Hours,${Number(totalHours || 0).toFixed(2)}`);
     lines.push(`Total Price,${totalPrice}`);
@@ -633,103 +675,6 @@ export default function SprintBuilderClient({
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-  }
-
-  function parseCsvLine(line: string): string[] {
-    const result: string[] = [];
-    let current = "";
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      const nextChar = line[i + 1];
-      
-      if (char === '"' && inQuotes && nextChar === '"') {
-        current += '"';
-        i++;
-      } else if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        result.push(current);
-        current = "";
-      } else {
-        current += char;
-      }
-    }
-    result.push(current);
-    return result;
-  }
-
-  async function handleImportCsv(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const lines = text.split("\n").filter(line => line.trim());
-      
-      // Parse metadata section
-      const metadata: Record<string, string> = {};
-      let deliverableStartIndex = 0;
-      
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (line === "" || line.startsWith("Type,Name,Category")) {
-          deliverableStartIndex = i + 1;
-          break;
-        }
-        const [key, ...valueParts] = parseCsvLine(line);
-        metadata[key] = valueParts.join(",");
-      }
-      
-      // Set metadata fields
-      if (metadata.Title) setTitle(metadata.Title);
-      if (metadata.Weeks) setWeeks(Number(metadata.Weeks) || 2);
-      if (metadata["Start Date"]) setStartDate(metadata["Start Date"]);
-      if (metadata.Approach) setApproach(metadata.Approach);
-      if (metadata["Week 1 Overview"]) setWeek1Overview(metadata["Week 1 Overview"]);
-      if (metadata["Week 2 Overview"]) setWeek2Overview(metadata["Week 2 Overview"]);
-      
-      // Parse deliverables section
-      const importedDeliverables: { deliverableId: string; multiplier: number; note: string }[] = [];
-      
-      for (let i = deliverableStartIndex; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        
-        const parts = parseCsvLine(line);
-        if (parts[0] !== "Deliverable") continue;
-        
-        const name = parts[1];
-        const multiplier = parseFloat(parts[4]) || 1;
-        const note = parts[7] || "";
-        
-        // Find matching deliverable by name
-        const matchingDeliverable = deliverables.find(d => d.name === name);
-        if (matchingDeliverable) {
-          importedDeliverables.push({
-            deliverableId: matchingDeliverable.id,
-            multiplier,
-            note,
-          });
-        }
-      }
-      
-      setSelectedDeliverables(importedDeliverables);
-      setError(null);
-      
-      // Show success message
-      const matchedCount = importedDeliverables.length;
-      const totalCount = lines.length - deliverableStartIndex;
-      if (matchedCount < totalCount) {
-        setError(`Imported ${matchedCount} of ${totalCount} deliverables. Some deliverables could not be matched.`);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to import CSV");
-    }
-    
-    // Reset file input
-    e.target.value = "";
   }
 
   // Group deliverables by category
@@ -1244,55 +1189,103 @@ export default function SprintBuilderClient({
             </div>
           </div>
 
-          {/* Custom Content (hidden for now) */}
-          {showSprintDetailsSection && (
+          {/* Sprint Outline — dynamic per-week checkpoints */}
+          {weeks > 0 && (
             <section className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
-              <h2 className={sectionHeadingClass}>Sprint Details (Optional)</h2>
-              <p className={sectionHelperClass}>Add custom context and planning notes for this sprint</p>
-              
               <div>
-                <label className={`${labelClass} block mb-1`} htmlFor="approach">
-                  Sprint Approach
-                </label>
-                <textarea
-                  id="approach"
-                  value={approach}
-                  onChange={(e) => setApproach(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 min-h-[80px] bg-white dark:bg-neutral-900 text-black dark:text-white`}
-                  placeholder="Explain the overall approach and methodology for this sprint..."
-                />
+                <h2 className={sectionHeadingClass}>Sprint Outline</h2>
+                <p className={sectionHelperClass}>
+                  Define checkpoints for each week of the sprint
+                </p>
               </div>
-
-              <div>
-                <label className={`${labelClass} block mb-1`} htmlFor="week1">
-                  Week 1 Overview
-                </label>
-                <textarea
-                  id="week1"
-                  value={week1Overview}
-                  onChange={(e) => setWeek1Overview(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 min-h-[80px] bg-white dark:bg-neutral-900 text-black dark:text-white`}
-                  placeholder="Describe Week 1's focus, activities, and expected outcomes..."
-                />
-              </div>
-
-              <div>
-                <label className={`${labelClass} block mb-1`} htmlFor="week2">
-                  Week 2 Overview
-                </label>
-                <textarea
-                  id="week2"
-                  value={week2Overview}
-                  onChange={(e) => setWeek2Overview(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 min-h-[80px] bg-white dark:bg-neutral-900 text-black dark:text-white`}
-                  placeholder="Describe Week 2's focus, completion activities, and final deliverables..."
-                />
+              <div className={`grid gap-4 ${weeks >= 2 ? "sm:grid-cols-2" : ""}`}>
+                {Array.from({ length: weeks }, (_, i) => {
+                  const weekNum = i + 1;
+                  const weekKey = `week${weekNum}`;
+                  const notes = weekNotes[weekKey] || {
+                    kickoff: "",
+                    midweek: "",
+                    endOfWeek: "",
+                  };
+                  return (
+                    <div
+                      key={weekKey}
+                      className="rounded-md border border-black/10 dark:border-white/10 overflow-hidden"
+                    >
+                      <div className="px-4 py-3 border-b border-black/5 dark:border-white/5 bg-neutral-50 dark:bg-neutral-800">
+                        <h3 className={`${bodyClass} font-semibold`}>
+                          Week {weekNum}
+                        </h3>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div>
+                          <label
+                            className={`${labelClass} flex items-center gap-1.5 mb-1`}
+                            htmlFor={`${weekKey}-kickoff`}
+                          >
+                            <span aria-hidden="true">🚀</span> Kickoff
+                          </label>
+                          <textarea
+                            id={`${weekKey}-kickoff`}
+                            value={notes.kickoff}
+                            onChange={(e) =>
+                              updateWeekNote(weekKey, "kickoff", e.target.value)
+                            }
+                            rows={2}
+                            className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-neutral-900 text-black dark:text-white resize-y`}
+                            placeholder="Goals, alignment, key decisions…"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            className={`${labelClass} flex items-center gap-1.5 mb-1`}
+                            htmlFor={`${weekKey}-midweek`}
+                          >
+                            <span aria-hidden="true">🔄</span> Mid-Week
+                          </label>
+                          <textarea
+                            id={`${weekKey}-midweek`}
+                            value={notes.midweek}
+                            onChange={(e) =>
+                              updateWeekNote(weekKey, "midweek", e.target.value)
+                            }
+                            rows={2}
+                            className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-neutral-900 text-black dark:text-white resize-y`}
+                            placeholder="Check-in, review, progress…"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            className={`${labelClass} flex items-center gap-1.5 mb-1`}
+                            htmlFor={`${weekKey}-endofweek`}
+                          >
+                            <span aria-hidden="true">🏁</span> End of Week
+                          </label>
+                          <textarea
+                            id={`${weekKey}-endofweek`}
+                            value={notes.endOfWeek}
+                            onChange={(e) =>
+                              updateWeekNote(
+                                weekKey,
+                                "endOfWeek",
+                                e.target.value
+                              )
+                            }
+                            rows={2}
+                            className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-neutral-900 text-black dark:text-white resize-y`}
+                            placeholder="Deliverables, wrap-up, handoff…"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}
         </form>
 
-      {/* Import/Export */}
+      {/* Export */}
       <div className="mt-8 flex items-center gap-3">
         <button
           type="button"
@@ -1301,17 +1294,6 @@ export default function SprintBuilderClient({
         >
           Export CSV
         </button>
-        <label
-          className={`${bodySmClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-150 cursor-pointer`}
-        >
-          <input
-            type="file"
-            accept=".csv"
-            onChange={handleImportCsv}
-            className="hidden"
-          />
-          Load CSV
-        </label>
       </div>
 
       {editingDeliverableId && (

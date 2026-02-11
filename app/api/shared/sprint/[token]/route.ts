@@ -96,8 +96,27 @@ export async function GET(_request: Request, { params }: Params) {
     const totalHours = hoursFromPoints(totalPoints);
     const totalPrice = priceFromPoints(totalPoints);
 
-    // Parse draft content for approach / week overviews
+    // Parse draft content for approach / week notes
     const draft = sprint.draft && typeof sprint.draft === "object" ? sprint.draft as Record<string, unknown> : {};
+
+    // Build dynamic week notes for all N weeks
+    const weekCount = asNumber(sprint.weeks, 2);
+    const weekNotes: Record<string, { kickoff: string | null; midweek: string | null; endOfWeek: string | null }> = {};
+    for (let i = 1; i <= weekCount; i++) {
+      const key = `week${i}`;
+      const weekData = draft[key];
+      if (weekData && typeof weekData === "object") {
+        const w = weekData as Record<string, unknown>;
+        const kickoff = typeof w.kickoff === "string" ? w.kickoff : null;
+        const midweek = typeof w.midweek === "string" ? w.midweek : null;
+        const endOfWeek = typeof w.endOfWeek === "string" ? w.endOfWeek : null;
+        // Backward compat: use overview as kickoff fallback
+        const kickoffFinal = kickoff || (typeof w.overview === "string" ? w.overview : null);
+        weekNotes[key] = { kickoff: kickoffFinal, midweek, endOfWeek };
+      } else {
+        weekNotes[key] = { kickoff: null, midweek: null, endOfWeek: null };
+      }
+    }
 
     return NextResponse.json({
       sprint: {
@@ -105,7 +124,7 @@ export async function GET(_request: Request, { params }: Params) {
         status: sprint.status ?? "draft",
         startDate: sprint.start_date ?? null,
         dueDate: sprint.due_date ?? null,
-        weeks: asNumber(sprint.weeks, 2),
+        weeks: weekCount,
         projectName: sprint.project_name ?? null,
         packageName: sprint.package_name_snapshot ?? null,
         packageDescription: sprint.package_description_snapshot ?? null,
@@ -114,12 +133,7 @@ export async function GET(_request: Request, { params }: Params) {
         totalPrice,
         deliverableCount: deliverables.length,
         approach: typeof draft.approach === "string" ? draft.approach : null,
-        week1Overview: draft.week1 && typeof draft.week1 === "object" && typeof (draft.week1 as Record<string, unknown>).overview === "string"
-          ? (draft.week1 as Record<string, unknown>).overview as string
-          : null,
-        week2Overview: draft.week2 && typeof draft.week2 === "object" && typeof (draft.week2 as Record<string, unknown>).overview === "string"
-          ? (draft.week2 as Record<string, unknown>).overview as string
-          : null,
+        weekNotes,
         createdAt: sprint.created_at ?? null,
         updatedAt: sprint.updated_at ?? null,
       },

@@ -371,7 +371,7 @@ export async function PATCH(request: Request, { params }: Params) {
         endOfWeek?: string;
         overview?: string;
       };
-      if (!["week1", "week2"].includes(weekKey)) {
+      if (!/^week\d+$/.test(weekKey)) {
         return NextResponse.json({ error: "Invalid weekKey" }, { status: 400 });
       }
       // Read current draft, merge, write back
@@ -397,7 +397,8 @@ export async function PATCH(request: Request, { params }: Params) {
         `UPDATE sprint_drafts SET draft = $1::jsonb, updated_at = now() WHERE id = $2`,
         [JSON.stringify(updatedDraft), params.id]
       );
-      const weekLabel = weekKey === "week1" ? "Week 1" : "Week 2";
+      const weekNum = weekKey.replace("week", "");
+      const weekLabel = `Week ${weekNum}`;
       await logChangelog(pool, params.id, user.accountId, "week_notes", `Updated ${weekLabel} notes`, { weekKey, kickoff, midweek, endOfWeek });
       return NextResponse.json({ success: true });
     }

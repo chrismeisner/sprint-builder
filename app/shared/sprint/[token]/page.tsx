@@ -110,31 +110,36 @@ export default async function SharedSprintPage({ params }: Props) {
     return { kickoff, midweek, endOfWeek };
   }
 
+  // Build week notes for all N weeks dynamically
+  const weekCount = asNumber(sprint.weeks, 2);
+  const allWeekNotes: Record<string, { kickoff: string | null; midweek: string | null; endOfWeek: string | null }> = {};
+  for (let i = 1; i <= weekCount; i++) {
+    const key = `week${i}`;
+    const weekData = draft[key];
+    const notes = extractWeekNotes(weekData);
+    // For backward compat: use overview as kickoff fallback
+    if (!notes && weekData && typeof weekData === "object") {
+      const w = weekData as Record<string, unknown>;
+      if (typeof w.overview === "string" && w.overview) {
+        allWeekNotes[key] = { kickoff: w.overview, midweek: null, endOfWeek: null };
+        continue;
+      }
+    }
+    allWeekNotes[key] = notes || { kickoff: null, midweek: null, endOfWeek: null };
+  }
+
   const sprintData = {
     title: (sprint.title as string) ?? "Untitled Sprint",
     projectName: (sprint.project_name as string | null) ?? null,
     projectId: (sprint.project_id as string | null) ?? null,
     startDate: formatDateISO(sprint.start_date),
     dueDate: formatDateISO(sprint.due_date),
-    weeks: asNumber(sprint.weeks, 2),
+    weeks: weekCount,
     totalPoints,
     totalHours,
     totalPrice,
     approach: typeof draft.approach === "string" ? draft.approach : null,
-    week1Overview:
-      draft.week1 &&
-      typeof draft.week1 === "object" &&
-      typeof (draft.week1 as Record<string, unknown>).overview === "string"
-        ? ((draft.week1 as Record<string, unknown>).overview as string)
-        : null,
-    week2Overview:
-      draft.week2 &&
-      typeof draft.week2 === "object" &&
-      typeof (draft.week2 as Record<string, unknown>).overview === "string"
-        ? ((draft.week2 as Record<string, unknown>).overview as string)
-        : null,
-    week1Notes: extractWeekNotes(draft.week1),
-    week2Notes: extractWeekNotes(draft.week2),
+    weekNotes: allWeekNotes,
   };
 
   // Check if current viewer is an admin (non-blocking — null means not logged in)
