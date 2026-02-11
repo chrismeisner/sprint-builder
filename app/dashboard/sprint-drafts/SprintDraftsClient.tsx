@@ -25,7 +25,7 @@ type Props = {
   sprintDrafts: SprintDraft[];
 };
 
-type FilterStatus = "all" | "draft" | "negotiating" | "scheduled" | "in_progress" | "complete";
+type FilterStatus = "all" | "draft" | "scheduled" | "in_progress" | "complete";
 
 export default function SprintDraftsClient({ sprintDrafts }: Props) {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
@@ -56,7 +56,6 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
   const stats = {
     total: sprintDrafts.length,
     draft: sprintDrafts.filter((s) => s.status === "draft").length,
-    negotiating: sprintDrafts.filter((s) => s.status === "negotiating").length,
     scheduled: sprintDrafts.filter((s) => s.status === "scheduled").length,
     in_progress: sprintDrafts.filter((s) => s.status === "in_progress").length,
     complete: sprintDrafts.filter((s) => s.status === "complete").length,
@@ -65,7 +64,6 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
-      negotiating: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
       scheduled: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
       in_progress: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
       complete: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
@@ -77,7 +75,7 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
           <div className="text-2xl font-bold">{stats.total}</div>
           <div className="text-xs opacity-70">Total Sprints</div>
@@ -85,10 +83,6 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
         <div className="rounded-lg border border-gray-300 dark:border-gray-700 p-4">
           <div className="text-2xl font-bold">{stats.draft}</div>
           <div className="text-xs opacity-70">Draft</div>
-        </div>
-        <div className="rounded-lg border border-amber-300 dark:border-amber-700 p-4">
-          <div className="text-2xl font-bold">{stats.negotiating}</div>
-          <div className="text-xs opacity-70">Negotiating</div>
         </div>
         <div className="rounded-lg border border-blue-300 dark:border-blue-700 p-4">
           <div className="text-2xl font-bold">{stats.scheduled}</div>
@@ -125,7 +119,6 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
         >
           <option value="all">All Statuses</option>
           <option value="draft">Draft</option>
-          <option value="negotiating">Negotiating</option>
           <option value="scheduled">Scheduled</option>
           <option value="in_progress">In Progress</option>
           <option value="complete">Complete</option>

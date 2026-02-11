@@ -204,7 +204,7 @@ export async function ensureSchema(): Promise<void> {
   `);
 
   // Add constraint to validate status values
-  // Workflow: draft -> negotiating -> scheduled -> in_progress -> complete
+  // Workflow: draft -> scheduled -> in_progress -> complete
   await pool.query(`
     DO $$ 
     BEGIN
@@ -218,14 +218,14 @@ export async function ensureSchema(): Promise<void> {
       -- Add updated constraint with new statuses
       ALTER TABLE sprint_drafts 
       ADD CONSTRAINT sprint_drafts_status_check 
-      CHECK (status IN ('draft', 'negotiating', 'scheduled', 'in_progress', 'complete'));
+      CHECK (status IN ('draft', 'scheduled', 'in_progress', 'complete'));
     END $$;
   `);
   
   // Migrate old statuses to new statuses
   await pool.query(`
     UPDATE sprint_drafts SET status = 'complete' WHERE status = 'completed';
-    UPDATE sprint_drafts SET status = 'draft' WHERE status IN ('studio_review', 'pending_client', 'cancelled');
+    UPDATE sprint_drafts SET status = 'draft' WHERE status IN ('studio_review', 'pending_client', 'cancelled', 'negotiating');
   `);
   
   // Create minimal junction table for sprint → deliverables relationship
@@ -1023,6 +1023,34 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_admin_task_events_created ON admin_task_events(created_at);
   `);
   
+  // Sprint Comments: Allow project members to comment on shared sprint drafts
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sprint_comments (
+      id text PRIMARY KEY,
+      sprint_draft_id text NOT NULL REFERENCES sprint_drafts(id) ON DELETE CASCADE,
+      account_id text NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      body text NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_sprint_comments_sprint ON sprint_comments(sprint_draft_id);
+    CREATE INDEX IF NOT EXISTS idx_sprint_comments_created ON sprint_comments(created_at);
+  `);
+
+  // Sprint Draft Changelog: Audit trail for changes made to sprint drafts
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sprint_draft_changelog (
+      id text PRIMARY KEY,
+      sprint_draft_id text NOT NULL REFERENCES sprint_drafts(id) ON DELETE CASCADE,
+      account_id text REFERENCES accounts(id) ON DELETE SET NULL,
+      action text NOT NULL,
+      summary text NOT NULL,
+      details jsonb,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_sprint_draft_changelog_sprint ON sprint_draft_changelog(sprint_draft_id);
+    CREATE INDEX IF NOT EXISTS idx_sprint_draft_changelog_created ON sprint_draft_changelog(created_at DESC);
+  `);
+
   global._schemaInitialized = true;
 }
 

@@ -10,7 +10,6 @@ type Props = {
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Draft", color: "bg-gray-100 text-gray-800" },
-  { value: "negotiating", label: "Negotiating", color: "bg-amber-100 text-amber-800" },
   { value: "scheduled", label: "Scheduled", color: "bg-blue-100 text-blue-800" },
   { value: "in_progress", label: "In Progress", color: "bg-green-100 text-green-800" },
   { value: "complete", label: "Complete", color: "bg-purple-100 text-purple-800" },

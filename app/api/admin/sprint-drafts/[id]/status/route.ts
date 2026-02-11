@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { randomUUID } from "crypto";
 
 type Params = {
   params: { id: string };
 };
 
-const VALID_STATUSES = ["draft", "negotiating", "scheduled", "in_progress", "complete"];
+const VALID_STATUSES = ["draft", "scheduled", "in_progress", "complete"];
 
 /**
  * PATCH /api/admin/sprint-drafts/[id]/status
@@ -62,6 +63,17 @@ export async function PATCH(request: Request, { params }: Params) {
        RETURNING id, status, updated_at`,
       [status, params.id]
     );
+
+    // Log changelog entry
+    try {
+      await pool.query(
+        `INSERT INTO sprint_draft_changelog (id, sprint_draft_id, account_id, action, summary, details)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+        [randomUUID(), params.id, currentUser.accountId, "status", `Changed status from "${oldStatus}" to "${status}"`, JSON.stringify({ from: oldStatus, to: status })]
+      );
+    } catch (logErr) {
+      console.error("[Changelog write]", logErr);
+    }
 
     return NextResponse.json({
       success: true,

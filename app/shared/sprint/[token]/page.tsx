@@ -29,6 +29,7 @@ export default async function SharedSprintPage({ params }: Props) {
        sd.total_estimate_points, sd.total_fixed_hours, sd.total_fixed_price,
        sd.deliverable_count, sd.draft, sd.created_at, sd.updated_at,
        sd.package_name_snapshot, sd.package_description_snapshot,
+       sd.project_id,
        p.name as project_name
      FROM sprint_drafts sd
      LEFT JOIN projects p ON sd.project_id = p.id
@@ -99,9 +100,20 @@ export default async function SharedSprintPage({ params }: Props) {
     return d.toISOString().slice(0, 10);
   }
 
+  function extractWeekNotes(weekData: unknown): { kickoff: string | null; midweek: string | null; endOfWeek: string | null } | null {
+    if (!weekData || typeof weekData !== "object") return null;
+    const w = weekData as Record<string, unknown>;
+    const kickoff = typeof w.kickoff === "string" ? w.kickoff : null;
+    const midweek = typeof w.midweek === "string" ? w.midweek : null;
+    const endOfWeek = typeof w.endOfWeek === "string" ? w.endOfWeek : null;
+    if (!kickoff && !midweek && !endOfWeek) return null;
+    return { kickoff, midweek, endOfWeek };
+  }
+
   const sprintData = {
     title: (sprint.title as string) ?? "Untitled Sprint",
     projectName: (sprint.project_name as string | null) ?? null,
+    projectId: (sprint.project_id as string | null) ?? null,
     startDate: formatDateISO(sprint.start_date),
     dueDate: formatDateISO(sprint.due_date),
     weeks: asNumber(sprint.weeks, 2),
@@ -121,18 +133,53 @@ export default async function SharedSprintPage({ params }: Props) {
       typeof (draft.week2 as Record<string, unknown>).overview === "string"
         ? ((draft.week2 as Record<string, unknown>).overview as string)
         : null,
+    week1Notes: extractWeekNotes(draft.week1),
+    week2Notes: extractWeekNotes(draft.week2),
   };
 
   // Check if current viewer is an admin (non-blocking — null means not logged in)
   const user = await getCurrentUser().catch(() => null);
   const isAdmin = !!user?.isAdmin;
 
+  // Check if the current user is a project member (or admin/owner) — allows commenting
+  let canComment = false;
+  if (user) {
+    if (user.isAdmin) {
+      canComment = true;
+    } else if (sprint.project_id) {
+      // Check project membership
+      const memberRes = await pool.query(
+        `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
+        [sprint.project_id, user.email]
+      );
+      if ((memberRes.rowCount ?? 0) > 0) {
+        canComment = true;
+      } else {
+        // Check project ownership
+        const projRes = await pool.query(
+          `SELECT account_id FROM projects WHERE id = $1`,
+          [sprint.project_id]
+        );
+        if (projRes.rowCount && (projRes.rows[0] as { account_id: string | null }).account_id === user.accountId) {
+          canComment = true;
+        }
+      }
+    }
+  }
+
+  const currentUserEmail = canComment && user ? user.email : null;
+  const currentUserName = canComment && user
+    ? ([user.firstName, user.lastName].filter(Boolean).join(" ") || user.name || user.email)
+    : null;
+
   return (
     <SharedSprintView
       sprint={sprintData}
       deliverables={deliverables}
-      sprintId={isAdmin ? (sprint.id as string) : null}
+      sprintId={sprint.id as string}
       isAdmin={isAdmin}
+      currentUserEmail={currentUserEmail}
+      currentUserName={currentUserName}
     />
   );
 }

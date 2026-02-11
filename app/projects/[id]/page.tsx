@@ -6,6 +6,7 @@ import dynamicImport from "next/dynamic";
 import Typography from "@/components/ui/Typography";
 
 const DeleteSprintButton = dynamicImport(() => import("../DeleteSprintButton"), { ssr: false });
+const SprintShareLink = dynamicImport(() => import("../SprintShareLink"), { ssr: false });
 const ProjectDocuments = dynamicImport(() => import("../ProjectDocuments"), { ssr: false });
 const ProjectDemos = dynamicImport(() => import("../ProjectDemos"), { ssr: false });
 const ProjectTasks = dynamicImport(() => import("../ProjectTasks"), { ssr: false });
@@ -59,7 +60,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   }
 
   const sprintsResult = await pool.query(
-    `SELECT id, title, status, total_estimate_points, total_fixed_hours, total_fixed_price, deliverable_count, created_at
+    `SELECT id, title, status, total_estimate_points, total_fixed_hours, total_fixed_price, deliverable_count, created_at, share_token
      FROM sprint_drafts
      WHERE project_id = $1
      ORDER BY created_at DESC`,
@@ -75,6 +76,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     total_fixed_price: number | null;
     deliverable_count: number | null;
     created_at: string | Date;
+    share_token: string | null;
   }>;
 
   // Fetch app links for this project
@@ -213,6 +215,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   <th className="text-right px-4 py-2 font-semibold">Deliverables</th>
                   <th className="text-right px-4 py-2 font-semibold">Price</th>
                   <th className="text-right px-4 py-2 font-semibold">Created</th>
+                  <th className="text-left px-4 py-2 font-semibold">Links</th>
                   {isAdmin && <th className="text-right px-4 py-2 font-semibold">Actions</th>}
                 </tr>
               </thead>
@@ -237,6 +240,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                     </td>
                     <td className="px-4 py-2 text-right">
                       {new Date(s.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-2">
+                      <SprintShareLink sprintId={s.id} shareToken={s.share_token} status={s.status} />
                     </td>
                     {isAdmin && (
                       <td className="px-4 py-2 text-right">

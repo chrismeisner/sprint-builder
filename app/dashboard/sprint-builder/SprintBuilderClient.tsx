@@ -103,6 +103,11 @@ export default function SprintBuilderClient({
   const upcomingMondays = getUpcomingMondays(6);
   const [startDate, setStartDate] = useState(() => upcomingMondays[0] || toLocalISO(new Date()));
   const [weeks, setWeeks] = useState<number>(2);
+  
+  // Debug logging
+  console.log('[RENDER DEBUG] Current startDate state:', startDate);
+  console.log('[RENDER DEBUG] startDate type:', typeof startDate);
+  
   const [approach, setApproach] = useState("");
   const [week1Overview, setWeek1Overview] = useState("");
   const [week2Overview, setWeek2Overview] = useState("");
@@ -153,8 +158,11 @@ export default function SprintBuilderClient({
       try {
         setLoadingExisting(true);
         setError(null);
+        console.log('[CLIENT DEBUG] Fetching sprint:', existingId);
         const res = await fetch(`/api/sprint-drafts/${existingId}`);
         const data = await res.json().catch(() => ({}));
+        console.log('[CLIENT DEBUG] Full API response:', JSON.stringify(data, null, 2));
+        
         if (!res.ok) {
           throw new Error(data?.error || "Failed to load sprint");
         }
@@ -167,6 +175,11 @@ export default function SprintBuilderClient({
           draft?: unknown;
         };
 
+        console.log('[CLIENT DEBUG] Parsed sprint object:', sprint);
+        console.log('[CLIENT DEBUG] sprint.startDate value:', sprint.startDate);
+        console.log('[CLIENT DEBUG] sprint.startDate type:', typeof sprint.startDate);
+        console.log('[CLIENT DEBUG] Checking if startDate exists:', !!sprint.startDate);
+
         const delivs = Array.isArray(data.deliverables) ? data.deliverables : [];
         setIsEditing(true);
         setTitle((sprint.title ?? "").toString());
@@ -174,7 +187,11 @@ export default function SprintBuilderClient({
           setProjectId(sprint.projectId);
         }
         if (sprint.startDate) {
-          setStartDate(sprint.startDate);
+          console.log('[CLIENT DEBUG] Setting startDate to:', String(sprint.startDate));
+          setStartDate(String(sprint.startDate));
+          console.log('[CLIENT DEBUG] startDate state should now be:', String(sprint.startDate));
+        } else {
+          console.log('[CLIENT DEBUG] startDate is falsy, not setting');
         }
         if (Number.isFinite(Number(sprint.weeks))) {
           setWeeks(Number(sprint.weeks));
@@ -841,18 +858,13 @@ export default function SprintBuilderClient({
                 <label className={`${labelClass} block mb-1`} htmlFor="start-date">
                   Start Date
                 </label>
-                <select
+                <input
                   id="start-date"
+                  type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-neutral-900 text-black dark:text-white`}
-                >
-                  {upcomingMondays.map((d) => (
-                    <option key={d} value={d}>
-                      {formatFriendly(d) || d}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div>

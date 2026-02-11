@@ -33,6 +33,9 @@ type SprintDeliverable = {
 
 type WeekPlan = {
   overview?: string;
+  kickoff?: string;
+  midweek?: string;
+  endOfWeek?: string;
   goals?: string[];
   deliverables?: string[];
   milestones?: string[];
@@ -590,7 +593,6 @@ export default function SprintDetailContent(props: Props) {
 
   const budgetStatusOptions = [
     { value: "draft", label: "Draft", color: "text-text-muted", bgColor: "bg-gray-100 dark:bg-gray-800" },
-    { value: "negotiating", label: "Negotiating", color: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-50 dark:bg-amber-950" },
     { value: "agreed", label: "Agreed", color: "text-green-700 dark:text-green-300", bgColor: "bg-green-50 dark:bg-green-950" },
   ];
 
@@ -628,7 +630,6 @@ export default function SprintDetailContent(props: Props) {
   // Sprint status display options
   const sprintStatusOptions: Record<string, { label: string; bgColor: string; textColor: string }> = {
     draft: { label: "Draft", bgColor: "bg-gray-100 dark:bg-gray-800", textColor: "text-gray-700 dark:text-gray-300" },
-    negotiating: { label: "Negotiating", bgColor: "bg-amber-100 dark:bg-amber-900", textColor: "text-amber-800 dark:text-amber-200" },
     scheduled: { label: "Scheduled", bgColor: "bg-blue-100 dark:bg-blue-900", textColor: "text-blue-800 dark:text-blue-200" },
     in_progress: { label: "In Progress", bgColor: "bg-purple-100 dark:bg-purple-900", textColor: "text-purple-800 dark:text-purple-200" },
     complete: { label: "Complete", bgColor: "bg-green-100 dark:bg-green-900", textColor: "text-green-800 dark:text-green-200" },
@@ -1068,26 +1069,74 @@ export default function SprintDetailContent(props: Props) {
         {/* ============================================ */}
         {/* EVERYONE SEES: Approach & Weekly Overview */}
         {/* ============================================ */}
-        {(plan.approach || plan.week1?.overview || plan.week2?.overview) && (
+        {(plan.approach || plan.week1?.overview || plan.week2?.overview || plan.week1?.kickoff || plan.week2?.kickoff) && (
           <div className={`rounded-lg border border-black/10 dark:border-white/15 p-4 ${t.bodySm}`}>
             <h2 className={`${t.cardHeading} mb-3`}>Approach & Weekly Overview</h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {plan.approach && (
                 <div>
                   <div className={`${getTypographyClassName("subtitle-sm")} text-text-primary mb-1`}>Approach</div>
                   <p className={t.bodySm}>{plan.approach}</p>
                 </div>
               )}
-              {plan.week1?.overview && (
-                <div>
-                  <div className={`${getTypographyClassName("subtitle-sm")} text-text-primary mb-1`}>Week 1 Overview</div>
-                  <p className={t.bodySm}>{plan.week1.overview}</p>
+              {/* Week 1 */}
+              {(plan.week1?.kickoff || plan.week1?.midweek || plan.week1?.endOfWeek || plan.week1?.overview) && (
+                <div className="space-y-2">
+                  <div className={`${getTypographyClassName("subtitle-sm")} text-text-primary`}>Week 1</div>
+                  {(plan.week1?.kickoff || plan.week1?.midweek || plan.week1?.endOfWeek) ? (
+                    <div className="space-y-1.5 pl-2 border-l-2 border-black/10 dark:border-white/10">
+                      {plan.week1?.kickoff && (
+                        <div>
+                          <span className={`${t.monoLabel}`}>🚀 kickoff:</span>{" "}
+                          <span className={t.bodySm}>{plan.week1.kickoff}</span>
+                        </div>
+                      )}
+                      {plan.week1?.midweek && (
+                        <div>
+                          <span className={`${t.monoLabel}`}>🔄 mid-week:</span>{" "}
+                          <span className={t.bodySm}>{plan.week1.midweek}</span>
+                        </div>
+                      )}
+                      {plan.week1?.endOfWeek && (
+                        <div>
+                          <span className={`${t.monoLabel}`}>🏁 end of week:</span>{" "}
+                          <span className={t.bodySm}>{plan.week1.endOfWeek}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : plan.week1?.overview ? (
+                    <p className={t.bodySm}>{plan.week1.overview}</p>
+                  ) : null}
                 </div>
               )}
-              {plan.week2?.overview && (
-                <div>
-                  <div className={`${getTypographyClassName("subtitle-sm")} text-text-primary mb-1`}>Week 2 Overview</div>
-                  <p className={t.bodySm}>{plan.week2.overview}</p>
+              {/* Week 2 */}
+              {(plan.week2?.kickoff || plan.week2?.midweek || plan.week2?.endOfWeek || plan.week2?.overview) && (
+                <div className="space-y-2">
+                  <div className={`${getTypographyClassName("subtitle-sm")} text-text-primary`}>Week 2</div>
+                  {(plan.week2?.kickoff || plan.week2?.midweek || plan.week2?.endOfWeek) ? (
+                    <div className="space-y-1.5 pl-2 border-l-2 border-black/10 dark:border-white/10">
+                      {plan.week2?.kickoff && (
+                        <div>
+                          <span className={`${t.monoLabel}`}>🚀 kickoff:</span>{" "}
+                          <span className={t.bodySm}>{plan.week2.kickoff}</span>
+                        </div>
+                      )}
+                      {plan.week2?.midweek && (
+                        <div>
+                          <span className={`${t.monoLabel}`}>🔄 mid-week:</span>{" "}
+                          <span className={t.bodySm}>{plan.week2.midweek}</span>
+                        </div>
+                      )}
+                      {plan.week2?.endOfWeek && (
+                        <div>
+                          <span className={`${t.monoLabel}`}>🏁 end of week:</span>{" "}
+                          <span className={t.bodySm}>{plan.week2.endOfWeek}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : plan.week2?.overview ? (
+                    <p className={t.bodySm}>{plan.week2.overview}</p>
+                  ) : null}
                 </div>
               )}
             </div>

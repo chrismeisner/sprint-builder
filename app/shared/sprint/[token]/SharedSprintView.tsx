@@ -1,12 +1,22 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { SPRINT_WEEKS } from "@/lib/sprintProcess";
+import SprintComments from "./SprintComments";
+import SprintChangelog from "./SprintChangelog";
+
+type WeekNotes = {
+  kickoff: string | null;
+  midweek: string | null;
+  endOfWeek: string | null;
+};
 
 type SprintData = {
   title: string;
   projectName: string | null;
+  projectId: string | null;
   startDate: string | null;
   dueDate: string | null;
   weeks: number;
@@ -16,6 +26,8 @@ type SprintData = {
   approach: string | null;
   week1Overview: string | null;
   week2Overview: string | null;
+  week1Notes: WeekNotes | null;
+  week2Notes: WeekNotes | null;
 };
 
 type DeliverableItem = {
@@ -36,6 +48,8 @@ type Props = {
   deliverables: DeliverableItem[];
   sprintId?: string | null;
   isAdmin?: boolean;
+  currentUserEmail?: string | null;
+  currentUserName?: string | null;
 };
 
 function formatFriendly(dateStr: string | null): string | null {
@@ -61,6 +75,8 @@ export default function SharedSprintView({
   deliverables,
   sprintId = null,
   isAdmin = false,
+  currentUserEmail = null,
+  currentUserName = null,
 }: Props) {
   const h2Class = `${getTypographyClassName("h2")} text-text-primary`;
   const h3Class = `${getTypographyClassName("h3")} text-text-primary`;
@@ -75,21 +91,38 @@ export default function SharedSprintView({
   const isTwoWeekSprint = sprint.weeks === 2;
 
   /* ── Week-notes inline edit state ──────────────────────── */
-  const [week1Notes, setWeek1Notes] = useState(sprint.week1Overview ?? "");
-  const [week2Notes, setWeek2Notes] = useState(sprint.week2Overview ?? "");
+  const defaultWeekNotes = (wn: WeekNotes | null, fallback: string | null): WeekNotes => ({
+    kickoff: wn?.kickoff ?? fallback ?? "",
+    midweek: wn?.midweek ?? "",
+    endOfWeek: wn?.endOfWeek ?? "",
+  });
+
+  const [week1NotesState, setWeek1NotesState] = useState<WeekNotes>(
+    defaultWeekNotes(sprint.week1Notes, sprint.week1Overview)
+  );
+  const [week2NotesState, setWeek2NotesState] = useState<WeekNotes>(
+    defaultWeekNotes(sprint.week2Notes, sprint.week2Overview)
+  );
   const [editingWeek, setEditingWeek] = useState<1 | 2 | null>(null);
-  const [editValue, setEditValue] = useState("");
+  const [editKickoff, setEditKickoff] = useState("");
+  const [editMidweek, setEditMidweek] = useState("");
+  const [editEndOfWeek, setEditEndOfWeek] = useState("");
   const [saving, setSaving] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   const openEditor = useCallback((week: 1 | 2) => {
+    const notes = week === 1 ? week1NotesState : week2NotesState;
     setEditingWeek(week);
-    setEditValue(week === 1 ? week1Notes : week2Notes);
-  }, [week1Notes, week2Notes]);
+    setEditKickoff(notes.kickoff ?? "");
+    setEditMidweek(notes.midweek ?? "");
+    setEditEndOfWeek(notes.endOfWeek ?? "");
+  }, [week1NotesState, week2NotesState]);
 
   const closeEditor = useCallback(() => {
     setEditingWeek(null);
-    setEditValue("");
+    setEditKickoff("");
+    setEditMidweek("");
+    setEditEndOfWeek("");
   }, []);
 
   // Sync dialog open/close with state
@@ -137,13 +170,20 @@ export default function SharedSprintView({
         body: JSON.stringify({
           week_notes: {
             weekKey: editingWeek === 1 ? "week1" : "week2",
-            overview: editValue,
+            kickoff: editKickoff,
+            midweek: editMidweek,
+            endOfWeek: editEndOfWeek,
           },
         }),
       });
       if (res.ok) {
-        if (editingWeek === 1) setWeek1Notes(editValue);
-        else setWeek2Notes(editValue);
+        const updated: WeekNotes = {
+          kickoff: editKickoff,
+          midweek: editMidweek,
+          endOfWeek: editEndOfWeek,
+        };
+        if (editingWeek === 1) setWeek1NotesState(updated);
+        else setWeek2NotesState(updated);
         closeEditor();
       }
     } finally {
@@ -166,11 +206,35 @@ export default function SharedSprintView({
       {/* Header */}
       <div className="bg-white dark:bg-neutral-900 border-b border-black/10 dark:border-white/10">
         <div className="container max-w-4xl py-10">
-          <div>
-            <p className={`${overlineClass} mb-1.5`}>Sprint Proposal</p>
-            <h1 className={h2Class}>{sprint.title}</h1>
-            {sprint.projectName && (
-              <p className={`${labelClass} mt-2`}>{sprint.projectName}</p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className={`${overlineClass} mb-1.5`}>Sprint Proposal</p>
+              <h1 className={h2Class}>{sprint.title}</h1>
+              {sprint.projectName && (
+                <div className="mt-2">
+                  {sprint.projectId ? (
+                    <Link 
+                      href={`/projects/${sprint.projectId}`}
+                      className={`${labelClass} hover:text-blue-600 dark:hover:text-blue-400 hover:underline`}
+                    >
+                      ← {sprint.projectName}
+                    </Link>
+                  ) : (
+                    <p className={labelClass}>{sprint.projectName}</p>
+                  )}
+                </div>
+              )}
+            </div>
+            {isAdmin && sprintId && (
+              <Link
+                href={`/dashboard/sprint-builder?sprintId=${sprintId}`}
+                className="shrink-0 inline-flex items-center gap-2 h-10 px-4 text-sm font-medium rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors duration-150"
+              >
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                </svg>
+                Edit in Builder
+              </Link>
             )}
           </div>
         </div>
@@ -201,17 +265,22 @@ export default function SharedSprintView({
         {(sprint.startDate || sprint.dueDate) && (
           <div className="rounded-md border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
             <h2 className={`${cardTitleClass} mb-2`}>Timeline</h2>
-            <div className="flex flex-wrap gap-6">
-              {sprint.startDate && (
-                <div>
-                  <div className={metricLabelClass}>Start</div>
-                  <div className={bodyClass}>{formatFriendly(sprint.startDate)}</div>
+            <div className={bodyClass}>
+              {sprint.startDate && sprint.dueDate ? (
+                <div className="flex items-center gap-3">
+                  <span>{formatFriendly(sprint.startDate)}</span>
+                  <span className="text-text-secondary">→</span>
+                  <span>{formatFriendly(sprint.dueDate)}</span>
                 </div>
-              )}
-              {sprint.dueDate && (
+              ) : sprint.startDate ? (
                 <div>
-                  <div className={metricLabelClass}>End</div>
-                  <div className={bodyClass}>{formatFriendly(sprint.dueDate)}</div>
+                  <span className={metricLabelClass}>Start: </span>
+                  <span>{formatFriendly(sprint.startDate)}</span>
+                </div>
+              ) : (
+                <div>
+                  <span className={metricLabelClass}>End: </span>
+                  <span>{formatFriendly(sprint.dueDate)}</span>
                 </div>
               )}
             </div>
@@ -303,7 +372,14 @@ export default function SharedSprintView({
             <div className="grid gap-4 sm:grid-cols-2">
               {SPRINT_WEEKS.map((week, idx) => {
                 const weekNum = (idx + 1) as 1 | 2;
-                const customNotes = weekNum === 1 ? week1Notes : week2Notes;
+                const notes = weekNum === 1 ? week1NotesState : week2NotesState;
+                const hasAnyNotes = !!(notes.kickoff || notes.midweek || notes.endOfWeek);
+
+                const noteEntries: { label: string; icon: string; value: string | null }[] = [
+                  { label: "Kickoff", icon: "🚀", value: notes.kickoff },
+                  { label: "Mid-Week", icon: "🔄", value: notes.midweek },
+                  { label: "End of Week", icon: "🏁", value: notes.endOfWeek },
+                ];
 
                 return (
                   <div
@@ -334,16 +410,32 @@ export default function SharedSprintView({
                       <p className={`${labelClass} mt-1`}>{week.summary}</p>
                     </div>
 
-                    {/* Custom notes area */}
-                    <div className="px-6 py-4">
-                      {customNotes ? (
-                        <p className={`${bodyClass} whitespace-pre-line`}>
-                          {customNotes}
-                        </p>
+                    {/* Three-phase notes area */}
+                    <div className="divide-y divide-black/5 dark:divide-white/5">
+                      {hasAnyNotes ? (
+                        noteEntries.map((entry) => (
+                          <div key={entry.label} className="px-6 py-3">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-sm" aria-hidden="true">{entry.icon}</span>
+                              <span className={overlineClass}>{entry.label}</span>
+                            </div>
+                            {entry.value ? (
+                              <p className={`${bodySmClass} whitespace-pre-line`}>
+                                {entry.value}
+                              </p>
+                            ) : (
+                              <p className={`${labelClass} italic text-xs`}>
+                                Not set
+                              </p>
+                            )}
+                          </div>
+                        ))
                       ) : (
-                        <p className={`${labelClass} italic`}>
-                          No notes yet for this week.
-                        </p>
+                        <div className="px-6 py-4">
+                          <p className={`${labelClass} italic`}>
+                            No notes yet for this week.
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -371,13 +463,49 @@ export default function SharedSprintView({
                     ? SPRINT_WEEKS[0].summary
                     : SPRINT_WEEKS[1].summary}
                 </p>
-                <textarea
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  rows={6}
-                  className="w-full rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-y"
-                  placeholder={`Describe the plan for Week ${editingWeek}…`}
-                />
+
+                {/* Kickoff */}
+                <div className="space-y-1">
+                  <label className={`${overlineClass} flex items-center gap-1.5`}>
+                    <span aria-hidden="true">🚀</span> Kickoff
+                  </label>
+                  <textarea
+                    value={editKickoff}
+                    onChange={(e) => setEditKickoff(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-y"
+                    placeholder="How does this week start? Goals, alignment, key decisions…"
+                  />
+                </div>
+
+                {/* Mid-Week */}
+                <div className="space-y-1">
+                  <label className={`${overlineClass} flex items-center gap-1.5`}>
+                    <span aria-hidden="true">🔄</span> Mid-Week
+                  </label>
+                  <textarea
+                    value={editMidweek}
+                    onChange={(e) => setEditMidweek(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-y"
+                    placeholder="What to expect midway — check-in, review, pivot point…"
+                  />
+                </div>
+
+                {/* End of Week */}
+                <div className="space-y-1">
+                  <label className={`${overlineClass} flex items-center gap-1.5`}>
+                    <span aria-hidden="true">🏁</span> End of Week
+                  </label>
+                  <textarea
+                    value={editEndOfWeek}
+                    onChange={(e) => setEditEndOfWeek(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-y"
+                    placeholder="How this week wraps up — deliverable, handoff, demo…"
+                  />
+                </div>
+
                 <div className="flex gap-3 justify-end">
                   <button
                     type="button"
@@ -398,6 +526,26 @@ export default function SharedSprintView({
               </div>
             )}
           </dialog>
+        )}
+
+        {/* Comments */}
+        {sprintId && (
+          <div className="space-y-4">
+            <h2 className={h3Class}>Discussion</h2>
+            <SprintComments
+              sprintId={sprintId}
+              currentUserEmail={currentUserEmail}
+              currentUserName={currentUserName}
+            />
+          </div>
+        )}
+
+        {/* Change Log (admin only) */}
+        {isAdmin && sprintId && (
+          <div className="space-y-4">
+            <h2 className={h3Class}>Change Log</h2>
+            <SprintChangelog sprintId={sprintId} />
+          </div>
         )}
 
         {/* Draft notice */}

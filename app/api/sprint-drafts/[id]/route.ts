@@ -45,6 +45,26 @@ async function recalcTotals(pool: ReturnType<typeof getPool>, sprintId: string) 
   };
 }
 
+async function logChangelog(
+  pool: ReturnType<typeof getPool>,
+  sprintId: string,
+  accountId: string | null,
+  action: string,
+  summary: string,
+  details?: Record<string, unknown>
+) {
+  try {
+    await pool.query(
+      `INSERT INTO sprint_draft_changelog (id, sprint_draft_id, account_id, action, summary, details)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+      [randomUUID(), sprintId, accountId, action, summary, details ? JSON.stringify(details) : null]
+    );
+  } catch (err) {
+    // Non-blocking — don't fail the main operation if changelog fails
+    console.error("[Changelog write]", err);
+  }
+}
+
 export async function GET(request: Request, { params }: Params) {
   try {
     await ensureSchema();
@@ -72,6 +92,30 @@ export async function GET(request: Request, { params }: Params) {
       draft: unknown;
       account_id: string | null;
     };
+
+    console.log('[API DEBUG] Raw DB row:', JSON.stringify(sprintRes.rows[0], null, 2));
+    console.log('[API DEBUG] start_date from DB:', sprint.start_date);
+    console.log('[API DEBUG] start_date type:', typeof sprint.start_date);
+    console.log('[API DEBUG] start_date toString:', sprint.start_date ? String(sprint.start_date) : 'null');
+
+    // Helper to format date properly
+    function formatDateISO(dateValue: unknown): string | null {
+      if (!dateValue) return null;
+      if (dateValue instanceof Date) {
+        return dateValue.toISOString().slice(0, 10);
+      }
+      const dateStr = String(dateValue);
+      // If already in YYYY-MM-DD format, return as-is
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr;
+      }
+      // Try to parse and convert
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString().slice(0, 10);
+      }
+      return null;
+    }
 
     if (sprint.account_id && sprint.account_id !== user.accountId && !user.isAdmin) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -113,18 +157,24 @@ export async function GET(request: Request, { params }: Params) {
       };
     });
 
-    return NextResponse.json({
+    const responseData = {
       sprint: {
         id: sprint.id,
         title: sprint.title,
         projectId: sprint.project_id,
-        startDate: sprint.start_date,
+        startDate: formatDateISO(sprint.start_date),
         weeks: sprint.weeks,
-        dueDate: sprint.due_date,
+        dueDate: formatDateISO(sprint.due_date),
         draft: sprint.draft,
       },
       deliverables,
-    });
+    };
+
+    console.log('[API DEBUG] Response startDate:', responseData.sprint.startDate);
+    console.log('[API DEBUG] Response dueDate:', responseData.sprint.dueDate);
+    console.log('[API DEBUG] Response JSON:', JSON.stringify(responseData.sprint, null, 2));
+
+    return NextResponse.json(responseData);
   } catch (err) {
     console.error("[SprintDraft GET]", err);
     return NextResponse.json({ error: "Failed to load sprint" }, { status: 500 });
@@ -183,6 +233,7 @@ export async function PATCH(request: Request, { params }: Params) {
         `UPDATE sprint_drafts SET contract_url = $1, updated_at = now() WHERE id = $2`,
         [contract_url || null, params.id]
       );
+      await logChangelog(pool, params.id, user.accountId, "contract_url", "Updated contract URL", { contract_url: contract_url || null });
       return NextResponse.json({ success: true });
     }
 
@@ -196,6 +247,7 @@ export async function PATCH(request: Request, { params }: Params) {
         `UPDATE sprint_drafts SET contract_status = $1, updated_at = now() WHERE id = $2`,
         [statusValue, params.id]
       );
+      await logChangelog(pool, params.id, user.accountId, "contract_status", `Changed contract status to "${statusValue}"`, { contract_status: statusValue });
       return NextResponse.json({ success: true });
     }
 
@@ -232,6 +284,10 @@ export async function PATCH(request: Request, { params }: Params) {
         `UPDATE sprint_drafts SET ${updates.join(", ")} WHERE id = $${paramIndex}`,
         values
       );
+      const signParts: string[] = [];
+      if (body.signed_by_studio !== undefined) signParts.push(`studio: ${body.signed_by_studio ? "signed" : "unsigned"}`);
+      if (body.signed_by_client !== undefined) signParts.push(`client: ${body.signed_by_client ? "signed" : "unsigned"}`);
+      await logChangelog(pool, params.id, user.accountId, "signature", `Updated signatures (${signParts.join(", ")})`, { signed_by_studio: body.signed_by_studio, signed_by_client: body.signed_by_client });
       return NextResponse.json({ success: true });
     }
 
@@ -244,6 +300,7 @@ export async function PATCH(request: Request, { params }: Params) {
         `UPDATE sprint_drafts SET invoice_url = $1, updated_at = now() WHERE id = $2`,
         [body.invoice_url || null, params.id]
       );
+      await logChangelog(pool, params.id, user.accountId, "invoice_url", "Updated invoice URL", { invoice_url: body.invoice_url || null });
       return NextResponse.json({ success: true });
     }
 
@@ -258,6 +315,7 @@ export async function PATCH(request: Request, { params }: Params) {
         `UPDATE sprint_drafts SET invoice_status = $1, updated_at = now() WHERE id = $2`,
         [invoiceStatusValue, params.id]
       );
+      await logChangelog(pool, params.id, user.accountId, "invoice_status", `Changed invoice status to "${invoiceStatusValue}"`, { invoice_status: invoiceStatusValue });
       return NextResponse.json({ success: true });
     }
 
@@ -266,12 +324,13 @@ export async function PATCH(request: Request, { params }: Params) {
       if (!user.isAdmin) {
         return NextResponse.json({ error: "Admin access required" }, { status: 403 });
       }
-      const validBudgetStatuses = ["draft", "negotiating", "agreed"];
+      const validBudgetStatuses = ["draft", "agreed"];
       const budgetStatusValue = validBudgetStatuses.includes(body.budget_status || "") ? body.budget_status : "draft";
       await pool.query(
         `UPDATE sprint_drafts SET budget_status = $1, updated_at = now() WHERE id = $2`,
         [budgetStatusValue, params.id]
       );
+      await logChangelog(pool, params.id, user.accountId, "budget_status", `Changed budget status to "${budgetStatusValue}"`, { budget_status: budgetStatusValue });
       return NextResponse.json({ success: true });
     }
 
@@ -292,15 +351,26 @@ export async function PATCH(request: Request, { params }: Params) {
         `UPDATE sprint_drafts SET title = $1, start_date = $2, due_date = $3, updated_at = now() WHERE id = $4`,
         [titleValue, startValue, dueValue, params.id]
       );
+      const changes: string[] = [];
+      if (titleValue) changes.push(`title: "${titleValue}"`);
+      if (startValue) changes.push(`start: ${startValue}`);
+      if (dueValue) changes.push(`due: ${dueValue}`);
+      await logChangelog(pool, params.id, user.accountId, "overview", `Updated overview (${changes.join(", ") || "cleared fields"})`, { title: titleValue, start_date: startValue, due_date: dueValue });
       return NextResponse.json({ success: true });
     }
 
-    // Week notes update (admin only) — lightweight update for week1/week2 overview
+    // Week notes update (admin only) — lightweight update for week1/week2 kickoff/midweek/endOfWeek
     if (body.week_notes !== undefined) {
       if (!user.isAdmin) {
         return NextResponse.json({ error: "Admin access required" }, { status: 403 });
       }
-      const { weekKey, overview } = body.week_notes as { weekKey: string; overview: string };
+      const { weekKey, kickoff, midweek, endOfWeek, overview } = body.week_notes as {
+        weekKey: string;
+        kickoff?: string;
+        midweek?: string;
+        endOfWeek?: string;
+        overview?: string;
+      };
       if (!["week1", "week2"].includes(weekKey)) {
         return NextResponse.json({ error: "Invalid weekKey" }, { status: 400 });
       }
@@ -310,14 +380,25 @@ export async function PATCH(request: Request, { params }: Params) {
         draftRes.rows[0]?.draft && typeof draftRes.rows[0].draft === "object"
           ? (draftRes.rows[0].draft as Record<string, unknown>)
           : {};
+      const existingWeek = (existingDraft[weekKey] as Record<string, unknown>) ?? {};
       const updatedDraft = {
         ...existingDraft,
-        [weekKey]: { ...((existingDraft[weekKey] as Record<string, unknown>) ?? {}), overview: overview ?? "" },
+        [weekKey]: {
+          ...existingWeek,
+          // Support new 3-field format
+          ...(kickoff !== undefined ? { kickoff: kickoff ?? "" } : {}),
+          ...(midweek !== undefined ? { midweek: midweek ?? "" } : {}),
+          ...(endOfWeek !== undefined ? { endOfWeek: endOfWeek ?? "" } : {}),
+          // Support legacy single-field format (backward compat)
+          ...(overview !== undefined ? { overview: overview ?? "" } : {}),
+        },
       };
       await pool.query(
         `UPDATE sprint_drafts SET draft = $1::jsonb, updated_at = now() WHERE id = $2`,
         [JSON.stringify(updatedDraft), params.id]
       );
+      const weekLabel = weekKey === "week1" ? "Week 1" : "Week 2";
+      await logChangelog(pool, params.id, user.accountId, "week_notes", `Updated ${weekLabel} notes`, { weekKey, kickoff, midweek, endOfWeek });
       return NextResponse.json({ success: true });
     }
 
@@ -410,6 +491,13 @@ export async function PATCH(request: Request, { params }: Params) {
     }
 
     const totals = await recalcTotals(pool, params.id);
+    await logChangelog(pool, params.id, user.accountId, "full_update", `Updated sprint via builder (${Array.isArray(deliverables) ? deliverables.length : 0} deliverables)`, {
+      title: title.trim(),
+      weeks: weeksValue,
+      startDate: startValue,
+      dueDate: dueValue,
+      deliverableCount: Array.isArray(deliverables) ? deliverables.length : 0,
+    });
     return NextResponse.json({ success: true, totals });
   } catch (err) {
     console.error("[SprintDraft PATCH]", err);
