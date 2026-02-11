@@ -8,7 +8,7 @@
   <meta name="description" content="Chris Meisner is a product and brand designer in Philadelphia, partnering with early-stage startups on focused brand and product sprints.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -17,7 +17,6 @@
         extend: {
           fontFamily: {
             sans: ['Inter', 'sans-serif'],
-            display: ['UnifrakturCook', 'cursive'],
           }
         }
       }
@@ -32,17 +31,43 @@
       document.documentElement.classList.toggle('dark', e.matches);
     });
   </script>
+  <style>
+    @font-face {
+      font-family: 'Noto Emoji';
+      src: url('./NotoEmoji-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    .emoji {
+      font-family: 'Noto Emoji', sans-serif;
+    }
+    
+    .cal-booked {
+      position: relative;
+    }
+    .cal-booked::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 120%;
+      height: 1.5px;
+      background-color: currentColor;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body class="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 antialiased">
   <div class="min-h-dvh flex flex-col lg:flex-row">
     
     <!-- Sidebar -->
     <aside class="hidden lg:flex lg:w-64 lg:fixed lg:h-dvh lg:border-r border-neutral-200 dark:border-neutral-700 p-8 lg:p-10 flex-col bg-white dark:bg-neutral-900">
-      <!-- Logo -->
+      <!-- Logo (scroll to top) -->
       <div class="mb-8">
-        <a href="/" class="block" aria-label="Home">
-          <div class="size-12 rounded-full border-2 border-neutral-300 dark:border-neutral-600 flex items-center justify-center">
-            <span class="sr-only">Chris Meisner</span>
+        <a href="#" id="scroll-top" class="block rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400" aria-label="Back to top">
+          <div class="size-12 rounded-full border-2 border-neutral-300 dark:border-neutral-600 flex items-center justify-center hover:border-neutral-500 dark:hover:border-neutral-400 transition-colors duration-150">
           </div>
         </a>
       </div>
@@ -50,20 +75,26 @@
       <!-- Navigation -->
       <nav class="mb-8">
         <ul class="space-y-3">
-          <li><a href="#about" class="text-neutral-900 dark:text-neutral-100 hover:text-neutral-500 dark:hover:text-neutral-400 transition-colors duration-150">About</a></li>
-          <li><a href="#fit" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Fit</a></li>
           <li><a href="#capabilities" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Capabilities</a></li>
-          <li><a href="#samples" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Samples</a></li>
           <li><a href="#services" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Services</a></li>
           <li><a href="#availability" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Availability</a></li>
           <li><a href="#projects" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Projects</a></li>
-          <li><a href="#contact" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Contact</a></li>
+          <li><a href="#contact" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">About</a></li>
         </ul>
       </nav>
 
-      <!-- Version Link (for dev reference) -->
-      <div class="mt-auto pt-8 border-t border-neutral-200 dark:border-neutral-700">
-        <a href="../index.html" class="text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">
+      <!-- Bottom section -->
+      <div class="mt-auto pt-8 border-t border-neutral-200 dark:border-neutral-700 space-y-4">
+        <!-- Dark/Light Mode Toggle -->
+        <button id="theme-toggle" type="button" class="flex items-center gap-2 text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400 rounded-md">
+          <svg id="theme-icon-light" class="size-4 hidden dark:block" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/></svg>
+          <svg id="theme-icon-dark" class="size-4 block dark:hidden" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/></svg>
+          <span id="theme-label" class="dark:hidden">Dark mode</span>
+          <span id="theme-label-dark" class="hidden dark:inline">Light mode</span>
+        </button>
+
+        <!-- Version Link (for dev reference) -->
+        <a href="../index.html" class="block text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">
           View Versions
         </a>
       </div>
@@ -74,83 +105,51 @@
       
       <!-- About Section -->
       <section id="about" class="p-8 lg:p-16 lg:py-24">
-        <div class="max-w-3xl mx-auto">
-          <div class="flex flex-col md:flex-row gap-8 lg:gap-12 items-start">
-            <!-- Profile Image -->
-            <div class="size-48 md:size-64 flex-shrink-0">
-              <img src="../../images/headshot.jpeg" alt="Chris Meisner" class="size-full object-cover rounded-md">
+        <div class="max-w-2xl mx-auto">
+          <div class="mb-12">
+            <h2 class="font-sans text-4xl font-semibold leading-tight mb-6 text-balance text-neutral-900 dark:text-neutral-100">Chris Meisner</h2>
+            <div class="mb-6">
+              <p class="text-lg font-normal leading-relaxed text-pretty text-neutral-900 dark:text-neutral-100 mb-4">
+                Senior product &amp; brand design for teams shipping complex products — fast, clearly, and at scale.
+              </p>
+              <p class="text-sm font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400">
+                I partner with early-stage founders and product-led startups — usually Series A or earlier — who are building something real but need senior design to get it out the door. Whether it's shaping a brand from scratch, designing the first product experience, or plugging into a team that's moving fast and needs someone who can keep up.
+              </p>
             </div>
-            
-            <!-- Bio -->
-            <div>
-              <h2 class="font-sans text-4xl font-semibold leading-tight mb-6 text-balance text-neutral-900 dark:text-neutral-100">Chris Meisner</h2>
-              <div class="prose prose-neutral max-w-none mb-6">
-                <p class="text-lg font-normal leading-snug text-pretty text-neutral-900 dark:text-neutral-100 mb-4">
-                  Senior product &amp; brand design for teams shipping complex products — fast, clearly, and at scale.
-                </p>
-                <p class="text-sm font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400">
-                  I partner with early-stage founders and product-led startups — usually Series A or earlier — who are building something real but need senior design to get it out the door. Whether it's shaping a brand from scratch, designing the first product experience, or plugging into a team that's moving fast and needs someone who can keep up.
-                </p>
+            <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center h-10 px-4 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
+              Book a discovery call
+            </a>
+          </div>
+
+          <!-- Carousel Container -->
+          <div id="samples" class="scroll-mt-16">
+            <button type="button" id="samples-carousel" class="relative mb-8 w-full block text-left rounded-md overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400 cursor-pointer bg-transparent border-0 p-0" aria-label="Advance to next sample">
+              <!-- Carousel Viewport (fade transition) -->
+              <div class="overflow-hidden rounded-md aspect-[3/2] bg-neutral-100 dark:bg-neutral-800">
+                <div id="carousel-track" class="relative w-full h-full">
+                  <!-- Slides are rendered by JS below -->
+                </div>
               </div>
-              <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium px-5 py-2.5 hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150">
-                Book a discovery call
-              </a>
-            </div>
+            </button>
+
+            <!-- Carousel Info -->
+            <p id="carousel-description" class="text-xs leading-relaxed text-neutral-500 dark:text-neutral-500 text-pretty">Full brand foundation for an early-stage fintech startup, including logo design, color palette, typography system, and comprehensive brand guidelines.</p>
           </div>
+
         </div>
       </section>
 
       <!-- Divider -->
-      <div class="px-8 lg:px-16"><div class="max-w-3xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
-
-      <!-- Fit Section -->
-      <section id="fit" class="p-8 lg:p-16 lg:py-24">
-        <div class="max-w-3xl mx-auto">
-          <h3 class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mb-4">Best fits</h3>
-          <div class="grid sm:grid-cols-2 gap-x-12 gap-y-2">
-            <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
-              <li class="flex items-start gap-2">
-                <span class="text-emerald-500 mt-0.5">+</span>
-                <span>Product-led startups (pre-seed to Series A)</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-emerald-500 mt-0.5">+</span>
-                <span>In-house teams that need a senior design partner</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-emerald-500 mt-0.5">+</span>
-                <span>Founders who want to ship — not just explore</span>
-              </li>
-            </ul>
-            <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
-              <li class="flex items-start gap-2">
-                <span class="text-emerald-500 mt-0.5">+</span>
-                <span>Agencies needing reliable senior capacity</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-emerald-500 mt-0.5">+</span>
-                <span>Teams between design hires or scaling fast</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-emerald-500 mt-0.5">+</span>
-                <span>Complex products that need clear, structured design</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <!-- Divider -->
-      <div class="px-8 lg:px-16"><div class="max-w-3xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
+      <div class="px-8 lg:px-16"><div class="max-w-2xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
 
       <!-- Capabilities Section -->
       <section id="capabilities" class="p-8 lg:p-16 lg:py-24">
-        <div class="max-w-3xl mx-auto">
+        <div class="max-w-2xl mx-auto">
           <div class="mb-8">
             <h2 class="font-sans text-2xl font-semibold leading-snug mb-2 text-balance text-neutral-900 dark:text-neutral-100">Capabilities</h2>
           </div>
 
-          <div class="grid sm:grid-cols-3 gap-x-12 gap-y-10">
+          <div class="grid sm:grid-cols-2 gap-x-12 gap-y-10">
             
             <!-- Brand -->
             <div>
@@ -161,6 +160,8 @@
                 <li>Color & Typography Systems</li>
                 <li>Visual Style Guide</li>
                 <li>Brand Toolkit Portal</li>
+                <li>Positioning Workshop</li>
+                <li>Competitor Analysis</li>
               </ul>
             </div>
 
@@ -173,15 +174,6 @@
                 <li>Wireframe Prototypes</li>
                 <li>Interactive Browser Prototypes</li>
                 <li>Production-Ready Screens</li>
-              </ul>
-            </div>
-
-            <!-- Strategy -->
-            <div>
-              <h3 class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mb-3">Strategy</h3>
-              <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
-                <li>Positioning Workshop</li>
-                <li>Competitor Analysis</li>
                 <li>Customer Persona</li>
                 <li>Product Strategy</li>
               </ul>
@@ -192,40 +184,11 @@
       </section>
 
       <!-- Divider -->
-      <div class="px-8 lg:px-16"><div class="max-w-3xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
-
-      <!-- Samples Section (Carousel) -->
-      <section id="samples" class="p-8 lg:p-16 lg:py-24">
-        <div class="max-w-3xl mx-auto">
-          <div class="mb-8">
-            <h2 class="font-sans text-2xl font-semibold leading-snug mb-2 text-balance text-neutral-900 dark:text-neutral-100">Samples</h2>
-          </div>
-
-          <!-- Carousel Container -->
-          <div id="samples-carousel" class="relative mb-8 cursor-pointer">
-            <!-- Carousel Viewport (fade transition) -->
-            <div class="overflow-hidden rounded-md aspect-[3/2] bg-neutral-100 dark:bg-neutral-800">
-              <div id="carousel-track" class="relative w-full h-full">
-                <!-- Slides are rendered by JS below -->
-              </div>
-            </div>
-          </div>
-
-          <!-- Carousel Info -->
-          <div class="space-y-3">
-            <h3 id="carousel-title" class="text-lg font-semibold leading-snug text-neutral-900 dark:text-neutral-100">Brand Identity System</h3>
-            <p id="carousel-description" class="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400 text-pretty">Full brand foundation for an early-stage fintech startup, including logo design, color palette, typography system, and comprehensive brand guidelines.</p>
-          </div>
-
-        </div>
-      </section>
-
-      <!-- Divider -->
-      <div class="px-8 lg:px-16"><div class="max-w-3xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
+      <div class="px-8 lg:px-16"><div class="max-w-2xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
 
       <!-- Services Section -->
       <section id="services" class="p-8 lg:p-16 lg:py-24">
-        <div class="max-w-3xl mx-auto">
+        <div class="max-w-2xl mx-auto">
           <div class="mb-12">
             <h2 class="font-sans text-2xl font-semibold leading-snug mb-4 text-balance text-neutral-900 dark:text-neutral-100">Services</h2>
             <p class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 text-pretty max-w-lg">A structured sprint I drive, or flexible capacity where I plug into your team. Either way — let's talk.</p>
@@ -235,7 +198,7 @@
           <div class="border border-neutral-200 dark:border-neutral-700 rounded-md p-6 lg:p-8">
             <div class="mb-6">
               <div class="mb-4">
-                <h3 class="text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100 text-balance">🧱 Foundation Sprint</h3>
+                <h3 class="text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100 text-balance"><span class="emoji">🪏</span> Foundation Sprint</h3>
                 <p class="text-neutral-500 dark:text-neutral-500 mt-1">Build your brand or product — scoped to what you need</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
@@ -312,7 +275,7 @@
               <p class="text-sm text-neutral-500 dark:text-neutral-500 text-pretty mb-4">
                 Deliverables are selected and scoped in the Sprint Builder. Budget is based on what you select and the number of weeks — you see a clear price before we begin.
               </p>
-              <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium px-5 py-2.5 hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150">
+              <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center h-10 px-4 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
                 Book a discovery call
               </a>
             </div>
@@ -321,11 +284,11 @@
           <div id="team-player" class="border border-neutral-200 dark:border-neutral-700 rounded-md p-6 lg:p-8">
             <div class="mb-6">
               <div class="mb-4">
-                <h3 class="text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100 text-balance">🏀 Team Player</h3>
+                <h3 class="text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100 text-balance"><span class="emoji">🏀</span> Team Player</h3>
                 <p class="text-neutral-500 dark:text-neutral-500 mt-1">Fast, flexible design help — on your terms</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">~20 hrs/week</span>
+                <span class="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">20 hrs/week</span>
                 <span class="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">$5,000/week</span>
                 <span class="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">Ongoing</span>
               </div>
@@ -344,7 +307,7 @@
                 <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
                   <li class="flex items-start gap-2">
                     <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
-                    <span>~20 hours of focused design per week</span>
+                    <span>20 hours of focused design per week</span>
                   </li>
                   <li class="flex items-start gap-2">
                     <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
@@ -384,7 +347,7 @@
             </div>
             
             <div class="mt-6 pt-6 border-t border-neutral-200 dark:border-neutral-700">
-              <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium px-5 py-2.5 hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150">
+              <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center h-10 px-4 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
                 Book a discovery call
               </a>
             </div>
@@ -395,11 +358,11 @@
       </section>
 
       <!-- Divider -->
-      <div class="px-8 lg:px-16"><div class="max-w-3xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
+      <div class="px-8 lg:px-16"><div class="max-w-2xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
 
       <!-- Availability Section -->
       <section id="availability" class="p-8 lg:p-16 lg:py-24">
-        <div class="max-w-3xl mx-auto">
+        <div class="max-w-2xl mx-auto">
           <div class="mb-8">
             <h2 class="font-sans text-2xl font-semibold leading-snug mb-2 text-balance text-neutral-900 dark:text-neutral-100">Availability</h2>
           </div>
@@ -444,7 +407,7 @@
               <div class="border-t border-neutral-200 dark:border-neutral-700 my-6"></div>
 
               <!-- Month 3 -->
-              <div class="pt-6 pb-6">
+              <div class="pt-6">
                 <h3 id="cal-month-3-label" class="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-4 text-center"></h3>
                 <div class="grid grid-cols-7 mb-2">
                   <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">S</div>
@@ -466,20 +429,28 @@
                 <span class="text-xs text-neutral-500 dark:text-neutral-500">Available</span>
               </div>
               <div class="flex items-center gap-2">
-                <span class="size-3 rounded-full bg-neutral-700 dark:bg-neutral-600"></span>
+                <span class="size-3 rounded-full border-2 border-emerald-500/50"></span>
+                <span class="text-xs text-neutral-500 dark:text-neutral-500">Limited</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="relative size-3 rounded-full text-neutral-400 dark:text-neutral-500 flex items-center justify-center text-xs font-medium cal-booked">×</span>
                 <span class="text-xs text-neutral-500 dark:text-neutral-500">Booked</span>
               </div>
             </div>
           </div>
+
+          <p class="text-sm text-neutral-600 dark:text-neutral-400 text-pretty mt-8">
+            Availability shifts quickly — if you see an opening that works, lock it in. <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="underline text-neutral-900 dark:text-neutral-100 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">Book a quick call</a> and let's see if it's a fit.
+          </p>
         </div>
       </section>
 
       <!-- Divider -->
-      <div class="px-8 lg:px-16"><div class="max-w-3xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
+      <div class="px-8 lg:px-16"><div class="max-w-2xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
 
       <!-- Projects Section -->
       <section id="projects" class="p-8 lg:p-16 lg:py-24">
-        <div class="max-w-3xl mx-auto">
+        <div class="max-w-2xl mx-auto">
           <div class="mb-8">
             <h2 class="font-sans text-2xl font-semibold leading-snug mb-2 text-balance text-neutral-900 dark:text-neutral-100">Projects</h2>
           </div>
@@ -488,10 +459,10 @@
             <table class="w-full text-sm">
               <thead>
                 <tr class="border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50">
-                  <th class="text-left font-medium text-neutral-500 dark:text-neutral-500 px-4 py-3">Project</th>
-                  <th class="text-left font-medium text-neutral-500 dark:text-neutral-500 px-4 py-3 hidden sm:table-cell">Type</th>
-                  <th class="text-left font-medium text-neutral-500 dark:text-neutral-500 px-4 py-3 hidden md:table-cell">Year</th>
-                  <th class="text-right font-medium text-neutral-500 dark:text-neutral-500 px-4 py-3">Status</th>
+                  <th scope="col" class="text-left font-medium text-neutral-500 dark:text-neutral-500 px-4 py-3">Project</th>
+                  <th scope="col" class="text-left font-medium text-neutral-500 dark:text-neutral-500 px-4 py-3 hidden sm:table-cell">Type</th>
+                  <th scope="col" class="text-left font-medium text-neutral-500 dark:text-neutral-500 px-4 py-3 hidden md:table-cell">Year</th>
+                  <th scope="col" class="text-right font-medium text-neutral-500 dark:text-neutral-500 px-4 py-3">Status</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
@@ -502,7 +473,7 @@
                   <td class="px-4 py-3.5 text-right">
                     <a href="https://stackwell.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-neutral-900 dark:text-neutral-100 hover:text-neutral-500 dark:hover:text-neutral-400 transition-colors duration-150">
                       Live
-                      <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+                      <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
                     </a>
                   </td>
                 </tr>
@@ -511,7 +482,7 @@
                   <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden sm:table-cell">Product</td>
                   <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden md:table-cell">2025</td>
                   <td class="px-4 py-3.5 text-right">
-                    <span class="inline-flex items-center rounded-full bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">Private Beta</span>
+                    <span class="inline-flex items-center rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">Private Beta</span>
                   </td>
                 </tr>
                 <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors duration-100">
@@ -521,7 +492,7 @@
                   <td class="px-4 py-3.5 text-right">
                     <a href="https://terracefinance.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-neutral-900 dark:text-neutral-100 hover:text-neutral-500 dark:hover:text-neutral-400 transition-colors duration-150">
                       Live
-                      <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+                      <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
                     </a>
                   </td>
                 </tr>
@@ -530,7 +501,7 @@
                   <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden sm:table-cell">Product</td>
                   <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden md:table-cell">2026</td>
                   <td class="px-4 py-3.5 text-right">
-                    <span class="inline-flex items-center rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-400">In Development</span>
+                    <span class="inline-flex items-center rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">In Development</span>
                   </td>
                 </tr>
                 <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors duration-100">
@@ -540,7 +511,7 @@
                   <td class="px-4 py-3.5 text-right">
                     <a href="https://nomadinsurance.co" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-neutral-900 dark:text-neutral-100 hover:text-neutral-500 dark:hover:text-neutral-400 transition-colors duration-150">
                       Live
-                      <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+                      <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
                     </a>
                   </td>
                 </tr>
@@ -549,7 +520,7 @@
                   <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden sm:table-cell">Brand</td>
                   <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden md:table-cell">2024</td>
                   <td class="px-4 py-3.5 text-right">
-                    <span class="inline-flex items-center rounded-full bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">Private Beta</span>
+                    <span class="inline-flex items-center rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">Private Beta</span>
                   </td>
                 </tr>
                 <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors duration-100">
@@ -559,7 +530,7 @@
                   <td class="px-4 py-3.5 text-right">
                     <a href="https://fieldwork.studio" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-neutral-900 dark:text-neutral-100 hover:text-neutral-500 dark:hover:text-neutral-400 transition-colors duration-150">
                       Live
-                      <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+                      <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
                     </a>
                   </td>
                 </tr>
@@ -568,7 +539,7 @@
                   <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden sm:table-cell">Product</td>
                   <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden md:table-cell">2026</td>
                   <td class="px-4 py-3.5 text-right">
-                    <span class="inline-flex items-center rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-400">In Development</span>
+                    <span class="inline-flex items-center rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">In Development</span>
                   </td>
                 </tr>
               </tbody>
@@ -578,23 +549,32 @@
       </section>
 
       <!-- Divider -->
-      <div class="px-8 lg:px-16"><div class="max-w-3xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
+      <div class="px-8 lg:px-16"><div class="max-w-2xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
 
       <!-- Contact Section -->
       <section id="contact" class="p-8 lg:p-16 lg:py-24">
-        <div class="max-w-3xl mx-auto">
-          <h2 class="font-sans text-2xl font-semibold leading-snug mb-6 text-balance text-neutral-900 dark:text-neutral-100">Get in Touch</h2>
-          <div class="space-y-6">
-            <p class="text-base font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400">
-              Whether you need a Foundation Sprint or a Team Player — let's talk about what you're building.
-            </p>
-            <a href="mailto:hello@chrismeisner.com" class="text-neutral-900 dark:text-neutral-100 underline hover:text-neutral-600 dark:hover:text-neutral-400 text-lg">hello@chrismeisner.com</a>
-            <div class="flex gap-4 pt-4">
-              <a href="https://dribbble.com" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">Dribbble</a>
-              <span class="text-neutral-300 dark:text-neutral-600">·</span>
-              <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">LinkedIn</a>
-              <span class="text-neutral-300 dark:text-neutral-600">·</span>
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">Twitter</a>
+        <div class="max-w-2xl mx-auto">
+          <h2 class="font-sans text-2xl font-semibold leading-snug mb-6 text-balance text-neutral-900 dark:text-neutral-100">About</h2>
+          
+          <div class="flex flex-col md:flex-row gap-8 lg:gap-12 items-start">
+            <!-- Profile Image -->
+            <div class="size-48 md:size-64 flex-shrink-0">
+              <img src="../../images/headshot.jpeg" alt="Chris Meisner" class="size-full object-cover rounded-md">
+            </div>
+            
+            <!-- Contact Info -->
+            <div class="space-y-6">
+              <p class="text-base font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400">
+                Whether you need a Foundation Sprint or a Team Player — let's talk about what you're building.
+              </p>
+              <a href="mailto:hello@chrismeisner.com" class="text-neutral-900 dark:text-neutral-100 underline hover:text-neutral-600 dark:hover:text-neutral-400 text-lg">hello@chrismeisner.com</a>
+              <div class="flex gap-4 pt-4">
+                <a href="https://dribbble.com" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">Dribbble</a>
+                <span class="text-neutral-300 dark:text-neutral-600">·</span>
+                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">LinkedIn</a>
+                <span class="text-neutral-300 dark:text-neutral-600">·</span>
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">Twitter</a>
+              </div>
             </div>
           </div>
         </div>
@@ -602,7 +582,7 @@
 
       <!-- Footer -->
       <footer class="p-8 lg:p-16 border-t border-neutral-200 dark:border-neutral-700">
-        <div class="max-w-3xl mx-auto">
+        <div class="max-w-2xl mx-auto">
           <p class="text-neutral-400 dark:text-neutral-500 text-sm">&copy; 2026 Chris Meisner. All rights reserved.</p>
         </div>
       </footer>
@@ -616,18 +596,29 @@
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function (e) {
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth' });
+        const href = this.getAttribute('href');
+        if (href === '#') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          const target = document.querySelector(href);
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth' });
+          }
         }
       });
     });
 
-    // ── Dark mode toggle (press 'd') ─────────────
+    // ── Dark mode toggle (press 'd' or click button) ──
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+    }
+
+    document.getElementById('theme-toggle').addEventListener('click', toggleDarkMode);
+
     document.addEventListener('keydown', function (e) {
       if (e.key === 'd' && !e.metaKey && !e.ctrlKey && !e.altKey && 
           !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-        document.documentElement.classList.toggle('dark');
+        toggleDarkMode();
       }
     });
 
@@ -636,26 +627,23 @@
       {
         image: '../../images/projects/01a.png',
         alt: 'Brand identity design sample',
-        title: 'Brand Identity System',
         description: 'Full brand foundation for an early-stage fintech startup, including logo design, color palette, typography system, and comprehensive brand guidelines.'
       },
       {
         image: '../../images/projects/01b.png',
         alt: 'Brand identity collateral',
-        title: 'Brand Collateral',
         description: 'Extended identity touchpoints and marketing materials including business cards, letterhead, social media templates, and presentation decks.'
       }
     ];
 
     const track = document.getElementById('carousel-track');
-    const titleEl = document.getElementById('carousel-title');
     const descEl = document.getElementById('carousel-description');
     let currentSlide = 0;
 
     // Build slides with fade transition
     slides.forEach((slide, i) => {
       const el = document.createElement('div');
-      el.className = 'absolute inset-0 transition-opacity duration-1000 ease-in-out ' + 
+      el.className = 'absolute inset-0 motion-safe:transition-opacity motion-safe:duration-500 motion-safe:ease-in-out motion-reduce:transition-none ' + 
         (i === 0 ? 'opacity-100' : 'opacity-0');
       el.innerHTML = `
         <img src="${slide.image}" alt="${slide.alt}" class="w-full h-full object-cover object-top">
@@ -663,7 +651,7 @@
       track.appendChild(el);
     });
 
-    const FADE_MS = 1000;
+    const FADE_MS = 500;
     let clickLocked = false;
 
     function goTo(index) {
@@ -673,8 +661,7 @@
       currentSlide = index;
       track.children[currentSlide].style.opacity = '1';
       
-      // Update title and description
-      titleEl.textContent = slides[currentSlide].title;
+      // Update description
       descEl.textContent = slides[currentSlide].description;
     }
 
@@ -693,61 +680,53 @@
     setInterval(advanceNext, 4000);
 
     // ── Availability Calendar ─────────────────────
-    (function () {
+    (async function () {
       const today = new Date();
+      
+      // Load availability from JSON
+      let weeklyAvailability = {};
+      try {
+        const response = await fetch('./availability.json');
+        const data = await response.json();
+        
+        // Convert week numbers to date-based lookup
+        data.weeks.forEach(item => {
+          const weekDates = getWeekDates(item.year, item.week);
+          weekDates.forEach(date => {
+            const key = date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+            weeklyAvailability[key] = item.status;
+          });
+        });
+      } catch (error) {
+        console.error('Error loading availability:', error);
+      }
 
-      // Dummy availability data (keyed by 'YYYY-MM-DD')
-      // Statuses: 'booked', 'available', null/blank
-      const availability = {
-        // February 2026
-        '2026-02-02': 'booked',
-        '2026-02-03': 'booked',
-        '2026-02-04': 'booked',
-        '2026-02-05': 'booked',
-        '2026-02-06': 'booked',
-        '2026-02-16': 'booked',
-        '2026-02-17': 'booked',
-        '2026-02-18': 'booked',
-        '2026-02-19': 'booked',
-        '2026-02-20': 'booked',
-        '2026-02-23': 'booked',
-        '2026-02-24': 'booked',
-        '2026-02-25': 'booked',
-        '2026-02-26': 'booked',
-        '2026-02-27': 'booked',
-        // March 2026
-        '2026-03-09': 'available',
-        '2026-03-10': 'available',
-        '2026-03-11': 'available',
-        '2026-03-12': 'available',
-        '2026-03-13': 'available',
-        '2026-03-23': 'available',
-        '2026-03-24': 'available',
-        '2026-03-25': 'available',
-        '2026-03-26': 'available',
-        '2026-03-27': 'available',
-        '2026-03-30': 'available',
-        '2026-03-31': 'available',
-        // April 2026
-        '2026-04-01': 'available',
-        '2026-04-02': 'available',
-        '2026-04-03': 'available',
-        '2026-04-06': 'available',
-        '2026-04-07': 'available',
-        '2026-04-08': 'available',
-        '2026-04-09': 'available',
-        '2026-04-10': 'available',
-        '2026-04-13': 'available',
-        '2026-04-14': 'available',
-        '2026-04-15': 'available',
-        '2026-04-16': 'available',
-        '2026-04-17': 'available',
-        '2026-04-20': 'available',
-        '2026-04-21': 'available',
-        '2026-04-22': 'available',
-        '2026-04-23': 'available',
-        '2026-04-24': 'available',
-      };
+      // Helper: Get all weekday dates (Mon-Fri) for a given ISO week
+      function getWeekDates(year, weekNum) {
+        const dates = [];
+        
+        // ISO 8601: Week 1 is the week with the year's first Thursday
+        // Find January 4th (always in week 1)
+        const jan4 = new Date(year, 0, 4);
+        
+        // Find the Monday of week 1
+        const dayOfWeek = jan4.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const daysFromMonday = (dayOfWeek === 0) ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days
+        const week1Monday = new Date(jan4);
+        week1Monday.setDate(jan4.getDate() + daysFromMonday);
+        
+        // Calculate the Monday of the target week
+        const targetMonday = new Date(week1Monday);
+        targetMonday.setDate(week1Monday.getDate() + (weekNum - 1) * 7);
+        
+        // Add Monday through Friday
+        for (let i = 0; i < 5; i++) {
+          const date = new Date(targetMonday);
+          date.setDate(targetMonday.getDate() + i);
+          dates.push(date);
+        }
+        return dates;
+      }
 
       const monthNames = [
         'January', 'February', 'March', 'April', 'May', 'June',
@@ -758,7 +737,8 @@
 
       function statusClasses(status) {
         if (status === 'available') return 'border-2 border-emerald-500 text-emerald-700 dark:text-emerald-400';
-        if (status === 'booked') return 'bg-neutral-700 dark:bg-neutral-600 text-white dark:text-neutral-100';
+        if (status === 'partial') return 'border-2 border-emerald-500/50 text-emerald-700 dark:text-emerald-400';
+        if (status === 'booked') return 'cal-booked text-neutral-400 dark:text-neutral-500';
         return '';
       }
 
@@ -790,15 +770,15 @@
           const key = currentYear + '-' + pad(month + 1) + '-' + pad(d);
           const dayOfWeek = new Date(currentYear, month, d).getDay();
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-          const status = availability[key] || null;
+          const status = weeklyAvailability[key] || null;
           const isToday = d === today.getDate() && month === today.getMonth() && currentYear === today.getFullYear();
 
           const cell = document.createElement('div');
-          cell.className = 'flex items-center justify-center py-1.5';
+          cell.className = 'flex items-center justify-center py-2';
 
           const inner = document.createElement('span');
           inner.textContent = d;
-          inner.className = 'size-7 flex items-center justify-center rounded-full text-xs transition-colors duration-150 ';
+          inner.className = 'size-11 flex items-center justify-center rounded-full text-xs transition-colors duration-150 ';
 
           if (isToday) {
             inner.className += 'ring-2 ring-neutral-900 dark:ring-neutral-100 ';
@@ -817,7 +797,7 @@
         }
       }
 
-      // Render current month + next 2 months
+      // Render current month + next 2 months (3 months total)
       renderMonth(0);
       renderMonth(1);
       renderMonth(2);

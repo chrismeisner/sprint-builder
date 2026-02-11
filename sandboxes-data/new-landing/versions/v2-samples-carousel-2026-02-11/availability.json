@@ -1,0 +1,19 @@
+{
+  "weeks": [
+    { "week": 4, "year": 2026, "status": "booked" },
+    { "week": 5, "year": 2026, "status": "booked" },
+    { "week": 6, "year": 2026, "status": "booked" },
+    { "week": 8, "year": 2026, "status": "booked" },
+    { "week": 9, "year": 2026, "status": "booked" },
+    { "week": 10, "year": 2026, "status": "booked" },
+    { "week": 11, "year": 2026, "status": "booked" },
+    { "week": 12, "year": 2026, "status": "partial" },
+    { "week": 13, "year": 2026, "status": "available" },
+    { "week": 14, "year": 2026, "status": "available" },
+    { "week": 15, "year": 2026, "status": "available" },
+    { "week": 16, "year": 2026, "status": "available" },
+    { "week": 17, "year": 2026, "status": "available" },
+    { "week": 18, "year": 2026, "status": "available" }
+  ]
+}
+
