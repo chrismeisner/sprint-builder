@@ -113,6 +113,9 @@ type SortableTaskItemProps = {
   onEditingNoteTextChange: (value: string) => void;
   onNewSubtaskNameChange: (value: string) => void;
   onCreateSubtask: (parentId: string) => void;
+  onUploadFile: (task: Task, file: File) => void;
+  onDeleteAttachment: (task: Task, attachmentId: string) => void;
+  uploadingTaskId: string | null;
 };
 
 function SortableTaskItem({
@@ -141,7 +144,11 @@ function SortableTaskItem({
   onEditingNoteTextChange,
   onNewSubtaskNameChange,
   onCreateSubtask,
+  onUploadFile,
+  onDeleteAttachment,
+  uploadingTaskId,
 }: SortableTaskItemProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     attributes,
     listeners,
@@ -162,20 +169,21 @@ function SortableTaskItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="border border-black/10 dark:border-white/15 rounded-lg overflow-hidden bg-white dark:bg-black"
+      className="border border-neutral-200 dark:border-neutral-700 rounded-md overflow-hidden bg-white dark:bg-neutral-900"
     >
       {/* Task Row */}
       <div
         className={`p-3 flex items-start gap-3 ${
-          task.completed ? "bg-black/5 dark:bg-white/5 opacity-60" : ""
+          task.completed ? "bg-neutral-50 dark:bg-neutral-800 opacity-60" : ""
         }`}
       >
         {/* Drag Handle */}
         <button
           {...attributes}
           {...listeners}
-          className="mt-0.5 cursor-grab active:cursor-grabbing opacity-30 hover:opacity-70 transition touch-none"
+          className="mt-0.5 cursor-grab active:cursor-grabbing text-neutral-300 dark:text-neutral-600 hover:text-neutral-500 dark:hover:text-neutral-400 transition-colors duration-150 touch-none"
           title="Drag to reorder"
+          aria-label="Drag to reorder"
         >
           ⋮⋮
         </button>
@@ -183,10 +191,10 @@ function SortableTaskItem({
         {/* Checkbox */}
         <button
           onClick={() => onToggleComplete(task)}
-          className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 transition ${
+          className={`mt-0.5 size-5 rounded border flex items-center justify-center flex-shrink-0 transition ${
             task.completed
               ? "bg-green-500 border-green-500 text-white"
-              : "border-black/30 dark:border-white/30 hover:border-green-500"
+              : "border-neutral-300 dark:border-neutral-600 hover:border-green-500"
           }`}
         >
           {task.completed && "✓"}
@@ -205,7 +213,7 @@ function SortableTaskItem({
                 if (e.key === "Escape") onCancelEditTask();
               }}
               autoFocus
-              className="w-full px-2 py-1 border border-blue-500 rounded bg-white dark:bg-black focus:outline-none"
+              className="w-full px-2 py-1 border border-blue-500 rounded bg-white dark:bg-neutral-900 focus:outline-none"
             />
           ) : (
             <div
@@ -227,20 +235,20 @@ function SortableTaskItem({
               }}
               autoFocus
               rows={2}
-              className="w-full mt-2 px-2 py-1 text-sm border border-blue-500 rounded bg-white dark:bg-black focus:outline-none resize-none"
+              className="w-full mt-2 px-2 py-1 text-sm border border-blue-500 rounded bg-white dark:bg-neutral-900 focus:outline-none resize-none"
               placeholder="Add a note..."
             />
           ) : task.note ? (
             <div
               onClick={() => onEditNote(task)}
-              className="mt-1 text-sm opacity-70 cursor-text"
+              className="mt-1 text-sm text-neutral-600 dark:text-neutral-400 cursor-text"
             >
               {task.note}
             </div>
           ) : (
             <button
               onClick={() => onEditNote(task)}
-              className="mt-1 text-xs opacity-40 hover:opacity-70 transition"
+              className="mt-1 text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150"
             >
               + Add note
             </button>
@@ -251,10 +259,55 @@ function SortableTaskItem({
             <div className="mt-2 inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400">
               🎯 {task.milestone_name}
               {task.milestone_target_date && (
-                <span className="opacity-70">
+                <span className="text-neutral-500 dark:text-neutral-500">
                   · {new Date(task.milestone_target_date).toLocaleDateString()}
                 </span>
               )}
+            </div>
+          )}
+
+          {/* Attachments */}
+          {task.attachments && task.attachments.length > 0 && (
+            <div className="mt-2 space-y-2">
+              {task.attachments.map((attachment) => (
+                <div key={attachment.id}>
+                  <div className="flex items-center gap-2 text-xs bg-neutral-50 dark:bg-neutral-800 px-2 py-1.5 rounded">
+                    <span className="flex-1 truncate">
+                      {attachment.contentType.startsWith("image/") ? "🖼️" : "📄"} {attachment.name}
+                    </span>
+                    <span className="text-neutral-400 dark:text-neutral-600 text-xs">
+                      {(attachment.size / 1024).toFixed(1)}KB
+                    </span>
+                    {attachment.downloadUrl && (
+                      <a
+                        href={attachment.downloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                        title="Download"
+                      >
+                        ⬇️
+                      </a>
+                    )}
+                    <button
+                      onClick={() => onDeleteAttachment(task, attachment.id)}
+                      className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                      title="Delete attachment"
+                      aria-label="Delete attachment"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  {/* Show image preview if it's an image */}
+                  {attachment.contentType.startsWith("image/") && attachment.downloadUrl && (
+                    <img
+                      src={attachment.downloadUrl}
+                      alt={attachment.name}
+                      className="mt-1 max-w-full rounded border border-neutral-200 dark:border-neutral-700 max-h-64 object-contain"
+                    />
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -262,13 +315,40 @@ function SortableTaskItem({
         {/* Actions */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingTaskId === task.id}
+            className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
+              uploadingTaskId === task.id
+                ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 cursor-wait"
+                : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:text-neutral-600 dark:hover:text-neutral-300"
+            }`}
+            title="Upload file/image"
+            aria-label="Upload file or image"
+          >
+            {uploadingTaskId === task.id ? "⏳" : "📎"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                onUploadFile(task, file);
+                e.target.value = "";
+              }
+            }}
+          />
+          <button
             onClick={() => onToggleNowFocus(task)}
             className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
               task.focus.includes("now")
                 ? "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
-                : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10 hover:text-black/70 dark:hover:text-white/70"
+                : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:text-neutral-600 dark:hover:text-neutral-300"
             }`}
             title={task.focus.includes("now") ? "Remove focus" : "Focus now"}
+            aria-label={task.focus.includes("now") ? "Remove focus" : "Focus now"}
           >
             🔥
             <span className="text-xs">{task.focus.includes("now") ? "Focus" : ""}</span>
@@ -278,9 +358,10 @@ function SortableTaskItem({
             className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
               task.focus.includes("today")
                 ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
-                : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10 hover:text-black/70 dark:hover:text-white/70"
+                : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:text-neutral-600 dark:hover:text-neutral-300"
             }`}
             title={task.focus.includes("today") ? "Remove from Today" : "Add to Today"}
+            aria-label={task.focus.includes("today") ? "Remove from Today" : "Add to Today"}
           >
             ☀️
             <span className="text-xs">{task.focus.includes("today") ? "Today" : ""}</span>
@@ -290,9 +371,10 @@ function SortableTaskItem({
             className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
               task.milestone_id
                 ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30"
-                : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10 hover:text-black/70 dark:hover:text-white/70"
+                : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:text-neutral-600 dark:hover:text-neutral-300"
             }`}
             title="Set milestone"
+            aria-label="Set milestone"
           >
             🎯
             <span className="text-xs">{task.milestone_id ? "Set" : ""}</span>
@@ -302,9 +384,10 @@ function SortableTaskItem({
             className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
               addingSubtaskTo === task.id
                 ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30"
-                : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10 hover:text-black/70 dark:hover:text-white/70"
+                : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:text-neutral-600 dark:hover:text-neutral-300"
             }`}
             title="Add subtask"
+            aria-label="Add subtask"
           >
             ➕
           </button>
@@ -312,8 +395,9 @@ function SortableTaskItem({
             onClick={() => {
               if (confirm("Delete this task?")) onDelete(task);
             }}
-            className="px-2 py-1 rounded-md text-sm font-medium transition bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500/30"
-            title="Delete"
+            className="px-2 py-1 rounded-md text-sm font-medium transition bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500/30"
+            title="Delete task"
+            aria-label="Delete task"
           >
             🗑️
           </button>
@@ -322,20 +406,20 @@ function SortableTaskItem({
 
       {/* Subtasks */}
       {(subtasks.length > 0 || addingSubtaskTo === task.id) && (
-        <div className="border-t border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
+        <div className="border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-800/50">
           {subtasks.map((sub) => (
             <div
               key={sub.id}
-              className={`pl-12 pr-3 py-2 flex items-center gap-3 border-b border-black/5 dark:border-white/5 last:border-b-0 ${
+              className={`pl-12 pr-3 py-2 flex items-center gap-3 border-b border-neutral-100 dark:border-neutral-800 last:border-b-0 ${
                 sub.completed ? "opacity-50" : ""
               }`}
             >
               <button
                 onClick={() => onToggleComplete(sub)}
-                className={`w-4 h-4 rounded border flex items-center justify-center text-xs transition ${
+                className={`size-4 rounded border flex items-center justify-center text-xs transition ${
                   sub.completed
                     ? "bg-green-500 border-green-500 text-white"
-                    : "border-black/30 dark:border-white/30 hover:border-green-500"
+                    : "border-neutral-300 dark:border-neutral-600 hover:border-green-500"
                 }`}
               >
                 {sub.completed && "✓"}
@@ -355,13 +439,13 @@ function SortableTaskItem({
                       onCancelEditTask();
                     }
                   }}
-                  className="flex-1 px-2 py-0.5 text-sm border border-blue-500 rounded bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-2 py-0.5 text-sm border border-blue-500 rounded bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   autoFocus
                 />
               ) : (
                 <span
                   onClick={() => onEditTaskName(sub)}
-                  className={`flex-1 text-sm cursor-text hover:bg-black/5 dark:hover:bg-white/5 px-1 rounded ${sub.completed ? "line-through" : ""}`}
+                  className={`flex-1 text-sm cursor-text hover:bg-neutral-100 dark:hover:bg-neutral-700 px-1 rounded ${sub.completed ? "line-through" : ""}`}
                   title="Click to edit"
                 >
                   {sub.name}
@@ -372,7 +456,7 @@ function SortableTaskItem({
                 className={`px-1.5 py-0.5 rounded text-xs transition ${
                   sub.focus.includes("today")
                     ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
-                    : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 border border-transparent hover:bg-black/10 dark:hover:bg-white/10"
+                    : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700"
                 }`}
                 title={sub.focus.includes("today") ? "Remove from Today" : "Add to Today"}
               >
@@ -395,7 +479,7 @@ function SortableTaskItem({
                 }}
                 placeholder="Subtask name..."
                 autoFocus
-                className="flex-1 px-2 py-1 text-sm border border-black/10 dark:border-white/15 rounded bg-white dark:bg-black focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="flex-1 px-2 py-1 text-sm border border-neutral-200 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
               <button
                 onClick={() => onCreateSubtask(task.id)}
@@ -450,6 +534,9 @@ export default function IdeaDetailClient({ ideaId }: Props) {
   const [ideaTitleValue, setIdeaTitleValue] = useState("");
   const [ideaSummaryValue, setIdeaSummaryValue] = useState("");
 
+  // File upload
+  const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null);
+
   // Refs
   const newTaskInputRef = useRef<HTMLInputElement>(null);
 
@@ -478,8 +565,28 @@ export default function IdeaDetailClient({ ideaId }: Props) {
         throw new Error("Idea not found");
       }
 
+      // Fetch attachments with signed URLs for each task
+      const tasksWithAttachments = await Promise.all(
+        tasksData.tasks.map(async (task: Task) => {
+          if (task.attachments && task.attachments.length > 0) {
+            try {
+              const attachmentsRes = await fetch(
+                `/api/admin/tasks/attachments?taskId=${task.id}`
+              );
+              if (attachmentsRes.ok) {
+                const { attachments } = await attachmentsRes.json();
+                return { ...task, attachments };
+              }
+            } catch (err) {
+              console.error("Failed to fetch attachments for task:", task.id, err);
+            }
+          }
+          return task;
+        })
+      );
+
       setIdea(foundIdea);
-      setTasks(tasksData.tasks);
+      setTasks(tasksWithAttachments);
       setMilestones(milestonesData.milestones);
       setProjects(projectsData.projects);
       setError(null);
@@ -882,6 +989,75 @@ export default function IdeaDetailClient({ ideaId }: Props) {
     }
   };
 
+  // File upload handler
+  const handleUploadFile = async (task: Task, file: File) => {
+    try {
+      setUploadingTaskId(task.id);
+      
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("taskId", task.id);
+
+      const res = await fetch("/api/admin/tasks/attachments", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to upload file");
+      }
+
+      const { attachment } = await res.json();
+
+      // Update task with new attachment
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id
+            ? { ...t, attachments: [...(t.attachments || []), attachment] }
+            : t
+        )
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to upload file");
+    } finally {
+      setUploadingTaskId(null);
+    }
+  };
+
+  // Delete attachment handler
+  const handleDeleteAttachment = async (task: Task, attachmentId: string) => {
+    if (!confirm("Delete this attachment?")) return;
+
+    try {
+      const res = await fetch(
+        `/api/admin/tasks/attachments?taskId=${task.id}&attachmentId=${attachmentId}`,
+        { method: "DELETE" }
+      );
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete attachment");
+      }
+
+      // Update task to remove attachment
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id
+            ? {
+                ...t,
+                attachments: (t.attachments || []).filter(
+                  (att) => att.id !== attachmentId
+                ),
+              }
+            : t
+        )
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete attachment");
+    }
+  };
+
   // Progress calculation
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.completed).length;
@@ -950,7 +1126,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
   if (loading) {
     return (
       <div className="p-6">
-        <p className="opacity-70">Loading...</p>
+        <p className="text-neutral-500 dark:text-neutral-500">Loading...</p>
       </div>
     );
   }
@@ -961,8 +1137,8 @@ export default function IdeaDetailClient({ ideaId }: Props) {
         <Link href="/dashboard/tasks" className="text-blue-600 hover:underline mb-4 inline-block">
           ← Back to Tasks
         </Link>
-        <div className="bg-red-600/10 border border-red-600/20 rounded-lg p-4 mt-4">
-          <p className="text-red-600 dark:text-red-400">{error || "Idea not found"}</p>
+        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md p-4 mt-4">
+          <p className="text-sm text-red-700 dark:text-red-400">{error || "Idea not found"}</p>
         </div>
       </div>
     );
@@ -973,9 +1149,9 @@ export default function IdeaDetailClient({ ideaId }: Props) {
       {/* Milestone Modal for Tasks */}
       {milestoneModalTask && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
-            <h3 className="text-lg font-semibold mb-4">Assign Milestone to Task</h3>
-            <p className="text-sm opacity-70 mb-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-md p-6 max-w-md w-full mx-4 shadow-xl dark:shadow-none dark:border dark:border-neutral-600">
+            <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-4">Assign Milestone to Task</h3>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
               Task: {milestoneModalTask.name}
             </p>
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -984,10 +1160,10 @@ export default function IdeaDetailClient({ ideaId }: Props) {
                 className={`w-full text-left p-3 rounded border ${
                   !milestoneModalTask.milestone_id
                     ? "border-blue-500 bg-blue-500/10"
-                    : "border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5"
+                    : "border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
                 } transition`}
               >
-                <span className="opacity-70">No milestone</span>
+                <span className="text-neutral-500 dark:text-neutral-500">No milestone</span>
               </button>
               {milestones.map((m) => (
                 <button
@@ -996,12 +1172,12 @@ export default function IdeaDetailClient({ ideaId }: Props) {
                   className={`w-full text-left p-3 rounded border ${
                     milestoneModalTask.milestone_id === m.id
                       ? "border-blue-500 bg-blue-500/10"
-                      : "border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5"
+                      : "border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
                   } transition`}
                 >
-                  <div className="font-medium">{m.name}</div>
+                  <div className="font-medium text-neutral-900 dark:text-neutral-100">{m.name}</div>
                   {m.target_date && (
-                    <div className="text-sm opacity-70">
+                    <div className="text-sm text-neutral-500 dark:text-neutral-500">
                       {new Date(m.target_date).toLocaleDateString()}
                     </div>
                   )}
@@ -1011,7 +1187,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
             <div className="mt-4 flex justify-end gap-2">
               <button
                 onClick={() => setMilestoneModalTask(null)}
-                className="px-4 py-2 border border-black/10 dark:border-white/15 rounded hover:bg-black/5 dark:hover:bg-white/10 transition"
+                className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 transition"
               >
                 Cancel
               </button>
@@ -1023,9 +1199,9 @@ export default function IdeaDetailClient({ ideaId }: Props) {
       {/* Milestone Modal for Idea */}
       {showIdeaMilestoneModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
-            <h3 className="text-lg font-semibold mb-4">Link Idea to Milestone</h3>
-            <p className="text-sm opacity-70 mb-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-md p-6 max-w-md w-full mx-4 shadow-xl dark:shadow-none dark:border dark:border-neutral-600">
+            <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-4">Link Idea to Milestone</h3>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
               Idea: {idea.title}
             </p>
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -1034,10 +1210,10 @@ export default function IdeaDetailClient({ ideaId }: Props) {
                 className={`w-full text-left p-3 rounded border ${
                   !idea.milestone_id
                     ? "border-purple-500 bg-purple-500/10"
-                    : "border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5"
+                    : "border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
                 } transition`}
               >
-                <span className="opacity-70">No milestone</span>
+                <span className="text-neutral-500 dark:text-neutral-500">No milestone</span>
               </button>
               {milestones.map((m) => (
                 <button
@@ -1046,12 +1222,12 @@ export default function IdeaDetailClient({ ideaId }: Props) {
                   className={`w-full text-left p-3 rounded border ${
                     idea.milestone_id === m.id
                       ? "border-purple-500 bg-purple-500/10"
-                      : "border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5"
+                      : "border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
                   } transition`}
                 >
-                  <div className="font-medium">{m.name}</div>
+                  <div className="font-medium text-neutral-900 dark:text-neutral-100">{m.name}</div>
                   {m.target_date && (
-                    <div className="text-sm opacity-70">
+                    <div className="text-sm text-neutral-500 dark:text-neutral-500">
                       {new Date(m.target_date).toLocaleDateString()}
                     </div>
                   )}
@@ -1061,7 +1237,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
             <div className="mt-4 flex justify-end gap-2">
               <button
                 onClick={() => setShowIdeaMilestoneModal(false)}
-                className="px-4 py-2 border border-black/10 dark:border-white/15 rounded hover:bg-black/5 dark:hover:bg-white/10 transition"
+                className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 transition"
               >
                 Cancel
               </button>
@@ -1073,9 +1249,9 @@ export default function IdeaDetailClient({ ideaId }: Props) {
       {/* Project Modal for Idea */}
       {showIdeaProjectModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
-            <h3 className="text-lg font-semibold mb-4">Link Idea to Project</h3>
-            <p className="text-sm opacity-70 mb-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-md p-6 max-w-md w-full mx-4 shadow-xl dark:shadow-none dark:border dark:border-neutral-600">
+            <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-4">Link Idea to Project</h3>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
               Idea: {idea.title}
             </p>
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -1084,13 +1260,13 @@ export default function IdeaDetailClient({ ideaId }: Props) {
                 className={`w-full text-left p-3 rounded border ${
                   !idea.project_id
                     ? "border-blue-500 bg-blue-500/10"
-                    : "border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5"
+                    : "border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
                 } transition`}
               >
-                <span className="opacity-70">No project</span>
+                <span className="text-neutral-500 dark:text-neutral-500">No project</span>
               </button>
               {projects.length === 0 ? (
-                <p className="text-sm opacity-50 py-4 text-center">No client projects found</p>
+                <p className="text-sm text-neutral-500 dark:text-neutral-500 py-4 text-center">No client projects found</p>
               ) : (
                 projects.map((p) => (
                   <button
@@ -1099,12 +1275,12 @@ export default function IdeaDetailClient({ ideaId }: Props) {
                     className={`w-full text-left p-3 rounded border ${
                       idea.project_id === p.id
                         ? "border-blue-500 bg-blue-500/10"
-                        : "border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5"
+                        : "border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
                     } transition`}
                   >
-                    <div className="font-medium">{p.name}</div>
+                    <div className="font-medium text-neutral-900 dark:text-neutral-100">{p.name}</div>
                     {p.account_name && (
-                      <div className="text-sm opacity-70">
+                      <div className="text-sm text-neutral-500 dark:text-neutral-500">
                         👤 {p.account_name}
                       </div>
                     )}
@@ -1115,7 +1291,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
             <div className="mt-4 flex justify-end gap-2">
               <button
                 onClick={() => setShowIdeaProjectModal(false)}
-                className="px-4 py-2 border border-black/10 dark:border-white/15 rounded hover:bg-black/5 dark:hover:bg-white/10 transition"
+                className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 transition"
               >
                 Cancel
               </button>
@@ -1142,7 +1318,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
               if (e.key === "Escape") setEditingIdeaTitle(false);
             }}
             autoFocus
-            className="w-full text-2xl font-bold mt-2 px-2 py-1 border border-blue-500 rounded bg-white dark:bg-black focus:outline-none"
+            className="w-full text-2xl font-semibold mt-2 px-2 py-1 border border-blue-500 rounded bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none"
           />
         ) : (
           <h1
@@ -1150,7 +1326,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
               setIdeaTitleValue(idea.title);
               setEditingIdeaTitle(true);
             }}
-            className="text-2xl font-bold mt-2 cursor-text hover:bg-black/5 dark:hover:bg-white/5 px-2 py-1 -mx-2 rounded transition"
+            className="text-2xl font-semibold leading-snug text-balance text-neutral-900 dark:text-neutral-100 mt-2 cursor-text hover:bg-neutral-100 dark:hover:bg-neutral-700 px-2 py-1 -mx-2 rounded transition-colors duration-150"
           >
             {idea.title}
           </h1>
@@ -1167,7 +1343,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
             }}
             autoFocus
             rows={2}
-            className="w-full opacity-70 mt-1 px-2 py-1 border border-blue-500 rounded bg-white dark:bg-black focus:outline-none resize-none"
+            className="w-full text-neutral-600 dark:text-neutral-400 mt-1 px-2 py-1 border border-blue-500 rounded bg-white dark:bg-neutral-900 focus:outline-none resize-none"
             placeholder="Add a summary..."
           />
         ) : (
@@ -1176,9 +1352,9 @@ export default function IdeaDetailClient({ ideaId }: Props) {
               setIdeaSummaryValue(idea.summary || "");
               setEditingIdeaSummary(true);
             }}
-            className="opacity-70 mt-1 cursor-text hover:bg-black/5 dark:hover:bg-white/5 px-2 py-1 -mx-2 rounded transition min-h-[2rem]"
+            className="text-neutral-600 dark:text-neutral-400 mt-1 cursor-text hover:bg-neutral-100 dark:hover:bg-neutral-700 px-2 py-1 -mx-2 rounded transition-colors duration-150 min-h-[2rem]"
           >
-            {idea.summary || <span className="opacity-50 italic">Click to add summary...</span>}
+            {idea.summary || <span className="text-neutral-400 dark:text-neutral-600 italic">Click to add summary...</span>}
           </p>
         )}
 
@@ -1190,7 +1366,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border transition ${
               idea.milestone_id
                 ? "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20"
-                : "border-black/10 dark:border-white/15 opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+                : "border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700"
             }`}
           >
             <span>🎯</span>
@@ -1198,7 +1374,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
               <span>
                 {idea.milestone_name}
                 {idea.milestone_target_date && (
-                  <span className="ml-2 opacity-70 text-sm">
+                  <span className="ml-2 text-neutral-500 dark:text-neutral-500 text-sm">
                     · {new Date(idea.milestone_target_date).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -1219,7 +1395,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border transition ${
               idea.project_id
                 ? "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20"
-                : "border-black/10 dark:border-white/15 opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+                : "border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700"
             }`}
           >
             <span>📁</span>
@@ -1233,7 +1409,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
 
         {/* Countdown Timer for Milestone */}
         {idea.milestone_id && idea.milestone_target_date && new Date(idea.milestone_target_date) > new Date() && (
-          <div className="mt-4 p-4 border border-purple-500/30 bg-purple-500/5 rounded-lg">
+          <div className="mt-4 p-4 border border-purple-500/30 bg-purple-500/5 rounded-md">
             <div className="flex items-center gap-3">
               <span className="text-2xl">⏱️</span>
               <div>
@@ -1243,7 +1419,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
                     completedText="Milestone reached!"
                   />
                 </div>
-                <p className="text-xs opacity-60 mt-0.5">
+                <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-0.5">
                   Until {idea.milestone_name}
                 </p>
               </div>
@@ -1254,7 +1430,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
 
       {/* Progress Bar */}
       <div className="flex items-center gap-4">
-        <div className="flex-1 h-3 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+        <div className="flex-1 h-3 bg-neutral-100 dark:bg-neutral-700 rounded-full overflow-hidden">
           <div
             className="h-full bg-green-500 transition-all"
             style={{ width: `${progress}%` }}
@@ -1274,7 +1450,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
             value={newTaskName}
             onChange={(e) => setNewTaskName(e.target.value)}
             placeholder="New task..."
-            className="flex-1 px-3 py-2 border border-black/10 dark:border-white/15 rounded-md bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={creatingTask}
           />
           <button
@@ -1311,10 +1487,10 @@ export default function IdeaDetailClient({ ideaId }: Props) {
       <div className="space-y-2">
         <h3 className="font-semibold flex items-center gap-2">
           Tasks
-          <span className="text-xs font-normal opacity-50">(drag to reorder)</span>
+          <span className="text-xs font-normal text-neutral-400 dark:text-neutral-600">(drag to reorder)</span>
         </h3>
         {topLevelTasks.length === 0 ? (
-          <p className="text-sm opacity-50 py-4">No tasks yet. Add one above!</p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-500 py-4">No tasks yet. Add one above!</p>
         ) : (
           <DndContext
             sensors={sensors}
@@ -1366,6 +1542,9 @@ export default function IdeaDetailClient({ ideaId }: Props) {
                     onEditingNoteTextChange={setEditingNoteText}
                     onNewSubtaskNameChange={setNewSubtaskName}
                     onCreateSubtask={createSubtask}
+                    onUploadFile={handleUploadFile}
+                    onDeleteAttachment={handleDeleteAttachment}
+                    uploadingTaskId={uploadingTaskId}
                   />
                 ))}
               </div>

@@ -97,7 +97,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Handle single idea update
-    const { id, title, summary, milestone_id, project_id } = body;
+    const { id, title, summary, milestone_id, project_id, status } = body;
     
     if (!id) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
@@ -122,6 +122,18 @@ export async function PATCH(request: NextRequest) {
     if (project_id !== undefined) {
       updates.push(`project_id = $${paramCount++}`);
       values.push(project_id || null);
+    }
+    if (status !== undefined) {
+      // Validate status
+      const validStatuses = ["active", "backburner", "archived"];
+      if (!validStatuses.includes(status)) {
+        return NextResponse.json(
+          { error: "Invalid status. Must be: active, backburner, or archived" },
+          { status: 400 }
+        );
+      }
+      updates.push(`status = $${paramCount++}`);
+      values.push(status);
     }
 
     if (updates.length === 0) {

@@ -970,6 +970,13 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS project_id text REFERENCES projects(id) ON DELETE SET NULL;
     CREATE INDEX IF NOT EXISTS idx_admin_ideas_project ON admin_ideas(project_id);
   `).catch(() => { /* Column may already exist */ });
+
+  // Add status to admin_ideas (active, backburner, archived)
+  await pool.query(`
+    ALTER TABLE admin_ideas
+    ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+    CREATE INDEX IF NOT EXISTS idx_admin_ideas_status ON admin_ideas(status);
+  `).catch(() => { /* Column may already exist */ });
   
   // Admin Tasks: Tasks under ideas, with subtask support
   await pool.query(`

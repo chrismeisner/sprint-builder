@@ -51,7 +51,7 @@
         <ul class="space-y-3">
           <li><a href="#about" class="text-gray-900 dark:text-gray-100 hover:text-gray-500 dark:hover:text-gray-400 transition-colors duration-150">About</a></li>
           <li><a href="#capabilities" class="text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-150">Capabilities</a></li>
-          <li><a href="#projects" class="text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-150">Projects</a></li>
+          <li><a href="#samples" class="text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-150">Samples</a></li>
           <li><a href="#services" class="text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-150">Services</a></li>
           <li><a href="#contact" class="text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-150">Contact</a></li>
         </ul>
@@ -154,54 +154,52 @@
       <!-- Divider -->
       <div class="px-8 lg:px-16"><div class="max-w-3xl mx-auto border-t border-gray-200 dark:border-gray-700"></div></div>
 
-      <!-- Projects Section -->
-      <section id="projects" class="p-8 lg:p-16 lg:py-24">
+      <!-- Samples Section (Carousel) -->
+      <section id="samples" class="p-8 lg:p-16 lg:py-24">
         <div class="max-w-3xl mx-auto">
           <div class="mb-8">
-            <h2 class="font-sans text-2xl lg:text-3xl font-medium mb-2 text-balance">Projects</h2>
+            <h2 class="font-sans text-2xl lg:text-3xl font-medium mb-2 text-balance">Samples</h2>
             <p class="text-gray-500 dark:text-gray-500 text-pretty">Selected work</p>
           </div>
 
-          <div class="grid gap-8">
-            
-            <!-- Project 1 -->
-            <div class="group">
-              <div class="project-slideshow aspect-[3/2] bg-gray-100 dark:bg-gray-800 rounded-md mb-4 overflow-hidden relative">
-                <img src="images/projects/01a.png" alt="Project 1" class="project-slide absolute inset-0 w-full h-full object-cover object-top opacity-100 transition-opacity duration-1000">
-                <img src="images/projects/01b.png" alt="Project 1" class="project-slide absolute inset-0 w-full h-full object-cover object-top opacity-0 transition-opacity duration-1000">
+          <!-- Carousel Container -->
+          <div id="samples-carousel" class="relative">
+            <!-- Carousel Viewport -->
+            <div class="overflow-hidden rounded-md">
+              <div id="carousel-track" class="flex transition-transform duration-300 ease-out">
+                <!-- Slides rendered by JS -->
               </div>
-              <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Project Name</h3>
-              <p class="text-gray-500 dark:text-gray-500 text-sm mb-2">Brand & Product Design</p>
-              <p class="text-gray-600 dark:text-gray-400 text-sm text-pretty">
-                Brief description of the project and the impact it had for the client.
-              </p>
             </div>
 
-            <!-- Project 2 -->
-            <div class="group">
-              <div class="project-slideshow aspect-[3/2] bg-gray-100 dark:bg-gray-800 rounded-md mb-4 overflow-hidden relative">
-                <img src="images/projects/02a.png" alt="Project 2" class="project-slide absolute inset-0 w-full h-full object-cover object-top opacity-100 transition-opacity duration-1000">
-              </div>
-              <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Project Name</h3>
-              <p class="text-gray-500 dark:text-gray-500 text-sm mb-2">Product Design</p>
-              <p class="text-gray-600 dark:text-gray-400 text-sm text-pretty">
-                Brief description of the project and the impact it had for the client.
-              </p>
+            <!-- Navigation Arrows -->
+            <button
+              id="carousel-prev"
+              type="button"
+              aria-label="Previous sample"
+              class="absolute left-3 top-1/2 -translate-y-1/2 size-10 flex items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow-md dark:shadow-none dark:border dark:border-gray-700 text-gray-900 dark:text-gray-100 opacity-0 transition-opacity duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <svg class="size-5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button
+              id="carousel-next"
+              type="button"
+              aria-label="Next sample"
+              class="absolute right-3 top-1/2 -translate-y-1/2 size-10 flex items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow-md dark:shadow-none dark:border dark:border-gray-700 text-gray-900 dark:text-gray-100 opacity-0 transition-opacity duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <svg class="size-5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </button>
+
+            <!-- Slide Label -->
+            <div id="carousel-label" class="mt-4">
+              <h3 id="carousel-title" class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1"></h3>
+              <p id="carousel-desc" class="text-gray-500 dark:text-gray-500 text-sm"></p>
             </div>
 
-            <!-- Project 3 -->
-            <div class="group">
-              <div class="project-slideshow aspect-[3/2] bg-gray-100 dark:bg-gray-800 rounded-md mb-4 overflow-hidden relative">
-                <img src="images/projects/03a.png" alt="Project 3" class="project-slide absolute inset-0 w-full h-full object-cover object-top opacity-100 transition-opacity duration-1000">
-              </div>
-              <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Project Name</h3>
-              <p class="text-gray-500 dark:text-gray-500 text-sm mb-2">Visual Identity</p>
-              <p class="text-gray-600 dark:text-gray-400 text-sm text-pretty">
-                Brief description of the project and the impact it had for the client.
-              </p>
+            <!-- Dot Indicators -->
+            <div id="carousel-dots" class="flex items-center justify-center gap-2 mt-4" role="tablist" aria-label="Sample slides">
             </div>
-
           </div>
+
         </div>
       </section>
 
@@ -484,29 +482,109 @@
       }
     });
 
-    // Project slideshow - click to advance
-    document.querySelectorAll('.project-slideshow').forEach(slideshow => {
-      const slides = slideshow.querySelectorAll('.project-slide');
-      if (slides.length <= 1) return; // Skip if only one image
-      
-      let currentIndex = 0;
-      
-      // Add clickable cursor
-      slideshow.style.cursor = 'pointer';
-      
-      slideshow.addEventListener('click', () => {
-        // Fade out current slide
-        slides[currentIndex].classList.remove('opacity-100');
-        slides[currentIndex].classList.add('opacity-0');
-        
-        // Move to next slide
-        currentIndex = (currentIndex + 1) % slides.length;
-        
-        // Fade in next slide
-        slides[currentIndex].classList.remove('opacity-0');
-        slides[currentIndex].classList.add('opacity-100');
-      });
+    // ── Samples Carousel ──────────────────────────
+    const carouselSlides = [
+      {
+        image: 'images/projects/01a.png',
+        alt: 'Brand identity design sample',
+        title: 'Brand Identity System',
+        description: 'Full brand foundation for an early-stage fintech startup.'
+      },
+      {
+        image: 'images/projects/01b.png',
+        alt: 'Brand identity collateral',
+        title: 'Brand Collateral',
+        description: 'Extended identity touchpoints and marketing materials.'
+      },
+      {
+        image: 'images/projects/02a.png',
+        alt: 'Product design sample',
+        title: 'Product Design',
+        description: 'End-to-end product design for a SaaS onboarding flow.'
+      },
+      {
+        image: 'images/projects/03a.png',
+        alt: 'Visual identity sample',
+        title: 'Visual Identity',
+        description: 'Logo and visual system for a consumer health brand.'
+      }
+    ];
+
+    const track = document.getElementById('carousel-track');
+    const prevBtn = document.getElementById('carousel-prev');
+    const nextBtn = document.getElementById('carousel-next');
+    const dotsContainer = document.getElementById('carousel-dots');
+    const titleEl = document.getElementById('carousel-title');
+    const descEl = document.getElementById('carousel-desc');
+    const carousel = document.getElementById('samples-carousel');
+
+    let currentSlide = 0;
+
+    // Build slides
+    carouselSlides.forEach((slide) => {
+      const el = document.createElement('div');
+      el.className = 'w-full flex-shrink-0';
+      el.innerHTML = `
+        <div class="aspect-[3/2] bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden">
+          <img src="${slide.image}" alt="${slide.alt}" class="w-full h-full object-cover object-top">
+        </div>
+      `;
+      track.appendChild(el);
     });
+
+    // Build dots
+    carouselSlides.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.setAttribute('role', 'tab');
+      dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+      dot.className = 'size-2 rounded-full transition-colors duration-200 ' +
+        (i === 0
+          ? 'bg-gray-900 dark:bg-gray-100'
+          : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500');
+      dot.addEventListener('click', () => goTo(i));
+      dotsContainer.appendChild(dot);
+    });
+
+    function goTo(index) {
+      currentSlide = index;
+      track.style.transform = `translateX(-${index * 100}%)`;
+      titleEl.textContent = carouselSlides[index].title;
+      descEl.textContent = carouselSlides[index].description;
+      Array.from(dotsContainer.children).forEach((dot, i) => {
+        dot.className = 'size-2 rounded-full transition-colors duration-200 ' +
+          (i === index
+            ? 'bg-gray-900 dark:bg-gray-100'
+            : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500');
+      });
+      prevBtn.style.opacity = index === 0 ? '0' : '1';
+      prevBtn.style.pointerEvents = index === 0 ? 'none' : 'auto';
+      nextBtn.style.opacity = index === carouselSlides.length - 1 ? '0' : '1';
+      nextBtn.style.pointerEvents = index === carouselSlides.length - 1 ? 'none' : 'auto';
+    }
+
+    prevBtn.addEventListener('click', () => {
+      if (currentSlide > 0) goTo(currentSlide - 1);
+    });
+    nextBtn.addEventListener('click', () => {
+      if (currentSlide < carouselSlides.length - 1) goTo(currentSlide + 1);
+    });
+
+    carousel.addEventListener('mouseenter', () => {
+      if (currentSlide > 0) prevBtn.style.opacity = '1';
+      if (currentSlide < carouselSlides.length - 1) nextBtn.style.opacity = '1';
+    });
+    carousel.addEventListener('mouseleave', () => {
+      if (currentSlide === 0) prevBtn.style.opacity = '0';
+      if (currentSlide === carouselSlides.length - 1) nextBtn.style.opacity = '0';
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') goTo(Math.max(0, currentSlide - 1));
+      if (e.key === 'ArrowRight') goTo(Math.min(carouselSlides.length - 1, currentSlide + 1));
+    });
+
+    goTo(0);
   </script>
 </body>
 </html>
