@@ -107,6 +107,10 @@ export default function SprintBuilderClient({
   const [week1Overview, setWeek1Overview] = useState("");
   const [week2Overview, setWeek2Overview] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [savedShareToken, setSavedShareToken] = useState<string | null>(null);
+  const [savedSprintId, setSavedSprintId] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -198,6 +202,18 @@ export default function SprintBuilderClient({
             note: typeof d.note === "string" ? d.note : "",
           }))
         );
+
+        // Load existing share token if available
+        try {
+          const shareRes = await fetch(`/api/sprint-drafts/${existingId}/share`);
+          const shareData = await shareRes.json().catch(() => ({}));
+          if (shareRes.ok && shareData.shareToken) {
+            setSavedShareToken(shareData.shareToken);
+            setSavedSprintId(existingId);
+          }
+        } catch {
+          // Non-critical
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load sprint");
       } finally {
@@ -393,6 +409,147 @@ export default function SprintBuilderClient({
     }
   }
 
+  async function handleSaveDraft() {
+    if (!isAuthenticated) {
+      setError("Please sign in to save a draft");
+      router.push(loginHref);
+      return;
+    }
+
+    if (selectedDeliverables.length === 0) {
+      setError("Please select at least one deliverable");
+      return;
+    }
+
+    if (!title.trim()) {
+      setError("Please enter a sprint title");
+      return;
+    }
+
+    if (!projectId) {
+      setError("Please select a project");
+      return;
+    }
+
+    setSavingDraft(true);
+    setError(null);
+
+    try {
+      let finalProjectId = projectId;
+
+      // Create project on the fly if "new" selected
+      if (projectId === "new") {
+        if (!newProjectName.trim()) {
+          throw new Error("Project name is required to create a new project");
+        }
+        setCreatingProject(true);
+        const res = await fetch("/api/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: newProjectName.trim() }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.project?.id) {
+          throw new Error(data?.error || "Failed to create project");
+        }
+        finalProjectId = data.project.id as string;
+        setProjectId(finalProjectId);
+        setCreatingProject(false);
+      }
+
+      const customContent: Record<string, unknown> = {
+        source: "manual",
+        sprintTitle: title,
+      };
+      if (approach.trim()) customContent.approach = approach.trim();
+      if (week1Overview.trim()) customContent.week1 = { overview: week1Overview.trim() };
+      if (week2Overview.trim()) customContent.week2 = { overview: week2Overview.trim() };
+
+      const body = {
+        title,
+        sprintPackageId: null,
+        deliverables: selectedDeliverables.map((item) => ({
+          deliverableId: item.deliverableId,
+          complexityMultiplier: item.multiplier,
+          note: item.note?.trim() ? item.note.trim() : null,
+        })),
+        startDate: startDate?.trim() || null,
+        weeks: Number.isFinite(weeks) && weeks > 0 ? Math.round(weeks) : 2,
+        dueDate: endDate,
+        projectId: finalProjectId,
+        customContent,
+        status: "draft",
+      };
+
+      const existingId = savedSprintId || sprintIdFromQuery;
+      const endpoint = existingId ? `/api/sprint-drafts/${existingId}` : "/api/sprint-drafts";
+      const method = existingId ? "PATCH" : "POST";
+      const res = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to save draft");
+      }
+
+      // For new drafts, we get the shareToken in the response
+      if (data.shareToken) {
+        setSavedShareToken(data.shareToken);
+      }
+      if (data.sprintDraftId) {
+        setSavedSprintId(data.sprintDraftId);
+        setIsEditing(true);
+      }
+
+      // If this was a PATCH (update) and we don't have a shareToken yet, fetch it
+      if (existingId && !data.shareToken && !savedShareToken) {
+        try {
+          const tokenRes = await fetch(`/api/sprint-drafts/${existingId}/share`);
+          const tokenData = await tokenRes.json().catch(() => ({}));
+          if (tokenRes.ok && tokenData.shareToken) {
+            setSavedShareToken(tokenData.shareToken);
+          }
+        } catch {
+          // Non-critical: share token fetch failed
+        }
+      }
+    } catch (e) {
+      setError((e as Error).message || "Failed to save draft");
+    } finally {
+      setSavingDraft(false);
+    }
+  }
+
+  function getShareUrl(token: string): string {
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/shared/sprint/${token}`;
+    }
+    return `/shared/sprint/${token}`;
+  }
+
+  async function handleCopyShareLink() {
+    if (!savedShareToken) return;
+    const url = getShareUrl(savedShareToken);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch {
+      // Fallback: select and copy from a temporary input
+      const input = document.createElement("input");
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  }
+
   const { totalComplexity, totalPrice, totalHours } = calculateTotals();
   const hoursPerDay = totalDays > 0 ? Number(totalHours || 0) / totalDays : 0;
   const totalPriceCents = Math.max(0, Math.round(Number(totalPrice || 0) * 100));
@@ -579,7 +736,7 @@ export default function SprintBuilderClient({
   });
 
   return (
-    <div className="container max-w-screen-2xl py-6 text-foreground">
+    <div className="container max-w-7xl py-6 text-foreground">
       {/* Page Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="space-y-1">
@@ -594,14 +751,14 @@ export default function SprintBuilderClient({
                   type="submit"
                   form="sprint-form"
                   disabled={submitting || loadingExisting}
-                  className={`${bodySmClass} inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 hover:bg-black/80 dark:hover:bg-white/80 disabled:opacity-60 transition`}
+                  className={`${bodySmClass} inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 hover:bg-black/80 dark:hover:bg-white/80 disabled:opacity-60 transition-colors duration-150`}
                 >
                   {submitting ? primaryCtaBusy : primaryCtaLabel}
                 </button>
               )}
               <Link
                 href="/dashboard"
-                className={`${bodySmClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                className={`${bodySmClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-150`}
               >
                 Back to dashboard
               </Link>
@@ -619,7 +776,7 @@ export default function SprintBuilderClient({
       {/* Main layout */}
       <form onSubmit={handleSubmit} id="sprint-form" className="space-y-6">
           {/* Basic Info — always visible; project selection only for authenticated users */}
-          <section className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
+          <section className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
             <h2 className={sectionHeadingClass}>Sprint Details</h2>
           
           <div className="grid gap-4 lg:grid-cols-3">
@@ -637,7 +794,7 @@ export default function SprintBuilderClient({
                       setProjectId(e.target.value);
                       setError(null);
                     }}
-                    className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-[#111] text-black dark:text-white`}
+                    className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-neutral-900 text-black dark:text-white`}
                   >
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -658,7 +815,7 @@ export default function SprintBuilderClient({
                     type="text"
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
-                    className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-[#111] text-black dark:text-white`}
+                    className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-neutral-900 text-black dark:text-white`}
                     placeholder="e.g. Apollo launch"
                     disabled={creatingProject || submitting}
                   />
@@ -673,7 +830,7 @@ export default function SprintBuilderClient({
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-[#111] text-black dark:text-white`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-neutral-900 text-black dark:text-white`}
                   placeholder="e.g. Q1 2024 MVP Development"
                 />
               </div>
@@ -688,7 +845,7 @@ export default function SprintBuilderClient({
                   id="start-date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-[#111] text-black dark:text-white`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-neutral-900 text-black dark:text-white`}
                 >
                   {upcomingMondays.map((d) => (
                     <option key={d} value={d}>
@@ -709,7 +866,7 @@ export default function SprintBuilderClient({
                   max={52}
                   value={weeks}
                   onChange={(e) => setWeeks(Number(e.target.value) || 2)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-[#111] text-black dark:text-white`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-neutral-900 text-black dark:text-white`}
                 />
               </div>
 
@@ -721,7 +878,7 @@ export default function SprintBuilderClient({
                   id="end-date"
                   readOnly
                   value={endFriendly || ""}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-gray-100 dark:bg-gray-900 text-black dark:text-white`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white`}
                 />
               </div>
             </div>
@@ -734,7 +891,7 @@ export default function SprintBuilderClient({
           {/* Deliverables layout and totals */}
           <div className="grid gap-6 lg:grid-cols-3 items-start">
             {/* Available Deliverables */}
-            <section className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
+            <section className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
               <h2 className={sectionHeadingClass}>Add Deliverables</h2>
               <div className="space-y-2">
                 <p className={sectionHelperClass}>Show categories</p>
@@ -783,25 +940,14 @@ export default function SprintBuilderClient({
                               ? `${Number(d.points).toFixed(1).replace(/\\.0$/, "")} pts`
                               : "—";
                           return (
-                            <div
+                            <button
                               key={d.id}
-                              role="button"
-                              tabIndex={0}
+                              type="button"
                               onClick={() => (isSelected ? removeDeliverable(d.id) : addDeliverable(d.id))}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                if (isSelected) {
-                                  removeDeliverable(d.id);
-                                } else {
-                                  addDeliverable(d.id);
-                                }
-                                }
-                              }}
                               className={
                                 isSelected
-                                  ? `${bodySmClass} group rounded border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 p-2 text-left cursor-pointer`
-                                  : `${bodySmClass} group rounded border border-black/10 dark:border-white/15 p-2 text-left hover:border-black/20 dark:hover:border-white/25 hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer`
+                                  ? `${bodySmClass} group w-full rounded border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 p-2 text-left cursor-pointer`
+                                  : `${bodySmClass} group w-full rounded border border-black/10 dark:border-white/15 p-2 text-left hover:border-black/20 dark:hover:border-white/25 hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-150 cursor-pointer`
                               }
                               aria-pressed={isSelected}
                               aria-label={`Deliverable ${d.name}`}
@@ -811,17 +957,25 @@ export default function SprintBuilderClient({
                                   <div className={`${bodyClass} font-semibold`}>{d.name}</div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                  <button
-                                    type="button"
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setInfoDeliverable(d);
                                     }}
-                                    className="opacity-0 group-hover:opacity-100 transition inline-flex items-center justify-center rounded-full border border-black/15 dark:border-white/20 w-6 h-6 text-xs hover:bg-black/5 dark:hover:bg-white/10 hover:border-black/25 dark:hover:border-white/30"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setInfoDeliverable(d);
+                                      }
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 inline-flex items-center justify-center rounded-full border border-black/15 dark:border-white/20 size-8 min-w-[44px] min-h-[44px] text-xs hover:bg-black/5 dark:hover:bg-white/10 hover:border-black/25 dark:hover:border-white/30"
                                     aria-label={`View details for ${d.name}`}
                                   >
                                     i
-                                  </button>
+                                  </span>
                                   <div className={`${sectionHelperClass} font-semibold whitespace-nowrap`}>
                                     {selectedItem && selectedItem.multiplier !== 1
                                       ? `${complexity} • ${selectedItem.multiplier}x`
@@ -829,7 +983,7 @@ export default function SprintBuilderClient({
                                   </div>
                                 </div>
                               </div>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
@@ -840,7 +994,7 @@ export default function SprintBuilderClient({
             </section>
 
             {/* Selected Deliverables */}
-            <section className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
+            <section className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
               <h2 className={sectionHeadingClass}>Selected Deliverables</h2>
               
               {selectedDeliverables.length === 0 ? (
@@ -872,7 +1026,7 @@ export default function SprintBuilderClient({
                             <button
                               type="button"
                               onClick={() => setInfoDeliverable(d)}
-                              className="inline-flex items-center justify-center rounded-full border border-black/15 dark:border-white/20 w-6 h-6 text-xs hover:bg-black/5 dark:hover:bg-white/10 hover:border-black/25 dark:hover:border-white/30"
+                              className="inline-flex items-center justify-center rounded-full border border-black/15 dark:border-white/20 size-8 min-w-[44px] min-h-[44px] text-xs hover:bg-black/5 dark:hover:bg-white/10 hover:border-black/25 dark:hover:border-white/30"
                               aria-label={`View details for ${d.name}`}
                             >
                               i
@@ -926,7 +1080,7 @@ export default function SprintBuilderClient({
 
             {/* Sprint Totals + actions */}
             <div className="space-y-4 lg:sticky top-16">
-              <section className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
+              <section className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
                 <h2 className={sectionHeadingClass}>Sprint Totals</h2>
 
                 <label className={`${bodySmClass} inline-flex items-center gap-2`}>
@@ -942,7 +1096,7 @@ export default function SprintBuilderClient({
                 <div className="space-y-3">
                   <div>
                     <div className={`${metricLabelClass} mb-1`}>Total Price</div>
-                    <div className={totalValueClass}>
+                    <div className={`${totalValueClass} tabular-nums`}>
                       ${totalPrice.toLocaleString()}
                     </div>
                   </div>
@@ -951,7 +1105,7 @@ export default function SprintBuilderClient({
                     <>
                       <div>
                         <div className={`${metricLabelClass} mb-1`}>Estimated Hours per Day</div>
-                        <div className={metricValueClass}>
+                        <div className={`${metricValueClass} tabular-nums`}>
                           {Number(hoursPerDay || 0).toFixed(1)}
                         </div>
                       </div>
@@ -960,7 +1114,7 @@ export default function SprintBuilderClient({
 
                   <div>
                     <div className={`${metricLabelClass} mb-1`}>Working Days</div>
-                    <div className={metricValueClass}>{totalDays.toLocaleString()}</div>
+                    <div className={`${metricValueClass} tabular-nums`}>{totalDays.toLocaleString()}</div>
                   </div>
 
                 </div>
@@ -972,14 +1126,24 @@ export default function SprintBuilderClient({
                     <button
                       type="submit"
                       disabled={submitting || selectedDeliverables.length === 0 || loadingExisting}
-                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-3 disabled:opacity-60 hover:bg-black/80 dark:hover:bg-white/80 transition`}
+                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-3 disabled:opacity-60 hover:bg-black/80 dark:hover:bg-white/80 transition-colors duration-150`}
                     >
                       {submitting ? primaryCtaBusy : primaryCtaLabel}
+                    </button>
+
+                    {/* Save Draft (saves without navigating away) */}
+                    <button
+                      type="button"
+                      onClick={handleSaveDraft}
+                      disabled={savingDraft || submitting || selectedDeliverables.length === 0 || !title.trim() || loadingExisting}
+                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-60 transition-colors duration-150`}
+                    >
+                      {savingDraft ? "Saving..." : savedShareToken ? "Update draft" : "Save draft"}
                     </button>
                     
                     <Link
                       href="/dashboard"
-                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-150`}
                     >
                       Cancel
                     </Link>
@@ -993,7 +1157,7 @@ export default function SprintBuilderClient({
                           e.preventDefault();
                         }
                       }}
-                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition ${
+                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-150 ${
                         canBudget ? "" : "opacity-60 cursor-not-allowed"
                       }`}
                     >
@@ -1012,7 +1176,7 @@ export default function SprintBuilderClient({
                           e.preventDefault();
                         }
                       }}
-                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition ${
+                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-150 ${
                         canBudget ? "" : "opacity-60 cursor-not-allowed"
                       }`}
                     >
@@ -1021,6 +1185,44 @@ export default function SprintBuilderClient({
                   </>
                 )}
               </section>
+
+              {/* Share Draft section — appears after saving */}
+              {savedShareToken && isAuthenticated && (
+                <section className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 p-4 space-y-3">
+                  <h3 className={`${sectionHeadingClass}`}>Share this draft</h3>
+                  <p className={`${sectionHelperClass}`}>
+                    Send this link to your client so they can review the sprint proposal.
+                  </p>
+                  <div className="flex items-stretch gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={getShareUrl(savedShareToken)}
+                      className={`${bodySmClass} flex-1 rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-neutral-900 text-black dark:text-white truncate`}
+                      onFocus={(e) => e.target.select()}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyShareLink}
+                      className={`${bodySmClass} inline-flex items-center rounded-md px-3 py-1.5 transition-colors duration-150 ${
+                        copiedLink
+                          ? "bg-green-600 text-white"
+                          : "bg-black dark:bg-white text-white dark:text-black hover:bg-black/80 dark:hover:bg-white/80"
+                      }`}
+                    >
+                      {copiedLink ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+                  <a
+                    href={getShareUrl(savedShareToken)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`${bodySmClass} underline text-blue-600 dark:text-blue-400`}
+                  >
+                    Preview shared page
+                  </a>
+                </section>
+              )}
 
               {selectedDeliverables.length === 0 && (
                 <p className={`${sectionHelperClass} text-center`}>
@@ -1032,7 +1234,7 @@ export default function SprintBuilderClient({
 
           {/* Custom Content (hidden for now) */}
           {showSprintDetailsSection && (
-            <section className="rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
+            <section className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
               <h2 className={sectionHeadingClass}>Sprint Details (Optional)</h2>
               <p className={sectionHelperClass}>Add custom context and planning notes for this sprint</p>
               
@@ -1044,7 +1246,7 @@ export default function SprintBuilderClient({
                   id="approach"
                   value={approach}
                   onChange={(e) => setApproach(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 min-h-[80px] bg-white dark:bg-[#111] text-black dark:text-white`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 min-h-[80px] bg-white dark:bg-neutral-900 text-black dark:text-white`}
                   placeholder="Explain the overall approach and methodology for this sprint..."
                 />
               </div>
@@ -1057,7 +1259,7 @@ export default function SprintBuilderClient({
                   id="week1"
                   value={week1Overview}
                   onChange={(e) => setWeek1Overview(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 min-h-[80px] bg-white dark:bg-[#111] text-black dark:text-white`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 min-h-[80px] bg-white dark:bg-neutral-900 text-black dark:text-white`}
                   placeholder="Describe Week 1's focus, activities, and expected outcomes..."
                 />
               </div>
@@ -1070,7 +1272,7 @@ export default function SprintBuilderClient({
                   id="week2"
                   value={week2Overview}
                   onChange={(e) => setWeek2Overview(e.target.value)}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 min-h-[80px] bg-white dark:bg-[#111] text-black dark:text-white`}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 min-h-[80px] bg-white dark:bg-neutral-900 text-black dark:text-white`}
                   placeholder="Describe Week 2's focus, completion activities, and final deliverables..."
                 />
               </div>
@@ -1083,12 +1285,12 @@ export default function SprintBuilderClient({
         <button
           type="button"
           onClick={exportCsv}
-          className={`${bodySmClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+          className={`${bodySmClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-150`}
         >
           Export CSV
         </button>
         <label
-          className={`${bodySmClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer`}
+          className={`${bodySmClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-150 cursor-pointer`}
         >
           <input
             type="file"
@@ -1110,7 +1312,7 @@ export default function SprintBuilderClient({
           }}
         >
           <div
-            className="w-full max-w-md rounded-lg bg-white dark:bg-[#111] border border-black/10 dark:border-white/10 p-6 shadow-lg space-y-4"
+            className="w-full max-w-md rounded-md bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 p-6 shadow-lg space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className={sectionHeadingClass}>Edit complexity</h3>
@@ -1123,7 +1325,7 @@ export default function SprintBuilderClient({
                 id="complexity-multiplier"
                 value={editingMultiplier}
                 onChange={(e) => setEditingMultiplier(Number(e.target.value))}
-                className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 bg-white dark:bg-[#111] text-black dark:text-white`}
+                className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 bg-white dark:bg-neutral-900 text-black dark:text-white`}
               >
                 {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 2].map((val) => (
                   <option key={val} value={val}>
@@ -1150,7 +1352,7 @@ export default function SprintBuilderClient({
                 id="complexity-note"
                 value={editingNote}
                 onChange={(e) => setEditingNote(e.target.value)}
-                className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 min-h-[80px] bg-white dark:bg-[#111] text-black dark:text-white`}
+                className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 min-h-[80px] bg-white dark:bg-neutral-900 text-black dark:text-white`}
                 placeholder="Why adjust this complexity?"
               />
             </div>
@@ -1195,7 +1397,7 @@ export default function SprintBuilderClient({
           onClick={() => setInfoDeliverable(null)}
         >
           <div
-            className="w-full max-w-md rounded-lg bg-white dark:bg-[#111] border border-black/10 dark:border-white/10 p-6 shadow-lg space-y-4"
+            className="w-full max-w-md rounded-md bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 p-6 shadow-lg space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">
@@ -1204,6 +1406,7 @@ export default function SprintBuilderClient({
                 {infoDeliverable.category && <p className={sectionHelperClass}>{infoDeliverable.category}</p>}
               </div>
               <button
+                type="button"
                 onClick={() => setInfoDeliverable(null)}
                 className={`${bodySmClass} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10`}
               >

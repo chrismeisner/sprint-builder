@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { POINT_BASE_FEE, priceFromPoints } from "@/lib/pricing";
 import { getCurrentUser } from "@/lib/auth";
-import { randomUUID } from "crypto";
+import { randomUUID, randomBytes } from "crypto";
 
 /**
  * POST /api/sprint-drafts
@@ -182,14 +182,18 @@ export async function POST(request: Request) {
       ...(customContent && typeof customContent === "object" ? customContent : {}),
     };
 
+    // Generate a URL-safe share token for public draft sharing
+    const shareToken = randomBytes(16).toString("base64url");
+
     await pool.query(
       `INSERT INTO sprint_drafts (
          id, draft, status, title, sprint_package_id,
          project_id, start_date, due_date, weeks,
          package_name_snapshot, package_description_snapshot,
+         share_token,
          updated_at
        )
-       VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())`,
+       VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())`,
       [
         sprintDraftId,
         JSON.stringify(draftContent),
@@ -202,6 +206,7 @@ export async function POST(request: Request) {
         weeksValue,
         packageNameSnapshot,
         packageDescriptionSnapshot,
+        shareToken,
       ]
     );
 
@@ -350,6 +355,7 @@ export async function POST(request: Request) {
         sprintDraftId,
         totalComplexity,
         totalPrice,
+        shareToken,
       },
       { status: 201 }
     );

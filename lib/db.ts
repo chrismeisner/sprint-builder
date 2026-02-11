@@ -175,6 +175,15 @@ export async function ensureSchema(): Promise<void> {
     ALTER COLUMN weeks SET NOT NULL
   `);
   
+  // Add share_token for public draft sharing
+  await pool.query(`
+    ALTER TABLE sprint_drafts
+    ADD COLUMN IF NOT EXISTS share_token text UNIQUE
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_sprint_drafts_share_token ON sprint_drafts(share_token) WHERE share_token IS NOT NULL
+  `);
+
   // Add indexes for common queries
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_sprint_drafts_status ON sprint_drafts(status);
