@@ -62,14 +62,14 @@ export default function SharedSprintView({
   sprintId = null,
   isAdmin = false,
 }: Props) {
-  const h1Class = `${getTypographyClassName("h1")} text-text-primary`;
   const h2Class = `${getTypographyClassName("h2")} text-text-primary`;
   const h3Class = `${getTypographyClassName("h3")} text-text-primary`;
-  const subtitleClass = `${getTypographyClassName("subtitle-sm")} text-text-secondary`;
+  const cardTitleClass = `${getTypographyClassName("subtitle-md")} text-text-primary`;
+  const overlineClass = `${getTypographyClassName("mono-sm")} text-text-secondary`;
   const bodyClass = `${getTypographyClassName("body-md")} text-text-primary`;
   const bodySmClass = `${getTypographyClassName("body-sm")} text-text-primary`;
   const labelClass = `${getTypographyClassName("body-sm")} text-text-secondary`;
-  const metricLabelClass = `${getTypographyClassName("subtitle-sm")} text-text-secondary`;
+  const metricLabelClass = `${getTypographyClassName("mono-sm")} text-text-secondary`;
   const metricValueClass = `${getTypographyClassName("h3")} text-text-primary`;
 
   const isTwoWeekSprint = sprint.weeks === 2;
@@ -165,12 +165,12 @@ export default function SharedSprintView({
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       {/* Header */}
       <div className="bg-white dark:bg-neutral-900 border-b border-black/10 dark:border-white/10">
-        <div className="container max-w-4xl py-12">
-          <div className="space-y-2">
-            <p className={`${subtitleClass} uppercase tracking-wider`}>Sprint Proposal</p>
-            <h1 className={h1Class}>{sprint.title}</h1>
+        <div className="container max-w-4xl py-10">
+          <div>
+            <p className={`${overlineClass} mb-1.5`}>Sprint Proposal</p>
+            <h1 className={h2Class}>{sprint.title}</h1>
             {sprint.projectName && (
-              <p className={`${bodyClass} text-text-secondary`}>{sprint.projectName}</p>
+              <p className={`${labelClass} mt-2`}>{sprint.projectName}</p>
             )}
           </div>
         </div>
@@ -200,7 +200,7 @@ export default function SharedSprintView({
         {/* Timeline */}
         {(sprint.startDate || sprint.dueDate) && (
           <div className="rounded-md border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
-            <h2 className={`${h3Class} mb-3`}>Timeline</h2>
+            <h2 className={`${cardTitleClass} mb-2`}>Timeline</h2>
             <div className="flex flex-wrap gap-6">
               {sprint.startDate && (
                 <div>
@@ -221,14 +221,14 @@ export default function SharedSprintView({
         {/* Approach */}
         {sprint.approach && (
           <div className="rounded-md border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
-            <h2 className={`${h3Class} mb-3`}>Approach</h2>
+            <h2 className={`${cardTitleClass} mb-2`}>Approach</h2>
             <p className={`${bodyClass} whitespace-pre-line`}>{sprint.approach}</p>
           </div>
         )}
 
         {/* Deliverables */}
         <div className="space-y-4">
-          <h2 className={h2Class}>
+          <h2 className={h3Class}>
             Deliverables ({deliverables.length})
           </h2>
 
@@ -238,24 +238,28 @@ export default function SharedSprintView({
               className="rounded-md border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 overflow-hidden"
             >
               <div className="px-6 py-3 border-b border-black/5 dark:border-white/5 bg-neutral-50 dark:bg-neutral-800">
-                <h3 className={`${subtitleClass} uppercase tracking-wider`}>{category}</h3>
+                <h3 className={overlineClass}>{category}</h3>
               </div>
               <div className="divide-y divide-black/5 dark:divide-white/5">
                 {items.map((d, i) => (
                   <div key={i} className="px-6 py-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <div className={`${bodyClass} font-semibold`}>{d.name}</div>
+                        <div className={`${bodyClass} font-medium`}>{d.name}</div>
                         {d.description && (
                           <p className={`${labelClass} mt-1`}>{d.description}</p>
                         )}
                         {d.scope && (
-                          <p className={`${labelClass} mt-1 italic whitespace-pre-line`}>Scope: {d.scope}</p>
+                          <div className="mt-2">
+                            <div className={`${overlineClass} mb-0.5`}>Scope</div>
+                            <p className={`${labelClass} whitespace-pre-line`}>{d.scope}</p>
+                          </div>
                         )}
                         {d.note && (
-                          <p className={`${bodySmClass} mt-1.5 text-text-secondary italic`}>
-                            Note: {d.note}
-                          </p>
+                          <div className="mt-2">
+                            <div className={`${overlineClass} mb-0.5`}>Note</div>
+                            <p className={`${labelClass} whitespace-pre-line`}>{d.note}</p>
+                          </div>
                         )}
                       </div>
                       <div className="text-right shrink-0">
@@ -282,7 +286,7 @@ export default function SharedSprintView({
               <div className={`${h2Class} tabular-nums`}>${sprint.totalPrice.toLocaleString()}</div>
             </div>
             <div className="text-right">
-              <div className={`${metricLabelClass} tabular-nums`}>
+              <div className={`${labelClass} tabular-nums`}>
                 {deliverables.length} deliverable{deliverables.length !== 1 ? "s" : ""} &middot;{" "}
                 {formatNum(sprint.totalHours)} hours &middot;{" "}
                 {sprint.weeks} week{sprint.weeks !== 1 ? "s" : ""}
@@ -294,7 +298,7 @@ export default function SharedSprintView({
         {/* Sprint Outline (only for 2-week sprints) */}
         {isTwoWeekSprint && (
           <div className="space-y-4">
-            <h2 className={h2Class}>Sprint Outline</h2>
+            <h2 className={h3Class}>Sprint Outline</h2>
 
             <div className="grid gap-4 sm:grid-cols-2">
               {SPRINT_WEEKS.map((week, idx) => {
@@ -313,7 +317,7 @@ export default function SharedSprintView({
                           <span className="text-xl" aria-hidden="true">
                             {week.icon}
                           </span>
-                          <h3 className={`${bodyClass} font-semibold`}>
+                          <h3 className={cardTitleClass}>
                             Week {weekNum}
                           </h3>
                         </div>
@@ -359,7 +363,7 @@ export default function SharedSprintView({
           >
             {editingWeek && (
               <div className="p-6 space-y-4">
-                <h2 className={`${h3Class}`}>
+                <h2 className={cardTitleClass}>
                   Edit Week {editingWeek} Notes
                 </h2>
                 <p className={labelClass}>
@@ -397,8 +401,8 @@ export default function SharedSprintView({
         )}
 
         {/* Draft notice */}
-        <div className="text-center py-6">
-          <p className={`${labelClass}`}>
+        <div className="text-center py-8 border-t border-black/5 dark:border-white/5">
+          <p className={labelClass}>
             This is a draft proposal. Details may change based on further discussion.
           </p>
         </div>
