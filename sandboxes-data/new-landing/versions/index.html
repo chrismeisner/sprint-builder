@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Landing Page Versions - Chris Meisner</title>
+  <meta name="description" content="Version history and archive of Chris Meisner's landing page iterations.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <script type="module">
+    // Dark mode support
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+      document.documentElement.classList.toggle('dark', e.matches);
+    });
+  </script>
+  <style>
+    .version-card {
+      transition: all 0.2s ease;
+    }
+    .version-card:hover {
+      transform: translateY(-2px);
+    }
+    .preview-frame {
+      pointer-events: none;
+      transform: scale(0.95);
+      transform-origin: top left;
+    }
+  </style>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased">
+  
+  <div class="min-h-screen">
+    
+    <!-- Header -->
+    <header class="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky top-0 z-10">
+      <div class="max-w-6xl mx-auto px-6 py-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-semibold mb-1">Landing Page Versions</h1>
+            <p class="text-gray-500 dark:text-gray-400 text-sm">Version history and archive</p>
+          </div>
+          <div class="flex gap-4">
+            <a href="../index.html" class="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-md hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors text-sm font-medium">
+              View Current
+            </a>
+            <button id="dark-mode-toggle" class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm">
+              <span class="dark:hidden">🌙</span>
+              <span class="hidden dark:inline">☀️</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-6 py-12">
+      
+      <!-- Stats Bar -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <div class="text-3xl font-semibold mb-1" id="version-count">-</div>
+          <div class="text-gray-500 dark:text-gray-400 text-sm">Total Versions</div>
+        </div>
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <div class="text-3xl font-semibold mb-1" id="latest-date">-</div>
+          <div class="text-gray-500 dark:text-gray-400 text-sm">Latest Snapshot</div>
+        </div>
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <div class="text-3xl font-semibold mb-1" id="current-version">Current</div>
+          <div class="text-gray-500 dark:text-gray-400 text-sm">Active Version</div>
+        </div>
+      </div>
+
+      <!-- Version Grid -->
+      <div id="versions-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Versions will be loaded here by JavaScript -->
+      </div>
+
+      <!-- Empty State (hidden by default) -->
+      <div id="empty-state" class="hidden text-center py-20">
+        <div class="text-6xl mb-4">📦</div>
+        <h2 class="text-xl font-medium mb-2">No versions found</h2>
+        <p class="text-gray-500 dark:text-gray-400">Run <code class="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">./create-version.sh</code> to create your first version</p>
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-200 dark:border-gray-700 mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-8">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+          <p>Version management for Chris Meisner's landing page</p>
+          <div class="flex gap-4">
+            <a href="README.md" class="hover:text-gray-900 dark:hover:text-gray-100">Documentation</a>
+            <span>·</span>
+            <a href="../index.html" class="hover:text-gray-900 dark:hover:text-gray-100">Current Site</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Load version data -->
+  <script src="versions-data.js"></script>
+  
+  <script>
+    // Use VERSIONS from versions-data.js
+    const versions = VERSIONS;
+
+    // Update stats
+    document.getElementById('version-count').textContent = versions.length;
+    document.getElementById('latest-date').textContent = versions.length > 0 ? versions[0].date.split(' ')[0] + ' ' + versions[0].date.split(' ')[1] : '-';
+
+    // Render versions
+    const grid = document.getElementById('versions-grid');
+    const emptyState = document.getElementById('empty-state');
+
+    if (versions.length === 0) {
+      grid.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+    } else {
+      versions.forEach((version, index) => {
+        const card = document.createElement('div');
+        card.className = 'version-card border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800';
+        
+        const statusColors = {
+          'baseline': 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200',
+          'current': 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200',
+          'archived': 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+        };
+        
+        const statusColor = statusColors[version.status] || statusColors['archived'];
+        
+        card.innerHTML = `
+          <!-- Preview Area -->
+          <div class="aspect-video bg-gray-100 dark:bg-gray-900 relative overflow-hidden border-b border-gray-200 dark:border-gray-700">
+            <div class="absolute inset-0 flex items-center justify-center text-gray-400 dark:text-gray-600">
+              <div class="text-center">
+                <div class="text-6xl mb-2">📸</div>
+                <div class="text-sm">Version ${version.version}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Content -->
+          <div class="p-6">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <h3 class="text-lg font-semibold">Version ${version.version} - ${version.title}</h3>
+                  <span class="text-xs px-2 py-1 rounded-full ${statusColor}">${version.status}</span>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">${version.date}</p>
+              </div>
+            </div>
+            
+            <p class="text-gray-600 dark:text-gray-300 text-sm mb-4 leading-relaxed">${version.description}</p>
+            
+            <div class="mb-4">
+              <h4 class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-2">Key Features</h4>
+              <ul class="space-y-1">
+                ${version.features.map(f => `
+                  <li class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <span class="text-gray-400 dark:text-gray-500 mt-0.5">—</span>
+                    <span>${f}</span>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+            
+            <div class="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <a href="${version.path}" target="_blank" class="flex-1 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-md hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors text-sm font-medium text-center">
+                View Version
+              </a>
+              <button onclick="copyPath('${version.path}')" class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-sm font-medium" title="Copy path">
+                📋
+              </button>
+              <a href="${version.name}/VERSION-INFO.md" target="_blank" class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-sm font-medium" title="View details">
+                ℹ️
+              </a>
+            </div>
+          </div>
+        `;
+        
+        grid.appendChild(card);
+      });
+    }
+
+    // Dark mode toggle
+    document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+    });
+
+    // Keyboard shortcut for dark mode
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'd' && !e.metaKey && !e.ctrlKey && !e.altKey && 
+          !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        document.documentElement.classList.toggle('dark');
+      }
+    });
+
+    // Copy path to clipboard
+    function copyPath(path) {
+      const fullPath = window.location.origin + window.location.pathname.replace('index.html', '') + path;
+      navigator.clipboard.writeText(fullPath).then(() => {
+        // Show toast notification
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-4 py-2 rounded-md shadow-lg text-sm font-medium z-50';
+        toast.textContent = '✓ Path copied to clipboard';
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transition = 'opacity 0.3s';
+          setTimeout(() => toast.remove(), 300);
+        }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
