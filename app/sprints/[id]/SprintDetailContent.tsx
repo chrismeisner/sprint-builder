@@ -68,6 +68,7 @@ type BudgetMilestone = {
 };
 
 type BudgetInputs = {
+  isDeferred?: boolean;
   totalProjectValue?: number;
   upfrontPayment?: number;
   upfrontPaymentTiming?: string;
@@ -81,6 +82,7 @@ type BudgetOutputs = {
   equityAmount?: number;
   deferredAmount?: number;
   milestoneBonusAmount?: number;
+  remainingOnCompletion?: number;
   totalProjectValue?: number;
 };
 
@@ -1227,26 +1229,47 @@ export default function SprintDetailContent(props: Props) {
             {/* Budget Readout - visible to everyone */}
             {(() => {
               const { inputs, outputs } = budgetPlan;
+              const isDeferred = inputs.isDeferred !== false; // default true for backwards compat
               const upfrontAmount = outputs.upfrontAmount ?? 0;
               const equityAmount = outputs.equityAmount ?? 0;
               const deferredAmount = outputs.deferredAmount ?? 0;
+              const remainingOnCompletion = outputs.remainingOnCompletion ?? 0;
               const totalValue = outputs.totalProjectValue ?? (upfrontAmount + equityAmount + deferredAmount);
               const upfrontPercent = totalValue > 0 ? Math.round((upfrontAmount / totalValue) * 100) : 0;
               const equityPercent = totalValue > 0 ? Math.round((equityAmount / totalValue) * 100) : 0;
               const deferredPercent = totalValue > 0 ? Math.round((deferredAmount / totalValue) * 100) : 0;
-              const hasDeferred = deferredAmount > 0.01;
-              const hasEquity = equityAmount > 0.01;
-              const milestones = inputs.milestones ?? [];
+              const completionPercent = totalValue > 0 ? Math.round((remainingOnCompletion / totalValue) * 100) : 0;
+              const hasDeferred = isDeferred && deferredAmount > 0.01;
+              const hasEquity = isDeferred && equityAmount > 0.01;
+              const milestones = isDeferred ? (inputs.milestones ?? []) : [];
               
               return (
                 <div className="space-y-4">
+                  {/* Payment type indicator */}
+                  <div className={`${t.bodySm}`}>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                      isDeferred
+                        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                        : "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300"
+                    }`}>
+                      {isDeferred ? "Deferred" : "Standard"}
+                    </span>
+                  </div>
+
                   {/* Payment breakdown - simple list */}
                   <div className={`space-y-1 ${t.bodySm}`}>
                     <div>
-                      <span className="text-text-muted">Upfront:</span>{" "}
+                      <span className="text-text-muted">{isDeferred ? "Upfront:" : "Kickoff:"}</span>{" "}
                       <span className="font-medium">{formatCurrency(upfrontAmount)}</span>
                       <span className="text-text-muted ml-1">({upfrontPercent}%)</span>
                     </div>
+                    {!isDeferred && remainingOnCompletion > 0.01 && (
+                      <div>
+                        <span className="text-text-muted">On Completion:</span>{" "}
+                        <span className="font-medium">{formatCurrency(remainingOnCompletion)}</span>
+                        <span className="text-text-muted ml-1">({completionPercent}%)</span>
+                      </div>
+                    )}
                     {hasEquity && (
                       <div>
                         <span className="text-text-muted">Equity:</span>{" "}

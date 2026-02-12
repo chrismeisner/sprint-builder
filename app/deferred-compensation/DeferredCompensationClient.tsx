@@ -10,6 +10,7 @@ type SprintOption = {
 };
 
 type SavedPlanInputs = {
+  isDeferred?: boolean;
   totalProjectValue?: number;
   upfrontPayment?: number;
   upfrontPaymentTiming?: string;
@@ -26,13 +27,18 @@ const PAYMENT_TIMING_OPTIONS = [
   { value: "net30", label: "Net 30 (30 days after delivery)" },
 ] as const;
 
+type SprintInfo = SprintOption & {
+  hasDeferredComp: boolean;
+  upfrontPaymentPercent: number | null;
+};
+
 type DeferredCompensationProps = {
   sprintOptions: SprintOption[];
   isLoggedIn: boolean;
   defaultSprintId?: string;
   defaultAmount?: number;
   savedPlan?: SavedPlanInputs | null;
-  sprintFromUrl?: SprintOption | null;
+  sprintFromUrl?: SprintInfo | null;
 };
 
 // Constants (guardrails)
@@ -140,7 +146,19 @@ export default function DeferredCompensationClient({
     return "net30";
   }, [savedPlan]);
 
+  // Deferred toggle — priority: savedPlan > sprint setting > default true
+  const initialIsDeferred = useMemo(() => {
+    if (savedPlan && typeof savedPlan.isDeferred === "boolean") {
+      return savedPlan.isDeferred;
+    }
+    if (sprintFromUrl && typeof sprintFromUrl.hasDeferredComp === "boolean") {
+      return sprintFromUrl.hasDeferredComp;
+    }
+    return true;
+  }, [savedPlan, sprintFromUrl]);
+
   // User inputs
+  const [isDeferred, setIsDeferred] = useState(initialIsDeferred);
   const [totalProjectValue, setTotalProjectValue] = useState(initialTotalProjectValue);
   const [upfrontPayment, setUpfrontPayment] = useState(initialUpfrontPayment);
   // This controls how the remaining (non-upfront) portion is split
@@ -201,18 +219,20 @@ export default function DeferredCompensationClient({
       const payload = {
         sprintId: selectedSprint || defaultSprintId || "",
         inputs: {
+          isDeferred,
           totalProjectValue,
           upfrontPayment,
           upfrontPaymentTiming,
-          equitySplit,
-          milestones,
-          milestoneMissOutcome,
+          equitySplit: isDeferred ? equitySplit : 0,
+          milestones: isDeferred ? milestones : [],
+          milestoneMissOutcome: isDeferred ? milestoneMissOutcome : null,
         },
         outputs: {
           upfrontAmount,
-          equityAmount,
-          deferredAmount,
-          milestoneBonusAmount,
+          equityAmount: isDeferred ? equityAmount : 0,
+          deferredAmount: isDeferred ? deferredAmount : 0,
+          milestoneBonusAmount: isDeferred ? milestoneBonusAmount : 0,
+          remainingOnCompletion: !isDeferred ? remainingPercent * totalProjectValue : 0,
           totalProjectValue,
         },
         label: selectedSprintLabel || null,
@@ -231,6 +251,17 @@ export default function DeferredCompensationClient({
       if (!res.ok) {
         throw new Error(data?.error || "Failed to save budget");
       }
+
+      // Also persist sprint-level deferred comp settings
+      await fetch(`/api/sprint-drafts/${payload.sprintId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          has_deferred_comp: isDeferred,
+          upfront_payment_percent: Math.round(upfrontPayment * 10000) / 100, // store as percent, e.g. 40.00
+        }),
+      });
+
       const savedAt = new Date().toLocaleString();
       setLastSavedAt(savedAt);
       setSaveSuccess("Budget saved");
@@ -562,12 +593,19 @@ export default function DeferredCompensationClient({
     deferred: "#f59e0b", // amber
   };
 
-  // Pie chart segments
-  const pieSegments = [
-    { label: "Upfront", percent: upfrontPayment, color: COLORS.upfront },
-    { label: "Equity", percent: equityPercent, color: COLORS.equity },
-    { label: "Deferred (base/1x)", percent: deferredPercent, color: COLORS.deferred },
-  ];
+  // Pie chart segments — adapt based on deferred toggle
+  const pieSegments = isDeferred
+    ? [
+        { label: "Upfront", percent: upfrontPayment, color: COLORS.upfront },
+        { label: "Equity", percent: equityPercent, color: COLORS.equity },
+        { label: "Deferred (base/1x)", percent: deferredPercent, color: COLORS.deferred },
+      ]
+    : [
+        { label: "Kickoff", percent: upfrontPayment, color: COLORS.upfront },
+        ...(remainingPercent > 0
+          ? [{ label: "On Completion", percent: remainingPercent, color: "#64748b" }]
+          : []),
+      ];
 
   return (
     <main className="container py-10 space-y-10 max-w-5xl">
@@ -576,10 +614,57 @@ export default function DeferredCompensationClient({
           Compensation Calculator
         </Typography>
         <Typography as="p" scale="body-md" className="text-text-secondary">
-          Calculate upfront, equity, and deferred payment structures for project engagements.
+          {isDeferred
+            ? "Calculate upfront, equity, and deferred payment structures for project engagements."
+            : "Configure the kickoff payment for this sprint engagement."}
         </Typography>
       </header>
 
+
+      {/* Deferred / Not Deferred Toggle */}
+      <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <Typography as="h2" scale="h3" className="text-text-primary">
+              Payment Type
+            </Typography>
+            <Typography as="p" scale="body-sm" className="text-text-secondary">
+              {isDeferred
+                ? "This sprint includes deferred compensation with milestones, equity, and multiplier-based payouts."
+                : "Standard payment — no deferred compensation. Only an upfront kickoff payment applies."}
+            </Typography>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsDeferred((prev) => !prev)}
+            className={`relative inline-flex h-8 w-[140px] shrink-0 items-center rounded-full border-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 ${
+              isDeferred
+                ? "border-amber-500 bg-amber-500"
+                : "border-teal-500 bg-teal-500"
+            }`}
+          >
+            <span
+              className={`pointer-events-none absolute inset-0 flex items-center text-xs font-semibold text-white transition-opacity duration-200 ${
+                isDeferred ? "justify-start pl-3 opacity-100" : "justify-start pl-3 opacity-0"
+              }`}
+            >
+              Deferred
+            </span>
+            <span
+              className={`pointer-events-none absolute inset-0 flex items-center text-xs font-semibold text-white transition-opacity duration-200 ${
+                !isDeferred ? "justify-end pr-3 opacity-100" : "justify-end pr-3 opacity-0"
+              }`}
+            >
+              Not Deferred
+            </span>
+            <span
+              className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                isDeferred ? "translate-x-[108px]" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+      </section>
 
       {/* Project Budget */}
       <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
@@ -609,7 +694,8 @@ export default function DeferredCompensationClient({
         </div>
       </section>
 
-      {/* Milestone Table */}
+      {/* Milestone Table — only shown when deferred */}
+      {isDeferred && (
       <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -736,6 +822,7 @@ export default function DeferredCompensationClient({
           </select>
         </div>
       </section>
+      )}
 
       {/* Payment Split Controls */}
       <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-8">
@@ -744,7 +831,9 @@ export default function DeferredCompensationClient({
             Payment Structure
           </Typography>
           <Typography as="p" scale="body-sm" className="text-text-secondary">
-            Adjust how the total project value is split across payment types.
+            {isDeferred
+              ? "Adjust how the total project value is split across payment types."
+              : "Set the upfront kickoff payment percentage. The remainder is due on completion."}
           </Typography>
         </div>
 
@@ -752,7 +841,7 @@ export default function DeferredCompensationClient({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Typography as="span" scale="body-sm" className="font-medium text-text-primary">
-              Upfront Payment
+              {isDeferred ? "Upfront Payment" : "Kickoff Payment"}
             </Typography>
             <Typography as="span" scale="body-sm" className="text-text-secondary">
               {formatPercent(UPFRONT_MIN)} – {formatPercent(UPFRONT_MAX)} allowed
@@ -783,7 +872,7 @@ export default function DeferredCompensationClient({
 
           <div className="rounded-lg p-3 flex items-center justify-between" style={{ backgroundColor: `${COLORS.upfront}1a` }}>
             <Typography as="span" scale="body-sm" style={{ color: COLORS.upfront }}>
-              Upfront ({formatPercent(upfrontPayment)})
+              {isDeferred ? "Upfront" : "Kickoff"} ({formatPercent(upfrontPayment)})
             </Typography>
             <Typography as="span" scale="body-sm" className="font-medium" style={{ color: COLORS.upfront }}>
               {formatCurrency(upfrontAmount)}
@@ -793,7 +882,7 @@ export default function DeferredCompensationClient({
           {/* Payment Timing Selector */}
           <div className="flex items-center justify-between gap-4">
             <Typography as="span" scale="body-sm" className="text-text-secondary">
-              Upfront Payment Due:
+              {isDeferred ? "Upfront" : "Kickoff"} Payment Due:
             </Typography>
             <select
               value={upfrontPaymentTiming}
@@ -810,7 +899,20 @@ export default function DeferredCompensationClient({
           </div>
         </div>
 
-        {/* Equity vs Deferred Split Slider */}
+        {/* Remaining on completion — shown when NOT deferred */}
+        {!isDeferred && remainingPercent > 0 && (
+          <div className="rounded-lg p-3 flex items-center justify-between bg-surface-subtle">
+            <Typography as="span" scale="body-sm" className="text-text-primary">
+              Due on Completion ({formatPercent(remainingPercent)})
+            </Typography>
+            <Typography as="span" scale="body-sm" className="font-medium text-text-primary">
+              {formatCurrency(remainingPercent * totalProjectValue)}
+            </Typography>
+          </div>
+        )}
+
+        {/* Equity vs Deferred Split Slider — only shown when deferred */}
+        {isDeferred && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Typography as="span" scale="body-sm" className="font-medium text-text-primary">
@@ -871,9 +973,10 @@ export default function DeferredCompensationClient({
           </div>
 
         </div>
+        )}
       </section>
 
-      {isMilestoneModalOpen && (
+      {isDeferred && isMilestoneModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-lg space-y-4">
             <div className="flex items-center justify-between">
@@ -1003,63 +1106,32 @@ export default function DeferredCompensationClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-stroke-muted">
-              <tr>
-                <td className="px-4 py-3">
-                  <Typography as="span" scale="body-sm" className="text-text-primary">
-                    Upfront
-                  </Typography>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
-                    {formatPercent(upfrontPayment)}
-                  </Typography>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
-                    {formatCurrency(upfrontAmount)}
-                  </Typography>
-                </td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3">
-                  <Typography as="span" scale="body-sm" className="text-text-primary">
-                    Equity
-                  </Typography>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
-                    {formatPercent(equityPercent)}
-                  </Typography>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
-                    {formatCurrency(equityAmount)}
-                  </Typography>
-                </td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3">
-                  <Typography as="span" scale="body-sm" className="text-text-primary">
-                    Deferred (base/1x)
-                  </Typography>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
-                    {formatPercent(deferredPercent)}
-                  </Typography>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
-                    {formatCurrency(deferredAmount)}
-                  </Typography>
-                </td>
-              </tr>
+              {pieSegments.map((seg, i) => (
+                <tr key={i}>
+                  <td className="px-4 py-3">
+                    <Typography as="span" scale="body-sm" className="text-text-primary">
+                      {seg.label}
+                    </Typography>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
+                      {formatPercent(seg.percent)}
+                    </Typography>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Typography as="span" scale="body-sm" className="text-text-primary font-medium">
+                      {formatCurrency(seg.percent * totalProjectValue)}
+                    </Typography>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </section>
 
-      {/* Milestones Readout */}
+      {/* Milestones Readout — only shown when deferred */}
+      {isDeferred && (
       <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
         <div className="space-y-1">
           <Typography as="h2" scale="h3" className="text-text-primary">
@@ -1138,6 +1210,7 @@ export default function DeferredCompensationClient({
           </div>
         )}
       </section>
+      )}
 
       <section className="rounded-xl border border-stroke-muted bg-surface-card p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">

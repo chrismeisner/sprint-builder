@@ -26,12 +26,20 @@ export default function SprintShareLink({ sprintId, shareToken, status, isAdmin 
           View Draft
         </Link>
         {isAdmin && (
-          <Link
-            href={`/dashboard/sprint-builder?sprintId=${sprintId}`}
-            className="inline-flex items-center gap-1 rounded-md border border-neutral-200 dark:border-neutral-700 px-2.5 py-1 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-150"
-          >
-            Edit
-          </Link>
+          <>
+            <Link
+              href={`/dashboard/sprint-builder?sprintId=${sprintId}`}
+              className="inline-flex items-center gap-1 rounded-md border border-neutral-200 dark:border-neutral-700 px-2.5 py-1 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-150"
+            >
+              Edit
+            </Link>
+            <Link
+              href={`/sprints/${sprintId}`}
+              className="inline-flex items-center gap-1 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 px-2.5 py-1 text-xs font-medium hover:bg-green-100 dark:hover:bg-green-900 transition-colors duration-150"
+            >
+              View Sprint
+            </Link>
+          </>
         )}
       </div>
     );
@@ -61,6 +69,17 @@ export default function SprintShareLink({ sprintId, shareToken, status, isAdmin 
     );
   }
 
-  // Default: show nothing
+  // Default: show View Sprint button for admins, nothing for others
+  if (isAdmin) {
+    return (
+      <Link
+        href={`/sprints/${sprintId}`}
+        className="inline-flex items-center gap-1 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 px-2.5 py-1 text-xs font-medium hover:bg-green-100 dark:hover:bg-green-900 transition-colors duration-150"
+      >
+        View Sprint
+      </Link>
+    );
+  }
+
   return <span className="opacity-40 text-xs">—</span>;
 }

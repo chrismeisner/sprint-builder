@@ -203,6 +203,15 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_deferred_comp_plans_sprint_id ON deferred_comp_plans(sprint_id);
   `);
 
+  // Add deferred compensation and upfront payment fields to sprint_drafts
+  await pool.query(`
+    ALTER TABLE sprint_drafts
+    ADD COLUMN IF NOT EXISTS has_deferred_comp boolean NOT NULL DEFAULT true,
+    ADD COLUMN IF NOT EXISTS upfront_payment_percent numeric(5,2)
+  `).catch(() => {
+    // Columns may already exist
+  });
+
   // Add constraint to validate status values
   // Workflow: draft -> scheduled -> in_progress -> complete
   await pool.query(`

@@ -173,6 +173,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
   );
   
   type BudgetInputs = {
+    isDeferred?: boolean;
     totalProjectValue?: number;
     upfrontPayment?: number;
     equitySplit?: number;
@@ -185,6 +186,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
     equityAmount?: number;
     deferredAmount?: number;
     milestoneBonusAmount?: number;
+    remainingOnCompletion?: number;
     totalProjectValue?: number;
   };
   

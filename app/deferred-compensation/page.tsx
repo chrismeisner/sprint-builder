@@ -10,6 +10,7 @@ type SprintOption = {
 };
 
 type SavedPlanInputs = {
+  isDeferred?: boolean;
   totalProjectValue?: number;
   upfrontPayment?: number;
   equitySplit?: number;
@@ -39,14 +40,21 @@ async function loadSprintOptions(accountId: string): Promise<SprintOption[]> {
   }));
 }
 
+type SprintInfo = SprintOption & {
+  hasDeferredComp: boolean;
+  upfrontPaymentPercent: number | null;
+};
+
 // Fetch sprint info by ID (regardless of ownership - for URL params)
-async function loadSprintInfo(sprintId: string): Promise<SprintOption | null> {
+async function loadSprintInfo(sprintId: string): Promise<SprintInfo | null> {
   const pool = getPool();
   const result = await pool.query(
     `
       SELECT 
         id,
-        COALESCE(NULLIF(title, ''), 'Sprint ' || LEFT(id, 8)) AS label
+        COALESCE(NULLIF(title, ''), 'Sprint ' || LEFT(id, 8)) AS label,
+        has_deferred_comp,
+        upfront_payment_percent
       FROM sprint_drafts
       WHERE id = $1
     `,
@@ -54,9 +62,12 @@ async function loadSprintInfo(sprintId: string): Promise<SprintOption | null> {
   );
   
   if (result.rowCount === 0) return null;
+  const row = result.rows[0];
   return {
-    id: result.rows[0].id as string,
-    label: result.rows[0].label as string,
+    id: row.id as string,
+    label: row.label as string,
+    hasDeferredComp: row.has_deferred_comp !== false,
+    upfrontPaymentPercent: row.upfront_payment_percent != null ? Number(row.upfront_payment_percent) : null,
   };
 }
 

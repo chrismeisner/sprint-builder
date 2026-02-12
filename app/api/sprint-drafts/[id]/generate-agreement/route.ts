@@ -7,6 +7,7 @@ type Params = { params: { id: string } };
 
 // Budget plan types
 type BudgetInputs = {
+  isDeferred?: boolean;
   totalProjectValue?: number;
   upfrontPayment?: number;
   upfrontPaymentTiming?: string;
@@ -28,6 +29,7 @@ type BudgetOutputs = {
   equityAmount?: number;
   deferredAmount?: number;
   milestoneBonusAmount?: number;
+  remainingOnCompletion?: number;
   totalProjectValue?: number;
 };
 
@@ -179,19 +181,57 @@ function buildCompensationSection(
   const upfrontPayment = inputs.upfrontPayment ?? 0.4;
   const upfrontTiming = inputs.upfrontPaymentTiming ?? "net30";
   const upfrontTimingText = UPFRONT_TIMING_SHORT[upfrontTiming] ?? UPFRONT_TIMING_SHORT["net30"];
-  const equitySplit = inputs.equitySplit ?? 0;
+  const isDeferred = inputs.isDeferred !== false; // default true for backwards compat
   const remainingPercent = 1 - upfrontPayment;
-  
+
   const upfrontAmount = outputs.upfrontAmount ?? 0;
+
+  // ── NOT DEFERRED: simple kickoff + completion structure ──
+  if (!isDeferred) {
+    const remainingAmount = outputs.remainingOnCompletion ?? (remainingPercent * (outputs.totalProjectValue ?? upfrontAmount));
+    const kickoffPercent = `${Math.round(upfrontPayment * 100)}%`;
+    const completionPercent = `${Math.round(remainingPercent * 100)}%`;
+
+    if (remainingPercent < 0.01) {
+      // 100% kickoff
+      return `
+---
+
+## 3a. Compensation Structure
+
+**Full Payment on Kickoff:** The total sprint fee of ${formatCurrency(upfrontAmount)} ${upfrontTimingText}.`;
+    }
+
+    return `
+---
+
+## 3a. Compensation Structure
+
+This engagement uses a standard payment structure with no deferred compensation component:
+
+### Payment Breakdown
+
+| Component | Percentage | Amount |
+|-----------|------------|--------|
+| Kickoff Payment | ${kickoffPercent} | ${formatCurrency(upfrontAmount)} |
+| Due on Completion | ${completionPercent} | ${formatCurrency(remainingAmount)} |
+
+**Kickoff Payment** of ${formatCurrency(upfrontAmount)} ${upfrontTimingText}.
+
+**Completion Payment** of ${formatCurrency(remainingAmount)} is due upon delivery and acceptance of all deliverables listed in Section 2.`;
+  }
+
+  // ── DEFERRED: full deferred compensation structure ──
+  const equitySplit = inputs.equitySplit ?? 0;
   const equityAmount = outputs.equityAmount ?? 0;
   const deferredAmount = outputs.deferredAmount ?? 0;
-  
+
   // If all payment is upfront (no deferred component), return a simplified section
   const hasDeferred = deferredAmount > 0.01; // Use small threshold to handle floating point
   const hasEquity = equityAmount > 0.01;
   
   if (!hasDeferred && !hasEquity) {
-    // 100% upfront - return simplified section or empty string
+    // 100% upfront - return simplified section
     return `
 ---
 
@@ -308,6 +348,7 @@ export async function POST(request: Request, { params }: Params) {
         sd.id, sd.title, sd.start_date, sd.due_date, sd.weeks,
         sd.total_estimate_points, sd.total_fixed_price, sd.total_fixed_hours,
         sd.project_id, sd.draft,
+        sd.has_deferred_comp, sd.upfront_payment_percent,
         p.name as project_name,
         p.account_id as project_account_id
        FROM sprint_drafts sd
@@ -333,6 +374,8 @@ export async function POST(request: Request, { params }: Params) {
       draft: unknown;
       project_name: string | null;
       project_account_id: string | null;
+      has_deferred_comp: boolean | null;
+      upfront_payment_percent: number | null;
     };
 
     // Fetch deliverables
@@ -467,6 +510,17 @@ export async function POST(request: Request, { params }: Params) {
       compensationStructureSection = buildCompensationSection(
         budgetRow.inputs,
         budgetRow.outputs
+      );
+    } else if (sprint.has_deferred_comp === false && sprint.upfront_payment_percent != null) {
+      // No saved budget plan, but the sprint has non-deferred settings from the sprint record
+      const upfrontPct = Number(sprint.upfront_payment_percent) / 100; // stored as e.g. 40.00 → 0.40
+      const sprintTotal = totalPrice;
+      const upfrontAmt = sprintTotal * upfrontPct;
+      const remainingAmt = sprintTotal * (1 - upfrontPct);
+      
+      compensationStructureSection = buildCompensationSection(
+        { isDeferred: false, upfrontPayment: upfrontPct, upfrontPaymentTiming: "net30" },
+        { upfrontAmount: upfrontAmt, remainingOnCompletion: remainingAmt, totalProjectValue: sprintTotal }
       );
     }
 

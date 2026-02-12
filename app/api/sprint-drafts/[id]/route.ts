@@ -319,6 +319,36 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json({ success: true });
     }
 
+    // Deferred comp settings update (has_deferred_comp, upfront_payment_percent)
+    if (body.has_deferred_comp !== undefined || body.upfront_payment_percent !== undefined) {
+      const updates: string[] = [];
+      const values: (boolean | number | string | null)[] = [];
+      let paramIndex = 1;
+
+      if (body.has_deferred_comp !== undefined) {
+        updates.push(`has_deferred_comp = $${paramIndex++}`);
+        values.push(body.has_deferred_comp === true);
+      }
+      if (body.upfront_payment_percent !== undefined) {
+        const pct = Number(body.upfront_payment_percent);
+        updates.push(`upfront_payment_percent = $${paramIndex++}`);
+        values.push(Number.isFinite(pct) ? pct : null);
+      }
+
+      updates.push("updated_at = now()");
+      values.push(params.id);
+
+      await pool.query(
+        `UPDATE sprint_drafts SET ${updates.join(", ")} WHERE id = $${paramIndex}`,
+        values
+      );
+      await logChangelog(pool, params.id, user.accountId, "deferred_comp_settings", `Updated deferred comp settings`, {
+        has_deferred_comp: body.has_deferred_comp,
+        upfront_payment_percent: body.upfront_payment_percent,
+      });
+      return NextResponse.json({ success: true });
+    }
+
     // Budget status update (admin only)
     if (body.budget_status !== undefined) {
       if (!user.isAdmin) {
