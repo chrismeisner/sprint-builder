@@ -7,35 +7,39 @@
       "changes": [
         {
           "type": "changed",
-          "text": "Parent Outcomes: Reframed 'Context > constant monitoring' to 'Know what's happening & what to do next' (de-emphasize camera/why since cam isn't in v1); reframed 'Alerts, not streams' to emphasize background trust"
-        },
-        {
-          "type": "added",
-          "text": "Parent Outcomes: Added 'Vehicle peace of mind' outcome — head off costly maintenance, reduce stress of trusting teens with car upkeep"
+          "text": "Parent Outcomes: Reframed 'Context > constant monitoring' to 'Know what's happening & what to do next' — de-emphasize camera/why framing since camera isn't in v1. The baseline is always what happened + what to do; explaining why is an aspiration but not a blocker"
         },
         {
           "type": "changed",
-          "text": "Parent Visibility: Added trip-in-progress nuance — show real-time confirmation trip is 'good' when parent opens app mid-trip, but powerful summaries become the natural primary touchpoint"
+          "text": "Parent Outcomes: Reframed 'Alerts, not streams' to emphasize background trust — Miles runs quietly in the background; it's not another thing to monitor and worry about. It surfaces what matters when it matters"
+        },
+        {
+          "type": "added",
+          "text": "Parent Outcomes: Added 'Vehicle peace of mind' as a new must-have outcome — parents want to head off costly maintenance issues before they escalate. Trusting a teen with car upkeep is stressful and expensive; Miles keeps them informed so nothing slips through the cracks"
         },
         {
           "type": "changed",
-          "text": "Parent Success: Added maintenance metric and proxy metrics (app-open frequency within 15 min of trip start; teen weekly score screen opens and milestone shares)"
-        },
-        {
-          "type": "added",
-          "text": "Trust & Fairness (both personas): Added non-judgmental framing rule and data privacy assurance (won't be used against them, sold, or shared)"
-        },
-        {
-          "type": "added",
-          "text": "Teen Triggers: Added check-engine-light empowerment and 'demystify car ownership' trigger moments"
+          "text": "Parent Visibility: Added trip-in-progress nuance — if a trip is in progress and parent opens the app, show real-time confirmation the trip is 'good' (status, key stats). But powerful summaries should naturally become the primary touchpoint over time; the app shouldn't feel like something to watch, but something to trust"
         },
         {
           "type": "changed",
-          "text": "Teen Outcomes: Moved 'Proof of innocence' (video) to bottom of list with future-phase note; promoted and strengthened 'Progress path' with confidence and anxiety reduction"
+          "text": "Parent Success: Added maintenance metric ('Head off costly maintenance issues before they escalate'). Added behavioral proxy metrics: decreasing frequency of parent opening the app within 15 min of a trip starting (indicates less anxiety), teen opens their score screen weekly, and teen shares a milestone (indicates trust being built)"
         },
         {
           "type": "added",
-          "text": "Teen Trust: Added parent-access phase ramp-down rule (parent sees more early, access decreases as trust is earned)"
+          "text": "Trust & Fairness (both personas): Added non-judgmental framing rule — information should be presented in an empowering way, not demotivating or judgmental. Added data privacy assurance — only parents and teen see data; confidence it won't be used against them, sold, or shared with third parties"
+        },
+        {
+          "type": "added",
+          "text": "Teen Triggers: Added 'check engine light or vehicle issue' as a trigger moment — teen should feel empowered, not helpless; know what's happening and what to do about it. Added 'demystify car ownership & maintenance' — build confidence around an unfamiliar responsibility"
+        },
+        {
+          "type": "changed",
+          "text": "Teen Outcomes: Moved 'Proof of innocence' (video evidence) to bottom of list with explicit future-phase note since it requires camera hardware. Promoted and strengthened 'Progress path' to top position — teen should know and feel confident they are improving; milestones lead to less oversight (earned independence); reduces anxiety and nerves about driving"
+        },
+        {
+          "type": "added",
+          "text": "Teen Trust & Fairness: Added parent-access phase ramp-down rule — parent sees more at the beginning, then access ramps down over time as trust is earned (phase model). This reinforces the 'trust ladder' concept from the parent persona"
         }
       ]
     },
@@ -46,31 +50,55 @@
       "changes": [
         {
           "type": "changed",
-          "text": "Setup: Reordered user actions (unbox first, then download app); added billing/payment collection, primary driver association, and optional secondary driver invites"
+          "text": "Step 1 – Setup (User Actions): Reordered so unbox comes first, then download app. Added billing/payment method collection early in the flow while user is still indoors — customers who purchased device + subscription on the website can bypass this step"
         },
         {
           "type": "added",
-          "text": "Setup: Miles now pulls vehicle data from OBD-II (VIN, make/model, status, diagnostics) as instant feedback during setup"
-        },
-        {
-          "type": "changed",
-          "text": "Trigger: Added OBD-II diagnostics to Miles Actions; updated opportunity to emphasize real-time accuracy as the key first-drive trust moment"
-        },
-        {
-          "type": "changed",
-          "text": "Interpretation: Updated user goal to focus on confidence in accuracy — \"Understand how Miles works. Get confidence that Miles is accurate and working quietly in the background\""
-        },
-        {
-          "type": "changed",
-          "text": "Action: Added first-trip push notification and alert customization prompt; shifted emotion to curious/interested; sharpened pain point around trip summary accuracy as the trust-buster"
+          "text": "Step 1 – Setup (User Actions): Added primary driver association as a required step — each device must have a primary driver, and trips are attributed to this driver unless told or detected otherwise. Added optional secondary drivers with 'send invite' capability, but invite acceptance is not required (important for SMB owners where the driver may not have app access)"
         },
         {
           "type": "added",
-          "text": "Resolution: Added option to reassign a trip to a different driver"
+          "text": "Step 1 – Setup (Miles Actions): Miles now pulls vehicle data from OBD-II on plug-in (VIN, make/model, vehicle status, location, diagnostics) — gives instant feedback that the device is working and has contextual awareness of the car before the first trip even starts"
         },
         {
           "type": "added",
-          "text": "Follow Up: Added setup completion prompts and dashboard status; added future consideration callout for parental access ramp-down phases (0–3)"
+          "text": "Step 1 – Setup (Touchpoints): Added payment method collection, primary driver setup + secondary driver invites, and vehicle data confirmation screen (VIN, make/model, status) to touchpoint list"
+        },
+        {
+          "type": "changed",
+          "text": "Step 2 – Trigger (Miles Actions): Added OBD-II vehicle diagnostics and status data pull alongside trip recording"
+        },
+        {
+          "type": "changed",
+          "text": "Step 2 – Trigger (Opportunity): Rewrote to emphasize real-time accuracy as the key first-drive test — users will watch the live map closely to see if the dot is accurate and responsive. If there's lag or the position is off, it creates doubt about reliability. These early 'live' moments are a big test; users tend to watch drives more at the beginning then taper off"
+        },
+        {
+          "type": "changed",
+          "text": "Step 3 – Interpretation (User Goal): Changed from 'Have Miles correctly understand this was a trip with clean boundaries' to 'Understand how Miles works. Get confidence that Miles is accurate and working quietly in the background'"
+        },
+        {
+          "type": "changed",
+          "text": "Step 4 – Action (Touchpoints): Added push notification on first trip completion (and possibly a few early drives). Added prompt to customize alert preferences with options: alert for every drive, alert only for drives with issues (driving events, vehicle issues), or no alert with daily/weekly email summary instead — per-trip alerts will get annoying quickly so customization should be prompted early"
+        },
+        {
+          "type": "changed",
+          "text": "Step 4 – Action (Emotion): Shifted from 'Neutral patience' to 'Curious / Interested' — ideally the trip was accurate, they're surprised by how simple it was, interested to see their data, and confident Miles captured it correctly. This leads them to wonder what else Miles can do"
+        },
+        {
+          "type": "changed",
+          "text": "Step 4 – Action (Pain Point): Sharpened to focus on trip summary accuracy as the biggest trust-buster — if the first result doesn't match what they just drove, confidence drops immediately. Must nail this"
+        },
+        {
+          "type": "added",
+          "text": "Step 5 – Resolution (User Actions + Miles Actions): Added option to reassign/associate a different driver with the trip from the trip detail screen"
+        },
+        {
+          "type": "added",
+          "text": "Step 6 – Follow Up (Miles Actions): Added prompts for continued setup and customization — show setup completion status on app dashboard so users see what's left to do. Surface naturally so users understand that investing a little effort (naming locations, etc.) unlocks more value from Miles"
+        },
+        {
+          "type": "added",
+          "text": "Step 6 – Follow Up (Future Consideration): Added parental access ramp-down concept for discussion — Phase 0 (Driver's Training): parent sees everything, Miles logs training hours and produces report. Phase 1 (First 90 Days): parent sees trip-level summaries, gets more alerts, driver score generated at end. Phase 2 (Good Record Sustained): parent sees weekly rollups, teen gets more granular control. Phase 3: teen can request 'independence mode.' Not overly strict — a recommended path with milestones to encourage sticking with it"
         }
       ]
     },
