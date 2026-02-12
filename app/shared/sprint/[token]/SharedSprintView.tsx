@@ -92,6 +92,7 @@ function formatFriendly(dateStr: string | null): string | null {
   const dt = new Date(`${dateStr}T00:00:00`);
   if (isNaN(dt.getTime())) return null;
   return new Intl.DateTimeFormat(undefined, {
+    weekday: "short",
     month: "long",
     day: "numeric",
     year: "numeric",
@@ -324,23 +325,27 @@ export default function SharedSprintView({
 
         {/* ── Timeline ──────────────────────────────── */}
         {(sprint.startDate || sprint.dueDate) && (
-          <section className="rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-6">
-            <h2 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-2">
-              Timeline
-            </h2>
-            <div className="text-base font-normal leading-normal text-pretty text-neutral-900 dark:text-neutral-100">
-              {sprint.startDate && sprint.dueDate ? (
-                <p>
+          <section className="grid gap-4 sm:grid-cols-2">
+            {sprint.startDate && (
+              <div className="rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-6">
+                <p className="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-500 mb-2">
+                  Start Date
+                </p>
+                <p className="text-xl font-semibold leading-snug text-balance tabular-nums text-neutral-900 dark:text-neutral-100">
                   {formatFriendly(sprint.startDate)}
-                  <span className="text-neutral-500 dark:text-neutral-500 mx-2">&rarr;</span>
+                </p>
+              </div>
+            )}
+            {sprint.dueDate && (
+              <div className="rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-6">
+                <p className="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-500 mb-2">
+                  Due Date
+                </p>
+                <p className="text-xl font-semibold leading-snug text-balance tabular-nums text-neutral-900 dark:text-neutral-100">
                   {formatFriendly(sprint.dueDate)}
                 </p>
-              ) : sprint.startDate ? (
-                <p>{formatFriendly(sprint.startDate)}</p>
-              ) : (
-                <p>{formatFriendly(sprint.dueDate)}</p>
-              )}
-            </div>
+              </div>
+            )}
           </section>
         )}
 
