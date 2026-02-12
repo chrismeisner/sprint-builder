@@ -11,6 +11,7 @@ type BudgetInputs = {
   totalProjectValue?: number;
   upfrontPayment?: number;
   upfrontPaymentTiming?: string;
+  completionPaymentTiming?: string;
   equitySplit?: number;
   milestones?: Array<{ id: number; summary: string; multiplier: number; date: string }>;
   milestoneMissOutcome?: string;
@@ -174,10 +175,32 @@ const MILESTONE_MISS_OUTCOMES: Record<string, string> = {
 function buildStandardPaymentSections(
   upfrontPct: number,
   totalPrice: number,
-  outputs?: BudgetOutputs
+  outputs?: BudgetOutputs,
+  upfrontPaymentTiming?: string,
+  completionPaymentTiming?: string
 ): string {
   const upfrontAmount = outputs?.upfrontAmount ?? (totalPrice * upfrontPct);
   const remainingAmount = outputs?.remainingOnCompletion ?? (totalPrice * (1 - upfrontPct));
+
+  // Map payment timing values to human-readable labels
+  const timingLabels: Record<string, string> = {
+    on_start: "due upon signing",
+    net7: "due within 7 days of kickoff",
+    net14: "due within 14 days of kickoff",
+    net30: "due within 30 days of kickoff",
+  };
+  const completionTimingLabels: Record<string, string> = {
+    on_delivery: "due upon delivery",
+    net7: "due within 7 days of delivery",
+    net15: "due within 15 days of delivery",
+    net30: "due within 30 days of delivery",
+  };
+  const timingLabel = upfrontPaymentTiming && timingLabels[upfrontPaymentTiming] 
+    ? timingLabels[upfrontPaymentTiming]
+    : "due upon signing";
+  const completionTimingLabel = completionPaymentTiming && completionTimingLabels[completionPaymentTiming]
+    ? completionTimingLabels[completionPaymentTiming]
+    : "due within 15 calendar days of delivery";
 
   // Edge case: 100% upfront — no split needed
   if (upfrontPct >= 0.99) {
@@ -185,7 +208,7 @@ function buildStandardPaymentSections(
 
 **Total Sprint Fee:** ${formatCurrency(totalPrice)}
 
-The full sprint fee is due upon signing of this Agreement and must be received prior to the Sprint Start Date. Work will not begin until payment has been received.
+The full sprint fee is ${timingLabel} of this Agreement and must be received prior to the Sprint Start Date. Work will not begin until payment has been received.
 
 All payments are to be made in USD via bank transfer, ACH, or other mutually agreed method.`;
   }
@@ -214,11 +237,11 @@ This engagement follows a ${kickoffPercent} upfront / ${completionPercent} compl
 | Kickoff Payment | ${kickoffPercent} | ${formatCurrency(upfrontAmount)} |
 | Completion Payment | ${completionPercent} | ${formatCurrency(remainingAmount)} |
 
-**Kickoff Payment** of ${formatCurrency(upfrontAmount)} is due upon signing of this Agreement and must be received prior to the Sprint Start Date.
+**Kickoff Payment** of ${formatCurrency(upfrontAmount)} is ${timingLabel} of this Agreement and must be received prior to the Sprint Start Date.
 
-**Completion Payment** of ${formatCurrency(remainingAmount)} is due upon delivery of the final sprint deliverables and is payable within 15 calendar days of delivery.
+**Completion Payment** of ${formatCurrency(remainingAmount)} is ${completionTimingLabel}. Delivery is defined as the Designer making the final sprint deliverables available to the Client in their completed form.
 
-Delivery is defined as the Designer making the final sprint deliverables available to the Client in their completed form. Delivery of final assets may be withheld until all outstanding balances are paid in full.`;
+Delivery of final assets may be withheld until all outstanding balances are paid in full.`;
 }
 
 // ── Builder: DEFERRED payment sections (kickoff + equity/milestone components) ──
@@ -237,13 +260,25 @@ function buildDeferredPaymentSections(
   const hasDeferred = deferredAmount > 0.01;
   const hasEquity = equityAmount > 0.01;
 
+  // Map payment timing values to human-readable labels
+  const timingLabels: Record<string, string> = {
+    on_start: "due upon signing",
+    net7: "due within 7 days of kickoff",
+    net14: "due within 14 days of kickoff",
+    net30: "due within 30 days of kickoff",
+  };
+  const upfrontPaymentTiming = inputs.upfrontPaymentTiming;
+  const timingLabel = upfrontPaymentTiming && timingLabels[upfrontPaymentTiming] 
+    ? timingLabels[upfrontPaymentTiming]
+    : "due upon signing";
+
   // Edge case: deferred plan configured but no actual deferred/equity → simple kickoff
   if (!hasDeferred && !hasEquity) {
     return `## 3. Payment Terms
 
 **Total Project Value:** ${formatCurrency(totalProjectValue)}
 
-The full project fee is due upon signing of this Agreement and must be received prior to the Sprint Start Date. Work will not begin until payment has been received.
+The full project fee is ${timingLabel} of this Agreement and must be received prior to the Sprint Start Date. Work will not begin until payment has been received.
 
 All payments are to be made in USD via bank transfer, ACH, or other mutually agreed method.`;
   }
@@ -289,7 +324,7 @@ This engagement includes a structured compensation model as outlined below:
   }
 
   // Kickoff payment terms
-  result += `\n\n**Kickoff Payment** of ${formatCurrency(upfrontAmount)} is due upon signing of this Agreement and must be received prior to the Sprint Start Date.`;
+  result += `\n\n**Kickoff Payment** of ${formatCurrency(upfrontAmount)} is ${timingLabel} of this Agreement and must be received prior to the Sprint Start Date.`;
 
   // Equity terms
   if (hasEquity) {
@@ -527,17 +562,19 @@ export async function POST(request: Request, { params }: Params) {
       } else {
         template = STANDARD_AGREEMENT_TEMPLATE;
         const upfrontPct = budgetRow.inputs.upfrontPayment ?? 0.5;
-        paymentSections = buildStandardPaymentSections(upfrontPct, totalPrice, budgetRow.outputs);
+        const timing = budgetRow.inputs.upfrontPaymentTiming;
+        const completionTiming = budgetRow.inputs.completionPaymentTiming;
+        paymentSections = buildStandardPaymentSections(upfrontPct, totalPrice, budgetRow.outputs, timing, completionTiming);
       }
     } else if (sprint.has_deferred_comp === false && sprint.upfront_payment_percent != null) {
       // No saved budget plan, but the sprint has non-deferred settings
       template = STANDARD_AGREEMENT_TEMPLATE;
       const upfrontPct = Number(sprint.upfront_payment_percent) / 100;
-      paymentSections = buildStandardPaymentSections(upfrontPct, totalPrice);
+      paymentSections = buildStandardPaymentSections(upfrontPct, totalPrice, undefined, "on_start", "net30");
     } else {
       // Default: standard 50/50 split
       template = STANDARD_AGREEMENT_TEMPLATE;
-      paymentSections = buildStandardPaymentSections(0.5, totalPrice);
+      paymentSections = buildStandardPaymentSections(0.5, totalPrice, undefined, "on_start", "net30");
     }
 
     // Build client description

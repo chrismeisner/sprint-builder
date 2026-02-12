@@ -51,6 +51,7 @@ type BudgetInputs = {
   totalProjectValue?: number;
   upfrontPayment?: number;
   upfrontPaymentTiming?: string;
+  completionPaymentTiming?: string;
   equitySplit?: number;
   milestones?: BudgetMilestone[];
   milestoneMissOutcome?: string;
@@ -145,6 +146,7 @@ export default function SharedSprintView({
   const [editMidweek, setEditMidweek] = useState("");
   const [editEndOfWeek, setEditEndOfWeek] = useState("");
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   const openEditor = useCallback((week: number) => {
@@ -224,6 +226,28 @@ export default function SharedSprintView({
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSyncDeliverables = async () => {
+    if (!sprintId) return;
+    setSyncing(true);
+    try {
+      const res = await fetch(`/api/sprint-drafts/${sprintId}/sync-deliverables`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        // Reload the page to show updated deliverables
+        window.location.reload();
+      } else {
+        alert(data.error || "Failed to sync deliverables");
+      }
+    } catch (error) {
+      console.error("Sync error:", error);
+      alert("Failed to sync deliverables");
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -363,12 +387,27 @@ export default function SharedSprintView({
 
         {/* ── Deliverables ──────────────────────────── */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold leading-snug text-balance text-neutral-900 dark:text-neutral-100">
-            Deliverables
-            <span className="text-neutral-500 dark:text-neutral-500 font-normal ml-2">
-              {deliverables.length}
-            </span>
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold leading-snug text-balance text-neutral-900 dark:text-neutral-100">
+              Deliverables
+              <span className="text-neutral-500 dark:text-neutral-500 font-normal ml-2">
+                {deliverables.length}
+              </span>
+            </h2>
+            {isAdmin && sprintId && (
+              <button
+                type="button"
+                onClick={handleSyncDeliverables}
+                disabled={syncing}
+                className="inline-flex items-center gap-2 h-8 px-3 text-sm font-medium rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-150 disabled:opacity-50"
+              >
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                {syncing ? "Syncing..." : "Sync"}
+              </button>
+            )}
+          </div>
 
           {Object.entries(byCategory).map(([category, items]) => (
             <div
@@ -490,14 +529,23 @@ export default function SharedSprintView({
                 const hasEquity = isDeferred && equityAmount > 0.01;
                 const milestones = isDeferred ? (inputs.milestones ?? []) : [];
                 const timingLabels: Record<string, string> = {
-                  on_start: "Due on start",
-                  net7: "Net 7",
-                  net14: "Net 14",
-                  net30: "Net 30",
+                  on_start: "Due upon signing",
+                  net7: "Net 7 (due 7 days after kickoff)",
+                  net14: "Net 14 (due 14 days after kickoff)",
+                  net30: "Net 30 (due 30 days after kickoff)",
+                };
+                const completionTimingLabels: Record<string, string> = {
+                  on_delivery: "Due upon final delivery",
+                  net7: "Net 7 (due 7 days after delivery)",
+                  net15: "Net 15 (due 15 days after delivery)",
+                  net30: "Net 30 (due 30 days after delivery)",
                 };
                 const timing = inputs.upfrontPaymentTiming
                   ? timingLabels[inputs.upfrontPaymentTiming] ?? inputs.upfrontPaymentTiming
                   : null;
+                const completionTiming = inputs.completionPaymentTiming
+                  ? completionTimingLabels[inputs.completionPaymentTiming] ?? completionTimingLabels.on_delivery
+                  : "Due upon final delivery";
 
                 return (
                   <div className="px-6 py-6 space-y-6">
@@ -566,7 +614,7 @@ export default function SharedSprintView({
                                 On Completion
                               </p>
                               <p className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500 mt-0.5">
-                                Due upon final delivery
+                                {completionTiming}
                               </p>
                             </div>
                           </div>

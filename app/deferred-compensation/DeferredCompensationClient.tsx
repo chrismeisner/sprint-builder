@@ -14,6 +14,7 @@ type SavedPlanInputs = {
   totalProjectValue?: number;
   upfrontPayment?: number;
   upfrontPaymentTiming?: string;
+  completionPaymentTiming?: string;
   equitySplit?: number;
   milestones?: Array<{ id: number; summary: string; multiplier: number; date: string }>;
   milestoneMissOutcome?: string;
@@ -21,10 +22,18 @@ type SavedPlanInputs = {
 
 // Payment timing options
 const PAYMENT_TIMING_OPTIONS = [
-  { value: "on_start", label: "On Start (due on signing)" },
-  { value: "net7", label: "Net 7 (7 days after delivery)" },
-  { value: "net14", label: "Net 14 (14 days after delivery)" },
-  { value: "net30", label: "Net 30 (30 days after delivery)" },
+  { value: "on_start", label: "Due upon signing" },
+  { value: "net7", label: "Net 7 (due 7 days after kickoff)" },
+  { value: "net14", label: "Net 14 (due 14 days after kickoff)" },
+  { value: "net30", label: "Net 30 (due 30 days after kickoff)" },
+] as const;
+
+// Completion payment timing options (for non-deferred sprints)
+const COMPLETION_TIMING_OPTIONS = [
+  { value: "on_delivery", label: "Due upon delivery (0 days)" },
+  { value: "net7", label: "Net 7 (due 7 days after delivery)" },
+  { value: "net15", label: "Net 15 (due 15 days after delivery)" },
+  { value: "net30", label: "Net 30 (due 30 days after delivery)" },
 ] as const;
 
 type SprintInfo = SprintOption & {
@@ -143,6 +152,13 @@ export default function DeferredCompensationClient({
     if (savedPlan?.upfrontPaymentTiming && typeof savedPlan.upfrontPaymentTiming === "string") {
       return savedPlan.upfrontPaymentTiming;
     }
+    return "on_start";
+  }, [savedPlan]);
+
+  const initialCompletionPaymentTiming = useMemo(() => {
+    if (savedPlan?.completionPaymentTiming && typeof savedPlan.completionPaymentTiming === "string") {
+      return savedPlan.completionPaymentTiming;
+    }
     return "net30";
   }, [savedPlan]);
 
@@ -169,6 +185,7 @@ export default function DeferredCompensationClient({
   >(initialMilestones);
   const [milestoneMissOutcome, setMilestoneMissOutcome] = useState(initialMilestoneMissOutcome);
   const [upfrontPaymentTiming, setUpfrontPaymentTiming] = useState(initialUpfrontPaymentTiming);
+  const [completionPaymentTiming, setCompletionPaymentTiming] = useState(initialCompletionPaymentTiming);
   const [selectedSprint, setSelectedSprint] = useState(defaultSprintId ?? "");
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
   const [newMilestoneSummary, setNewMilestoneSummary] = useState("");
@@ -223,6 +240,7 @@ export default function DeferredCompensationClient({
           totalProjectValue,
           upfrontPayment,
           upfrontPaymentTiming,
+          completionPaymentTiming: !isDeferred ? completionPaymentTiming : null,
           equitySplit: isDeferred ? equitySplit : 0,
           milestones: isDeferred ? milestones : [],
           milestoneMissOutcome: isDeferred ? milestoneMissOutcome : null,
@@ -901,13 +919,34 @@ export default function DeferredCompensationClient({
 
         {/* Remaining on completion — shown when NOT deferred */}
         {!isDeferred && remainingPercent > 0 && (
-          <div className="rounded-lg p-3 flex items-center justify-between bg-surface-subtle">
-            <Typography as="span" scale="body-sm" className="text-text-primary">
-              Due on Completion ({formatPercent(remainingPercent)})
-            </Typography>
-            <Typography as="span" scale="body-sm" className="font-medium text-text-primary">
-              {formatCurrency(remainingPercent * totalProjectValue)}
-            </Typography>
+          <div className="space-y-4">
+            <div className="rounded-lg p-3 flex items-center justify-between bg-surface-subtle">
+              <Typography as="span" scale="body-sm" className="text-text-primary">
+                Due on Completion ({formatPercent(remainingPercent)})
+              </Typography>
+              <Typography as="span" scale="body-sm" className="font-medium text-text-primary">
+                {formatCurrency(remainingPercent * totalProjectValue)}
+              </Typography>
+            </div>
+
+            {/* Completion Payment Timing Selector */}
+            <div className="flex items-center justify-between gap-4">
+              <Typography as="span" scale="body-sm" className="text-text-secondary">
+                Completion Payment Due:
+              </Typography>
+              <select
+                value={completionPaymentTiming}
+                onChange={(e) => setCompletionPaymentTiming(e.target.value)}
+                disabled={calculatorDisabled}
+                className="px-3 py-1.5 rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black text-text-primary focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-60 cursor-pointer"
+              >
+                {COMPLETION_TIMING_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
 
