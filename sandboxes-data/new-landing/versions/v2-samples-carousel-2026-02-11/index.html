@@ -63,7 +63,7 @@
   <div class="min-h-dvh flex flex-col lg:flex-row">
     
     <!-- Sidebar -->
-    <aside class="hidden lg:flex lg:w-64 lg:fixed lg:h-dvh lg:border-r border-neutral-200 dark:border-neutral-700 p-8 lg:p-10 flex-col bg-white dark:bg-neutral-900">
+    <aside id="sidebar" class="hidden lg:flex lg:w-64 lg:fixed lg:h-dvh lg:border-r border-neutral-200 dark:border-neutral-700 p-8 lg:p-10 flex-col bg-white dark:bg-neutral-900 z-40 transition-transform duration-300 ease-in-out">
       <!-- Logo (scroll to top) -->
       <div class="mb-8">
         <a href="#" id="scroll-top" class="block rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400" aria-label="Back to top">
@@ -78,8 +78,8 @@
           <li><a href="#capabilities" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Capabilities</a></li>
           <li><a href="#services" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Services</a></li>
           <li><a href="#availability" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Availability</a></li>
-          <li><a href="#projects" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Projects</a></li>
           <li><a href="#contact" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">About</a></li>
+          <li><a href="#projects" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Projects</a></li>
         </ul>
       </nav>
 
@@ -93,6 +93,12 @@
           <span id="theme-label-dark" class="hidden dark:inline">Light mode</span>
         </button>
 
+        <!-- Minimize Sidebar -->
+        <button id="sidebar-minimize" type="button" class="flex items-center gap-2 text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400 rounded-md" aria-label="Minimize sidebar">
+          <svg class="size-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/></svg>
+          <span>Hide menu</span>
+        </button>
+
         <!-- Version Link (for dev reference) -->
         <a href="../index.html" class="block text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">
           View Versions
@@ -100,11 +106,26 @@
       </div>
     </aside>
 
+    <!-- Show Sidebar Button (visible when sidebar is collapsed) -->
+    <button id="sidebar-show" type="button" class="hidden lg:hidden fixed top-4 right-4 z-50 items-center justify-center size-9 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:border-neutral-400 dark:hover:border-neutral-500 shadow-sm transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400" aria-label="Show sidebar">
+      <svg class="size-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
+    </button>
+
     <!-- Main Content -->
-    <main class="flex-1 lg:ml-64">
+    <main id="main-content" class="flex-1 lg:ml-64 transition-[margin] duration-300 ease-in-out">
+
+      <!-- Sticky Header (appears after hero CTA scrolls out of view) -->
+      <div id="sticky-header" class="sticky top-0 z-50 -translate-y-full opacity-0 pointer-events-none transition-all duration-300 ease-in-out">
+        <div class="flex items-center justify-between px-8 lg:px-16 py-3 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-700">
+          <span class="text-sm font-medium text-neutral-900 dark:text-neutral-100">Chris Meisner</span>
+          <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center h-8 px-3 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
+            Book call
+          </a>
+        </div>
+      </div>
       
       <!-- About Section -->
-      <section id="about" class="p-8 lg:p-16 lg:py-24">
+      <section id="about" class="p-8 lg:px-16 lg:py-10">
         <div class="max-w-2xl mx-auto">
           <div class="mb-12">
             <h2 class="font-sans text-4xl font-semibold leading-tight mb-6 text-balance text-neutral-900 dark:text-neutral-100">Chris Meisner</h2>
@@ -113,17 +134,27 @@
                 Senior product &amp; brand design for teams shipping complex products — fast, clearly, and at scale.
               </p>
               <p class="text-sm font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400">
-                I partner with early-stage founders and product-led startups — usually Series A or earlier — who are building something real but need senior design to get it out the door. Whether it's shaping a brand from scratch, designing the first product experience, or plugging into a team that's moving fast and needs someone who can keep up.
+                I partner with early-stage founders and product-led startups — usually Series A or earlier — who are building something real but need senior design to get it out the door. Whether it's shaping a brand from scratch, designing the first product experience, or coming back for the next phase — I plug in wherever you are and help you ship.
               </p>
             </div>
-            <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center h-10 px-4 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
+            <a id="hero-cta" href="https://cal.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center h-10 px-4 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
               Book a discovery call
             </a>
           </div>
+        </div>
+      </section>
+
+      <!-- Capabilities Section -->
+      <section id="capabilities" class="p-8 lg:px-16 lg:py-10">
+        <div class="max-w-2xl mx-auto">
+          <div class="mb-12">
+            <h2 class="font-sans text-2xl font-semibold leading-snug mb-4 text-balance text-neutral-900 dark:text-neutral-100">Capabilities</h2>
+            <p class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 text-pretty max-w-lg">From brand foundations to product experiences — here's what I can help you build.</p>
+          </div>
 
           <!-- Carousel Container -->
-          <div id="samples" class="scroll-mt-16">
-            <button type="button" id="samples-carousel" class="relative mb-8 w-full block text-left rounded-md overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400 cursor-pointer bg-transparent border-0 p-0" aria-label="Advance to next sample">
+          <div id="samples" class="scroll-mt-16 mb-12">
+            <button type="button" id="samples-carousel" class="relative w-full block text-left rounded-md overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400 cursor-pointer bg-transparent border-0 p-0" aria-label="Advance to next sample">
               <!-- Carousel Viewport (fade transition) -->
               <div class="overflow-hidden rounded-md aspect-[3/2] bg-neutral-100 dark:bg-neutral-800">
                 <div id="carousel-track" class="relative w-full h-full">
@@ -131,22 +162,6 @@
                 </div>
               </div>
             </button>
-
-            <!-- Carousel Info -->
-            <p id="carousel-description" class="text-xs leading-relaxed text-neutral-500 dark:text-neutral-500 text-pretty">Full brand foundation for an early-stage fintech startup, including logo design, color palette, typography system, and comprehensive brand guidelines.</p>
-          </div>
-
-        </div>
-      </section>
-
-      <!-- Divider -->
-      <div class="px-8 lg:px-16"><div class="max-w-2xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
-
-      <!-- Capabilities Section -->
-      <section id="capabilities" class="p-8 lg:p-16 lg:py-24">
-        <div class="max-w-2xl mx-auto">
-          <div class="mb-8">
-            <h2 class="font-sans text-2xl font-semibold leading-snug mb-2 text-balance text-neutral-900 dark:text-neutral-100">Capabilities</h2>
           </div>
 
           <div class="grid sm:grid-cols-2 gap-x-12 gap-y-10">
@@ -180,18 +195,16 @@
             </div>
 
           </div>
+
         </div>
       </section>
 
-      <!-- Divider -->
-      <div class="px-8 lg:px-16"><div class="max-w-2xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
-
       <!-- Services Section -->
-      <section id="services" class="p-8 lg:p-16 lg:py-24">
+      <section id="services" class="p-8 lg:px-16 lg:py-10">
         <div class="max-w-2xl mx-auto">
           <div class="mb-12">
             <h2 class="font-sans text-2xl font-semibold leading-snug mb-4 text-balance text-neutral-900 dark:text-neutral-100">Services</h2>
-            <p class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 text-pretty max-w-lg">A structured sprint I drive, or flexible capacity where I plug into your team. Either way — let's talk.</p>
+            <p class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 text-pretty max-w-lg">Focused sprints you can stack as you grow, or flexible capacity where I plug into your team. Either way — let's talk.</p>
           </div>
 
           <div id="foundation-sprints" class="space-y-8">
@@ -199,7 +212,7 @@
             <div class="mb-6">
               <div class="mb-4">
                 <h3 class="text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100 text-balance"><span class="emoji">🪏</span> Foundation Sprint</h3>
-                <p class="text-neutral-500 dark:text-neutral-500 mt-1">Build your brand or product — scoped to what you need</p>
+                <p class="text-neutral-500 dark:text-neutral-500 mt-1">Build your brand or product — one sprint at a time</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <span class="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">1–2 weeks</span>
@@ -212,7 +225,7 @@
               You leave with clarity, alignment, and a shippable direction.
             </p>
             <p class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 mb-8 text-pretty">
-              Every Foundation Sprint is built in the studio Sprint Builder, where you select from brand or product deliverables to shape the exact scope. Whether you need a full visual identity or a UX prototype — the sprint is tailored to your stage and budget.
+              Every Foundation Sprint is built in the studio Sprint Builder, where you select from brand or product deliverables to shape the exact scope. Start with what matters most now — a brand identity, a UX prototype, a product direction — then come back for the next sprint when you're ready.
             </p>
             
             <div class="grid sm:grid-cols-2 gap-8 mb-8">
@@ -271,14 +284,6 @@
               </div>
             </div>
 
-            <div class="border-t border-neutral-200 dark:border-neutral-700 pt-6">
-              <p class="text-sm text-neutral-500 dark:text-neutral-500 text-pretty mb-4">
-                Deliverables are selected and scoped in the Sprint Builder. Budget is based on what you select and the number of weeks — you see a clear price before we begin.
-              </p>
-              <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center h-10 px-4 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
-                Book a discovery call
-              </a>
-            </div>
           </div>
 
           <div id="team-player" class="border border-neutral-200 dark:border-neutral-700 rounded-md p-6 lg:p-8">
@@ -346,80 +351,48 @@
               </div>
             </div>
             
-            <div class="mt-6 pt-6 border-t border-neutral-200 dark:border-neutral-700">
-              <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center h-10 px-4 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
-                Book a discovery call
-              </a>
-            </div>
           </div>
 
           </div>
         </div>
       </section>
 
-      <!-- Divider -->
-      <div class="px-8 lg:px-16"><div class="max-w-2xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
-
       <!-- Availability Section -->
-      <section id="availability" class="p-8 lg:p-16 lg:py-24">
+      <section id="availability" class="p-8 lg:px-16 lg:py-10">
         <div class="max-w-2xl mx-auto">
           <div class="mb-8">
             <h2 class="font-sans text-2xl font-semibold leading-snug mb-2 text-balance text-neutral-900 dark:text-neutral-100">Availability</h2>
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 text-pretty mt-4">
+              Availability shifts quickly — if you see an opening that works, lock it in. <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="underline text-neutral-900 dark:text-neutral-100 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">Book a quick call</a> and let's see if it's a fit.
+            </p>
           </div>
 
           <div id="availability-calendar" class="border border-neutral-200 dark:border-neutral-700 rounded-md p-6 lg:p-8">
-            <!-- Calendar Grids (3 months, vertically stacked) -->
-            <div class="space-y-0">
-              <!-- Month 1 -->
-              <div class="pb-6">
-                <h3 id="cal-month-1-label" class="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-4 text-center"></h3>
-                <div class="grid grid-cols-7 mb-2">
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">S</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">M</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">T</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">W</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">T</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">F</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">S</div>
-                </div>
-                <div id="cal-grid-1" class="grid grid-cols-7"></div>
+            <!-- Calendar Month (Single Month View) -->
+            <div>
+              <div class="flex items-center justify-between mb-4 gap-4">
+                <button type="button" id="cal-prev" class="flex items-center justify-center size-8 rounded-md text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-500" aria-label="Previous month">
+                  <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                  </svg>
+                </button>
+                <h3 id="cal-month-label" class="text-sm font-medium text-neutral-900 dark:text-neutral-100 text-center flex-1"></h3>
+                <button type="button" id="cal-next" class="flex items-center justify-center size-8 rounded-md text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-500" aria-label="Next month">
+                  <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
               </div>
-
-              <!-- Divider -->
-              <div class="border-t border-neutral-200 dark:border-neutral-700 my-6"></div>
-
-              <!-- Month 2 -->
-              <div class="pt-6 pb-6">
-                <h3 id="cal-month-2-label" class="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-4 text-center"></h3>
-                <div class="grid grid-cols-7 mb-2">
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">S</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">M</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">T</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">W</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">T</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">F</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">S</div>
-                </div>
-                <div id="cal-grid-2" class="grid grid-cols-7"></div>
+              <div class="grid grid-cols-7 mb-2">
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">S</div>
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">M</div>
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">T</div>
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">W</div>
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">T</div>
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">F</div>
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">S</div>
               </div>
-
-              <!-- Divider -->
-              <div class="border-t border-neutral-200 dark:border-neutral-700 my-6"></div>
-
-              <!-- Month 3 -->
-              <div class="pt-6">
-                <h3 id="cal-month-3-label" class="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-4 text-center"></h3>
-                <div class="grid grid-cols-7 mb-2">
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">S</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">M</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">T</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">W</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">T</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">F</div>
-                  <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">S</div>
-                </div>
-                <div id="cal-grid-3" class="grid grid-cols-7"></div>
-              </div>
+              <div id="cal-grid" class="grid grid-cols-7 transition-opacity duration-200 ease-in-out"></div>
             </div>
 
             <!-- Legend -->
@@ -439,17 +412,40 @@
             </div>
           </div>
 
-          <p class="text-sm text-neutral-600 dark:text-neutral-400 text-pretty mt-8">
-            Availability shifts quickly — if you see an opening that works, lock it in. <a href="https://cal.com" target="_blank" rel="noopener noreferrer" class="underline text-neutral-900 dark:text-neutral-100 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">Book a quick call</a> and let's see if it's a fit.
-          </p>
         </div>
       </section>
 
-      <!-- Divider -->
-      <div class="px-8 lg:px-16"><div class="max-w-2xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
+      <!-- Contact Section -->
+      <section id="contact" class="p-8 lg:px-16 lg:py-10">
+        <div class="max-w-2xl mx-auto">
+          <h2 class="font-sans text-2xl font-semibold leading-snug mb-6 text-balance text-neutral-900 dark:text-neutral-100">About</h2>
+          
+          <div class="flex flex-col md:flex-row gap-8 lg:gap-12 items-start">
+            <!-- Profile Image -->
+            <div class="size-48 md:size-64 flex-shrink-0">
+              <img src="../../images/headshot.jpeg" alt="Chris Meisner" class="size-full object-cover rounded-md">
+            </div>
+            
+            <!-- Contact Info -->
+            <div class="space-y-6">
+              <p class="text-base font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400">
+                Whether you need your first Foundation Sprint or your next one — let's talk about what you're building.
+              </p>
+              <a href="mailto:hello@chrismeisner.com" class="text-neutral-900 dark:text-neutral-100 underline hover:text-neutral-600 dark:hover:text-neutral-400 text-lg">hello@chrismeisner.com</a>
+              <div class="flex gap-4 pt-4">
+                <a href="https://dribbble.com" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">Dribbble</a>
+                <span class="text-neutral-300 dark:text-neutral-600">·</span>
+                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">LinkedIn</a>
+                <span class="text-neutral-300 dark:text-neutral-600">·</span>
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">Twitter</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- Projects Section -->
-      <section id="projects" class="p-8 lg:p-16 lg:py-24">
+      <section id="projects" class="p-8 lg:px-16 lg:py-10">
         <div class="max-w-2xl mx-auto">
           <div class="mb-8">
             <h2 class="font-sans text-2xl font-semibold leading-snug mb-2 text-balance text-neutral-900 dark:text-neutral-100">Projects</h2>
@@ -548,40 +544,8 @@
         </div>
       </section>
 
-      <!-- Divider -->
-      <div class="px-8 lg:px-16"><div class="max-w-2xl mx-auto border-t border-neutral-200 dark:border-neutral-700"></div></div>
-
-      <!-- Contact Section -->
-      <section id="contact" class="p-8 lg:p-16 lg:py-24">
-        <div class="max-w-2xl mx-auto">
-          <h2 class="font-sans text-2xl font-semibold leading-snug mb-6 text-balance text-neutral-900 dark:text-neutral-100">About</h2>
-          
-          <div class="flex flex-col md:flex-row gap-8 lg:gap-12 items-start">
-            <!-- Profile Image -->
-            <div class="size-48 md:size-64 flex-shrink-0">
-              <img src="../../images/headshot.jpeg" alt="Chris Meisner" class="size-full object-cover rounded-md">
-            </div>
-            
-            <!-- Contact Info -->
-            <div class="space-y-6">
-              <p class="text-base font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400">
-                Whether you need a Foundation Sprint or a Team Player — let's talk about what you're building.
-              </p>
-              <a href="mailto:hello@chrismeisner.com" class="text-neutral-900 dark:text-neutral-100 underline hover:text-neutral-600 dark:hover:text-neutral-400 text-lg">hello@chrismeisner.com</a>
-              <div class="flex gap-4 pt-4">
-                <a href="https://dribbble.com" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">Dribbble</a>
-                <span class="text-neutral-300 dark:text-neutral-600">·</span>
-                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">LinkedIn</a>
-                <span class="text-neutral-300 dark:text-neutral-600">·</span>
-                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">Twitter</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <!-- Footer -->
-      <footer class="p-8 lg:p-16 border-t border-neutral-200 dark:border-neutral-700">
+      <footer class="p-8 lg:px-16 lg:py-10 border-t border-neutral-200 dark:border-neutral-700">
         <div class="max-w-2xl mx-auto">
           <p class="text-neutral-400 dark:text-neutral-500 text-sm">&copy; 2026 Chris Meisner. All rights reserved.</p>
         </div>
@@ -608,6 +572,27 @@
       });
     });
 
+    // ── Sticky header (show when hero CTA scrolls out of view) ──
+    const heroCta = document.getElementById('hero-cta');
+    const stickyHeader = document.getElementById('sticky-header');
+
+    const ctaObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          // Hero CTA is visible — hide sticky header
+          stickyHeader.classList.add('-translate-y-full', 'opacity-0', 'pointer-events-none');
+          stickyHeader.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+        } else {
+          // Hero CTA is out of view — show sticky header
+          stickyHeader.classList.remove('-translate-y-full', 'opacity-0', 'pointer-events-none');
+          stickyHeader.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+        }
+      },
+      { threshold: 0 }
+    );
+
+    ctaObserver.observe(heroCta);
+
     // ── Dark mode toggle (press 'd' or click button) ──
     function toggleDarkMode() {
       document.documentElement.classList.toggle('dark');
@@ -622,22 +607,49 @@
       }
     });
 
+    // ── Sidebar collapse/expand ──────────────────────────
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('main-content');
+    const sidebarMinimize = document.getElementById('sidebar-minimize');
+    const sidebarShow = document.getElementById('sidebar-show');
+    let sidebarCollapsed = false;
+
+    function collapseSidebar() {
+      sidebarCollapsed = true;
+      sidebar.classList.add('-translate-x-full');
+      mainContent.classList.remove('lg:ml-64');
+      mainContent.classList.add('lg:ml-0');
+      // Show the re-open button (needs flex on lg)
+      sidebarShow.classList.remove('lg:hidden');
+      sidebarShow.classList.add('lg:flex');
+    }
+
+    function expandSidebar() {
+      sidebarCollapsed = false;
+      sidebar.classList.remove('-translate-x-full');
+      mainContent.classList.remove('lg:ml-0');
+      mainContent.classList.add('lg:ml-64');
+      // Hide the re-open button
+      sidebarShow.classList.remove('lg:flex');
+      sidebarShow.classList.add('lg:hidden');
+    }
+
+    sidebarMinimize.addEventListener('click', collapseSidebar);
+    sidebarShow.addEventListener('click', expandSidebar);
+
     // ── Samples Carousel (Fade) ──────────────────────────
     const slides = [
       {
         image: '../../images/projects/01a.png',
-        alt: 'Brand identity design sample',
-        description: 'Full brand foundation for an early-stage fintech startup, including logo design, color palette, typography system, and comprehensive brand guidelines.'
+        alt: 'Brand identity design sample'
       },
       {
         image: '../../images/projects/01b.png',
-        alt: 'Brand identity collateral',
-        description: 'Extended identity touchpoints and marketing materials including business cards, letterhead, social media templates, and presentation decks.'
+        alt: 'Brand identity collateral'
       }
     ];
 
     const track = document.getElementById('carousel-track');
-    const descEl = document.getElementById('carousel-description');
     let currentSlide = 0;
 
     // Build slides with fade transition
@@ -660,9 +672,6 @@
       // Fade in new
       currentSlide = index;
       track.children[currentSlide].style.opacity = '1';
-      
-      // Update description
-      descEl.textContent = slides[currentSlide].description;
     }
 
     function advanceNext() {
@@ -679,9 +688,10 @@
     // Auto-advance every 4 seconds
     setInterval(advanceNext, 4000);
 
-    // ── Availability Calendar ─────────────────────
+    // ── Availability Calendar (Carousel with Swipe) ─────────────────────
     (async function () {
       const today = new Date();
+      let currentMonthIndex = 0;
       
       // Load availability from JSON
       let weeklyAvailability = {};
@@ -743,18 +753,17 @@
       }
 
       function renderMonth(monthOffset) {
-        const gridId = 'cal-grid-' + (monthOffset + 1);
-        const labelId = 'cal-month-' + (monthOffset + 1) + '-label';
-        
-        const grid = document.getElementById(gridId);
-        const label = document.getElementById(labelId);
+        const grid = document.getElementById('cal-grid');
+        const label = document.getElementById('cal-month-label');
         
         const currentMonth = today.getMonth() + monthOffset;
         const currentYear = today.getFullYear() + Math.floor(currentMonth / 12);
         const month = ((currentMonth % 12) + 12) % 12;
         
         label.textContent = monthNames[month] + ' ' + currentYear;
-        grid.innerHTML = '';
+        
+        // Build the new month content
+        const fragment = document.createDocumentFragment();
 
         const firstDay = new Date(currentYear, month, 1).getDay();
         const daysInMonth = new Date(currentYear, month + 1, 0).getDate();
@@ -763,7 +772,7 @@
         for (let i = 0; i < firstDay; i++) {
           const empty = document.createElement('div');
           empty.className = 'py-1.5';
-          grid.appendChild(empty);
+          fragment.appendChild(empty);
         }
 
         for (let d = 1; d <= daysInMonth; d++) {
@@ -793,14 +802,119 @@
           }
 
           cell.appendChild(inner);
-          grid.appendChild(cell);
+          fragment.appendChild(cell);
+        }
+        
+        // Replace content with fade effect
+        grid.style.opacity = '0';
+        setTimeout(() => {
+          grid.innerHTML = '';
+          grid.appendChild(fragment);
+          grid.style.opacity = '1';
+        }, 200);
+      }
+
+      function updateArrows() {
+        const prevBtn = document.getElementById('cal-prev');
+        const nextBtn = document.getElementById('cal-next');
+        
+        // Disable prev button on first month
+        prevBtn.disabled = currentMonthIndex === 0;
+        
+        // Disable next button on last month
+        nextBtn.disabled = currentMonthIndex === 2;
+      }
+
+      function showMonth(index) {
+        currentMonthIndex = index;
+        renderMonth(index);
+        updateArrows();
+      }
+
+      // Initialize with first month
+      showMonth(0);
+
+      // Add click handlers to arrow buttons
+      document.getElementById('cal-prev').addEventListener('click', () => {
+        if (currentMonthIndex > 0) showMonth(currentMonthIndex - 1);
+      });
+      document.getElementById('cal-next').addEventListener('click', () => {
+        if (currentMonthIndex < 2) showMonth(currentMonthIndex + 1);
+      });
+
+      // ── Swipe/Drag functionality ──
+      const calendarContainer = document.getElementById('availability-calendar');
+      let startX = 0;
+      let startY = 0;
+      let isDragging = false;
+      let hasMoved = false;
+
+      function handleStart(e) {
+        const point = e.touches ? e.touches[0] : e;
+        startX = point.clientX;
+        startY = point.clientY;
+        isDragging = true;
+        hasMoved = false;
+        calendarContainer.style.cursor = 'grabbing';
+      }
+
+      function handleMove(e) {
+        if (!isDragging) return;
+        
+        const point = e.touches ? e.touches[0] : e;
+        const diffX = Math.abs(point.clientX - startX);
+        const diffY = Math.abs(point.clientY - startY);
+        
+        // If horizontal movement is greater than vertical, prevent default scroll
+        if (diffX > diffY && diffX > 10) {
+          e.preventDefault();
+          hasMoved = true;
         }
       }
 
-      // Render current month + next 2 months (3 months total)
-      renderMonth(0);
-      renderMonth(1);
-      renderMonth(2);
+      function handleEnd(e) {
+        if (!isDragging) return;
+        
+        const point = e.changedTouches ? e.changedTouches[0] : e;
+        const diffX = point.clientX - startX;
+        const diffY = Math.abs(point.clientY - startY);
+        
+        isDragging = false;
+        calendarContainer.style.cursor = '';
+
+        // Only trigger swipe if moved horizontally more than vertically
+        // and moved at least 50px
+        if (hasMoved && Math.abs(diffX) > 50 && Math.abs(diffX) > diffY) {
+          if (diffX > 0 && currentMonthIndex > 0) {
+            // Swiped right - go to previous month
+            showMonth(currentMonthIndex - 1);
+          } else if (diffX < 0 && currentMonthIndex < 2) {
+            // Swiped left - go to next month
+            showMonth(currentMonthIndex + 1);
+          }
+        }
+      }
+
+      function handleCancel() {
+        isDragging = false;
+        calendarContainer.style.cursor = '';
+      }
+
+      // Touch events
+      calendarContainer.addEventListener('touchstart', handleStart, { passive: true });
+      calendarContainer.addEventListener('touchmove', handleMove, { passive: false });
+      calendarContainer.addEventListener('touchend', handleEnd);
+      calendarContainer.addEventListener('touchcancel', handleCancel);
+
+      // Mouse events
+      calendarContainer.addEventListener('mousedown', handleStart);
+      calendarContainer.addEventListener('mousemove', handleMove);
+      calendarContainer.addEventListener('mouseup', handleEnd);
+      calendarContainer.addEventListener('mouseleave', handleCancel);
+
+      // Add cursor style hint
+      calendarContainer.style.cursor = 'grab';
+      calendarContainer.style.userSelect = 'none';
     })();
   </script>
 </body>

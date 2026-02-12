@@ -1,6 +1,80 @@
 {
   "entries": [
     {
+      "version": "1.0.4",
+      "date": "2026-02-12",
+      "title": "User Personas — content updates from stakeholder feedback",
+      "changes": [
+        {
+          "type": "changed",
+          "text": "Parent Outcomes: Reframed 'Context > constant monitoring' to 'Know what's happening & what to do next' (de-emphasize camera/why since cam isn't in v1); reframed 'Alerts, not streams' to emphasize background trust"
+        },
+        {
+          "type": "added",
+          "text": "Parent Outcomes: Added 'Vehicle peace of mind' outcome — head off costly maintenance, reduce stress of trusting teens with car upkeep"
+        },
+        {
+          "type": "changed",
+          "text": "Parent Visibility: Added trip-in-progress nuance — show real-time confirmation trip is 'good' when parent opens app mid-trip, but powerful summaries become the natural primary touchpoint"
+        },
+        {
+          "type": "changed",
+          "text": "Parent Success: Added maintenance metric and proxy metrics (app-open frequency within 15 min of trip start; teen weekly score screen opens and milestone shares)"
+        },
+        {
+          "type": "added",
+          "text": "Trust & Fairness (both personas): Added non-judgmental framing rule and data privacy assurance (won't be used against them, sold, or shared)"
+        },
+        {
+          "type": "added",
+          "text": "Teen Triggers: Added check-engine-light empowerment and 'demystify car ownership' trigger moments"
+        },
+        {
+          "type": "changed",
+          "text": "Teen Outcomes: Moved 'Proof of innocence' (video) to bottom of list with future-phase note; promoted and strengthened 'Progress path' with confidence and anxiety reduction"
+        },
+        {
+          "type": "added",
+          "text": "Teen Trust: Added parent-access phase ramp-down rule (parent sees more early, access decreases as trust is earned)"
+        }
+      ]
+    },
+    {
+      "version": "1.0.3",
+      "date": "2026-02-12",
+      "title": "First Trip Journey — content updates from stakeholder feedback",
+      "changes": [
+        {
+          "type": "changed",
+          "text": "Setup: Reordered user actions (unbox first, then download app); added billing/payment collection, primary driver association, and optional secondary driver invites"
+        },
+        {
+          "type": "added",
+          "text": "Setup: Miles now pulls vehicle data from OBD-II (VIN, make/model, status, diagnostics) as instant feedback during setup"
+        },
+        {
+          "type": "changed",
+          "text": "Trigger: Added OBD-II diagnostics to Miles Actions; updated opportunity to emphasize real-time accuracy as the key first-drive trust moment"
+        },
+        {
+          "type": "changed",
+          "text": "Interpretation: Updated user goal to focus on confidence in accuracy — \"Understand how Miles works. Get confidence that Miles is accurate and working quietly in the background\""
+        },
+        {
+          "type": "changed",
+          "text": "Action: Added first-trip push notification and alert customization prompt; shifted emotion to curious/interested; sharpened pain point around trip summary accuracy as the trust-buster"
+        },
+        {
+          "type": "added",
+          "text": "Resolution: Added option to reassign a trip to a different driver"
+        },
+        {
+          "type": "added",
+          "text": "Follow Up: Added setup completion prompts and dashboard status; added future consideration callout for parental access ramp-down phases (0–3)"
+        }
+      ]
+    },
+    {
       "version": "1.0.2",
       "date": "2026-01-26",
       "title": "Style tiles + palette refresh",

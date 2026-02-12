@@ -566,8 +566,11 @@
                 <div class="stage-section">
                   <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
-                    <li>Download app, create account, grant permissions (BLE, notifications)</li>
                     <li>Unbox package, review contents and quick-start guide</li>
+                    <li>Download app, create account, grant permissions (BLE, notifications)</li>
+                    <li>Add payment method (collected early, while indoors; bypassed for users who purchased device + subscription on website)</li>
+                    <li>Associate a primary driver with the device (required — trips are attributed to this driver unless told or detected otherwise)</li>
+                    <li>Optionally add secondary drivers; account owner can "send invite" to other users but invite acceptance is not required (important for SMB owners where the driver may not have app access)</li>
                     <li>Go to car — app guides user to OBD-II port location for their vehicle</li>
                     <li>Scan QR code on device to link it to account</li>
                     <li>Plug in dongle and start ignition (order TBD with vendor)</li>
@@ -580,6 +583,7 @@
                     <li>Bind device → account via QR scan + run firmware check/update</li>
                     <li>Dongle powers on from OBD + confirms "alive"</li>
                     <li>Read VIN automatically from OBD-II; fall back to camera scan if unsupported</li>
+                    <li>Pull vehicle data from OBD-II: make/model, vehicle status, location, diagnostics — gives instant feedback that Miles is plugged in and has contextual awareness of the car before the first trip</li>
                     <li>Establish baseline connectivity + readiness to detect trips</li>
                     <li>Begin 21-day free trial period</li>
                   </ul>
@@ -588,9 +592,12 @@
                   <div class="stage-label">⚙️ Touchpoints</div>
                   <ul class="stage-list">
                     <li>App onboarding (indoors)</li>
+                    <li>Payment method collection</li>
+                    <li>Primary driver setup + optional secondary driver invites</li>
                     <li>QR code scan</li>
                     <li>OS permission prompts</li>
                     <li>In-car install guided by app</li>
+                    <li>Vehicle data confirmation screen (VIN, make/model, status)</li>
                     <li>Quick-start guide</li>
                     <li>Help center</li>
                   </ul>
@@ -611,7 +618,7 @@
                     <span class="stage-callout-icon">💡</span>
                     <div class="stage-callout-content">
                       <div class="stage-callout-label">Opportunity</div>
-                      <div class="stage-callout-text">Indoor-first flow: maximize setup before going to the car; app guides to OBD-II port by vehicle; instant "device detected" reassurance; email capture enables follow-up if setup abandoned; 21-day trial removes commitment anxiety</div>
+                      <div class="stage-callout-text">Indoor-first flow: maximize setup before going to the car (billing, driver assignment, permissions); show vehicle data immediately after plug-in as proof Miles is working; app guides to OBD-II port by vehicle; instant "device detected" reassurance; email capture enables follow-up if setup abandoned; 21-day trial removes commitment anxiety</div>
                     </div>
                   </div>
                 </div>
@@ -654,6 +661,7 @@
                     <li>Detect ignition via OBD voltage change</li>
                     <li>Begin trip recording automatically</li>
                     <li>Collect sensor data (speed, RPM, accelerometer, location)</li>
+                    <li>Pull vehicle data from OBD-II (diagnostics, status, engine codes, etc.)</li>
                     <li>Transmit trip data to cloud via device's cellular radio (independent of phone)</li>
                     <li>If app is open: stream real-time trip status (live map, speed, vehicle health)</li>
                     <li>If app is closed: same data is logged and stored in cloud, accessible later</li>
@@ -683,7 +691,7 @@
                     <span class="stage-callout-icon">💡</span>
                     <div class="stage-callout-content">
                       <div class="stage-callout-label">Opportunity</div>
-                      <div class="stage-callout-text">Communicate clearly before the drive: "You don't need to press anything." Optionally provide a non-distracting "we've got it" signal only when parked</div>
+                      <div class="stage-callout-text">Show accuracy on the first drive — users will watch the live map closely to see if real-time data is accurate and responsive. If the dot is off or there's serious lag, it creates doubt about reliability. These early "live" moments are a big test; users will watch drives more in the beginning then taper off. Communicate clearly before the drive: "You don't need to press anything." Optionally provide a non-distracting "we've got it" signal only when parked</div>
                     </div>
                   </div>
                 </div>
@@ -711,7 +719,7 @@
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">👤 User Goal</div>
-                  <p class="stage-text">Have Miles correctly understand "this was a trip" with clean boundaries</p>
+                  <p class="stage-text">Understand how Miles works. Get confidence that Miles is accurate and working quietly in the background</p>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">✋ User Actions</div>
@@ -802,27 +810,28 @@
                   <div class="stage-label">⚙️ Touchpoints</div>
                   <ul class="stage-list">
                     <li>Cloud processing</li>
-                    <li>App notification (trip ready)</li>
+                    <li>Push notification when first trip is complete (and possibly a few early drives)</li>
+                    <li>Prompt to customize alert preferences: get alert for each drive, get alert only for drives with issues (driving events, vehicle issues), no alert but daily/weekly email summary</li>
                     <li>Trip detail view</li>
                   </ul>
                 </div>
                 <div class="stage-section">
                   <div class="stage-label">Emotion</div>
-                  <span class="emotion-indicator emotion-neutral">⏳ Neutral patience (if progress is clear)</span>
+                  <span class="emotion-indicator emotion-positive">🤔 Curious + interested — surprised by simplicity, interested to see data, confident Miles captured it correctly. Leads them to wonder what else Miles can do</span>
                 </div>
                 <div class="stage-callouts">
                   <div class="stage-callout callout-pain">
                     <span class="stage-callout-icon">⚠️</span>
                     <div class="stage-callout-content">
                       <div class="stage-callout-label">Pain Point</div>
-                      <div class="stage-callout-text">Latency: "Why don't I see it yet?" Processing time between trip end and summary availability</div>
+                      <div class="stage-callout-text">Big trust-buster: inaccuracy in the trip summary. Must nail this. If the first result doesn't match what they just drove, confidence drops immediately. Latency is secondary — accuracy is the make-or-break</div>
                     </div>
                   </div>
                   <div class="stage-callout callout-opportunity">
                     <span class="stage-callout-icon">💡</span>
                     <div class="stage-callout-content">
                       <div class="stage-callout-label">Opportunity</div>
-                      <div class="stage-callout-text">Transparent progress state ("Saving / Summarizing"); set expectations ("Trips appear shortly after you park"); data already in cloud — no user action needed for sync</div>
+                      <div class="stage-callout-text">Transparent progress state ("Saving / Summarizing"); set expectations ("Trips appear shortly after you park"); data already in cloud — no user action needed for sync; per-trip notifications will get annoying quickly — prompt early to let users customize their alert cadence</div>
                     </div>
                   </div>
                 </div>
@@ -858,6 +867,7 @@
                     <li>Open app</li>
                     <li>View first Trip card</li>
                     <li>Tap into trip details</li>
+                    <li>Optionally reassign trip to a different driver (if someone else was driving)</li>
                   </ul>
                 </div>
                 <div class="stage-section stage-section-system">
@@ -867,6 +877,7 @@
                     <li>Calculate scores, metrics, or highlights</li>
                     <li>Render map route and trip timeline</li>
                     <li>Queue "first trip complete" celebration if applicable</li>
+                    <li>Allow driver reassignment on trip detail screen</li>
                   </ul>
                 </div>
                 <div class="stage-section">
@@ -927,7 +938,7 @@
                   <div class="stage-label">✋ User Actions</div>
                   <ul class="stage-list">
                     <li>Drive again</li>
-                    <li>Optionally complete deferred setup</li>
+                    <li>Optionally complete deferred setup (name locations, customize preferences)</li>
                     <li>Add household members, set preferences</li>
                     <li>Respond to gentle nudges</li>
                   </ul>
@@ -935,6 +946,8 @@
                 <div class="stage-section stage-section-system">
                   <div class="stage-label">⚡️ Miles Actions</div>
                   <ul class="stage-list">
+                    <li>Prompt for continued setup / customization — surface naturally so users understand that investing a little effort (naming locations, etc.) unlocks more value</li>
+                    <li>Show setup completion status on app dashboard (things still to be completed)</li>
                     <li>Track driving patterns over time</li>
                     <li>Generate weekly/monthly insights and trends</li>
                     <li>Manage notification frequency based on engagement</li>
@@ -946,6 +959,7 @@
                   <ul class="stage-list">
                     <li>Push notifications</li>
                     <li>In-app nudges</li>
+                    <li>Setup completion checklist on dashboard</li>
                     <li>Weekly recap</li>
                     <li>Settings</li>
                     <li>Support</li>
@@ -968,7 +982,19 @@
                     <span class="stage-callout-icon">💡</span>
                     <div class="stage-callout-content">
                       <div class="stage-callout-label">Opportunity</div>
-                      <div class="stage-callout-text">Progressive disclosure: ask for more only when it unlocks value; "finish later" pathways; reinforce trust + control; show trend-based insights after a few trips without overpromising day one</div>
+                      <div class="stage-callout-text">Progressive disclosure: ask for more only when it unlocks value; "finish later" pathways; reinforce trust + control; show trend-based insights after a few trips without overpromising day one. Give users milestones to "stick with it" and get over the hump</div>
+                    </div>
+                  </div>
+                  <div class="stage-callout callout-opportunity">
+                    <span class="stage-callout-icon">🔮</span>
+                    <div class="stage-callout-content">
+                      <div class="stage-callout-label">Future Consideration: Parental Access Ramp-Down</div>
+                      <div class="stage-callout-text">Recommended phased path for teen driver accounts (to discuss):
+                        <strong>Phase 0 (Driver's Training)</strong> — Parent sees everything. Miles logs training hours and produces report.
+                        <strong>Phase 1 (First 90 Days)</strong> — Parent sees trip-level summaries, gets more alerts. Generate driver score at end of 90 days.
+                        <strong>Phase 2 (Good Record Sustained)</strong> — Parent sees weekly rollups, teen gets more granular control.
+                        <strong>Phase 3</strong> — Teen can request "independence mode."
+                        Not overly strict — a recommended path with milestones that encourage continued use.</div>
                     </div>
                   </div>
                 </div>

@@ -133,40 +133,10 @@
       box-shadow: 0 0 0 2px var(--brand-primary-100);
     }
 
-    /* Dismiss button */
-    .placeholder-note {
-      position: relative;
-    }
-
-    .dismiss-btn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 24px;
-      height: 24px;
-      padding: 0;
-      border: none;
-      border-radius: 4px;
-      background: transparent;
-      color: var(--brand-primary-400);
-      font-size: 18px;
-      line-height: 1;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 150ms ease, color 150ms ease;
-    }
-
-    .dismiss-btn:hover {
-      background: var(--brand-primary-100);
-      color: var(--brand-primary-700);
-    }
-
     /* Shuffle bar */
     .shuffle-bar {
       display: flex;
-      justify-content: flex-end;
+      justify-content: flex-start;
       margin-bottom: 12px;
     }
 
@@ -638,21 +608,11 @@
 <body>
   <div class="wrap">
     <h1>User Personas</h1>
-    <p class="subtitle">Target user personas for Miles — the families, parents, and teens we're designing for.</p>
-
-    <div class="placeholder-note" id="introNote">
-      <button class="dismiss-btn" id="dismissIntro" title="Dismiss">×</button>
-      <h3>👨‍👧 The Two Sides of Miles</h3>
-      <p>
-        Miles serves two users with different needs: the <strong>parent</strong> seeking peace of mind without being overbearing, 
-        and the <strong>teen</strong> wanting independence while proving they're responsible. Both must feel the app is fair 
-        for Miles to succeed. These personas use the JTBD (Jobs To Be Done) framework to capture what matters most.
-      </p>
-    </div>
+    <p class="subtitle">Miles serves two users with different needs — parents and teens — each with their own goals and concerns.</p>
 
     <div class="shuffle-bar">
-      <button id="toggleControlsBtn" class="shuffle-btn" title="Toggle persona controls visibility">👁 Hide Controls</button>
-      <button id="shuffleAllBtn" class="shuffle-btn" title="Randomize all persona images">⟳ Shuffle</button>
+      <button id="toggleControlsBtn" class="shuffle-btn" title="Toggle persona controls visibility">🎛️ Hide Controls</button>
+      <button id="shuffleAllBtn" class="shuffle-btn" title="Randomize all persona images">🔀 Shuffle Images</button>
     </div>
 
     <div id="profilesGrid" class="profiles-grid"></div>
@@ -661,21 +621,6 @@
   <script src="sidebar-nav.js"></script>
   <script src="personas-data.js"></script>
   <script>
-    // ============================================
-    // DISMISS INTRO NOTE
-    // ============================================
-    (function() {
-      const note = document.getElementById('introNote');
-      const btn = document.getElementById('dismissIntro');
-      if (localStorage.getItem('profiles-intro-dismissed') === '1') {
-        note.style.display = 'none';
-      }
-      btn.addEventListener('click', () => {
-        note.style.display = 'none';
-        localStorage.setItem('profiles-intro-dismissed', '1');
-      });
-    })();
-
     // ============================================
     // RENDERING LOGIC
     // Persona data is loaded from personas-data.js
@@ -978,14 +923,14 @@
       // Restore persisted state
       if (localStorage.getItem('profiles-controls-hidden') === '1') {
         controlsHidden = true;
-        toggleBtn.textContent = '👁 Show Controls';
+        toggleBtn.textContent = '🎛️ Show Controls';
         document.querySelectorAll('.persona-variation-controls').forEach(el => el.style.display = 'none');
       }
 
       toggleBtn.addEventListener('click', () => {
         controlsHidden = !controlsHidden;
         localStorage.setItem('profiles-controls-hidden', controlsHidden ? '1' : '0');
-        toggleBtn.textContent = controlsHidden ? '👁 Show Controls' : '👁 Hide Controls';
+        toggleBtn.textContent = controlsHidden ? '🎛️ Show Controls' : '🎛️ Hide Controls';
         document.querySelectorAll('.persona-variation-controls').forEach(el => {
           el.style.display = controlsHidden ? 'none' : '';
         });

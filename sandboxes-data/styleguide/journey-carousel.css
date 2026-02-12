@@ -504,7 +504,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: auto;
+  margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--neutral-100);
 }
@@ -517,20 +517,31 @@
   border-radius: 8px;
   font-size: 12px;
   line-height: 1.4;
+  /* Remove any height constraints to allow dynamic sizing */
+  min-height: auto;
 }
 
 .stage-callout-icon {
   flex-shrink: 0;
   font-size: 14px;
+  line-height: 1;
+  margin-top: 2px;
 }
 
 .stage-callout-content {
   flex: 1;
+  min-width: 0; /* Prevent overflow issues */
 }
 
 .stage-callout-label {
   font-weight: 600;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+}
+
+.stage-callout-text {
+  /* Allow text to wrap naturally */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Pain point callout - uses secondary (sand/warning) colors */
