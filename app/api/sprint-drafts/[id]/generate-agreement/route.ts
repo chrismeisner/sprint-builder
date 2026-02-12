@@ -16,13 +16,6 @@ type BudgetInputs = {
   milestoneMissOutcome?: string;
 };
 
-// Payment timing display text
-const PAYMENT_TIMING_TEXT: Record<string, string> = {
-  "on_start": "Due upon signing of this agreement",
-  "net7": "Within 7 calendar days of final deliverable delivery (Net 7)",
-  "net14": "Within 14 calendar days of final deliverable delivery (Net 14)",
-  "net30": "Within 30 calendar days of final deliverable delivery (Net 30)",
-};
 
 type BudgetOutputs = {
   upfrontAmount?: number;
@@ -33,8 +26,9 @@ type BudgetOutputs = {
   totalProjectValue?: number;
 };
 
-// Agreement template structure based on the provided example
-const AGREEMENT_TEMPLATE = `# {sprintTitle} Agreement
+// ── Shared template sections (identical in both agreement types) ──
+
+const TEMPLATE_HEADER = `# {sprintTitle} Agreement
 
 This Agreement is entered into as of the Effective Date below between:
 
@@ -65,16 +59,7 @@ The following deliverables are included in this sprint, calculated using a point
 
 ---
 
-## 3. Payment Terms
-
-**Total Amount Due:** {totalPriceFormatted}
-**Payment Due Date:** {paymentDueDate}
-
-All payments are to be made in USD via bank transfer, ACH, or other mutually agreed method.
-
-Note: The final amount includes any applicable fees, rounding, or adjustments.
-
-{compensationStructureSection}
+{paymentSections}
 
 ---
 
@@ -93,14 +78,11 @@ Until full payment is received:
 
 This Agreement covers only the deliverables listed above. Any additional features, revisions, or new deliverables will be scoped and billed separately, either via a new sprint or an addendum to this agreement.
 
----
+Client agrees to provide timely feedback, access, and approvals necessary to keep the sprint on schedule. Delays caused by lack of Client responsiveness may result in adjusted timelines.
 
-## 6. Termination
+---`;
 
-Either party may terminate this agreement with written notice. In the event of termination:
-- The Get Started Fee is retained by Chris Meisner LLC (if applicable).
-- Any work completed up to the point of termination will be invoiced proportionally based on the point system.
-- If no deliverables are delivered, no IP rights transfer occurs.
+const TEMPLATE_FOOTER = `
 
 ---
 
@@ -125,12 +107,33 @@ Name: Chris Meisner
 Title: Principal
 
 **{clientCompany}**
-Name: {clientName}
-Company: {clientCompanyFull}
-Title: {clientTitle}
+Name: __________________________
+Title: __________________________
 `;
 
-// Compensation section is now built dynamically in buildCompensationSection()
+// ── STANDARD agreement template (non-deferred: kickoff + completion) ──
+const STANDARD_AGREEMENT_TEMPLATE = TEMPLATE_HEADER + `
+
+## 6. Termination
+
+Either party may terminate this agreement with written notice. In the event of termination:
+- The Kickoff Payment is non-refundable and will be retained by Chris Meisner LLC.
+- If termination occurs after work has begun, the value of work completed will be calculated based on the point system. Any amounts already paid will be credited toward that total, and any remaining balance will be invoiced.
+- If no deliverables are delivered, no IP rights transfer occurs.
+` + TEMPLATE_FOOTER;
+
+// ── DEFERRED agreement template (kickoff + equity/milestone components) ──
+const DEFERRED_AGREEMENT_TEMPLATE = TEMPLATE_HEADER + `
+
+## 6. Termination
+
+Either party may terminate this agreement with written notice. In the event of termination:
+- The Kickoff Payment is non-refundable and will be retained by Chris Meisner LLC.
+- If termination occurs after work has begun, the value of work completed will be calculated based on the point system. Any amounts already paid will be credited toward that total, and any remaining balance will be invoiced.
+- Any equity arrangements outlined in Section 3a will be governed by the terms of the separate equity documentation.
+- Deferred payment obligations will be prorated based on work completed and milestones achieved as of the termination date.
+- If no deliverables are delivered, no IP rights transfer occurs.
+` + TEMPLATE_FOOTER;
 
 function formatDate(dateStr: string | Date | null): string {
   if (!dateStr) return "TBD";
@@ -166,128 +169,158 @@ const MILESTONE_MISS_OUTCOMES: Record<string, string> = {
   "renegotiate": "If no milestones are achieved, the parties agree to **renegotiate the deferred payment terms in good faith** within 30 days of the final milestone target date.",
 };
 
-// Short upfront payment timing text for compensation section
-const UPFRONT_TIMING_SHORT: Record<string, string> = {
-  "on_start": "is due upon signing of this agreement",
-  "net7": "is due within 7 days of final deliverable delivery",
-  "net14": "is due within 14 days of final deliverable delivery",
-  "net30": "is due within 30 days of final deliverable delivery",
-};
 
-function buildCompensationSection(
-  inputs: BudgetInputs,
-  outputs: BudgetOutputs
+// ── Builder: STANDARD payment sections (non-deferred: kickoff + completion) ──
+function buildStandardPaymentSections(
+  upfrontPct: number,
+  totalPrice: number,
+  outputs?: BudgetOutputs
 ): string {
-  const upfrontPayment = inputs.upfrontPayment ?? 0.4;
-  const upfrontTiming = inputs.upfrontPaymentTiming ?? "net30";
-  const upfrontTimingText = UPFRONT_TIMING_SHORT[upfrontTiming] ?? UPFRONT_TIMING_SHORT["net30"];
-  const isDeferred = inputs.isDeferred !== false; // default true for backwards compat
-  const remainingPercent = 1 - upfrontPayment;
+  const upfrontAmount = outputs?.upfrontAmount ?? (totalPrice * upfrontPct);
+  const remainingAmount = outputs?.remainingOnCompletion ?? (totalPrice * (1 - upfrontPct));
 
-  const upfrontAmount = outputs.upfrontAmount ?? 0;
+  // Edge case: 100% upfront — no split needed
+  if (upfrontPct >= 0.99) {
+    return `## 3. Payment Terms
 
-  // ── NOT DEFERRED: simple kickoff + completion structure ──
-  if (!isDeferred) {
-    const remainingAmount = outputs.remainingOnCompletion ?? (remainingPercent * (outputs.totalProjectValue ?? upfrontAmount));
-    const kickoffPercent = `${Math.round(upfrontPayment * 100)}%`;
-    const completionPercent = `${Math.round(remainingPercent * 100)}%`;
+**Total Sprint Fee:** ${formatCurrency(totalPrice)}
 
-    if (remainingPercent < 0.01) {
-      // 100% kickoff
-      return `
+The full sprint fee is due upon signing of this Agreement and must be received prior to the Sprint Start Date. Work will not begin until payment has been received.
+
+All payments are to be made in USD via bank transfer, ACH, or other mutually agreed method.`;
+  }
+
+  const kickoffPercent = `${Math.round(upfrontPct * 100)}%`;
+  const completionPercent = `${Math.round((1 - upfrontPct) * 100)}%`;
+
+  return `## 3. Payment Terms
+
+**Total Sprint Fee:** ${formatCurrency(totalPrice)}
+
+Payment will be made in two installments as outlined in Section 3a below. Work will not begin until the Kickoff Payment has been received.
+
+All payments are to be made in USD via bank transfer, ACH, or other mutually agreed method.
+
 ---
 
 ## 3a. Compensation Structure
 
-**Full Payment on Kickoff:** The total sprint fee of ${formatCurrency(upfrontAmount)} ${upfrontTimingText}.`;
-    }
-
-    return `
----
-
-## 3a. Compensation Structure
-
-This engagement uses a standard payment structure with no deferred compensation component:
+This engagement follows a ${kickoffPercent} upfront / ${completionPercent} completion payment structure.
 
 ### Payment Breakdown
 
 | Component | Percentage | Amount |
 |-----------|------------|--------|
 | Kickoff Payment | ${kickoffPercent} | ${formatCurrency(upfrontAmount)} |
-| Due on Completion | ${completionPercent} | ${formatCurrency(remainingAmount)} |
+| Completion Payment | ${completionPercent} | ${formatCurrency(remainingAmount)} |
 
-**Kickoff Payment** of ${formatCurrency(upfrontAmount)} ${upfrontTimingText}.
+**Kickoff Payment** of ${formatCurrency(upfrontAmount)} is due upon signing of this Agreement and must be received prior to the Sprint Start Date.
 
-**Completion Payment** of ${formatCurrency(remainingAmount)} is due upon delivery and acceptance of all deliverables listed in Section 2.`;
-  }
+**Completion Payment** of ${formatCurrency(remainingAmount)} is due upon delivery of the final sprint deliverables and is payable within 15 calendar days of delivery.
 
-  // ── DEFERRED: full deferred compensation structure ──
+Delivery is defined as the Designer making the final sprint deliverables available to the Client in their completed form. Delivery of final assets may be withheld until all outstanding balances are paid in full.`;
+}
+
+// ── Builder: DEFERRED payment sections (kickoff + equity/milestone components) ──
+function buildDeferredPaymentSections(
+  inputs: BudgetInputs,
+  outputs: BudgetOutputs
+): string {
+  const upfrontPayment = inputs.upfrontPayment ?? 0.4;
+  const upfrontAmount = outputs.upfrontAmount ?? 0;
+  const totalProjectValue = outputs.totalProjectValue ?? 0;
+  const remainingPercent = 1 - upfrontPayment;
   const equitySplit = inputs.equitySplit ?? 0;
   const equityAmount = outputs.equityAmount ?? 0;
   const deferredAmount = outputs.deferredAmount ?? 0;
 
-  // If all payment is upfront (no deferred component), return a simplified section
-  const hasDeferred = deferredAmount > 0.01; // Use small threshold to handle floating point
+  const hasDeferred = deferredAmount > 0.01;
   const hasEquity = equityAmount > 0.01;
-  
+
+  // Edge case: deferred plan configured but no actual deferred/equity → simple kickoff
   if (!hasDeferred && !hasEquity) {
-    // 100% upfront - return simplified section
-    return `
+    return `## 3. Payment Terms
+
+**Total Project Value:** ${formatCurrency(totalProjectValue)}
+
+The full project fee is due upon signing of this Agreement and must be received prior to the Sprint Start Date. Work will not begin until payment has been received.
+
+All payments are to be made in USD via bank transfer, ACH, or other mutually agreed method.`;
+  }
+
+  // Describe the compensation components
+  const components = [];
+  if (hasEquity) components.push("equity");
+  if (hasDeferred) components.push("deferred");
+  const componentList = components.join(" and ");
+
+  // Section 3 header
+  let result = `## 3. Payment Terms
+
+**Total Project Value:** ${formatCurrency(totalProjectValue)}
+
+This engagement uses a structured compensation model combining an upfront kickoff payment with ${componentList} components, as detailed in Section 3a below. Work will not begin until the Kickoff Payment has been received.
+
+All payments are to be made in USD via bank transfer, ACH, or other mutually agreed method.
+
 ---
 
 ## 3a. Compensation Structure
 
-**Full Payment Upfront:** The total sprint fee of ${formatCurrency(upfrontAmount)} ${upfrontTimingText}.`;
-  }
-  
-  // Calculate percentages
+This engagement includes a structured compensation model as outlined below:
+
+### Payment Breakdown
+
+| Component | Percentage | Amount |
+|-----------|------------|--------|`;
+
+  // Build table rows
   const upfrontPercent = `${Math.round(upfrontPayment * 100)}%`;
-  const equityPercent = `${Math.round(remainingPercent * equitySplit * 100)}%`;
-  const deferredPercent = `${Math.round(remainingPercent * (1 - equitySplit) * 100)}%`;
-  
-  // Build payment breakdown table rows
-  let paymentRows = `| Upfront Payment | ${upfrontPercent} | ${formatCurrency(upfrontAmount)} |`;
-  
+  result += `\n| Kickoff Payment | ${upfrontPercent} | ${formatCurrency(upfrontAmount)} |`;
+
   if (hasEquity) {
-    paymentRows += `\n| Equity Component | ${equityPercent} | ${formatCurrency(equityAmount)} |`;
+    const equityPercent = `${Math.round(remainingPercent * equitySplit * 100)}%`;
+    result += `\n| Equity Component | ${equityPercent} | ${formatCurrency(equityAmount)} |`;
   }
-  
+
   if (hasDeferred) {
-    paymentRows += `\n| Deferred Payment (Base) | ${deferredPercent} | ${formatCurrency(deferredAmount)} |`;
+    const deferredPercent = `${Math.round(remainingPercent * (1 - equitySplit) * 100)}%`;
+    result += `\n| Deferred Payment (Base) | ${deferredPercent} | ${formatCurrency(deferredAmount)} |`;
   }
-  
-  // Build equity terms section (only if equity > 0)
-  const equityTerms = hasEquity
-    ? `\n**Equity Component** of ${formatCurrency(equityAmount)} represents a stake in the Client's company, subject to separate equity documentation.\n`
-    : "";
-  
-  // Build milestones section (only if there's deferred payment)
-  let milestonesSection = "";
+
+  // Kickoff payment terms
+  result += `\n\n**Kickoff Payment** of ${formatCurrency(upfrontAmount)} is due upon signing of this Agreement and must be received prior to the Sprint Start Date.`;
+
+  // Equity terms
+  if (hasEquity) {
+    result += `\n\n**Equity Component** of ${formatCurrency(equityAmount)} represents a stake in the Client's company, subject to separate equity documentation.`;
+  }
+
+  // Deferred / milestone terms
   if (hasDeferred) {
     const milestones = inputs.milestones ?? [];
-    
+
     if (milestones.length > 0) {
       const tableHeader = "| Milestone | Target Date | Multiplier | Potential Payout |\n| --- | --- | ---: | ---: |";
       const tableRows = milestones.map(m => {
         const payout = deferredAmount * m.multiplier;
         return `| ${m.summary || "TBD"} | ${formatMilestoneDate(m.date)} | ${m.multiplier}x | ${formatCurrency(payout)} |`;
       }).join("\n");
-      
+
       const maxMultiplier = Math.max(...milestones.map(m => m.multiplier));
       const maxDeferredPayout = formatCurrency(deferredAmount * maxMultiplier);
-      
-      // Build milestone miss outcome text
+
+      // Milestone miss outcome
       const missOutcome = inputs.milestoneMissOutcome ?? "renegotiate";
       let milestoneMissText = MILESTONE_MISS_OUTCOMES[missOutcome] ?? MILESTONE_MISS_OUTCOMES["renegotiate"];
-      
       if (missOutcome === "reduced-50") {
         milestoneMissText = milestoneMissText.replace("{reducedAmount}", formatCurrency(deferredAmount * 0.5));
       } else if (missOutcome === "reduced-20") {
         milestoneMissText = milestoneMissText.replace("{reducedAmount}", formatCurrency(deferredAmount * 0.2));
       }
       milestoneMissText = milestoneMissText.replace("{deferredAmount}", formatCurrency(deferredAmount));
-      
-      milestonesSection = `
+
+      result += `
 
 ### Deferred Payment & Performance Milestones
 
@@ -302,30 +335,15 @@ ${tableRows}
 
 ${milestoneMissText}`;
     } else {
-      milestonesSection = `
+      result += `
 
 ### Deferred Payment
 
 The deferred payment of ${formatCurrency(deferredAmount)} will be due according to terms negotiated separately.`;
     }
   }
-  
-  // Build the full section
-  return `
----
 
-## 3a. Compensation Structure
-
-This engagement includes a structured compensation model as outlined below:
-
-### Payment Breakdown
-
-| Component | Percentage | Amount |
-|-----------|------------|--------|
-${paymentRows}
-
-**Upfront Payment** of ${formatCurrency(upfrontAmount)} ${upfrontTimingText}.
-${equityTerms}${milestonesSection}`;
+  return result;
 }
 
 export async function POST(request: Request, { params }: Params) {
@@ -489,39 +507,38 @@ export async function POST(request: Request, { params }: Params) {
       [params.id]
     );
     
-    let compensationStructureSection = "";
+    // ── Determine agreement type and build payment sections ──
+    let template: string;
+    let paymentSections: string;
     let hasBudgetPlan = false;
-    let budgetRow: {
-      inputs: BudgetInputs;
-      outputs: BudgetOutputs;
-      label: string | null;
-      created_at: string | Date;
-    } | null = null;
-    
+
     if (budgetRes.rowCount && budgetRes.rowCount > 0) {
-      budgetRow = budgetRes.rows[0] as {
+      const budgetRow = budgetRes.rows[0] as {
         inputs: BudgetInputs;
         outputs: BudgetOutputs;
         label: string | null;
         created_at: string | Date;
       };
-      
       hasBudgetPlan = true;
-      compensationStructureSection = buildCompensationSection(
-        budgetRow.inputs,
-        budgetRow.outputs
-      );
+      const isDeferred = budgetRow.inputs.isDeferred !== false;
+
+      if (isDeferred) {
+        template = DEFERRED_AGREEMENT_TEMPLATE;
+        paymentSections = buildDeferredPaymentSections(budgetRow.inputs, budgetRow.outputs);
+      } else {
+        template = STANDARD_AGREEMENT_TEMPLATE;
+        const upfrontPct = budgetRow.inputs.upfrontPayment ?? 0.5;
+        paymentSections = buildStandardPaymentSections(upfrontPct, totalPrice, budgetRow.outputs);
+      }
     } else if (sprint.has_deferred_comp === false && sprint.upfront_payment_percent != null) {
-      // No saved budget plan, but the sprint has non-deferred settings from the sprint record
-      const upfrontPct = Number(sprint.upfront_payment_percent) / 100; // stored as e.g. 40.00 → 0.40
-      const sprintTotal = totalPrice;
-      const upfrontAmt = sprintTotal * upfrontPct;
-      const remainingAmt = sprintTotal * (1 - upfrontPct);
-      
-      compensationStructureSection = buildCompensationSection(
-        { isDeferred: false, upfrontPayment: upfrontPct, upfrontPaymentTiming: "net30" },
-        { upfrontAmount: upfrontAmt, remainingOnCompletion: remainingAmt, totalProjectValue: sprintTotal }
-      );
+      // No saved budget plan, but the sprint has non-deferred settings
+      template = STANDARD_AGREEMENT_TEMPLATE;
+      const upfrontPct = Number(sprint.upfront_payment_percent) / 100;
+      paymentSections = buildStandardPaymentSections(upfrontPct, totalPrice);
+    } else {
+      // Default: standard 50/50 split
+      template = STANDARD_AGREEMENT_TEMPLATE;
+      paymentSections = buildStandardPaymentSections(0.5, totalPrice);
     }
 
     // Build client description
@@ -529,25 +546,17 @@ export async function POST(request: Request, { params }: Params) {
       ? ", an organization" 
       : "";
 
-    // Get payment timing from budget plan or default to net30
-    const paymentTiming = budgetRow?.inputs?.upfrontPaymentTiming ?? "net30";
-    const paymentDueDate = PAYMENT_TIMING_TEXT[paymentTiming] ?? PAYMENT_TIMING_TEXT["net30"];
-
     // Generate the agreement by filling in the template
-    const agreement = AGREEMENT_TEMPLATE
+    const agreement = template
       .replace(/{sprintTitle}/g, `${clientCompany} ${sprintTitle}`)
       .replace(/{clientCompany}/g, clientCompany)
-      .replace(/{clientCompanyFull}/g, clientCompanyFull)
       .replace(/{clientDescription}/g, clientDescription)
-      .replace(/{clientName}/g, clientName || "[Client Name]")
-      .replace(/{clientTitle}/g, clientTitle || "[Title]")
       .replace(/{startDate}/g, formatDate(sprint.start_date))
       .replace(/{dueDate}/g, formatDate(sprint.due_date))
       .replace(/{deliverablesTable}/g, deliverablesTable)
       .replace(/{totalPoints}/g, totalPoints.toFixed(1))
       .replace(/{totalPriceFormatted}/g, formatCurrency(totalPrice))
-      .replace(/{paymentDueDate}/g, paymentDueDate)
-      .replace(/{compensationStructureSection}/g, compensationStructureSection);
+      .replace(/{paymentSections}/g, paymentSections);
 
     // Store the generated agreement in the database
     // First, add the column if it doesn't exist

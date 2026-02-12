@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { typography } from "@/app/components/typography";
 import { hoursFromPoints } from "@/lib/pricing";
+import { SPRINT_WEEKS } from "@/lib/sprintProcess";
 import AdminStatusChanger from "./AdminStatusChanger";
 import DeleteSprintButton from "./DeleteSprintButton";
 import SprintTotals from "./SprintTotals";
@@ -127,6 +128,12 @@ type AgreementData = {
   generatedAt: string | null;
 };
 
+type WeekNotesData = {
+  kickoff: string | null;
+  midweek: string | null;
+  endOfWeek: string | null;
+};
+
 type Props = {
   row: SprintRow;
   plan: DraftPlan;
@@ -136,6 +143,8 @@ type Props = {
   isAdmin: boolean;
   isProjectMember: boolean;
   agreementData?: AgreementData;
+  weekNotes?: Record<string, WeekNotesData>;
+  weekCount?: number;
 };
 
 // Helper function to format currency
@@ -152,6 +161,8 @@ export default function SprintDetailContent(props: Props) {
     isOwner,
     isAdmin,
     agreementData,
+    weekNotes: initialWeekNotes,
+    weekCount: propWeekCount,
   } = props;
   const [viewAsAdmin, setViewAsAdmin] = useState(true);
   const [deliverables, setDeliverables] = useState(initialDeliverables);
@@ -219,6 +230,111 @@ export default function SprintDetailContent(props: Props) {
   const [editingEndDate, setEditingEndDate] = useState(endDate);
   const [savingOverview, setSavingOverview] = useState(false);
   
+  // Sprint Outline state
+  const sprintWeekCount = propWeekCount ?? row.weeks ?? 2;
+  const defaultWeekNotes = (wn: WeekNotesData | null): WeekNotesData => ({
+    kickoff: wn?.kickoff ?? "",
+    midweek: wn?.midweek ?? "",
+    endOfWeek: wn?.endOfWeek ?? "",
+  });
+  const [allWeekNotesState, setAllWeekNotesState] = useState<Record<string, WeekNotesData>>(() => {
+    const initial: Record<string, WeekNotesData> = {};
+    for (let i = 1; i <= sprintWeekCount; i++) {
+      const key = `week${i}`;
+      initial[key] = defaultWeekNotes(initialWeekNotes?.[key] || null);
+    }
+    return initial;
+  });
+  const [editingWeek, setEditingWeek] = useState<number | null>(null);
+  const [editKickoff, setEditKickoff] = useState("");
+  const [editMidweek, setEditMidweek] = useState("");
+  const [editEndOfWeek, setEditEndOfWeek] = useState("");
+  const [savingWeekNotes, setSavingWeekNotes] = useState(false);
+  const weekDialogRef = useRef<HTMLDialogElement>(null);
+
+  const openWeekEditor = useCallback((week: number) => {
+    const key = `week${week}`;
+    const notes = allWeekNotesState[key] || { kickoff: "", midweek: "", endOfWeek: "" };
+    setEditingWeek(week);
+    setEditKickoff(notes.kickoff ?? "");
+    setEditMidweek(notes.midweek ?? "");
+    setEditEndOfWeek(notes.endOfWeek ?? "");
+  }, [allWeekNotesState]);
+
+  const closeWeekEditor = useCallback(() => {
+    setEditingWeek(null);
+    setEditKickoff("");
+    setEditMidweek("");
+    setEditEndOfWeek("");
+  }, []);
+
+  // Sync week dialog open/close with state
+  useEffect(() => {
+    const dialog = weekDialogRef.current;
+    if (!dialog) return;
+    if (editingWeek) {
+      dialog.showModal();
+    } else {
+      dialog.close();
+    }
+  }, [editingWeek]);
+
+  useEffect(() => {
+    const dialog = weekDialogRef.current;
+    if (!dialog) return;
+    const handleCancel = (e: Event) => {
+      e.preventDefault();
+      closeWeekEditor();
+    };
+    dialog.addEventListener("cancel", handleCancel);
+    return () => dialog.removeEventListener("cancel", handleCancel);
+  }, [closeWeekEditor]);
+
+  const handleWeekBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+    const dialog = weekDialogRef.current;
+    if (!dialog) return;
+    const rect = dialog.getBoundingClientRect();
+    const inside =
+      e.clientX >= rect.left &&
+      e.clientX <= rect.right &&
+      e.clientY >= rect.top &&
+      e.clientY <= rect.bottom;
+    if (!inside) closeWeekEditor();
+  };
+
+  const handleSaveWeekNotes = async () => {
+    if (!editingWeek) return;
+    setSavingWeekNotes(true);
+    try {
+      const weekKey = `week${editingWeek}`;
+      const res = await fetch(`/api/sprint-drafts/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          week_notes: {
+            weekKey,
+            kickoff: editKickoff,
+            midweek: editMidweek,
+            endOfWeek: editEndOfWeek,
+          },
+        }),
+      });
+      if (res.ok) {
+        const updated: WeekNotesData = {
+          kickoff: editKickoff,
+          midweek: editMidweek,
+          endOfWeek: editEndOfWeek,
+        };
+        setAllWeekNotesState((prev) => ({ ...prev, [weekKey]: updated }));
+        closeWeekEditor();
+      }
+    } finally {
+      setSavingWeekNotes(false);
+    }
+  };
+
+  const showSprintOutline = sprintWeekCount >= 1;
+
   // Effective admin view: only true if user is actually admin AND viewing as admin
   const showAdminContent = isAdmin && viewAsAdmin;
 
@@ -1069,78 +1185,102 @@ export default function SprintDetailContent(props: Props) {
         )}
 
         {/* ============================================ */}
-        {/* EVERYONE SEES: Approach & Weekly Overview */}
+        {/* EVERYONE SEES: Approach */}
         {/* ============================================ */}
-        {(plan.approach || plan.week1?.overview || plan.week2?.overview || plan.week1?.kickoff || plan.week2?.kickoff) && (
+        {plan.approach && (
           <div className={`rounded-lg border border-black/10 dark:border-white/15 p-4 ${t.bodySm}`}>
-            <h2 className={`${t.cardHeading} mb-3`}>Approach & Weekly Overview</h2>
-            <div className="space-y-4">
-              {plan.approach && (
-                <div>
-                  <div className={`${getTypographyClassName("subtitle-sm")} text-text-primary mb-1`}>Approach</div>
-                  <p className={t.bodySm}>{plan.approach}</p>
-                </div>
-              )}
-              {/* Week 1 */}
-              {(plan.week1?.kickoff || plan.week1?.midweek || plan.week1?.endOfWeek || plan.week1?.overview) && (
-                <div className="space-y-2">
-                  <div className={`${getTypographyClassName("subtitle-sm")} text-text-primary`}>Week 1</div>
-                  {(plan.week1?.kickoff || plan.week1?.midweek || plan.week1?.endOfWeek) ? (
-                    <div className="space-y-1.5 pl-2 border-l-2 border-black/10 dark:border-white/10">
-                      {plan.week1?.kickoff && (
-                        <div>
-                          <span className={`${t.monoLabel}`}>🚀 kickoff:</span>{" "}
-                          <span className={t.bodySm}>{plan.week1.kickoff}</span>
+            <h2 className={`${t.cardHeading} mb-3`}>Approach</h2>
+            <p className={`${t.bodySm} whitespace-pre-line`}>{plan.approach}</p>
+          </div>
+        )}
+
+        {/* ============================================ */}
+        {/* EVERYONE SEES: Sprint Outline */}
+        {/* ============================================ */}
+        {showSprintOutline && (
+          <div className="space-y-4">
+            <h2 className={t.sectionHeading}>Sprint Outline</h2>
+
+            <div className={`grid gap-4 ${sprintWeekCount >= 2 ? "sm:grid-cols-2" : ""}`}>
+              {Array.from({ length: sprintWeekCount }, (_, idx) => {
+                const weekNum = idx + 1;
+                const weekKey = `week${weekNum}`;
+                const notes = allWeekNotesState[weekKey] || { kickoff: "", midweek: "", endOfWeek: "" };
+                const weekHasNotes = !!(notes.kickoff || notes.midweek || notes.endOfWeek);
+
+                // Use SPRINT_WEEKS data for weeks that have it
+                const sprintWeekData = SPRINT_WEEKS[idx] || null;
+
+                const noteEntries: { label: string; icon: string; value: string | null }[] = [
+                  { label: "Kickoff", icon: "🚀", value: notes.kickoff },
+                  { label: "Mid-Week", icon: "🔄", value: notes.midweek },
+                  { label: "End of Week", icon: "🏁", value: notes.endOfWeek },
+                ];
+
+                return (
+                  <div
+                    key={weekKey}
+                    className="rounded-lg border border-black/10 dark:border-white/15 bg-white/40 dark:bg-black/40 overflow-hidden"
+                  >
+                    {/* Week header */}
+                    <div className="px-4 py-3 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {sprintWeekData && (
+                            <span className="text-lg" aria-hidden="true">
+                              {sprintWeekData.icon}
+                            </span>
+                          )}
+                          <h3 className={t.cardHeading}>
+                            Week {weekNum}
+                          </h3>
                         </div>
+                        {showAdminContent && (
+                          <button
+                            type="button"
+                            onClick={() => openWeekEditor(weekNum)}
+                            className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
+                      {sprintWeekData && (
+                        <p className={`${t.bodySm} mt-1`}>{sprintWeekData.summary}</p>
                       )}
-                      {plan.week1?.midweek && (
-                        <div>
-                          <span className={`${t.monoLabel}`}>🔄 mid-week:</span>{" "}
-                          <span className={t.bodySm}>{plan.week1.midweek}</span>
-                        </div>
-                      )}
-                      {plan.week1?.endOfWeek && (
-                        <div>
-                          <span className={`${t.monoLabel}`}>🏁 end of week:</span>{" "}
-                          <span className={t.bodySm}>{plan.week1.endOfWeek}</span>
+                    </div>
+
+                    {/* Three-phase notes area */}
+                    <div className="divide-y divide-black/5 dark:divide-white/5">
+                      {weekHasNotes ? (
+                        noteEntries.map((entry) => (
+                          <div key={entry.label} className="px-4 py-3">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-sm" aria-hidden="true">{entry.icon}</span>
+                              <span className={t.monoLabel}>{entry.label}</span>
+                            </div>
+                            {entry.value ? (
+                              <p className={`${t.bodySm} whitespace-pre-line`}>
+                                {entry.value}
+                              </p>
+                            ) : (
+                              <p className={`${t.bodySm} italic text-text-muted text-xs`}>
+                                Not set
+                              </p>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-4 py-4">
+                          <p className={`${t.bodySm} italic text-text-muted`}>
+                            No notes yet for this week.
+                          </p>
                         </div>
                       )}
                     </div>
-                  ) : plan.week1?.overview ? (
-                    <p className={t.bodySm}>{plan.week1.overview}</p>
-                  ) : null}
-                </div>
-              )}
-              {/* Week 2 */}
-              {(plan.week2?.kickoff || plan.week2?.midweek || plan.week2?.endOfWeek || plan.week2?.overview) && (
-                <div className="space-y-2">
-                  <div className={`${getTypographyClassName("subtitle-sm")} text-text-primary`}>Week 2</div>
-                  {(plan.week2?.kickoff || plan.week2?.midweek || plan.week2?.endOfWeek) ? (
-                    <div className="space-y-1.5 pl-2 border-l-2 border-black/10 dark:border-white/10">
-                      {plan.week2?.kickoff && (
-                        <div>
-                          <span className={`${t.monoLabel}`}>🚀 kickoff:</span>{" "}
-                          <span className={t.bodySm}>{plan.week2.kickoff}</span>
-                        </div>
-                      )}
-                      {plan.week2?.midweek && (
-                        <div>
-                          <span className={`${t.monoLabel}`}>🔄 mid-week:</span>{" "}
-                          <span className={t.bodySm}>{plan.week2.midweek}</span>
-                        </div>
-                      )}
-                      {plan.week2?.endOfWeek && (
-                        <div>
-                          <span className={`${t.monoLabel}`}>🏁 end of week:</span>{" "}
-                          <span className={t.bodySm}>{plan.week2.endOfWeek}</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : plan.week2?.overview ? (
-                    <p className={t.bodySm}>{plan.week2.overview}</p>
-                  ) : null}
-                </div>
-              )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1838,6 +1978,91 @@ export default function SprintDetailContent(props: Props) {
             <DeleteSprintButton sprintId={row.id} visible={true} />
           </div>
         </AdminOnlySection>
+      )}
+
+      {/* ============================================ */}
+      {/* Week Notes Edit Modal (admin only) */}
+      {/* ============================================ */}
+      {showAdminContent && (
+        <dialog
+          ref={weekDialogRef}
+          onClick={handleWeekBackdropClick}
+          className="backdrop:bg-black/60 backdrop:backdrop-blur-sm bg-white dark:bg-neutral-900 rounded-lg shadow-xl border border-black/10 dark:border-white/10 p-0 max-w-lg w-full mx-4 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+          style={{ margin: 0 }}
+        >
+          {editingWeek && (
+            <div className="p-6 space-y-4">
+              <h2 className={t.cardHeading}>
+                Edit Week {editingWeek} Notes
+              </h2>
+              {editingWeek && SPRINT_WEEKS[editingWeek - 1] && (
+                <p className={t.bodySm}>
+                  {SPRINT_WEEKS[editingWeek - 1].summary}
+                </p>
+              )}
+
+              {/* Kickoff */}
+              <div className="space-y-1">
+                <label className={`${t.monoLabel} flex items-center gap-1.5`}>
+                  <span aria-hidden="true">🚀</span> Kickoff
+                </label>
+                <textarea
+                  value={editKickoff}
+                  onChange={(e) => setEditKickoff(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white resize-y"
+                  placeholder="How does this week start? Goals, alignment, key decisions..."
+                />
+              </div>
+
+              {/* Mid-Week */}
+              <div className="space-y-1">
+                <label className={`${t.monoLabel} flex items-center gap-1.5`}>
+                  <span aria-hidden="true">🔄</span> Mid-Week
+                </label>
+                <textarea
+                  value={editMidweek}
+                  onChange={(e) => setEditMidweek(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white resize-y"
+                  placeholder="What to expect midway - check-in, review, pivot point..."
+                />
+              </div>
+
+              {/* End of Week */}
+              <div className="space-y-1">
+                <label className={`${t.monoLabel} flex items-center gap-1.5`}>
+                  <span aria-hidden="true">🏁</span> End of Week
+                </label>
+                <textarea
+                  value={editEndOfWeek}
+                  onChange={(e) => setEditEndOfWeek(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white resize-y"
+                  placeholder="How this week wraps up - deliverable, handoff, demo..."
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={closeWeekEditor}
+                  className={`${getTypographyClassName("button-sm")} h-10 px-4 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveWeekNotes}
+                  disabled={savingWeekNotes}
+                  className={`${getTypographyClassName("button-sm")} h-10 px-4 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
+                >
+                  {savingWeekNotes ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </div>
+          )}
+        </dialog>
       )}
 
       {/* ============================================ */}

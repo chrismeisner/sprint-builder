@@ -344,11 +344,56 @@ export async function POST(request: Request) {
              total_fixed_hours = NULL,
              total_fixed_price = $2,
              deliverable_count = $3,
+             has_deferred_comp = false,
+             upfront_payment_percent = 50.00,
              updated_at = now()
          WHERE id = $4`,
         [totalComplexity, totalPrice, deliverablesCount, sprintDraftId]
       );
+    } else {
+      // Even without deliverables, set default budget flags
+      await pool.query(
+        `UPDATE sprint_drafts
+         SET has_deferred_comp = false,
+             upfront_payment_percent = 50.00,
+             updated_at = now()
+         WHERE id = $1`,
+        [sprintDraftId]
+      );
     }
+
+    // Auto-create default budget plan: non-deferred, 50/50 split
+    const budgetPlanId = randomUUID();
+    const upfrontAmount = totalPrice * 0.5;
+    const remainingOnCompletion = totalPrice * 0.5;
+    const defaultBudgetInputs = {
+      isDeferred: false,
+      totalProjectValue: totalPrice,
+      upfrontPayment: 0.5,
+      upfrontPaymentTiming: "on_start",
+      equitySplit: 0,
+      milestones: [],
+      milestoneMissOutcome: "forgiven",
+    };
+    const defaultBudgetOutputs = {
+      upfrontAmount,
+      equityAmount: 0,
+      deferredAmount: 0,
+      milestoneBonusAmount: 0,
+      remainingOnCompletion,
+      totalProjectValue: totalPrice,
+    };
+    await pool.query(
+      `INSERT INTO deferred_comp_plans (id, sprint_id, inputs, outputs, label)
+       VALUES ($1, $2, $3::jsonb, $4::jsonb, $5)`,
+      [
+        budgetPlanId,
+        sprintDraftId,
+        JSON.stringify(defaultBudgetInputs),
+        JSON.stringify(defaultBudgetOutputs),
+        "Default — 50/50 standard",
+      ]
+    );
 
     return NextResponse.json(
       { 

@@ -221,9 +221,17 @@ export default async function SprintDetailPage({ params }: PageProps) {
   };
   type WeekPlan = {
     overview?: string;
+    kickoff?: string;
+    midweek?: string;
+    endOfWeek?: string;
     goals?: string[];
     deliverables?: string[];
     milestones?: string[];
+  };
+  type WeekNotes = {
+    kickoff: string | null;
+    midweek: string | null;
+    endOfWeek: string | null;
   };
   type DraftPlan = {
     sprintTitle?: string;
@@ -248,6 +256,9 @@ export default async function SprintDetailPage({ params }: PageProps) {
     const week1 = isObject(d.week1) ? (d.week1 as Record<string, unknown>) : null;
     const week1Plan: WeekPlan | undefined = week1 ? {
       overview: typeof week1.overview === "string" ? week1.overview : undefined,
+      kickoff: typeof week1.kickoff === "string" ? week1.kickoff : undefined,
+      midweek: typeof week1.midweek === "string" ? week1.midweek : undefined,
+      endOfWeek: typeof week1.endOfWeek === "string" ? week1.endOfWeek : undefined,
       goals: asStringArray(week1.goals),
       deliverables: asStringArray(week1.deliverables),
       milestones: asStringArray(week1.milestones),
@@ -257,6 +268,9 @@ export default async function SprintDetailPage({ params }: PageProps) {
     const week2 = isObject(d.week2) ? (d.week2 as Record<string, unknown>) : null;
     const week2Plan: WeekPlan | undefined = week2 ? {
       overview: typeof week2.overview === "string" ? week2.overview : undefined,
+      kickoff: typeof week2.kickoff === "string" ? week2.kickoff : undefined,
+      midweek: typeof week2.midweek === "string" ? week2.midweek : undefined,
+      endOfWeek: typeof week2.endOfWeek === "string" ? week2.endOfWeek : undefined,
       goals: asStringArray(week2.goals),
       deliverables: asStringArray(week2.deliverables),
       milestones: asStringArray(week2.milestones),
@@ -366,6 +380,29 @@ export default async function SprintDetailPage({ params }: PageProps) {
     // Column might not exist yet, ignore
   }
 
+  // Build weekNotes for all N weeks dynamically (same data structure as shared view)
+  const weekCount = row.weeks ?? 2;
+  const d = isObject(row.draft) ? (row.draft as Record<string, unknown>) : {};
+  const allWeekNotes: Record<string, WeekNotes> = {};
+  for (let i = 1; i <= weekCount; i++) {
+    const key = `week${i}`;
+    const weekData = d[key];
+    if (weekData && typeof weekData === "object") {
+      const w = weekData as Record<string, unknown>;
+      const kickoff = typeof w.kickoff === "string" ? w.kickoff : null;
+      const midweek = typeof w.midweek === "string" ? w.midweek : null;
+      const endOfWeek = typeof w.endOfWeek === "string" ? w.endOfWeek : null;
+      // Fallback: use overview as kickoff for backward compat
+      if (!kickoff && !midweek && !endOfWeek && typeof w.overview === "string" && w.overview) {
+        allWeekNotes[key] = { kickoff: w.overview, midweek: null, endOfWeek: null };
+      } else {
+        allWeekNotes[key] = { kickoff, midweek, endOfWeek };
+      }
+    } else {
+      allWeekNotes[key] = { kickoff: null, midweek: null, endOfWeek: null };
+    }
+  }
+
   // Filter plan for client (only serializable data)
   const planForClient = {
     sprintTitle: plan.sprintTitle,
@@ -389,6 +426,8 @@ export default async function SprintDetailPage({ params }: PageProps) {
       isAdmin={isAdmin}
       isProjectMember={isProjectMember}
       agreementData={agreementData}
+      weekNotes={allWeekNotes}
+      weekCount={weekCount}
     />
   );
 }

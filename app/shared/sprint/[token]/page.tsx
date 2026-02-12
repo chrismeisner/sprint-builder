@@ -29,7 +29,7 @@ export default async function SharedSprintPage({ params }: Props) {
        sd.total_estimate_points, sd.total_fixed_hours, sd.total_fixed_price,
        sd.deliverable_count, sd.draft, sd.created_at, sd.updated_at,
        sd.package_name_snapshot, sd.package_description_snapshot,
-       sd.project_id,
+       sd.project_id, sd.budget_status,
        p.name as project_name
      FROM sprint_drafts sd
      LEFT JOIN projects p ON sd.project_id = p.id
@@ -128,6 +128,58 @@ export default async function SharedSprintPage({ params }: Props) {
     allWeekNotes[key] = notes || { kickoff: null, midweek: null, endOfWeek: null };
   }
 
+  // Fetch budget plan for this sprint
+  const budgetRes = await pool.query(
+    `SELECT id, label, inputs, outputs, created_at
+     FROM deferred_comp_plans
+     WHERE sprint_id = $1
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [sprint.id]
+  );
+
+  type BudgetInputs = {
+    isDeferred?: boolean;
+    totalProjectValue?: number;
+    upfrontPayment?: number;
+    upfrontPaymentTiming?: string;
+    equitySplit?: number;
+    milestones?: Array<{ id: number; summary: string; multiplier: number; date: string }>;
+    milestoneMissOutcome?: string;
+  };
+  type BudgetOutputs = {
+    upfrontAmount?: number;
+    equityAmount?: number;
+    deferredAmount?: number;
+    milestoneBonusAmount?: number;
+    remainingOnCompletion?: number;
+    totalProjectValue?: number;
+  };
+
+  const budgetPlan =
+    (budgetRes?.rowCount ?? 0) > 0
+      ? (budgetRes.rows[0] as {
+          id: string;
+          label: string | null;
+          inputs: BudgetInputs;
+          outputs: BudgetOutputs;
+          created_at: string | Date;
+        })
+      : null;
+
+  const budgetPlanForClient = budgetPlan
+    ? {
+        id: budgetPlan.id,
+        label: budgetPlan.label,
+        inputs: budgetPlan.inputs,
+        outputs: budgetPlan.outputs,
+        created_at:
+          budgetPlan.created_at instanceof Date
+            ? budgetPlan.created_at.toISOString()
+            : budgetPlan.created_at,
+      }
+    : null;
+
   const sprintData = {
     title: (sprint.title as string) ?? "Untitled Sprint",
     projectName: (sprint.project_name as string | null) ?? null,
@@ -185,6 +237,9 @@ export default async function SharedSprintPage({ params }: Props) {
       isAdmin={isAdmin}
       currentUserEmail={currentUserEmail}
       currentUserName={currentUserName}
+      budgetPlan={budgetPlanForClient}
+      budgetStatus={(sprint.budget_status as string | null) ?? "draft"}
+      totalFixedPrice={asNumber(sprint.total_fixed_price, 0)}
     />
   );
 }
