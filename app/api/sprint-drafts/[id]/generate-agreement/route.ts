@@ -430,7 +430,6 @@ export async function POST(request: Request, { params }: Params) {
     let clientName = "";
     let clientTitle = "";
     const clientCompany = sprint.project_name || "Client";
-    const clientCompanyFull = sprint.project_name || "Client Company";
 
     if (sprint.project_id) {
       // Get first project member (typically the client)
@@ -583,6 +582,7 @@ export async function POST(request: Request, { params }: Params) {
         sprintTitle,
         clientCompany,
         clientName,
+        clientTitle,
         totalPoints,
         totalPrice,
         deliverableCount: deliverables.length,
