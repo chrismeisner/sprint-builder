@@ -73,6 +73,7 @@ type BudgetInputs = {
   totalProjectValue?: number;
   upfrontPayment?: number;
   upfrontPaymentTiming?: string;
+  completionPaymentTiming?: string;
   equitySplit?: number;
   milestones?: BudgetMilestone[];
   milestoneMissOutcome?: string;
@@ -756,17 +757,27 @@ export default function SprintDetailContent(props: Props) {
   const currentSprintStatus = sprintStatusOptions[row.status || "draft"] || sprintStatusOptions.draft;
 
   // Calculate duration in weeks from start and end dates
-  // Uses business week (5 days = 1 week) since sprints are typically Mon-Fri
+  // Uses business week (5 work days = 1 week) since sprints are typically Mon-Fri
   const calculateDurationWeeks = (start: string, end: string): number | null => {
     if (!start || !end) return null;
-    const startMs = new Date(start + 'T00:00:00').getTime();
-    const endMs = new Date(end + 'T00:00:00').getTime();
-    if (isNaN(startMs) || isNaN(endMs)) return null;
-    const diffMs = endMs - startMs;
-    const diffDays = diffMs / (1000 * 60 * 60 * 24);
-    // Add 1 to include both start and end dates, divide by 5 for business week
-    const businessDays = diffDays + 1;
-    // Round to nearest 0.5 week
+    const startDate = new Date(start + 'T00:00:00');
+    const endDate = new Date(end + 'T00:00:00');
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return null;
+    
+    // Count business days (Mon-Fri) between start and end dates, inclusive
+    let businessDays = 0;
+    const current = new Date(startDate);
+    
+    while (current <= endDate) {
+      const dayOfWeek = current.getDay();
+      // 0 = Sunday, 6 = Saturday, so 1-5 are Mon-Fri
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        businessDays++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    
+    // Divide by 5 to get weeks, round to nearest 0.5 week
     return Math.round((businessDays / 5) * 2) / 2;
   };
 
@@ -1383,6 +1394,26 @@ export default function SprintDetailContent(props: Props) {
               const hasEquity = isDeferred && equityAmount > 0.01;
               const milestones = isDeferred ? (inputs.milestones ?? []) : [];
               
+              // Payment timing labels
+              const timingLabels: Record<string, string> = {
+                on_start: "Due upon signing",
+                net7: "Net 7",
+                net14: "Net 14",
+                net30: "Net 30",
+              };
+              const completionTimingLabels: Record<string, string> = {
+                on_delivery: "Due upon delivery",
+                net7: "Net 7",
+                net15: "Net 15",
+                net30: "Net 30",
+              };
+              const upfrontTiming = inputs.upfrontPaymentTiming
+                ? timingLabels[inputs.upfrontPaymentTiming] ?? inputs.upfrontPaymentTiming
+                : null;
+              const completionTiming = inputs.completionPaymentTiming
+                ? completionTimingLabels[inputs.completionPaymentTiming] ?? completionTimingLabels.on_delivery
+                : null;
+              
               return (
                 <div className="space-y-4">
                   {/* Payment type indicator */}
@@ -1397,17 +1428,35 @@ export default function SprintDetailContent(props: Props) {
                   </div>
 
                   {/* Payment breakdown - simple list */}
-                  <div className={`space-y-1 ${t.bodySm}`}>
+                  <div className={`space-y-2 ${t.bodySm}`}>
                     <div>
-                      <span className="text-text-muted">{isDeferred ? "Upfront:" : "Kickoff:"}</span>{" "}
-                      <span className="font-medium">{formatCurrency(upfrontAmount)}</span>
-                      <span className="text-text-muted ml-1">({upfrontPercent}%)</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-text-muted">{isDeferred ? "Upfront:" : "Kickoff:"}</span>
+                        <div className="text-right">
+                          <span className="font-medium">{formatCurrency(upfrontAmount)}</span>
+                          <span className="text-text-muted ml-1">({upfrontPercent}%)</span>
+                        </div>
+                      </div>
+                      {upfrontTiming && (
+                        <div className="text-xs text-text-muted ml-0 mt-0.5">
+                          {upfrontTiming}
+                        </div>
+                      )}
                     </div>
                     {!isDeferred && remainingOnCompletion > 0.01 && (
                       <div>
-                        <span className="text-text-muted">On Completion:</span>{" "}
-                        <span className="font-medium">{formatCurrency(remainingOnCompletion)}</span>
-                        <span className="text-text-muted ml-1">({completionPercent}%)</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-text-muted">On Completion:</span>
+                          <div className="text-right">
+                            <span className="font-medium">{formatCurrency(remainingOnCompletion)}</span>
+                            <span className="text-text-muted ml-1">({completionPercent}%)</span>
+                          </div>
+                        </div>
+                        {completionTiming && (
+                          <div className="text-xs text-text-muted ml-0 mt-0.5">
+                            {completionTiming}
+                          </div>
+                        )}
                       </div>
                     )}
                     {hasEquity && (

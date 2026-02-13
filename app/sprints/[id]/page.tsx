@@ -176,6 +176,8 @@ export default async function SprintDetailPage({ params }: PageProps) {
     isDeferred?: boolean;
     totalProjectValue?: number;
     upfrontPayment?: number;
+    upfrontPaymentTiming?: string;
+    completionPaymentTiming?: string;
     equitySplit?: number;
     milestones?: Array<{ id: number; summary: string; multiplier: number; date: string }>;
     milestoneMissOutcome?: string;
