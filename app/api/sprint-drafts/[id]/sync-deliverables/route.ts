@@ -34,8 +34,6 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Sprint not found" }, { status: 404 });
     }
 
-    const sprint = sprintCheck.rows[0] as { id: string; status: string | null };
-
     // Get all sprint deliverables with their source deliverable data
     const deliverables = await pool.query(
       `SELECT 
@@ -82,7 +80,6 @@ export async function POST(request: Request, { params }: Params) {
 
       // Calculate adjusted points based on complexity if it was customized
       const basePoints = del.points ?? 0;
-      const complexityScore = del.complexity_score ?? 1.0;
       
       // If custom_estimate_points exists and differs from source, preserve the adjustment ratio
       let newCustomPoints = basePoints;
