@@ -512,6 +512,26 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
   `);
+  // Add project_type column (internal vs client)
+  await pool.query(`
+    ALTER TABLE projects
+    ADD COLUMN IF NOT EXISTS project_type text NOT NULL DEFAULT 'client';
+  `);
+  await pool.query(`
+    DO $$ 
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'projects_project_type_check'
+      ) THEN
+        ALTER TABLE projects 
+        ADD CONSTRAINT projects_project_type_check 
+        CHECK (project_type IN ('internal', 'client'));
+      END IF;
+    END $$;
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_projects_project_type ON projects(project_type);
+  `);
   // Project membership (share projects by email)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS project_members (

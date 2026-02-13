@@ -22,6 +22,7 @@ type Project = {
   id: string;
   name: string;
   status: ProjectStatus;
+  projectType: ProjectType;
   createdAt: string | Date;
   updatedAt: string | Date;
   accountId?: string | null;
@@ -37,6 +38,14 @@ const PROJECT_STATUSES = [
 ] as const;
 
 type ProjectStatus = typeof PROJECT_STATUSES[number]['value'];
+
+// Valid project type values (admin-only single select)
+const PROJECT_TYPES = [
+  { value: 'client', label: 'Client' },
+  { value: 'internal', label: 'Internal' },
+] as const;
+
+type ProjectType = typeof PROJECT_TYPES[number]['value'];
 
 type ProfileData = {
   profile: Profile;
@@ -69,6 +78,7 @@ export default function ProjectsClient() {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [welcomeSaving, setWelcomeSaving] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
+  const [typeUpdating, setTypeUpdating] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
@@ -297,6 +307,41 @@ export default function ProjectsClient() {
       showToast(err instanceof Error ? err.message : "Failed to update status", "error");
     } finally {
       setStatusUpdating(null);
+    }
+  };
+
+  const handleTypeChange = async (projectId: string, newType: ProjectType) => {
+    try {
+      setTypeUpdating(projectId);
+      const res = await fetch("/api/projects", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: projectId, projectType: newType }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to update project type");
+      }
+
+      await fetchProfile();
+      showToast("Project type updated", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to update project type", "error");
+    } finally {
+      setTypeUpdating(null);
+    }
+  };
+
+  const getTypeBadgeClasses = (type: ProjectType) => {
+    const baseClasses = "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium";
+    switch (type) {
+      case 'client':
+        return `${baseClasses} bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300`;
+      case 'internal':
+        return `${baseClasses} bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300`;
+      default:
+        return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300`;
     }
   };
 
@@ -534,6 +579,9 @@ export default function ProjectsClient() {
                     Project
                   </th>
                   <th className={`px-4 py-3 ${tableHeadingClass}`}>
+                    Type
+                  </th>
+                  <th className={`px-4 py-3 ${tableHeadingClass}`}>
                     Status
                   </th>
                   <th className={`px-4 py-3 ${tableHeadingClass}`}>
@@ -558,6 +606,26 @@ export default function ProjectsClient() {
                         <div className={`${bodyClass} font-medium hover:underline`}>{project.name}</div>
                         <div className={monoMetaClass}>{project.id.slice(0, 8)}...</div>
                       </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      {data.profile.isAdmin ? (
+                        <select
+                          value={project.projectType || 'client'}
+                          onChange={(e) => handleTypeChange(project.id, e.target.value as ProjectType)}
+                          disabled={typeUpdating === project.id}
+                          className={`${bodySmClass} px-2 py-1 rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
+                        >
+                          {PROJECT_TYPES.map((t) => (
+                            <option key={t.value} value={t.value}>
+                              {t.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={getTypeBadgeClasses(project.projectType || 'client')}>
+                          {PROJECT_TYPES.find(t => t.value === (project.projectType || 'client'))?.label || 'Client'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {data.profile.isAdmin ? (

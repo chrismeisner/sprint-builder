@@ -60,6 +60,102 @@ function getFileIcon(mimetype: string | null): JSX.Element {
   );
 }
 
+function getUrlIcon(url: string): JSX.Element {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.toLowerCase();
+    
+    // Figma
+    if (hostname.includes("figma.com")) {
+      return (
+        <img 
+          src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Figma-logo.svg/960px-Figma-logo.svg.png" 
+          alt="Figma" 
+          className="w-5 h-5 object-contain"
+        />
+      );
+    }
+    
+    // GitHub
+    if (hostname.includes("github.com")) {
+      return (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+        </svg>
+      );
+    }
+    
+    // Google Docs/Drive
+    if (hostname.includes("docs.google.com") || hostname.includes("drive.google.com")) {
+      return (
+        <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M14.727 6.727H14V6H7.273v.727h.727v10.546h-.727V18H14v-.727h-.727m2.909-7.637l-2.909-8L5.09 6.727l2.91 8m-2.182 3.637L6 15.273l5.455-2.91 1.818 4.91" />
+        </svg>
+      );
+    }
+    
+    // Notion
+    if (hostname.includes("notion.so") || hostname.includes("notion.site")) {
+      return (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z"/>
+        </svg>
+      );
+    }
+    
+    // Miro
+    if (hostname.includes("miro.com")) {
+      return (
+        <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M17.392 0H13.9L17 10.444 10.444 0H6.949l3.102 10.444L3.494 0H0l5.05 17.639L8.8 24l4.432-14.738L17.665 24l2.334-6.361L24 0z"/>
+        </svg>
+      );
+    }
+    
+    // Slack
+    if (hostname.includes("slack.com")) {
+      return (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+        </svg>
+      );
+    }
+    
+    // Trello
+    if (hostname.includes("trello.com")) {
+      return (
+        <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M21 0H3C1.343 0 0 1.343 0 3v18c0 1.656 1.343 3 3 3h18c1.656 0 3-1.344 3-3V3c0-1.657-1.344-3-3-3zM10.44 18.18c0 .795-.645 1.44-1.44 1.44H4.56c-.795 0-1.44-.646-1.44-1.44V4.56c0-.795.645-1.44 1.44-1.44H9c.795 0 1.44.645 1.44 1.44v13.62zm10.44-6c0 .794-.645 1.44-1.44 1.44H15c-.795 0-1.44-.646-1.44-1.44V4.56c0-.795.646-1.44 1.44-1.44h4.44c.795 0 1.44.645 1.44 1.44v7.62z"/>
+        </svg>
+      );
+    }
+    
+    // Linear
+    if (hostname.includes("linear.app")) {
+      return (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M0 0h24v24H0z" fill="none"/>
+          <path d="M3.00488 7.43957C3.00488 6.6304 3.24386 5.83735 3.69329 5.15459C4.14273 4.47183 4.78457 3.92841 5.54242 3.58805C6.30026 3.24769 7.14185 3.12358 7.95677 3.23045C8.77169 3.33732 9.53673 3.67076 10.1553 4.18833L21.8682 15.9012C22.3858 16.5198 22.7192 17.2848 22.8261 18.0997C22.933 18.9147 22.8089 19.7562 22.4685 20.5141C22.1281 21.2719 21.5847 21.9138 20.9019 22.3632C20.2192 22.8126 19.4261 23.0516 18.6169 23.0516C17.8078 23.0516 17.0147 22.8126 16.3319 22.3632C15.6492 21.9138 15.1058 21.2719 14.7654 20.5141C14.425 19.7562 14.3009 18.9147 14.4078 18.0997C14.5146 17.2848 14.8481 16.5198 15.3657 15.9012L3.65279 4.18833C3.40388 3.93941 3.14051 3.71012 2.86523 3.50195L3.00488 7.43957Z"/>
+        </svg>
+      );
+    }
+    
+    // Default URL icon
+    return (
+      <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+      </svg>
+    );
+  } catch {
+    // If URL parsing fails, return default icon
+    return (
+      <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+      </svg>
+    );
+  }
+}
+
 export default function SprintLinks({ sprintId, isAdmin }: Props) {
   const [links, setLinks] = useState<SprintLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -363,13 +459,16 @@ export default function SprintLinks({ sprintId, isAdmin }: Props) {
                   )}
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
-                      {link.linkType === "file" ? (
-                        getFileIcon(link.mimetype)
-                      ) : (
-                        <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                        </svg>
-                      )}
+                      {link.linkType === "file" 
+                        ? getFileIcon(link.mimetype)
+                        : link.url 
+                          ? getUrlIcon(link.url)
+                          : (
+                            <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                          )
+                      }
                       <div>
                         <div className="font-medium text-text-primary">{link.name}</div>
                         {link.description && (

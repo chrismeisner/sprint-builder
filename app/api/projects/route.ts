@@ -7,6 +7,7 @@ type ProjectRow = {
   id: string;
   name: string;
   status: string;
+  project_type: string;
   created_at: string | Date;
   updated_at: string | Date;
 };
@@ -14,6 +15,10 @@ type ProjectRow = {
 // Valid project status values (admin-only single select)
 const VALID_PROJECT_STATUSES = ['active', 'on_hold', 'completed', 'cancelled'] as const;
 type ProjectStatus = typeof VALID_PROJECT_STATUSES[number];
+
+// Valid project type values (admin-only single select)
+const VALID_PROJECT_TYPES = ['internal', 'client'] as const;
+type ProjectType = typeof VALID_PROJECT_TYPES[number];
 
 export async function GET() {
   try {
@@ -30,6 +35,7 @@ export async function GET() {
         p.id,
         p.name,
         p.status,
+        p.project_type,
         p.created_at,
         p.updated_at,
         p.account_id,
@@ -50,6 +56,7 @@ export async function GET() {
         id: row.id as string,
         name: row.name as string,
         status: (row as ProjectRow).status ?? 'active',
+        projectType: (row as ProjectRow).project_type ?? 'client',
         createdAt: new Date((row as ProjectRow).created_at).toISOString(),
         updatedAt: new Date((row as ProjectRow).updated_at).toISOString(),
         accountId: (row as ProjectRow & { account_id?: string }).account_id ?? null,
@@ -134,7 +141,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { id, name, status } = body as { id?: unknown; name?: unknown; status?: unknown };
+    const { id, name, status, projectType } = body as { id?: unknown; name?: unknown; status?: unknown; projectType?: unknown };
 
     if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json({ error: "Project id is required" }, { status: 400 });
@@ -143,9 +150,10 @@ export async function PATCH(request: Request) {
     // At least one field to update must be provided
     const hasNameUpdate = typeof name === "string" && name.trim();
     const hasStatusUpdate = typeof status === "string" && status.trim();
+    const hasProjectTypeUpdate = typeof projectType === "string" && projectType.trim();
     
-    if (!hasNameUpdate && !hasStatusUpdate) {
-      return NextResponse.json({ error: "At least name or status is required" }, { status: 400 });
+    if (!hasNameUpdate && !hasStatusUpdate && !hasProjectTypeUpdate) {
+      return NextResponse.json({ error: "At least name, status, or projectType is required" }, { status: 400 });
     }
 
     // Validate status value if provided
@@ -156,9 +164,22 @@ export async function PATCH(request: Request) {
       );
     }
 
+    // Validate project type value if provided
+    if (hasProjectTypeUpdate && !VALID_PROJECT_TYPES.includes(projectType as ProjectType)) {
+      return NextResponse.json(
+        { error: `Invalid project type. Must be one of: ${VALID_PROJECT_TYPES.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
     // Status updates are admin-only
     if (hasStatusUpdate && !user.isAdmin) {
       return NextResponse.json({ error: "Only admins can update project status" }, { status: 403 });
+    }
+
+    // Project type updates are admin-only
+    if (hasProjectTypeUpdate && !user.isAdmin) {
+      return NextResponse.json({ error: "Only admins can update project type" }, { status: 403 });
     }
 
     await ensureSchema();
@@ -196,6 +217,12 @@ export async function PATCH(request: Request) {
       paramIndex++;
     }
 
+    if (hasProjectTypeUpdate) {
+      updates.push(`project_type = $${paramIndex}`);
+      params.push((projectType as string).trim());
+      paramIndex++;
+    }
+
     updates.push("updated_at = now()");
     params.push(id.trim());
 
@@ -203,7 +230,7 @@ export async function PATCH(request: Request) {
       `UPDATE projects
        SET ${updates.join(", ")}
        WHERE id = $${paramIndex}
-       RETURNING id, name, status, created_at, updated_at, account_id`,
+       RETURNING id, name, status, project_type, created_at, updated_at, account_id`,
       params
     );
 
@@ -214,6 +241,7 @@ export async function PATCH(request: Request) {
         id: row.id,
         name: row.name,
         status: row.status ?? 'active',
+        projectType: row.project_type ?? 'client',
         createdAt: new Date(row.created_at).toISOString(),
         updatedAt: new Date(row.updated_at).toISOString(),
         accountId: row.account_id,

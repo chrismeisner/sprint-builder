@@ -219,27 +219,57 @@
       const data = [];
 
       stageElements.forEach((stage, index) => {
+        const stageNumber = stage.querySelector('.stage-number')?.textContent.trim() || (index + 1);
         const name = stage.querySelector('.stage-name')?.textContent.trim() || '';
-        const goal = stage.querySelector('.stage-section:nth-child(1) .stage-text')?.textContent.trim() || '';
         
-        const actionsList = stage.querySelectorAll('.stage-section:nth-child(2) .stage-list li');
-        const actions = Array.from(actionsList).map(li => li.textContent.trim()).join('; ');
+        // Get User Goal (first non-users section with stage-text)
+        const goalSection = Array.from(stage.querySelectorAll('.stage-section')).find(s => 
+          s.querySelector('.stage-label')?.textContent.includes('User Goal')
+        );
+        const goal = goalSection?.querySelector('.stage-text')?.textContent.trim() || '';
         
-        const touchpoints = stage.querySelector('.stage-section:nth-child(3) .stage-text')?.textContent.trim() || '';
+        // Get User Actions
+        const userActionsSection = Array.from(stage.querySelectorAll('.stage-section')).find(s => 
+          s.querySelector('.stage-label')?.textContent.includes('User Actions')
+        );
+        const userActionsList = userActionsSection?.querySelectorAll('.stage-list li') || [];
+        const userActions = Array.from(userActionsList).map(li => li.textContent.trim()).join('; ');
+        
+        // Get Miles Actions (system actions)
+        const milesActionsSection = Array.from(stage.querySelectorAll('.stage-section')).find(s => 
+          s.querySelector('.stage-label')?.textContent.includes('Miles Actions')
+        );
+        const milesActionsList = milesActionsSection?.querySelectorAll('.stage-list li') || [];
+        const milesActions = Array.from(milesActionsList).map(li => li.textContent.trim()).join('; ');
+        
+        // Get Touchpoints
+        const touchpointsSection = Array.from(stage.querySelectorAll('.stage-section')).find(s => 
+          s.querySelector('.stage-label')?.textContent.includes('Touchpoints')
+        );
+        const touchpointsList = touchpointsSection?.querySelectorAll('.stage-list li') || [];
+        const touchpoints = Array.from(touchpointsList).map(li => li.textContent.trim()).join('; ');
+        
+        // Get Emotion
         const emotion = stage.querySelector('.emotion-indicator')?.textContent.trim() || '';
         
-        const painPoint = stage.querySelector('.callout-pain .stage-callout-text')?.textContent.trim() || '';
-        const opportunity = stage.querySelector('.callout-opportunity .stage-callout-text')?.textContent.trim() || '';
+        // Get Pain Points
+        const painCallouts = stage.querySelectorAll('.callout-pain .stage-callout-text');
+        const painPoints = Array.from(painCallouts).map(el => el.textContent.trim()).join(' | ');
+        
+        // Get Opportunities
+        const opportunityCallouts = stage.querySelectorAll('.callout-opportunity .stage-callout-text');
+        const opportunities = Array.from(opportunityCallouts).map(el => el.textContent.trim()).join(' | ');
 
         data.push({
-          stage: index + 1,
+          stage: stageNumber,
           name,
           goal,
-          actions,
+          userActions,
+          milesActions,
           touchpoints,
           emotion,
-          painPoint,
-          opportunity
+          painPoints,
+          opportunities
         });
       });
 
@@ -250,7 +280,7 @@
       const data = getStageData();
       const journeyName = document.querySelector('h1')?.textContent.trim() || 'User Journey';
       
-      const headers = ['Stage', 'Name', 'User Goal', 'Actions', 'Touchpoints', 'Emotion', 'Pain Point', 'Opportunity'];
+      const headers = ['Stage', 'Name', 'User Goal', 'User Actions', 'Miles Actions', 'Touchpoints', 'Emotion', 'Pain Points', 'Opportunities'];
       
       let csv = `Journey: ${escapeCSV(journeyName)}\n\n`;
       csv += headers.map(escapeCSV).join(',') + '\n';
@@ -260,11 +290,12 @@
           row.stage,
           escapeCSV(row.name),
           escapeCSV(row.goal),
-          escapeCSV(row.actions),
+          escapeCSV(row.userActions),
+          escapeCSV(row.milesActions),
           escapeCSV(row.touchpoints),
           escapeCSV(row.emotion),
-          escapeCSV(row.painPoint),
-          escapeCSV(row.opportunity)
+          escapeCSV(row.painPoints),
+          escapeCSV(row.opportunities)
         ].join(',') + '\n';
       });
 
