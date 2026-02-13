@@ -63,7 +63,7 @@ export async function POST(request: Request) {
             body: new URLSearchParams({
               from: mailgunFrom,
               to: normalizedEmail,
-              subject: "Your sprint builder magic link (Superadmin)",
+              subject: "Your magic link",
               text: `Click this link to sign in:\n\n${magicLink}\n\nThis link will expire in 15 minutes.`,
             }),
           });
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
           body: new URLSearchParams({
             from: mailgunFrom,
             to: normalizedEmail,
-            subject: "Your sprint builder magic link",
+            subject: "Your magic link",
             text: `Click this link to sign in:\n\n${magicLink}\n\nThis link will expire in 15 minutes.`,
           }),
         });

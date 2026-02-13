@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { sendEmail, generateMemberWelcomeEmail, generateLeadNotificationEmail, generateMemberRemovedNotificationEmail } from "@/lib/email";
 import crypto from "crypto";
 
 function normalizeEmail(email: unknown): string | null {
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
       SELECT 
         pm.email,
         pm.title,
+        pm.role,
         pm.added_by_account,
         pm.created_at,
         a.name,
@@ -78,6 +80,7 @@ export async function GET(request: NextRequest) {
       members: membersRes.rows.map((row) => ({
         email: row.email as string,
         title: row.title as string | null,
+        role: (row.role as string) || "member",
         name: row.name as string | null,
         firstName: row.first_name as string | null,
         lastName: row.last_name as string | null,
@@ -119,14 +122,83 @@ export async function POST(request: NextRequest) {
     }
 
     const pool = getPool();
-    await pool.query(
+    const insertResult = await pool.query(
       `
       INSERT INTO project_members (id, project_id, email, added_by_account)
       VALUES ($1, $2, $3, $4)
       ON CONFLICT (project_id, email) DO NOTHING
+      RETURNING id
       `,
       [crypto.randomUUID(), projectId, email, user.accountId]
     );
+
+    // Only send emails if the member was actually inserted (not a duplicate)
+    const wasInserted = (insertResult.rowCount ?? 0) > 0;
+    if (wasInserted) {
+      // Get project name and adder's display name
+      const projectRes = await pool.query(
+        `SELECT name FROM projects WHERE id = $1`,
+        [projectId]
+      );
+      const projectName = (projectRes.rows[0] as { name: string } | undefined)?.name || "Untitled Project";
+      const addedByName = user.name || user.firstName || user.email;
+
+      // Build URLs — prefer BASE_URL env, fall back to request origin
+      const reqUrl = new URL(request.url);
+      const origin = process.env.BASE_URL?.replace(/\/$/, "") || `${reqUrl.protocol}//${reqUrl.host}`;
+      const loginUrl = `${origin}/login`;
+      const projectUrl = `${origin}/projects/${projectId}`;
+
+      // 1) Email the new member with welcome + login instructions
+      try {
+        const welcomeEmail = generateMemberWelcomeEmail({
+          projectName,
+          loginUrl,
+          addedByName,
+        });
+        await sendEmail({
+          to: email,
+          subject: welcomeEmail.subject,
+          text: welcomeEmail.text,
+          html: welcomeEmail.html,
+        });
+        console.log("[ProjectMembersAPI] Welcome email sent to new member", { email });
+      } catch (emailErr) {
+        console.error("[ProjectMembersAPI] Failed to send welcome email", { email, error: emailErr });
+      }
+
+      // 2) Email all leads on the project about the new member
+      try {
+        const leadsRes = await pool.query(
+          `SELECT pm.email FROM project_members pm WHERE pm.project_id = $1 AND pm.role = 'lead' AND lower(pm.email) != lower($2)`,
+          [projectId, email]
+        );
+        const leadEmails = leadsRes.rows.map((r) => (r as { email: string }).email);
+
+        if (leadEmails.length > 0) {
+          const leadNotification = generateLeadNotificationEmail({
+            projectName,
+            newMemberEmail: email,
+            addedByName,
+            projectUrl,
+          });
+
+          await Promise.allSettled(
+            leadEmails.map((leadEmail) =>
+              sendEmail({
+                to: leadEmail,
+                subject: leadNotification.subject,
+                text: leadNotification.text,
+                html: leadNotification.html,
+              })
+            )
+          );
+          console.log("[ProjectMembersAPI] Lead notification emails sent", { leads: leadEmails });
+        }
+      } catch (emailErr) {
+        console.error("[ProjectMembersAPI] Failed to send lead notification emails", { error: emailErr });
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -146,10 +218,13 @@ export async function PATCH(request: NextRequest) {
       projectId?: unknown; 
       email?: unknown;
       title?: unknown;
+      role?: unknown;
     };
     const projectId = typeof body.projectId === "string" ? body.projectId : null;
     const email = normalizeEmail(body.email);
     const title = typeof body.title === "string" ? body.title.trim() : null;
+    const VALID_ROLES = ["member", "lead"];
+    const role = typeof body.role === "string" && VALID_ROLES.includes(body.role) ? body.role : null;
 
     if (!projectId) {
       return NextResponse.json({ error: "projectId is required" }, { status: 400 });
@@ -167,14 +242,43 @@ export async function PATCH(request: NextRequest) {
     }
 
     const pool = getPool();
+
+    // Build dynamic SET clause based on provided fields
+    const setClauses: string[] = [];
+    const values: (string | null)[] = [];
+    let paramIndex = 1;
+
+    if (body.title !== undefined) {
+      setClauses.push(`title = $${paramIndex}`);
+      values.push(title || null);
+      paramIndex++;
+    }
+    if (body.role !== undefined) {
+      if (!role) {
+        return NextResponse.json({ error: `Invalid role. Must be one of: ${VALID_ROLES.join(", ")}` }, { status: 400 });
+      }
+      setClauses.push(`role = $${paramIndex}`);
+      values.push(role);
+      paramIndex++;
+    }
+
+    if (setClauses.length === 0) {
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    }
+
+    values.push(projectId);
+    const projectIdParam = paramIndex++;
+    values.push(email);
+    const emailParam = paramIndex++;
+
     const result = await pool.query(
       `
       UPDATE project_members 
-      SET title = $1
-      WHERE project_id = $2 AND lower(email) = lower($3)
+      SET ${setClauses.join(", ")}
+      WHERE project_id = $${projectIdParam} AND lower(email) = lower($${emailParam})
       RETURNING id
       `,
-      [title || null, projectId, email]
+      values
     );
 
     if ((result.rowCount ?? 0) === 0) {
@@ -213,10 +317,59 @@ export async function DELETE(request: NextRequest) {
     }
 
     const pool = getPool();
-    await pool.query(
-      `DELETE FROM project_members WHERE project_id = $1 AND lower(email) = lower($2)`,
+    const deleteResult = await pool.query(
+      `DELETE FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) RETURNING id`,
       [projectId, email]
     );
+
+    // Only send emails if the member was actually deleted
+    const wasDeleted = (deleteResult.rowCount ?? 0) > 0;
+    if (wasDeleted) {
+      // Get project name and remover's display name
+      const projectRes = await pool.query(
+        `SELECT name FROM projects WHERE id = $1`,
+        [projectId]
+      );
+      const projectName = (projectRes.rows[0] as { name: string } | undefined)?.name || "Untitled Project";
+      const removedByName = user.name || user.firstName || user.email;
+
+      // Build URLs — prefer BASE_URL env, fall back to request origin
+      const reqUrl = new URL(request.url);
+      const origin = process.env.BASE_URL?.replace(/\/$/, "") || `${reqUrl.protocol}//${reqUrl.host}`;
+      const projectUrl = `${origin}/projects/${projectId}`;
+
+      // Email all leads on the project about the removed member
+      try {
+        const leadsRes = await pool.query(
+          `SELECT pm.email FROM project_members pm WHERE pm.project_id = $1 AND pm.role = 'lead' AND lower(pm.email) != lower($2)`,
+          [projectId, email]
+        );
+        const leadEmails = leadsRes.rows.map((r) => (r as { email: string }).email);
+
+        if (leadEmails.length > 0) {
+          const removalNotification = generateMemberRemovedNotificationEmail({
+            projectName,
+            removedMemberEmail: email,
+            removedByName,
+            projectUrl,
+          });
+
+          await Promise.allSettled(
+            leadEmails.map((leadEmail) =>
+              sendEmail({
+                to: leadEmail,
+                subject: removalNotification.subject,
+                text: removalNotification.text,
+                html: removalNotification.html,
+              })
+            )
+          );
+          console.log("[ProjectMembersAPI] Member removal notification emails sent to leads", { leads: leadEmails });
+        }
+      } catch (emailErr) {
+        console.error("[ProjectMembersAPI] Failed to send member removal notification emails", { error: emailErr });
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

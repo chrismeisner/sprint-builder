@@ -534,6 +534,11 @@ export async function ensureSchema(): Promise<void> {
     ALTER TABLE project_members
     ADD COLUMN IF NOT EXISTS title text;
   `);
+  // Add role field for project-level roles (member, lead)
+  await pool.query(`
+    ALTER TABLE project_members
+    ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'member';
+  `);
   // Attach FK after table exists
   await pool.query(`
     DO $$

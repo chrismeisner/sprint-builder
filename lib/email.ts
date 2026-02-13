@@ -82,8 +82,49 @@ export async function sendEmail(params: SendEmailParams): Promise<{
   }
 }
 
+// ---------------------------------------------------------------------------
+// Shared HTML shell — keeps every email visually consistent and simple
+// ---------------------------------------------------------------------------
+
+function emailShell(body: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:32px 16px;">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#ffffff;border-radius:8px;border:1px solid #e4e4e7;padding:32px;">
+<tr><td style="color:#18181b;font-size:15px;line-height:1.6;">
+${body}
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+function linkButton(href: string, label: string): string {
+  return `<a href="${href}" style="display:inline-block;background-color:#18181b;color:#ffffff!important;text-decoration:none;padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;margin:16px 0;">${label}</a>`;
+}
+
+function muted(text: string): string {
+  return `<p style="color:#71717a;font-size:13px;margin:0;">${text}</p>`;
+}
+
+function divider(): string {
+  return `<hr style="border:none;border-top:1px solid #e4e4e7;margin:24px 0;">`;
+}
+
+// ---------------------------------------------------------------------------
+// Email generators
+// ---------------------------------------------------------------------------
+
 /**
- * Generate sprint draft notification email
+ * Project draft notification
  */
 export function generateSprintDraftEmail(params: {
   sprintTitle: string;
@@ -93,288 +134,162 @@ export function generateSprintDraftEmail(params: {
 }): { subject: string; text: string; html: string } {
   const { sprintTitle, sprintUrl, clientName, projectName } = params;
 
-  const greeting = clientName ? `Hi ${clientName}!` : "Hi there!";
+  const greeting = clientName ? `Hi ${clientName},` : "Hi there,";
   const projectContext = projectName ? ` for ${projectName}` : "";
-  
-  const subject = `Your Sprint Plan is Ready: ${sprintTitle}`;
+
+  const subject = `Your project plan is ready: ${sprintTitle}`;
 
   const text = `${greeting}
 
-Great news - we've analyzed your project requirements and created a custom 2-week sprint plan just for you${projectContext}.
+Your project plan${projectContext} is ready to review.
 
-Sprint Title: ${sprintTitle}
+${sprintTitle}
 
-View your sprint plan here:
-${sprintUrl}
+View it here: ${sprintUrl}
 
-Your sprint plan includes:
-• Selected deliverables with fixed pricing
-• Detailed backlog with story points
-• Day-by-day timeline for 2 weeks
-• Clear goals and acceptance criteria
+The plan includes selected deliverables with pricing, a detailed backlog, and timeline. This is a draft — reply to this email if you'd like any changes.
 
-This plan is a draft and we're happy to discuss any adjustments. Simply reply to this email with your questions or feedback.
-
-Looking forward to working with you!
-
-Best regards,
-The Sprint Planning Team
+— Meisner Design
 `;
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${subject}</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #f5f5f5;
-    }
-    .container {
-      background-color: white;
-      border-radius: 8px;
-      padding: 40px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    h1 {
-      color: #000;
-      font-size: 24px;
-      margin-bottom: 20px;
-    }
-    .sprint-title {
-      background-color: #f8f9fa;
-      padding: 16px;
-      border-radius: 6px;
-      border-left: 4px solid #000;
-      margin: 24px 0;
-      font-weight: 600;
-    }
-    .cta-button {
-      display: inline-block;
-      background-color: #000;
-      color: white !important;
-      text-decoration: none;
-      padding: 14px 32px;
-      border-radius: 6px;
-      font-weight: 600;
-      margin: 24px 0;
-    }
-    .cta-button:hover {
-      background-color: #333;
-    }
-    .features {
-      list-style: none;
-      padding: 0;
-      margin: 24px 0;
-    }
-    .features li {
-      padding: 8px 0;
-      padding-left: 24px;
-      position: relative;
-    }
-    .features li:before {
-      content: "✓";
-      position: absolute;
-      left: 0;
-      color: #22c55e;
-      font-weight: bold;
-    }
-    .footer {
-      margin-top: 32px;
-      padding-top: 24px;
-      border-top: 1px solid #e5e7eb;
-      font-size: 14px;
-      color: #6b7280;
-    }
-    .link {
-      color: #3b82f6;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>🎉 Your Sprint Plan is Ready!</h1>
-    
-    <p>${greeting}</p>
-    
-    <p>Great news - we've analyzed your project requirements and created a custom 2-week sprint plan tailored specifically to your needs${projectContext}.</p>
-    
-    <div class="sprint-title">
-      ${sprintTitle}
-    </div>
-    
-    <a href="${sprintUrl}" class="cta-button">View Your Sprint Plan →</a>
-    
-    <p><strong>What's included in your sprint plan:</strong></p>
-    
-    <ul class="features">
-      <li>Selected deliverables with fixed pricing</li>
-      <li>Detailed backlog with story points and acceptance criteria</li>
-      <li>Day-by-day timeline for 2 weeks</li>
-      <li>Clear goals, assumptions, and risk assessment</li>
-    </ul>
-    
-    <p>This plan is a draft and we're happy to discuss any adjustments. Simply reply to this email with your questions or feedback.</p>
-    
-    <p>Looking forward to working with you!</p>
-    
-    <div class="footer">
-      <p><strong>The Sprint Planning Team</strong></p>
-      <p>You're receiving this email because you submitted a project request through our intake form.</p>
-      <p style="margin-top: 16px; font-size: 12px;">
-        If you can't click the button above, copy and paste this link into your browser:<br>
-        <a href="${sprintUrl}" class="link">${sprintUrl}</a>
-      </p>
-    </div>
-  </div>
-</body>
-</html>
-`;
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">Your project plan${projectContext} is ready to review.</p>
+<p style="margin:0 0 4px;font-weight:600;">${sprintTitle}</p>
+${linkButton(sprintUrl, "View project plan")}
+<p style="margin:16px 0 0;">The plan includes deliverables with pricing, a detailed backlog, and timeline. This is a draft&nbsp;&mdash; reply to this email if you&rsquo;d like any changes.</p>
+${divider()}
+${muted("Meisner Design")}
+`);
 
   return { subject, text, html };
 }
 
 /**
- * Generate intake form confirmation email
+ * Welcome email for a new project member
  */
-export function generateIntakeConfirmationEmail(): { subject: string; text: string; html: string } {
-  const subject = "We Received Your Intake Form";
+export function generateMemberWelcomeEmail(params: {
+  projectName: string;
+  loginUrl: string;
+  addedByName?: string;
+}): { subject: string; text: string; html: string } {
+  const { projectName, loginUrl, addedByName } = params;
+  const addedBy = addedByName ? ` by ${addedByName}` : "";
 
-  const text = `Hi there!
+  const subject = `You've been added to ${projectName}`;
 
-Thank you for submitting your project intake form. We've successfully received your information and our team is reviewing your requirements.
+  const text = `Hi there,
 
-What happens next:
-• Our team will analyze your project details
-• We'll create a custom sprint plan tailored to your needs
-• You'll receive a follow-up email with your personalized sprint plan within 1-2 business days
+You've been added to "${projectName}"${addedBy}.
 
-In the meantime, if you have any questions or need to provide additional information, feel free to reply to this email.
+To access the project, go to ${loginUrl} and enter your email. You'll receive a magic link — no password needed.
 
-We're excited to work with you!
-
-Best regards,
-The Sprint Planning Team
+— Meisner Design
 `;
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${subject}</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #f5f5f5;
-    }
-    .container {
-      background-color: white;
-      border-radius: 8px;
-      padding: 40px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    h1 {
-      color: #000;
-      font-size: 24px;
-      margin-bottom: 20px;
-    }
-    .success-badge {
-      background-color: #dcfce7;
-      color: #166534;
-      padding: 12px 20px;
-      border-radius: 6px;
-      text-align: center;
-      font-weight: 600;
-      margin: 24px 0;
-    }
-    .next-steps {
-      background-color: #f8f9fa;
-      padding: 24px;
-      border-radius: 6px;
-      border-left: 4px solid #000;
-      margin: 24px 0;
-    }
-    .next-steps h2 {
-      margin-top: 0;
-      font-size: 18px;
-      color: #000;
-    }
-    .steps-list {
-      list-style: none;
-      padding: 0;
-      margin: 16px 0 0 0;
-    }
-    .steps-list li {
-      padding: 8px 0;
-      padding-left: 32px;
-      position: relative;
-    }
-    .steps-list li:before {
-      content: "→";
-      position: absolute;
-      left: 8px;
-      color: #000;
-      font-weight: bold;
-    }
-    .footer {
-      margin-top: 32px;
-      padding-top: 24px;
-      border-top: 1px solid #e5e7eb;
-      font-size: 14px;
-      color: #6b7280;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>✓ Intake Form Received</h1>
-    
-    <div class="success-badge">
-      ✓ Your submission has been received
-    </div>
-    
-    <p>Hi there,</p>
-    
-    <p>Thank you for submitting your project intake form! We've successfully received your information and our team is reviewing your requirements.</p>
-    
-    <div class="next-steps">
-      <h2>What happens next:</h2>
-      <ul class="steps-list">
-        <li>Our team will analyze your project details</li>
-        <li>We'll create a custom sprint plan tailored to your needs</li>
-        <li>You'll receive a follow-up email with your personalized sprint plan within 1-2 business days</li>
-      </ul>
-    </div>
-    
-    <p>In the meantime, if you have any questions or need to provide additional information, feel free to reply to this email.</p>
-    
-    <p>We're excited to work with you!</p>
-    
-    <div class="footer">
-      <p><strong>The Sprint Planning Team</strong></p>
-      <p>You're receiving this email because you submitted a project request through our intake form.</p>
-    </div>
-  </div>
-</body>
-</html>
-`;
+  const html = emailShell(`
+<p style="margin:0 0 16px;">Hi there,</p>
+<p style="margin:0 0 16px;">You&rsquo;ve been added to <strong>${projectName}</strong>${addedBy}.</p>
+<p style="margin:0 0 16px;">To access the project, log in with your email. You&rsquo;ll receive a magic link&nbsp;&mdash; no password needed.</p>
+${linkButton(loginUrl, "Log in")}
+${divider()}
+${muted("Meisner Design")}
+`);
 
   return { subject, text, html };
 }
 
+/**
+ * Lead notification — new member added
+ */
+export function generateLeadNotificationEmail(params: {
+  projectName: string;
+  newMemberEmail: string;
+  addedByName?: string;
+  projectUrl: string;
+}): { subject: string; text: string; html: string } {
+  const { projectName, newMemberEmail, addedByName, projectUrl } = params;
+  const who = addedByName || "Someone";
+
+  const subject = `New member added to ${projectName}`;
+
+  const text = `Hi there,
+
+${who} added ${newMemberEmail} to "${projectName}".
+
+View the project: ${projectUrl}
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">Hi there,</p>
+<p style="margin:0 0 16px;">${who} added <strong>${newMemberEmail}</strong> to <strong>${projectName}</strong>.</p>
+${linkButton(projectUrl, "View project")}
+${divider()}
+${muted("You're receiving this because you're a lead on this project.")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
+ * Lead notification — member removed
+ */
+export function generateMemberRemovedNotificationEmail(params: {
+  projectName: string;
+  removedMemberEmail: string;
+  removedByName?: string;
+  projectUrl: string;
+}): { subject: string; text: string; html: string } {
+  const { projectName, removedMemberEmail, removedByName, projectUrl } = params;
+  const who = removedByName || "Someone";
+
+  const subject = `Member removed from ${projectName}`;
+
+  const text = `Hi there,
+
+${who} removed ${removedMemberEmail} from "${projectName}".
+
+View the project: ${projectUrl}
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">Hi there,</p>
+<p style="margin:0 0 16px;">${who} removed <strong>${removedMemberEmail}</strong> from <strong>${projectName}</strong>.</p>
+${linkButton(projectUrl, "View project")}
+${divider()}
+${muted("You're receiving this because you're a lead on this project.")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
+ * Intake form confirmation
+ */
+export function generateIntakeConfirmationEmail(): { subject: string; text: string; html: string } {
+  const subject = "We Received Your Intake Form";
+
+  const text = `Hi there,
+
+Thanks for submitting your intake form — we've got it. Our team is reviewing your project details and will follow up with a personalized project plan within 1-2 business days.
+
+Reply to this email if you have any questions.
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">Hi there,</p>
+<p style="margin:0 0 16px;">Thanks for submitting your intake form&nbsp;&mdash; we&rsquo;ve got it.</p>
+<p style="margin:0 0 16px;">Our team is reviewing your project details and will follow up with a personalized project plan within 1&ndash;2 business days.</p>
+<p style="margin:0 0 0;">Reply to this email if you have any questions.</p>
+${divider()}
+${muted("Meisner Design")}
+`);
+
+  return { subject, text, html };
+}

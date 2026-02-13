@@ -117,10 +117,14 @@ const STANDARD_AGREEMENT_TEMPLATE = TEMPLATE_HEADER + `
 
 ## 6. Termination
 
-Either party may terminate this agreement with written notice. In the event of termination:
-- The Kickoff Payment is non-refundable and will be retained by Chris Meisner LLC.
-- If termination occurs after work has begun, the value of work completed will be calculated based on the point system. Any amounts already paid will be credited toward that total, and any remaining balance will be invoiced.
-- If no deliverables are delivered, no IP rights transfer occurs.
+Either party may terminate this agreement at any time with written notice. Termination is effective immediately upon receipt of notice.
+
+**Upon termination:**
+- The Kickoff Payment is non-refundable.
+- Client pays for all services satisfactorily performed and expenses incurred to date, calculated as a prorated percentage of the total sprint scope completed.
+- Designer delivers completed work product in its then-current state within 5 business days of receiving final payment.
+- Client receives a limited license to use completed, paid-for work only. Incomplete work remains Designer's property.
+- Confidentiality and indemnification obligations survive termination.
 ` + TEMPLATE_FOOTER;
 
 // ── DEFERRED agreement template (kickoff + equity/milestone components) ──
@@ -128,12 +132,16 @@ const DEFERRED_AGREEMENT_TEMPLATE = TEMPLATE_HEADER + `
 
 ## 6. Termination
 
-Either party may terminate this agreement with written notice. In the event of termination:
-- The Kickoff Payment is non-refundable and will be retained by Chris Meisner LLC.
-- If termination occurs after work has begun, the value of work completed will be calculated based on the point system. Any amounts already paid will be credited toward that total, and any remaining balance will be invoiced.
-- Any equity arrangements outlined in Section 3a will be governed by the terms of the separate equity documentation.
-- Deferred payment obligations will be prorated based on work completed and milestones achieved as of the termination date.
-- If no deliverables are delivered, no IP rights transfer occurs.
+Either party may terminate this agreement at any time with written notice. Termination is effective immediately upon receipt of notice.
+
+**Upon termination:**
+- The Kickoff Payment is non-refundable.
+- Client pays for all services satisfactorily performed and expenses incurred to date, calculated as a prorated percentage of the total sprint scope completed.
+- Designer delivers completed work product in its then-current state within 5 business days of receiving final payment.
+- Client receives a limited license to use completed, paid-for work only. Incomplete work remains Designer's property.
+- Equity arrangements follow the separate equity documentation terms.
+- Milestone-based deferred payments are recalculated based on completion percentage at termination.
+- Confidentiality and indemnification obligations survive termination.
 ` + TEMPLATE_FOOTER;
 
 function formatDate(dateStr: string | Date | null): string {
