@@ -1092,6 +1092,23 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sprint_draft_changelog_created ON sprint_draft_changelog(created_at DESC);
   `);
 
+  // Sprint Invoices: Multiple invoices per sprint (deposit, final, deferred, etc.)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sprint_invoices (
+      id text PRIMARY KEY,
+      sprint_id text NOT NULL REFERENCES sprint_drafts(id) ON DELETE CASCADE,
+      label text NOT NULL,
+      invoice_url text,
+      invoice_status text NOT NULL DEFAULT 'not_sent',
+      invoice_pdf_url text,
+      amount numeric(12,2),
+      sort_order integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_sprint_invoices_sprint ON sprint_invoices(sprint_id);
+  `);
+
   global._schemaInitialized = true;
 }
 

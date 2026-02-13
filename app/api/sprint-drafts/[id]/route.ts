@@ -361,6 +361,73 @@ export async function PATCH(request: Request, { params }: Params) {
         [budgetStatusValue, params.id]
       );
       await logChangelog(pool, params.id, user.accountId, "budget_status", `Changed budget status to "${budgetStatusValue}"`, { budget_status: budgetStatusValue });
+
+      // Auto-generate invoices when transitioning to "agreed"
+      if (budgetStatusValue === "agreed") {
+        try {
+          const existingInvoices = await pool.query(
+            `SELECT COUNT(*)::int as count FROM sprint_invoices WHERE sprint_id = $1`,
+            [params.id]
+          );
+          const existingCount = (existingInvoices.rows[0] as { count: number }).count;
+
+          if (existingCount === 0) {
+            // Fetch budget plan
+            const budgetRes = await pool.query(
+              `SELECT inputs, outputs FROM deferred_comp_plans WHERE sprint_id = $1 ORDER BY created_at DESC LIMIT 1`,
+              [params.id]
+            );
+
+            if ((budgetRes.rowCount ?? 0) > 0) {
+              const budgetRow = budgetRes.rows[0] as {
+                inputs: { isDeferred?: boolean };
+                outputs: { upfrontAmount?: number; remainingOnCompletion?: number; deferredAmount?: number; totalProjectValue?: number };
+              };
+              const { inputs: bInputs, outputs: bOutputs } = budgetRow;
+              const isDeferred = bInputs.isDeferred !== false;
+              const upfrontAmount = bOutputs.upfrontAmount ?? 0;
+
+              const invoicesToCreate: Array<{ label: string; amount: number; sort_order: number }> = [];
+
+              if (isDeferred) {
+                if (upfrontAmount > 0) {
+                  invoicesToCreate.push({ label: "Deposit", amount: upfrontAmount, sort_order: 0 });
+                }
+                const deferredAmount = bOutputs.deferredAmount ?? 0;
+                if (deferredAmount > 0) {
+                  invoicesToCreate.push({ label: "Deferred Payment", amount: deferredAmount, sort_order: 1 });
+                }
+              } else {
+                if (upfrontAmount > 0) {
+                  invoicesToCreate.push({ label: "Deposit", amount: upfrontAmount, sort_order: 0 });
+                }
+                const remainingOnCompletion = bOutputs.remainingOnCompletion ?? 0;
+                if (remainingOnCompletion > 0) {
+                  invoicesToCreate.push({ label: "Final Payment", amount: remainingOnCompletion, sort_order: 1 });
+                }
+              }
+
+              if (invoicesToCreate.length === 0) {
+                invoicesToCreate.push({ label: "Invoice", amount: bOutputs.totalProjectValue ?? 0, sort_order: 0 });
+              }
+
+              for (const inv of invoicesToCreate) {
+                await pool.query(
+                  `INSERT INTO sprint_invoices (id, sprint_id, label, amount, sort_order) VALUES ($1, $2, $3, $4, $5)`,
+                  [randomUUID(), params.id, inv.label, inv.amount, inv.sort_order]
+                );
+              }
+              await logChangelog(pool, params.id, user.accountId, "invoices_generated", `Auto-generated ${invoicesToCreate.length} invoice(s) from budget plan`, {
+                invoices: invoicesToCreate.map(i => ({ label: i.label, amount: i.amount })),
+              });
+            }
+          }
+        } catch (invoiceErr) {
+          console.error("[Auto-generate invoices]", invoiceErr);
+          // Non-blocking — don't fail the budget status update if invoice generation fails
+        }
+      }
+
       return NextResponse.json({ success: true });
     }
 

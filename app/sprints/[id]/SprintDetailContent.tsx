@@ -124,6 +124,19 @@ type SprintRow = {
   invoice_pdf_url: string | null;
 };
 
+type SprintInvoice = {
+  id: string;
+  sprint_id: string;
+  label: string;
+  invoice_url: string | null;
+  invoice_status: string;
+  invoice_pdf_url: string | null;
+  amount: number | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 type AgreementData = {
   agreement: string | null;
   generatedAt: string | null;
@@ -146,6 +159,7 @@ type Props = {
   agreementData?: AgreementData;
   weekNotes?: Record<string, WeekNotesData>;
   weekCount?: number;
+  invoices?: SprintInvoice[];
 };
 
 // Helper function to format currency
@@ -164,6 +178,7 @@ export default function SprintDetailContent(props: Props) {
     agreementData,
     weekNotes: initialWeekNotes,
     weekCount: propWeekCount,
+    invoices: initialInvoices,
   } = props;
   const [viewAsAdmin, setViewAsAdmin] = useState(true);
   const [deliverables, setDeliverables] = useState(initialDeliverables);
@@ -199,17 +214,12 @@ export default function SprintDetailContent(props: Props) {
   const [contractPdfUrl, setContractPdfUrl] = useState(row.contract_pdf_url);
   const [uploadingPdf, setUploadingPdf] = useState(false);
   
-  // Invoice URL and status state
-  const [invoiceUrl, setInvoiceUrl] = useState(row.invoice_url);
-  const [editingInvoiceUrl, setEditingInvoiceUrl] = useState(false);
-  const [invoiceUrlValue, setInvoiceUrlValue] = useState(row.invoice_url || "");
-  const [savingInvoiceUrl, setSavingInvoiceUrl] = useState(false);
-  const [invoiceStatus, setInvoiceStatus] = useState(row.invoice_status || "not_sent");
-  const [savingInvoiceStatus, setSavingInvoiceStatus] = useState(false);
-  
-  // Invoice PDF state
-  const [invoicePdfUrl, setInvoicePdfUrl] = useState(row.invoice_pdf_url);
-  const [uploadingInvoicePdf, setUploadingInvoicePdf] = useState(false);
+  // Multi-invoice state
+  const [invoices, setInvoices] = useState<SprintInvoice[]>(initialInvoices ?? []);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+  const [editingInvoiceUrlValue, setEditingInvoiceUrlValue] = useState("");
+  const [savingInvoiceField, setSavingInvoiceField] = useState<string | null>(null); // stores invoiceId being saved
+  const [uploadingInvoicePdfId, setUploadingInvoicePdfId] = useState<string | null>(null);
   
   // Budget status state
   const [budgetStatus, setBudgetStatus] = useState(row.budget_status || "draft");
@@ -576,117 +586,101 @@ export default function SprintDetailContent(props: Props) {
     }
   };
 
-  const handleSaveInvoiceUrl = async () => {
-    try {
-      setSavingInvoiceUrl(true);
-      const res = await fetch(`/api/sprint-drafts/${row.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invoice_url: invoiceUrlValue.trim() || null,
-        }),
-      });
-      if (!res.ok) {
-        throw new Error("Failed to save invoice URL");
-      }
-      setInvoiceUrl(invoiceUrlValue.trim() || null);
-      setEditingInvoiceUrl(false);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to save invoice URL");
-    } finally {
-      setSavingInvoiceUrl(false);
-    }
-  };
-
-  const handleInvoiceStatusChange = async (newStatus: string) => {
-    try {
-      setSavingInvoiceStatus(true);
-      const res = await fetch(`/api/sprint-drafts/${row.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invoice_status: newStatus,
-        }),
-      });
-      if (!res.ok) {
-        throw new Error("Failed to update invoice status");
-      }
-      setInvoiceStatus(newStatus);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update invoice status");
-    } finally {
-      setSavingInvoiceStatus(false);
-    }
-  };
-
-  const handleInvoicePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    if (file.type !== "application/pdf") {
-      alert("Please upload a PDF file");
-      return;
-    }
-    
-    try {
-      setUploadingInvoicePdf(true);
-      const formData = new FormData();
-      formData.append("file", file);
-      
-      const res = await fetch(`/api/sprint-drafts/${row.id}/invoice-pdf`, {
-        method: "POST",
-        body: formData,
-      });
-      
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Upload failed");
-      }
-      
-      const data = await res.json();
-      setInvoicePdfUrl(data.url);
-    } catch (err) {
-      console.error(err);
-      alert(err instanceof Error ? err.message : "Failed to upload PDF");
-    } finally {
-      setUploadingInvoicePdf(false);
-      // Reset the input
-      e.target.value = "";
-    }
-  };
-
-  const handleRemoveInvoicePdf = async () => {
-    if (!confirm("Remove the uploaded invoice PDF?")) return;
-    
-    try {
-      setUploadingInvoicePdf(true);
-      const res = await fetch(`/api/sprint-drafts/${row.id}/invoice-pdf`, {
-        method: "DELETE",
-      });
-      
-      if (!res.ok) {
-        throw new Error("Failed to remove PDF");
-      }
-      
-      setInvoicePdfUrl(null);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to remove PDF");
-    } finally {
-      setUploadingInvoicePdf(false);
-    }
-  };
-
+  // Invoice helpers
   const invoiceStatusOptions = [
-    { value: "not_sent", label: "Not sent", color: "text-text-muted", bgColor: "bg-gray-100 dark:bg-gray-800" },
+    { value: "not_sent", label: "Not sent", color: "text-text-muted", bgColor: "bg-neutral-100 dark:bg-neutral-800" },
     { value: "sent", label: "Sent", color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-950" },
     { value: "paid", label: "Paid", color: "text-green-700 dark:text-green-300", bgColor: "bg-green-50 dark:bg-green-950" },
     { value: "overdue", label: "Overdue", color: "text-red-600 dark:text-red-400", bgColor: "bg-red-50 dark:bg-red-950" },
   ];
 
-  const currentInvoiceStatusOption = invoiceStatusOptions.find(o => o.value === invoiceStatus) || invoiceStatusOptions[0];
+  const getInvoiceStatusOption = (status: string) =>
+    invoiceStatusOptions.find(o => o.value === status) || invoiceStatusOptions[0];
+
+  const handleInvoiceStatusChange = async (invoiceId: string, newStatus: string) => {
+    try {
+      setSavingInvoiceField(invoiceId);
+      const res = await fetch(`/api/sprint-drafts/${row.id}/invoices/${invoiceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoice_status: newStatus }),
+      });
+      if (!res.ok) throw new Error("Failed to update invoice status");
+      setInvoices((prev) => prev.map((inv) => inv.id === invoiceId ? { ...inv, invoice_status: newStatus } : inv));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update invoice status");
+    } finally {
+      setSavingInvoiceField(null);
+    }
+  };
+
+  const handleSaveInvoiceUrl = async (invoiceId: string) => {
+    try {
+      setSavingInvoiceField(invoiceId);
+      const res = await fetch(`/api/sprint-drafts/${row.id}/invoices/${invoiceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoice_url: editingInvoiceUrlValue.trim() || null }),
+      });
+      if (!res.ok) throw new Error("Failed to save invoice URL");
+      setInvoices((prev) => prev.map((inv) => inv.id === invoiceId ? { ...inv, invoice_url: editingInvoiceUrlValue.trim() || null } : inv));
+      setEditingInvoiceId(null);
+      setEditingInvoiceUrlValue("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save invoice URL");
+    } finally {
+      setSavingInvoiceField(null);
+    }
+  };
+
+  const handleInvoicePdfUpload = async (invoiceId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      alert("Please upload a PDF file");
+      return;
+    }
+    try {
+      setUploadingInvoicePdfId(invoiceId);
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/sprint-drafts/${row.id}/invoices/${invoiceId}/pdf`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Upload failed");
+      }
+      const data = await res.json();
+      setInvoices((prev) => prev.map((inv) => inv.id === invoiceId ? { ...inv, invoice_pdf_url: data.url } : inv));
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Failed to upload PDF");
+    } finally {
+      setUploadingInvoicePdfId(null);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveInvoicePdf = async (invoiceId: string) => {
+    if (!confirm("Remove the uploaded invoice PDF?")) return;
+    try {
+      setUploadingInvoicePdfId(invoiceId);
+      const res = await fetch(`/api/sprint-drafts/${row.id}/invoices/${invoiceId}/pdf`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to remove PDF");
+      setInvoices((prev) => prev.map((inv) => inv.id === invoiceId ? { ...inv, invoice_pdf_url: null } : inv));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove PDF");
+    } finally {
+      setUploadingInvoicePdfId(null);
+    }
+  };
 
   const handleBudgetStatusChange = async (newStatus: string) => {
     try {
@@ -702,6 +696,21 @@ export default function SprintDetailContent(props: Props) {
         throw new Error("Failed to update budget status");
       }
       setBudgetStatus(newStatus);
+
+      // When transitioning to "agreed", fetch the auto-generated invoices
+      if (newStatus === "agreed") {
+        try {
+          const invRes = await fetch(`/api/sprint-drafts/${row.id}/invoices`);
+          if (invRes.ok) {
+            const invData = await invRes.json();
+            if (invData.invoices && invData.invoices.length > 0) {
+              setInvoices(invData.invoices);
+            }
+          }
+        } catch {
+          // Non-blocking
+        }
+      }
     } catch (err) {
       console.error(err);
       alert("Failed to update budget status");
@@ -1837,186 +1846,215 @@ export default function SprintDetailContent(props: Props) {
       )}
 
       {/* ============================================ */}
-      {/* EVERYONE SEES: Invoice Section */}
+      {/* EVERYONE SEES: Invoices Section (only when budget is agreed) */}
       {/* ============================================ */}
-      <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-3 bg-white/40 dark:bg-black/40`}>
-        <div className="flex items-center justify-between">
-          <h2 className={t.cardHeading}>Invoice</h2>
-          <div className="flex items-center gap-2">
-            {/* Status badge - visible to all */}
-            {showAdminContent ? (
-              <select
-                value={invoiceStatus}
-                onChange={(e) => handleInvoiceStatusChange(e.target.value)}
-                disabled={savingInvoiceStatus}
-                className={`${getTypographyClassName("body-sm")} ${currentInvoiceStatusOption.color} bg-transparent border border-black/10 dark:border-white/15 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
-              >
-                {invoiceStatusOptions.map((option) => (
-                  <option key={option.value} value={option.value} className="text-black dark:text-white bg-white dark:bg-gray-900">
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 ${currentInvoiceStatusOption.bgColor} ${currentInvoiceStatusOption.color} ${getTypographyClassName("subtitle-sm")}`}
-              >
-                {currentInvoiceStatusOption.label}
-              </span>
-            )}
-          </div>
-        </div>
-        
-        <p className={`${t.bodySm} text-text-secondary`}>
-          Invoices are sent via Bill.com
-        </p>
-        
-        {/* Invoice content - URL and/or PDF */}
-        <div className="space-y-3">
-          {/* Invoice URL section */}
-          {showAdminContent ? (
-            // Admin view: can edit URL
-            editingInvoiceUrl ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="url"
-                  value={invoiceUrlValue}
-                  onChange={(e) => setInvoiceUrlValue(e.target.value)}
-                  placeholder="https://bill.com/..."
-                  className="flex-1 min-w-[200px] rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                  disabled={savingInvoiceUrl}
-                />
-                <button
-                  onClick={handleSaveInvoiceUrl}
-                  disabled={savingInvoiceUrl}
-                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition`}
-                >
-                  {savingInvoiceUrl ? "..." : "Save"}
-                </button>
-                <button
-                  onClick={() => {
-                    setEditingInvoiceUrl(false);
-                    setInvoiceUrlValue(invoiceUrl || "");
-                  }}
-                  disabled={savingInvoiceUrl}
-                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : invoiceUrl ? (
-              <div className="flex items-center justify-between">
-                <a
-                  href={invoiceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
-                >
-                  View invoice link <span className="opacity-50">↗</span>
-                </a>
-                <button
-                  onClick={() => {
-                    setEditingInvoiceUrl(true);
-                    setInvoiceUrlValue(invoiceUrl || "");
-                  }}
-                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
-                >
-                  Edit URL
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <span className={t.bodySm}>No invoice URL linked.</span>
-                <button
-                  onClick={() => setEditingInvoiceUrl(true)}
-                  className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
-                >
-                  Add URL
-                </button>
-              </div>
-            )
-          ) : (
-            // Non-admin view: read-only URL
-            invoiceUrl && (
-              <a
-                href={invoiceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
-              >
-                View invoice link <span className="opacity-50">↗</span>
-              </a>
-            )
-          )}
+      {budgetStatus === "agreed" && (
+        <section className={`rounded-md border border-neutral-200 dark:border-neutral-700 p-4 space-y-3 bg-white/40 dark:bg-black/40`}>
+          <h2 className={t.cardHeading}>Invoices</h2>
+          <p className={`${t.bodySm} text-text-secondary`}>
+            Invoices are sent via Bill.com
+          </p>
 
-          {/* PDF upload/display section */}
-          {showAdminContent ? (
-            // Admin view: can upload/remove PDF
-            invoicePdfUrl ? (
-              <div className="flex items-center justify-between p-2 rounded-md bg-black/5 dark:bg-white/5">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                  </svg>
-                  <a
-                    href={invoicePdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+          {invoices.length === 0 ? (
+            <p className={`${t.bodySm} text-text-muted`}>
+              No invoices yet. They will be generated automatically from the budget plan.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {invoices.map((inv) => {
+                const statusOpt = getInvoiceStatusOption(inv.invoice_status);
+                const isEditingUrl = editingInvoiceId === inv.id;
+                const isSaving = savingInvoiceField === inv.id;
+                const isUploadingPdf = uploadingInvoicePdfId === inv.id;
+
+                return (
+                  <div
+                    key={inv.id}
+                    className="rounded-md border border-neutral-200 dark:border-neutral-700 p-3 space-y-2"
                   >
-                    View invoice PDF <span className="opacity-50">↗</span>
-                  </a>
-                </div>
-                <button
-                  onClick={handleRemoveInvoicePdf}
-                  disabled={uploadingInvoicePdf}
-                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50 transition`}
-                >
-                  {uploadingInvoicePdf ? "..." : "Remove"}
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <span className={t.bodySm}>No invoice PDF uploaded.</span>
-                <label
-                  className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer ${getTypographyClassName("button-sm")} ${uploadingInvoicePdf ? "opacity-50 pointer-events-none" : ""}`}
-                >
-                  {uploadingInvoicePdf ? "Uploading..." : "Upload PDF"}
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={handleInvoicePdfUpload}
-                    disabled={uploadingInvoicePdf}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-            )
-          ) : (
-            // Non-admin view: read-only PDF link
-            invoicePdfUrl && (
-              <div className="flex items-center gap-2 p-2 rounded-md bg-black/5 dark:bg-white/5">
-                <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                </svg>
-                <a
-                  href={invoicePdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
-                >
-                  View invoice PDF <span className="opacity-50">↗</span>
-                </a>
-              </div>
-            )
-          )}
+                    {/* Invoice header: label + amount + status */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`${getTypographyClassName("body-sm")} font-medium`}>
+                          {inv.label}
+                        </span>
+                        {inv.amount != null && (
+                          <span className={`${getTypographyClassName("body-sm")} text-text-muted tabular-nums`}>
+                            {formatCurrency(inv.amount)}
+                          </span>
+                        )}
+                      </div>
+                      {/* Status badge/dropdown */}
+                      {showAdminContent ? (
+                        <select
+                          value={inv.invoice_status}
+                          onChange={(e) => handleInvoiceStatusChange(inv.id, e.target.value)}
+                          disabled={isSaving}
+                          className={`${getTypographyClassName("body-sm")} ${statusOpt.color} bg-transparent border border-neutral-200 dark:border-neutral-700 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:opacity-50 cursor-pointer`}
+                        >
+                          {invoiceStatusOptions.map((option) => (
+                            <option key={option.value} value={option.value} className="text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-900">
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusOpt.bgColor} ${statusOpt.color}`}
+                        >
+                          {statusOpt.label}
+                        </span>
+                      )}
+                    </div>
 
-          {/* Show message if nothing available for non-admins */}
-          {!showAdminContent && !invoiceUrl && !invoicePdfUrl && (
-            <span className={`${t.bodySm} text-text-muted`}>No invoice available yet.</span>
+                    {/* Invoice URL section */}
+                    {showAdminContent ? (
+                      isEditingUrl ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="url"
+                            value={editingInvoiceUrlValue}
+                            onChange={(e) => setEditingInvoiceUrlValue(e.target.value)}
+                            placeholder="https://bill.com/..."
+                            className="flex-1 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                            disabled={isSaving}
+                          />
+                          <button
+                            onClick={() => handleSaveInvoiceUrl(inv.id)}
+                            disabled={isSaving}
+                            className={`${getTypographyClassName("button-sm")} h-8 px-3 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 disabled:opacity-50 transition-opacity`}
+                          >
+                            {isSaving ? "..." : "Save"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingInvoiceId(null);
+                              setEditingInvoiceUrlValue("");
+                            }}
+                            disabled={isSaving}
+                            className={`${getTypographyClassName("button-sm")} h-8 px-3 rounded-md border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-50 transition-colors`}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : inv.invoice_url ? (
+                        <div className="flex items-center justify-between">
+                          <a
+                            href={inv.invoice_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+                          >
+                            View invoice link <span className="opacity-50" aria-hidden="true">↗</span>
+                          </a>
+                          <button
+                            onClick={() => {
+                              setEditingInvoiceId(inv.id);
+                              setEditingInvoiceUrlValue(inv.invoice_url || "");
+                            }}
+                            className={`${getTypographyClassName("button-sm")} h-8 px-3 rounded-md border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors`}
+                          >
+                            Edit URL
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className={`${t.bodySm} text-text-muted`}>No URL linked</span>
+                          <button
+                            onClick={() => {
+                              setEditingInvoiceId(inv.id);
+                              setEditingInvoiceUrlValue("");
+                            }}
+                            className={`${getTypographyClassName("button-sm")} h-8 px-3 rounded-md border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors`}
+                          >
+                            Add URL
+                          </button>
+                        </div>
+                      )
+                    ) : (
+                      inv.invoice_url && (
+                        <a
+                          href={inv.invoice_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+                        >
+                          View invoice link <span className="opacity-50" aria-hidden="true">↗</span>
+                        </a>
+                      )
+                    )}
+
+                    {/* PDF section */}
+                    {showAdminContent ? (
+                      inv.invoice_pdf_url ? (
+                        <div className="flex items-center justify-between p-2 rounded-md bg-neutral-50 dark:bg-neutral-800">
+                          <div className="flex items-center gap-2">
+                            <svg className="size-5 text-red-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                            </svg>
+                            <a
+                              href={inv.invoice_pdf_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+                            >
+                              View PDF <span className="opacity-50" aria-hidden="true">↗</span>
+                            </a>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveInvoicePdf(inv.id)}
+                            disabled={isUploadingPdf}
+                            className={`${getTypographyClassName("button-sm")} h-8 px-3 rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50 transition-colors`}
+                          >
+                            {isUploadingPdf ? "..." : "Remove"}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className={`${t.bodySm} text-text-muted`}>No PDF uploaded</span>
+                          <label
+                            className={`inline-flex items-center h-8 px-3 rounded-md border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors cursor-pointer ${getTypographyClassName("button-sm")} ${isUploadingPdf ? "opacity-50 pointer-events-none" : ""}`}
+                          >
+                            {isUploadingPdf ? "Uploading..." : "Upload PDF"}
+                            <input
+                              type="file"
+                              accept="application/pdf"
+                              onChange={(e) => handleInvoicePdfUpload(inv.id, e)}
+                              disabled={isUploadingPdf}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      )
+                    ) : (
+                      inv.invoice_pdf_url && (
+                        <div className="flex items-center gap-2 p-2 rounded-md bg-neutral-50 dark:bg-neutral-800">
+                          <svg className="size-5 text-red-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                          </svg>
+                          <a
+                            href={inv.invoice_pdf_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1`}
+                          >
+                            View PDF <span className="opacity-50" aria-hidden="true">↗</span>
+                          </a>
+                        </div>
+                      )
+                    )}
+
+                    {/* Non-admin: show message if nothing available */}
+                    {!showAdminContent && !inv.invoice_url && !inv.invoice_pdf_url && (
+                      <span className={`${t.bodySm} text-text-muted`}>Invoice not available yet.</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ============================================ */}
       {/* ADMIN ONLY: Danger zone */}
