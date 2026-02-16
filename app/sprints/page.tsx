@@ -75,7 +75,7 @@ export default function SprintsPage() {
       />
 
       <section className="py-16 bg-white dark:bg-black border-y border-black/10 dark:border-white/10">
-        <div className="container space-y-10">
+        <div className="container max-w-6xl space-y-10">
           <SectionIntro text="Why this works" />
           <SectionHeader
             heading="Groundwork, cadence, and calm momentum"
@@ -99,7 +99,7 @@ export default function SprintsPage() {
       </section>
 
       <section className="py-16 bg-black/5 dark:bg-white/5">
-        <div className="container space-y-10">
+        <div className="container max-w-6xl space-y-10">
           <SectionIntro text="Ten working days" />
           <SectionHeader
             heading="Uphill Week 1, Downhill Week 2"
@@ -139,7 +139,7 @@ export default function SprintsPage() {
       </section>
 
       <section className="py-16 bg-white dark:bg-black">
-        <div className="container space-y-10">
+        <div className="container max-w-6xl space-y-10">
           <SectionIntro text="Four-move playbook" />
           <SectionHeader
             heading="Same moves for every sprint"

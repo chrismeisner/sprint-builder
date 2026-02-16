@@ -59,7 +59,7 @@ export default function ThemeToggle() {
     <button
       type="button"
       onClick={handleToggle}
-      className="relative inline-flex h-9 w-16 items-center rounded-full border border-stroke-muted transition-colors duration-300 ease-in-out hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
+      className="relative inline-flex h-7 w-12 items-center rounded-full border border-stroke-muted transition-colors duration-200 ease-out hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
       role="switch"
       aria-checked={isDark}
       aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
@@ -67,18 +67,18 @@ export default function ThemeToggle() {
     >
       {/* Sliding background */}
       <span
-        className={`absolute inset-0 rounded-full transition-colors duration-300 ease-in-out ${
-          isDark ? "bg-gray-700" : "bg-gray-200"
+        className={`absolute inset-0 rounded-full transition-colors duration-200 ease-out ${
+          isDark ? "bg-neutral-700" : "bg-neutral-200"
         }`}
       />
       
       {/* Sliding thumb with icon */}
       <span
-        className={`relative z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md transition-all duration-300 ease-in-out transform ${
-          isDark ? "translate-x-8" : "translate-x-1"
+        className={`relative z-10 inline-flex size-5 items-center justify-center rounded-full bg-white shadow-sm transition-transform duration-200 ease-out ${
+          isDark ? "translate-x-6" : "translate-x-0.5"
         }`}
       >
-        <span className="text-base leading-none">
+        <span className="text-xs leading-none">
           {isDark ? "🌙" : "☀️"}
         </span>
       </span>

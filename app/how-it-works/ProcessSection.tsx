@@ -15,7 +15,7 @@ export default function ProcessSection() {
           aria-expanded={isProcessExpanded}
         >
           <div className="flex items-center justify-center gap-3 hover:opacity-80 transition">
-            <h2 className="text-3xl font-bold">A Meisner Design 2-week sprint in 4 moves</h2>
+            <h2 className="text-3xl font-bold">An Appliance Studio 2-week sprint in 4 moves</h2>
             <svg
               className={`w-6 h-6 transition-transform duration-300 ${isProcessExpanded ? 'rotate-180' : ''}`}
               fill="none"

@@ -15,7 +15,7 @@ export default function HowItWorksPage() {
           </div>
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight">How we work</h1>
           <p className="text-xl sm:text-2xl opacity-80 max-w-3xl mx-auto">
-            Every sprint is a focused 2-week engagement with Meisner Design. Week 1: explore and decide. Week 2: execute and deliver. Then rest, reflect, and schedule the next one when you&apos;re ready.
+            Every sprint is a focused 2-week engagement with Appliance Studio. Week 1: explore and decide. Week 2: execute and deliver. Then rest, reflect, and schedule the next one when you&apos;re ready.
           </p>
           <p className="text-base sm:text-lg opacity-70 max-w-3xl mx-auto">
             Every engagement starts with a Brand or Product Foundation Sprint (preset workshops + deliverables). Once delivered, you can stack Expansion Sprints from the Deliverable Library using the exact same cadence—no re-onboarding, no spin-up.
@@ -235,11 +235,11 @@ export default function HowItWorksPage() {
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="text-center space-y-2">
             <h2 className="text-3xl font-bold">One sprint or many—your pace</h2>
-            <p className="text-lg opacity-70">How the Meisner Design cadence scales with your ambition</p>
+            <p className="text-lg opacity-70">How the Appliance Studio cadence scales with your ambition</p>
           </div>
           <div className="bg-white dark:bg-black rounded-lg p-8 space-y-6">
             <p className="text-base opacity-80">
-                Most founders have bigger visions than 2 weeks can solve. That&apos;s by design. The Meisner Design cadence works for single sprints AND long-term product development.
+                Most founders have bigger visions than 2 weeks can solve. That&apos;s by design. The Appliance Studio cadence works for single sprints AND long-term product development.
             </p>
             <div className="space-y-4">
               <h3 className="font-semibold text-lg">Example journey:</h3>

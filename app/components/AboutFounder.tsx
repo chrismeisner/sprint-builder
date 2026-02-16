@@ -22,7 +22,7 @@ export default function AboutFounder({
   experienceLinks = [],
 }: AboutFounderProps) {
   return (
-    <section className="container py-16">
+    <section className="container max-w-6xl py-16">
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-6">
           <h2 className={`${typography.headingSection} text-balance`}>{name}</h2>

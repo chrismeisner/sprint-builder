@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import Typography from "@/components/ui/Typography";
 import Button from "@/components/ui/Button";
 import ThemeToggle from "./components/ThemeToggle";
 import AdminMenuButton from "./components/AdminMenuButton";
@@ -9,7 +8,6 @@ import BrowserWidthIndicator from "./components/BrowserWidthIndicator";
 export default async function Header() {
   const user = await getCurrentUser();
   
-  // Get user initials for avatar
   const getInitials = (
     firstName: string | null | undefined,
     lastName: string | null | undefined,
@@ -29,22 +27,22 @@ export default async function Header() {
   
   return (
     <header className="sticky top-0 z-50 w-full border-b border-stroke-muted bg-surface-card backdrop-blur supports-[backdrop-filter]:bg-surface-card">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container max-w-6xl flex h-12 items-center justify-between">
         {/* Logo/Brand */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
           {user?.isAdmin ? <AdminMenuButton /> : null}
-          <Link href="/" className="flex items-center space-x-2">
-            <Typography as="span" scale="subtitle-md" className="tracking-tight">
-              Meisner Design
-            </Typography>
+          <Link href="/" className="flex items-center">
+            <span className="text-base font-semibold leading-none text-text-primary tracking-tight">
+              Appliance Studio
+            </span>
           </Link>
         </div>
 
         {/* Right side actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {user?.isAdmin ? <BrowserWidthIndicator /> : null}
           <ThemeToggle />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {user ? (
               <>
                 {user.isAdmin && (
@@ -57,7 +55,7 @@ export default async function Header() {
                 </Button>
                 <Link 
                   href="/profile" 
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-black dark:bg-white text-white dark:text-black text-xs font-semibold hover:opacity-80 transition"
+                  className="flex size-8 items-center justify-center rounded-full bg-brand-primary text-brand-inverse text-xs font-semibold transition-opacity duration-150 ease-out hover:opacity-80"
                   title="Profile"
                 >
                   {getInitials(user.firstName, user.lastName, user.email)}

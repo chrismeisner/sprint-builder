@@ -27,7 +27,7 @@ export default function FAQSection({ eyebrow, heading, description, items, class
 
   return (
     <section className={cx("py-16", className)}>
-      <div className="container">
+      <div className="container max-w-6xl">
         <div className="mx-auto max-w-4xl space-y-10">
           {showHeader && (
             <div className="space-y-3 text-center">

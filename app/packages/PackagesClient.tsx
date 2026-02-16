@@ -50,7 +50,7 @@ export default function PackagesClient({ packages }: Props) {
       />
 
       <section className="py-12">
-        <div className="container space-y-10">
+        <div className="container max-w-6xl space-y-10">
           <SectionIntro text="Sprint packages" />
           {!hasPackages ? (
             <div className="text-center py-12 space-y-3">

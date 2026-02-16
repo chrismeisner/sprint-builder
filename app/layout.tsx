@@ -306,7 +306,7 @@ const notoEmoji = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Meisner Design",
+  title: "Appliance Studio",
   description: "Two-week design sprints with senior creative direction",
 };
 

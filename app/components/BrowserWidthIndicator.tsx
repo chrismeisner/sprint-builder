@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Typography from "@/components/ui/Typography";
 
 export default function BrowserWidthIndicator() {
   const [width, setWidth] = useState<number | null>(null);
@@ -20,10 +19,10 @@ export default function BrowserWidthIndicator() {
   }, []);
 
   return (
-    <div className="flex items-center rounded-full border border-stroke-muted bg-surface-subtle px-3 py-1">
-      <Typography as="span" scale="mono-sm" className="text-text-secondary">
-        Width: {width ?? "--"}px
-      </Typography>
+    <div className="flex items-center rounded-full border border-stroke-muted bg-surface-subtle px-2 py-0.5">
+      <span className="text-xs font-normal leading-normal tabular-nums text-text-secondary">
+        {width ?? "--"}px
+      </span>
     </div>
   );
 }

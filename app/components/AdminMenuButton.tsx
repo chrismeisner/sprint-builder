@@ -47,7 +47,7 @@ export default function AdminMenuButton({ className }: Props) {
       type="button"
       onClick={handleToggle}
       aria-label={isOpen ? "Hide admin menu" : "Show admin menu"}
-      className={`hidden md:inline-flex items-center rounded-full border border-stroke-muted bg-surface-subtle px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-muted shadow-sm transition-colors hover:bg-surface-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-primary ${className ?? ""}`}
+      className={`hidden md:inline-flex h-8 items-center rounded-full border border-stroke-muted bg-surface-subtle px-3 text-xs font-medium uppercase tracking-wide text-brand-muted transition-colors duration-150 ease-out hover:bg-surface-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-primary ${className ?? ""}`}
     >
       {isOpen ? "Hide" : "Menu"}
     </button>

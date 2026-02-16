@@ -5,7 +5,7 @@ import AboutFounder from "../components/AboutFounder";
 export default function AboutPage() {
   return (
     <main className="min-h-screen py-16 space-y-16">
-      <section className="container text-center space-y-6">
+      <section className="container max-w-6xl text-center space-y-6">
         <SectionIntro text="About" />
         <SectionHeader
           heading="Meet the founder"

@@ -153,7 +153,7 @@ export default async function LandingPage() {
 
       {/* Services */}
       <FadeInSection>
-        <section id="foundation-packages" className="container py-16 space-y-10">
+        <section id="foundation-packages" className="container max-w-6xl py-16 space-y-10">
           <div
             className={`${featuredGridPreset.className} mb-12`}
             data-component-grid={featuredGridPreset.id}
@@ -168,7 +168,7 @@ export default async function LandingPage() {
       {/* How sprints work */}
       <FadeInSection>
         <section className="py-20">
-          <div className="container space-y-6">
+          <div className="container max-w-6xl space-y-6">
             <SectionIntro text="How sprints work" className="text-text-secondary" />
             <SectionHeader
               heading="Two weeks. One clear outcome."
@@ -183,7 +183,7 @@ export default async function LandingPage() {
       {/* Getting Started */}
       <FadeInSection>
         <section className="py-16 bg-background">
-          <div className="container space-y-10">
+          <div className="container max-w-6xl space-y-10">
             <SectionIntro text="Getting started" />
 
             <div className={gettingStartedLayoutClass}>
