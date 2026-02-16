@@ -6,6 +6,7 @@ import { randomUUID } from "crypto";
 type ProjectRow = {
   id: string;
   name: string;
+  description: string;
   status: string;
   project_type: string;
   created_at: string | Date;
@@ -141,7 +142,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { id, name, status, projectType } = body as { id?: unknown; name?: unknown; status?: unknown; projectType?: unknown };
+    const { id, name, description, status, projectType } = body as { id?: unknown; name?: unknown; description?: unknown; status?: unknown; projectType?: unknown };
 
     if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json({ error: "Project id is required" }, { status: 400 });
@@ -149,11 +150,12 @@ export async function PATCH(request: Request) {
 
     // At least one field to update must be provided
     const hasNameUpdate = typeof name === "string" && name.trim();
+    const hasDescriptionUpdate = typeof description === "string";
     const hasStatusUpdate = typeof status === "string" && status.trim();
     const hasProjectTypeUpdate = typeof projectType === "string" && projectType.trim();
     
-    if (!hasNameUpdate && !hasStatusUpdate && !hasProjectTypeUpdate) {
-      return NextResponse.json({ error: "At least name, status, or projectType is required" }, { status: 400 });
+    if (!hasNameUpdate && !hasDescriptionUpdate && !hasStatusUpdate && !hasProjectTypeUpdate) {
+      return NextResponse.json({ error: "At least name, description, status, or projectType is required" }, { status: 400 });
     }
 
     // Validate status value if provided
@@ -195,8 +197,8 @@ export async function PATCH(request: Request) {
     }
     const accountId = (ownerCheck.rows[0] as { account_id: string | null }).account_id;
     
-    // For name updates, require ownership. For status-only updates, require admin.
-    if (hasNameUpdate && !user.isAdmin && (!accountId || accountId !== user.accountId)) {
+    // For name/description updates, require ownership. For status-only updates, require admin.
+    if ((hasNameUpdate || hasDescriptionUpdate) && !user.isAdmin && (!accountId || accountId !== user.accountId)) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
@@ -208,6 +210,12 @@ export async function PATCH(request: Request) {
     if (hasNameUpdate) {
       updates.push(`name = $${paramIndex}`);
       params.push((name as string).trim());
+      paramIndex++;
+    }
+
+    if (hasDescriptionUpdate) {
+      updates.push(`description = $${paramIndex}`);
+      params.push((description as string).trim());
       paramIndex++;
     }
 
@@ -230,7 +238,7 @@ export async function PATCH(request: Request) {
       `UPDATE projects
        SET ${updates.join(", ")}
        WHERE id = $${paramIndex}
-       RETURNING id, name, status, project_type, created_at, updated_at, account_id`,
+       RETURNING id, name, description, status, project_type, created_at, updated_at, account_id`,
       params
     );
 
@@ -240,6 +248,7 @@ export async function PATCH(request: Request) {
       project: {
         id: row.id,
         name: row.name,
+        description: row.description ?? '',
         status: row.status ?? 'active',
         projectType: row.project_type ?? 'client',
         createdAt: new Date(row.created_at).toISOString(),

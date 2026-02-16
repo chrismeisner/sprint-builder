@@ -489,7 +489,7 @@ export async function ensureSchema(): Promise<void> {
   `);
   await pool.query(`
     ALTER TABLE projects
-    DROP COLUMN IF EXISTS description;
+    ADD COLUMN IF NOT EXISTS description text DEFAULT '';
   `);
   // Add status column for project tracking (admin-only single select)
   await pool.query(`
