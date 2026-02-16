@@ -26,6 +26,12 @@ type Task = {
   idea_title: string | null;
 };
 
+const getTodayDateInputValue = () => {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  return now.toISOString().split("T")[0];
+};
+
 export default function MilestonesClient() {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -34,7 +40,7 @@ export default function MilestonesClient() {
 
   // New milestone form
   const [newName, setNewName] = useState("");
-  const [newTargetDate, setNewTargetDate] = useState("");
+  const [newTargetDate, setNewTargetDate] = useState(getTodayDateInputValue);
   const [newTargetTime, setNewTargetTime] = useState("17:00"); // Default 5pm
   const [newNotes, setNewNotes] = useState("");
   const [creating, setCreating] = useState(false);
@@ -119,7 +125,7 @@ export default function MilestonesClient() {
       }
 
       setNewName("");
-      setNewTargetDate("");
+      setNewTargetDate(getTodayDateInputValue());
       setNewTargetTime("17:00");
       setNewNotes("");
       await fetchData();
