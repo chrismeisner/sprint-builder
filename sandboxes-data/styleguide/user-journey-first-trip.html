@@ -460,6 +460,14 @@
         <p class="subtitle">The core product loop: Setting up the dongle, driving hands-free, and seeing a trip summary that builds trust.</p>
       </div>
       <div class="page-actions">
+        <button class="export-btn" id="downloadImagesBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          Download Images
+        </button>
         <button class="export-btn" id="exportCsvBtn" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -1033,6 +1041,70 @@
           exportBtn.classList.add('admin-visible');
         }
       }
+    })();
+
+    // Download Images functionality
+    (async function() {
+      const downloadBtn = document.getElementById('downloadImagesBtn');
+      if (!downloadBtn) return;
+
+      // Show the button for everyone (not admin-only)
+      downloadBtn.classList.add('admin-visible');
+
+      downloadBtn.addEventListener('click', async function() {
+        try {
+          // Disable button during download
+          downloadBtn.disabled = true;
+          downloadBtn.textContent = 'Downloading...';
+
+          // Collect all image URLs from the page
+          const images = document.querySelectorAll('.stage-image-slideshow img');
+          const imageUrls = Array.from(images).map(img => ({
+            src: img.src,
+            filename: img.getAttribute('data-expected-filename') || img.src.split('/').pop()
+          }));
+
+          if (imageUrls.length === 0) {
+            alert('No images found on this page.');
+            return;
+          }
+
+          // Download each image
+          for (const {src, filename} of imageUrls) {
+            try {
+              const response = await fetch(src);
+              const blob = await response.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.style.display = 'none';
+              a.href = url;
+              a.download = filename;
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+              // Small delay between downloads to avoid browser blocking
+              await new Promise(resolve => setTimeout(resolve, 300));
+            } catch (err) {
+              console.error(`Failed to download ${filename}:`, err);
+            }
+          }
+
+          alert(`Downloaded ${imageUrls.length} images successfully!`);
+        } catch (error) {
+          console.error('Download error:', error);
+          alert('Failed to download images. Please try again.');
+        } finally {
+          // Re-enable button
+          downloadBtn.disabled = false;
+          downloadBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          Download Images`;
+        }
+      });
     })();
 
     // Configure users per stage for the First Trip journey
