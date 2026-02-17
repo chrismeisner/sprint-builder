@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="typography-styles.css" />
   <link rel="stylesheet" href="journey-carousel.css" />
   <link rel="stylesheet" href="sidebar-nav.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     * { box-sizing: border-box; }
 
@@ -1055,7 +1056,11 @@
         try {
           // Disable button during download
           downloadBtn.disabled = true;
-          downloadBtn.textContent = 'Downloading...';
+          downloadBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          Creating Zip...`;
 
           // Collect all image URLs from the page
           const images = document.querySelectorAll('.stage-image-slideshow img');
@@ -1069,31 +1074,53 @@
             return;
           }
 
-          // Download each image
+          // Create a new JSZip instance
+          const zip = new JSZip();
+          let loaded = 0;
+
+          // Fetch and add each image to the zip
           for (const {src, filename} of imageUrls) {
             try {
               const response = await fetch(src);
               const blob = await response.blob();
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.style.display = 'none';
-              a.href = url;
-              a.download = filename;
-              document.body.appendChild(a);
-              a.click();
-              window.URL.revokeObjectURL(url);
-              document.body.removeChild(a);
-              // Small delay between downloads to avoid browser blocking
-              await new Promise(resolve => setTimeout(resolve, 300));
+              zip.file(filename, blob);
+              loaded++;
+              
+              // Update button with progress
+              downloadBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              Zipping ${loaded}/${imageUrls.length}...`;
             } catch (err) {
-              console.error(`Failed to download ${filename}:`, err);
+              console.error(`Failed to fetch ${filename}:`, err);
             }
           }
 
-          alert(`Downloaded ${imageUrls.length} images successfully!`);
+          // Generate the zip file
+          downloadBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          Finalizing...`;
+          
+          const zipBlob = await zip.generateAsync({type: 'blob'});
+          
+          // Download the zip file
+          const url = window.URL.createObjectURL(zipBlob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = 'journey-first-trip-images.zip';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+
+          alert(`Successfully downloaded ${loaded} images as a zip file!`);
         } catch (error) {
           console.error('Download error:', error);
-          alert('Failed to download images. Please try again.');
+          alert('Failed to create zip file. Please try again.');
         } finally {
           // Re-enable button
           downloadBtn.disabled = false;
