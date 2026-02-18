@@ -435,6 +435,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
        sdu.frame,
        sdu.body,
        sdu.links,
+      sdu.attachments,
        sdu.created_at,
        sdu.updated_at,
        a.first_name,
@@ -455,6 +456,12 @@ export default async function SprintDetailPage({ params }: PageProps) {
     frame: r.frame as string | null,
     body: r.body as string,
     links: (r.links ?? []) as Array<{ url: string; label: string }>,
+    attachments: (r.attachments ?? []) as Array<{
+      url: string;
+      fileName: string;
+      mimetype: string;
+      fileSizeBytes: number;
+    }>,
     createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : (r.created_at as string),
     updatedAt: r.updated_at instanceof Date ? r.updated_at.toISOString() : (r.updated_at as string),
     authorName:
