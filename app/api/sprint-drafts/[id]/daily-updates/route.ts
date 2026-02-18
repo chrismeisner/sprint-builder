@@ -7,6 +7,7 @@ import { ATTITUDE_THEMES } from "@/lib/sprintProcess";
 type Params = { params: { id: string } };
 
 type UpdateLink = { url: string; label: string };
+type UpdateAttachment = { url: string; fileName: string; mimetype: string; fileSizeBytes: number };
 
 /**
  * GET /api/sprint-drafts/[id]/daily-updates
@@ -55,6 +56,11 @@ export async function GET(_request: Request, { params }: Params) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
+    // Ensure attachments column exists
+    await pool.query(`
+      ALTER TABLE sprint_daily_updates ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'
+    `);
+
     const result = await pool.query(
       `SELECT
          sdu.id,
@@ -63,6 +69,7 @@ export async function GET(_request: Request, { params }: Params) {
          sdu.frame,
          sdu.body,
          sdu.links,
+         sdu.attachments,
          sdu.created_at,
          sdu.updated_at,
          a.first_name,
@@ -83,6 +90,7 @@ export async function GET(_request: Request, { params }: Params) {
       frame: r.frame as string | null,
       body: r.body as string,
       links: (r.links ?? []) as UpdateLink[],
+      attachments: (r.attachments ?? []) as UpdateAttachment[],
       createdAt: r.created_at as string,
       updatedAt: r.updated_at as string,
       authorName:
@@ -139,11 +147,13 @@ export async function POST(request: Request, { params }: Params) {
       frame,
       body: updateBody,
       links,
+      attachments,
     } = body as {
       sprintDay?: number;
       frame?: string;
       body?: string;
       links?: UpdateLink[];
+      attachments?: UpdateAttachment[];
     };
 
     const totalDays = (sprint.weeks ?? 2) * 5;
@@ -196,10 +206,26 @@ export async function POST(request: Request, { params }: Params) {
           .map((l) => ({ url: l.url.trim(), label: l.label.trim() }))
       : [];
 
+    const safeAttachments: UpdateAttachment[] = Array.isArray(attachments)
+      ? attachments.filter(
+          (a): a is UpdateAttachment =>
+            typeof a === "object" &&
+            a !== null &&
+            typeof a.url === "string" &&
+            typeof a.fileName === "string" &&
+            typeof a.mimetype === "string"
+        )
+      : [];
+
+    // Ensure attachments column exists
+    await pool.query(`
+      ALTER TABLE sprint_daily_updates ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'
+    `);
+
     const updateId = randomBytes(12).toString("hex");
     await pool.query(
-      `INSERT INTO sprint_daily_updates (id, sprint_draft_id, account_id, sprint_day, total_days, frame, body, links)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      `INSERT INTO sprint_daily_updates (id, sprint_draft_id, account_id, sprint_day, total_days, frame, body, links, attachments)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         updateId,
         id,
@@ -209,6 +235,7 @@ export async function POST(request: Request, { params }: Params) {
         frame || null,
         updateBody.trim(),
         JSON.stringify(safeLinks),
+        JSON.stringify(safeAttachments),
       ]
     );
 
@@ -221,6 +248,7 @@ export async function POST(request: Request, { params }: Params) {
           frame: frame || null,
           body: updateBody.trim(),
           links: safeLinks,
+          attachments: safeAttachments,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           authorName:
@@ -259,12 +287,13 @@ export async function PATCH(request: Request, { params }: Params) {
     }
 
     const body = await request.json();
-    const { updateId, sprintDay, frame, body: updateBody, links } = body as {
+    const { updateId, sprintDay, frame, body: updateBody, links, attachments } = body as {
       updateId?: string;
       sprintDay?: number;
       frame?: string | null;
       body?: string;
       links?: UpdateLink[];
+      attachments?: UpdateAttachment[];
     };
 
     if (!updateId) {
@@ -315,6 +344,21 @@ export async function PATCH(request: Request, { params }: Params) {
         : [];
       sets.push(`links = $${idx++}`);
       vals.push(JSON.stringify(safeLinks));
+    }
+
+    if (attachments !== undefined) {
+      const safeAttachments: UpdateAttachment[] = Array.isArray(attachments)
+        ? attachments.filter(
+            (a): a is UpdateAttachment =>
+              typeof a === "object" &&
+              a !== null &&
+              typeof a.url === "string" &&
+              typeof a.fileName === "string" &&
+              typeof a.mimetype === "string"
+          )
+        : [];
+      sets.push(`attachments = $${idx++}`);
+      vals.push(JSON.stringify(safeAttachments));
     }
 
     if (sets.length === 0) {

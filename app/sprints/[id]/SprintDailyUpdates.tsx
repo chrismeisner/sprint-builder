@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { typography } from "@/app/components/typography";
 import { ATTITUDE_THEMES } from "@/lib/sprintProcess";
 
 type UpdateLink = { url: string; label: string };
+type UpdateAttachment = { url: string; fileName: string; mimetype: string; fileSizeBytes: number };
 
 export type DailyUpdate = {
   id: string;
@@ -14,6 +15,7 @@ export type DailyUpdate = {
   frame: string | null;
   body: string;
   links: UpdateLink[];
+  attachments: UpdateAttachment[];
   createdAt: string;
   updatedAt: string;
   authorName: string;
@@ -110,6 +112,12 @@ export default function SprintDailyUpdates({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Attachment state
+  const [formAttachments, setFormAttachments] = useState<UpdateAttachment[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
   const totalDays = weeks * 5;
 
   const guessCurrentDay = useCallback((): number => {
@@ -136,6 +144,7 @@ export default function SprintDailyUpdates({
     setFormFrame("");
     setFormBody("");
     setFormLinks([]);
+    setFormAttachments([]);
     setShowForm(false);
     setEditingId(null);
   };
@@ -145,6 +154,7 @@ export default function SprintDailyUpdates({
     setFormFrame(update.frame || "");
     setFormBody(update.body);
     setFormLinks(update.links.length > 0 ? [...update.links] : []);
+    setFormAttachments(update.attachments ? [...update.attachments] : []);
     setEditingId(update.id);
     setShowForm(true);
   };
@@ -163,6 +173,7 @@ export default function SprintDailyUpdates({
             frame: formFrame || null,
             body: formBody,
             links: formLinks.filter((l) => l.url.trim()),
+            attachments: formAttachments,
           }),
         });
         if (!res.ok) throw new Error("Failed to update");
@@ -176,6 +187,7 @@ export default function SprintDailyUpdates({
                   frame: formFrame || null,
                   body: formBody.trim(),
                   links: formLinks.filter((l) => l.url.trim()),
+                  attachments: formAttachments,
                   updatedAt: new Date().toISOString(),
                 }
               : u
@@ -190,6 +202,7 @@ export default function SprintDailyUpdates({
             frame: formFrame || null,
             body: formBody,
             links: formLinks.filter((l) => l.url.trim()),
+            attachments: formAttachments,
           }),
         });
         if (!res.ok) throw new Error("Failed to create");
@@ -232,6 +245,51 @@ export default function SprintDailyUpdates({
     setFormLinks((prev) =>
       prev.map((l, i) => (i === idx ? { ...l, [field]: value } : l))
     );
+
+  const uploadAttachmentFile = useCallback(async (file: File) => {
+    try {
+      setUploadingAttachment(true);
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/sprint-drafts/${sprintId}/daily-updates/upload`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error || "Upload failed");
+      }
+      const data = await res.json() as UpdateAttachment;
+      setFormAttachments((prev) => [...prev, data]);
+    } catch (err) {
+      console.error("Attachment upload error:", err);
+      alert(err instanceof Error ? err.message : "Failed to upload attachment");
+    } finally {
+      setUploadingAttachment(false);
+      if (attachmentInputRef.current) attachmentInputRef.current.value = "";
+    }
+  }, [sprintId]);
+
+  // Clipboard paste → upload screenshot (only when form is open)
+  useEffect(() => {
+    if (!isAdmin || !showForm) return;
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.kind === "file" && item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            const named = new File([file], `screenshot-${Date.now()}.png`, { type: file.type });
+            uploadAttachmentFile(named);
+          }
+          break;
+        }
+      }
+    };
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [isAdmin, showForm, uploadAttachmentFile]);
 
   const t = {
     cardHeading: typography.headingCard,
@@ -405,6 +463,68 @@ export default function SprintDailyUpdates({
             ))}
           </div>
 
+          {/* Attachments */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className={t.label}>Attachments</span>
+              <label
+                className={`h-8 px-3 text-sm rounded border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-150 ease-out cursor-pointer inline-flex items-center gap-1.5 ${uploadingAttachment ? "opacity-50 pointer-events-none" : ""}`}
+              >
+                {uploadingAttachment ? (
+                  <>
+                    <svg className="animate-spin size-3.5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Add Screenshot
+                  </>
+                )}
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadAttachmentFile(file);
+                  }}
+                />
+              </label>
+            </div>
+            {formAttachments.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {formAttachments.map((att, idx) => (
+                  <div key={idx} className="group relative aspect-video rounded-md overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={att.url} alt={att.fileName} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setFormAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                      className="absolute top-1 right-1 size-5 flex items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-red-600 transition"
+                      aria-label="Remove attachment"
+                    >
+                      <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {formAttachments.length === 0 && (
+              <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                Upload screenshots or paste from clipboard (⌘V / Ctrl+V).
+              </p>
+            )}
+          </div>
+
           {/* Actions */}
           <div className="flex items-center gap-2 pt-1">
             <button
@@ -514,9 +634,56 @@ export default function SprintDailyUpdates({
                 ))}
               </div>
             )}
+
+            {/* Attachments */}
+            {update.attachments && update.attachments.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-1">
+                {update.attachments.map((att, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setLightboxUrl(att.url)}
+                    className="relative aspect-video rounded-md overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 hover:opacity-90 transition-opacity"
+                    title={att.fileName}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={att.url} alt={att.fileName} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </article>
         ))}
       </div>
+
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <div
+            className="relative max-w-5xl max-h-[90vh] w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lightboxUrl}
+              alt="Attachment"
+              className="w-full h-auto max-h-[85vh] object-contain rounded-lg"
+            />
+            <button
+              type="button"
+              onClick={() => setLightboxUrl(null)}
+              className="absolute top-2 right-2 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 transition"
+            >
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
