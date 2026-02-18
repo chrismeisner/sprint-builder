@@ -14,6 +14,7 @@ import ViewModeToggle from "./ViewModeToggle";
 import GenerateAgreementButton from "./GenerateAgreementButton";
 import AgreementModal from "./AgreementModal";
 import SprintLinks from "./SprintLinks";
+import SprintDailyUpdates, { type DailyUpdate } from "./SprintDailyUpdates";
 
 type SprintDeliverable = {
   sprintDeliverableId: string;
@@ -160,6 +161,7 @@ type Props = {
   weekNotes?: Record<string, WeekNotesData>;
   weekCount?: number;
   invoices?: SprintInvoice[];
+  dailyUpdates?: DailyUpdate[];
 };
 
 // Helper function to format currency
@@ -179,6 +181,7 @@ export default function SprintDetailContent(props: Props) {
     weekNotes: initialWeekNotes,
     weekCount: propWeekCount,
     invoices: initialInvoices,
+    dailyUpdates: initialDailyUpdates,
   } = props;
   const [viewAsAdmin, setViewAsAdmin] = useState(true);
   const [deliverables, setDeliverables] = useState(initialDeliverables);
@@ -1352,6 +1355,19 @@ export default function SprintDetailContent(props: Props) {
             </div>
           </AdminOnlySection>
         )}
+      </section>
+
+      {/* ============================================ */}
+      {/* EVERYONE SEES: Daily Updates */}
+      {/* ============================================ */}
+      <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white/40 dark:bg-black/40">
+        <SprintDailyUpdates
+          sprintId={row.id}
+          isAdmin={showAdminContent}
+          startDate={typeof row.start_date === "string" ? row.start_date : null}
+          weeks={row.weeks ?? 2}
+          initialUpdates={initialDailyUpdates ?? []}
+        />
       </section>
 
       {/* ============================================ */}

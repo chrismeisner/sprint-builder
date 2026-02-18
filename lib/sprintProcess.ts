@@ -112,6 +112,21 @@ export const SPRINT_WEEKS: SprintWeek[] = [
   },
 ];
 
+export const ATTITUDE_THEMES = [
+  "Understood",
+  "Explorative",
+  "Excited",
+  "Decisive",
+  "Aligned",
+  "Focused",
+  "Inspired",
+  "Confident",
+  "Meticulous",
+  "Proud",
+] as const;
+
+export type AttitudeTheme = (typeof ATTITUDE_THEMES)[number];
+
 export const ENGAGEMENT_BADGES: Record<
   SprintDayEngagement["variant"],
   { icon: string; classes: string }

@@ -426,6 +426,43 @@ export default async function SprintDetailPage({ params }: PageProps) {
     }
   }
 
+  // Fetch daily updates for this sprint
+  const dailyUpdatesRes = await pool.query(
+    `SELECT
+       sdu.id,
+       sdu.sprint_day,
+       sdu.total_days,
+       sdu.frame,
+       sdu.body,
+       sdu.links,
+       sdu.created_at,
+       sdu.updated_at,
+       a.first_name,
+       a.last_name,
+       a.name,
+       a.email
+     FROM sprint_daily_updates sdu
+     JOIN accounts a ON sdu.account_id = a.id
+     WHERE sdu.sprint_draft_id = $1
+     ORDER BY sdu.sprint_day ASC, sdu.created_at ASC`,
+    [params.id]
+  ).catch(() => ({ rows: [] }));
+
+  const dailyUpdates = dailyUpdatesRes.rows.map((r) => ({
+    id: r.id as string,
+    sprintDay: Number(r.sprint_day),
+    totalDays: Number(r.total_days),
+    frame: r.frame as string | null,
+    body: r.body as string,
+    links: (r.links ?? []) as Array<{ url: string; label: string }>,
+    createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : (r.created_at as string),
+    updatedAt: r.updated_at instanceof Date ? r.updated_at.toISOString() : (r.updated_at as string),
+    authorName:
+      [r.first_name, r.last_name].filter(Boolean).join(" ") ||
+      (r.name as string | null) ||
+      (r.email as string),
+  }));
+
   // Filter plan for client (only serializable data)
   const planForClient = {
     sprintTitle: plan.sprintTitle,
@@ -452,6 +489,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
       weekNotes={allWeekNotes}
       weekCount={weekCount}
       invoices={invoices}
+      dailyUpdates={dailyUpdates}
     />
   );
 }

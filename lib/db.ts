@@ -1092,6 +1092,24 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sprint_draft_changelog_created ON sprint_draft_changelog(created_at DESC);
   `);
 
+  // Sprint Daily Updates: Admin-logged daily progress entries for sprints
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sprint_daily_updates (
+      id text PRIMARY KEY,
+      sprint_draft_id text NOT NULL REFERENCES sprint_drafts(id) ON DELETE CASCADE,
+      account_id text NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      sprint_day integer NOT NULL,
+      total_days integer NOT NULL DEFAULT 10,
+      frame text,
+      body text NOT NULL,
+      links jsonb DEFAULT '[]',
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_sprint_daily_updates_sprint ON sprint_daily_updates(sprint_draft_id);
+    CREATE INDEX IF NOT EXISTS idx_sprint_daily_updates_day ON sprint_daily_updates(sprint_draft_id, sprint_day);
+  `);
+
   // Sprint Invoices: Multiple invoices per sprint (deposit, final, deferred, etc.)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sprint_invoices (
