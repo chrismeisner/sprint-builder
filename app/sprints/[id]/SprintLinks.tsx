@@ -88,9 +88,11 @@ function getUrlIcon(url: string): JSX.Element {
     // Google Docs/Drive
     if (hostname.includes("docs.google.com") || hostname.includes("drive.google.com")) {
       return (
-        <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M14.727 6.727H14V6H7.273v.727h.727v10.546h-.727V18H14v-.727h-.727m2.909-7.637l-2.909-8L5.09 6.727l2.91 8m-2.182 3.637L6 15.273l5.455-2.91 1.818 4.91" />
-        </svg>
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/0/01/Google_Docs_logo_%282014-2020%29.svg"
+          alt="Google Docs"
+          className="w-5 h-5 object-contain"
+        />
       );
     }
     

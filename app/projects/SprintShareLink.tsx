@@ -10,7 +10,11 @@ type Props = {
 };
 
 export default function SprintShareLink({ sprintId, shareToken, status, isAdmin }: Props) {
-  // Admins see all three buttons (View Draft, View Sprint, Builder) regardless of status
+  const isInProgress = status === "in_progress";
+  const isActive = status === "scheduled" || status === "in_progress" || status === "complete";
+
+  // Admins always see View Sprint + Builder, plus View Draft when a share token exists.
+  // All buttons are always active — no disabled states.
   if (isAdmin) {
     return (
       <div className="flex items-center gap-2">
@@ -40,9 +44,19 @@ export default function SprintShareLink({ sprintId, shareToken, status, isAdmin 
     );
   }
 
-  // Non-admins: show View Draft if available, otherwise View Sprint if active
-  const isActive = status === "scheduled" || status === "in_progress" || status === "complete";
-  
+  // Non-admins: if in_progress, show View Sprint (takes priority over View Draft)
+  if (isInProgress) {
+    return (
+      <Link
+        href={`/sprints/${sprintId}`}
+        className="inline-flex items-center gap-1 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 px-2.5 py-1 text-xs font-medium hover:bg-green-100 dark:hover:bg-green-900 transition-colors duration-150"
+      >
+        View Sprint
+      </Link>
+    );
+  }
+
+  // Non-admins: show View Draft if available
   if (shareToken) {
     return (
       <Link
@@ -56,6 +70,7 @@ export default function SprintShareLink({ sprintId, shareToken, status, isAdmin 
     );
   }
 
+  // Non-admins: show View Sprint for other active statuses
   if (isActive) {
     return (
       <Link
