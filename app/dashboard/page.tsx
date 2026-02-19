@@ -20,6 +20,7 @@ export default async function DashboardPage() {
 
   // Add admin-only links
   if (isAdmin) {
+    links.push({ href: "/dashboard/sandboxes", label: "Sandbox Index" });
     links.push({ href: "/dashboard/intake-forms", label: "Intake Forms (Admin)" });
     links.push({ href: "/dashboard/deliverable-templates", label: "Deliverable Templates (Admin)" });
     links.push({ href: "/dashboard/sprint-drafts", label: "Sprint Drafts (Admin)" });
