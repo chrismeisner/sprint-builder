@@ -22,15 +22,9 @@ export async function GET() {
   try {
     await ensureSchema();
     const pool = getPool();
-    const [docs, ai, sprints, settings, deliverables, accounts] = await Promise.all([
+    const [docs, sprints, deliverables, accounts] = await Promise.all([
       pool.query(`SELECT COUNT(*)::int AS c FROM documents`),
-      pool.query(`SELECT COUNT(*)::int AS c FROM ai_responses`),
       pool.query(`SELECT COUNT(*)::int AS c FROM sprint_drafts`),
-      pool.query(
-        `SELECT COUNT(*) FILTER (WHERE key IN ('sprint_system_prompt','sprint_user_prompt'))::int AS prompts,
-                COUNT(*)::int AS total
-         FROM app_settings`
-      ),
       pool.query(
         `SELECT COUNT(*)::int AS total,
                 COUNT(*) FILTER (WHERE active = true)::int AS active
@@ -50,10 +44,7 @@ export async function GET() {
       },
       counts: {
         documents: docs.rows[0]?.c ?? 0,
-        ai_responses: ai.rows[0]?.c ?? 0,
         sprint_drafts: sprints.rows[0]?.c ?? 0,
-        settings_total: settings.rows[0]?.total ?? 0,
-        settings_prompts: settings.rows[0]?.prompts ?? 0,
         deliverables_total: deliverables.rows[0]?.total ?? 0,
         deliverables_active: deliverables.rows[0]?.active ?? 0,
         accounts_total: accounts.rows[0]?.total ?? 0,

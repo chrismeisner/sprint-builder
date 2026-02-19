@@ -41,6 +41,9 @@ function getPhysicalFolders(): string[] {
     .map((entry) => entry.name);
 }
 
+// Common build output directories to check for built assets
+const BUILD_DIRS = ["out", "dist", "build"];
+
 // Get folder info (files, hasIndex)
 function getFolderInfo(folderName: string): { files: string[]; hasIndex: boolean } {
   const folderPath = path.join(SANDBOXES_DIR, folderName);
@@ -48,10 +51,22 @@ function getFolderInfo(folderName: string): { files: string[]; hasIndex: boolean
     return { files: [], hasIndex: false };
   }
   const files = fs.readdirSync(folderPath);
-  return {
-    files,
-    hasIndex: files.includes("index.html"),
-  };
+  let hasIndex = files.includes("index.html");
+
+  if (!hasIndex) {
+    for (const dir of BUILD_DIRS) {
+      const buildDir = path.join(folderPath, dir);
+      if (fs.existsSync(buildDir) && fs.statSync(buildDir).isDirectory()) {
+        const buildFiles = fs.readdirSync(buildDir);
+        if (buildFiles.includes("index.html")) {
+          hasIndex = true;
+          break;
+        }
+      }
+    }
+  }
+
+  return { files, hasIndex };
 }
 
 // GET /api/sandboxes - List sandboxes the user has access to

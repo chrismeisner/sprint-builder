@@ -1,5 +1,4 @@
 import Link from "next/link";
-import PromptSettingsClient from "./PromptSettingsClient";
 import DatabaseToolsClient from "./DatabaseToolsClient";
 import UserUploadsClient from "./UserUploadsClient";
 import { getCurrentUser } from "@/lib/auth";
@@ -54,7 +53,6 @@ export default async function DashboardPage() {
       </div>
 
       <UserUploadsClient />
-      <PromptSettingsClient />
       <DatabaseToolsClient />
     </div>
   );

@@ -18,6 +18,7 @@ export default async function NavShell({ children }: { children: ReactNode }) {
     { href: "/dashboard/index", label: "🔎 Index" },
     { href: "/dashboard/style-guide", label: "🎨 Style Guide" },
     { href: "/dashboard/components", label: "🧩 Components" },
+    { href: "/dashboard/sandboxes", label: "🧪 Sandboxes" },
     { href: "/dashboard/projects", label: "🗂️ Past Projects" },
     { href: "/dashboard/deliverables", label: "📬 Deliverables" },
     { href: "/dashboard/deliverable-templates", label: "🎯 Deliverable Templates" },

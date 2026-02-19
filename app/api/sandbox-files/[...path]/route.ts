@@ -130,12 +130,26 @@ export async function GET(
 
     // Build the full file path
     const sandboxesDir = path.join(process.cwd(), "sandboxes-data");
-    const fullPath = path.join(sandboxesDir, folderName, filePath);
+    let fullPath = path.join(sandboxesDir, folderName, filePath);
 
     // Security: Ensure the path is within the sandboxes directory (prevent path traversal)
-    const normalizedPath = path.normalize(fullPath);
+    let normalizedPath = path.normalize(fullPath);
     if (!normalizedPath.startsWith(sandboxesDir)) {
       return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    }
+
+    // If not found at root, check common build output directories
+    if (!fs.existsSync(normalizedPath)) {
+      const BUILD_DIRS = ["out", "dist", "build"];
+      for (const dir of BUILD_DIRS) {
+        const buildPath = path.join(sandboxesDir, folderName, dir, filePath);
+        const normalizedBuildPath = path.normalize(buildPath);
+        if (normalizedBuildPath.startsWith(sandboxesDir) && fs.existsSync(normalizedBuildPath)) {
+          fullPath = buildPath;
+          normalizedPath = normalizedBuildPath;
+          break;
+        }
+      }
     }
 
     // Check if file exists
