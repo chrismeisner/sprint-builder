@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getPool, ensureSchema } from "@/lib/db";
 import Typography from "@/components/ui/Typography";
+import { CopyLinkButton } from "./CopyLinkButton";
 
 const SANDBOXES_DIR = path.join(process.cwd(), "sandboxes-data");
 const BUILD_DIRS = ["out", "dist", "build"];
@@ -127,7 +128,7 @@ export default async function SandboxIndexPage() {
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 font-semibold">Built from</th>
               <th className="px-4 py-3 font-semibold">Project</th>
-              <th className="px-4 py-3 font-semibold text-right">Launch</th>
+              <th className="px-4 py-3 font-semibold text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -185,19 +186,24 @@ export default async function SandboxIndexPage() {
                   )}
                 </td>
 
-                {/* Launch */}
-                <td className="px-4 py-3 text-right">
+                {/* Actions */}
+                <td className="px-4 py-3">
                   {s.buildDir !== null ? (
-                    <a
-                      href={s.launchUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-stroke-muted bg-surface-strong/60 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-surface-strong"
-                    >
-                      Launch ↗
-                    </a>
+                    <div className="flex items-center justify-end gap-2">
+                      <CopyLinkButton url={s.launchUrl} />
+                      <a
+                        href={s.launchUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-stroke-muted bg-surface-strong/60 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-surface-strong"
+                      >
+                        Launch ↗
+                      </a>
+                    </div>
                   ) : (
-                    <span className="text-xs text-black/30 dark:text-white/30">—</span>
+                    <div className="text-right">
+                      <span className="text-xs text-black/30 dark:text-white/30">—</span>
+                    </div>
                   )}
                 </td>
               </tr>
