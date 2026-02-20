@@ -106,7 +106,11 @@ export default function SprintDailyUpdates({
   weeks,
   initialUpdates,
 }: Props) {
-  const [updates, setUpdates] = useState<DailyUpdate[]>(initialUpdates);
+  const [updates, setUpdates] = useState<DailyUpdate[]>(
+    [...initialUpdates].sort(
+      (a, b) => b.sprintDay - a.sprintDay || b.createdAt.localeCompare(a.createdAt)
+    )
+  );
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -209,7 +213,7 @@ export default function SprintDailyUpdates({
         const data = await res.json();
         setUpdates((prev) =>
           [...prev, data.update].sort(
-            (a, b) => a.sprintDay - b.sprintDay || a.createdAt.localeCompare(b.createdAt)
+            (a, b) => b.sprintDay - a.sprintDay || b.createdAt.localeCompare(a.createdAt)
           )
         );
       }
