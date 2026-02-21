@@ -1891,7 +1891,7 @@ export default function SprintDetailContent(props: Props) {
         <section className={`rounded-md border border-neutral-200 dark:border-neutral-700 p-4 space-y-3 bg-white/40 dark:bg-black/40`}>
           <div className="flex items-center justify-between gap-2">
             <h2 className={t.cardHeading}>Invoices</h2>
-            {showAdminContent && invoices.length === 0 && (
+            {showAdminContent && (
               <button
                 onClick={handleCreateInvoices}
                 disabled={creatingInvoices || !budgetPlan}
