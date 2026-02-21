@@ -223,6 +223,7 @@ export default function SprintDetailContent(props: Props) {
   const [editingInvoiceUrlValue, setEditingInvoiceUrlValue] = useState("");
   const [savingInvoiceField, setSavingInvoiceField] = useState<string | null>(null); // stores invoiceId being saved
   const [uploadingInvoicePdfId, setUploadingInvoicePdfId] = useState<string | null>(null);
+  const [creatingInvoices, setCreatingInvoices] = useState(false);
   
   // Budget status state
   const [budgetStatus, setBudgetStatus] = useState(row.budget_status || "draft");
@@ -590,6 +591,28 @@ export default function SprintDetailContent(props: Props) {
   };
 
   // Invoice helpers
+  const handleCreateInvoices = async () => {
+    if (!confirm("Generate invoices from the current saved budget?")) return;
+    try {
+      setCreatingInvoices(true);
+      const res = await fetch(`/api/sprint-drafts/${row.id}/invoices`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error || "Failed to create invoices");
+      }
+      const data = await res.json() as { invoices: SprintInvoice[] };
+      setInvoices(data.invoices);
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Failed to create invoices");
+    } finally {
+      setCreatingInvoices(false);
+    }
+  };
+
   const invoiceStatusOptions = [
     { value: "not_sent", label: "Not sent", color: "text-text-muted", bgColor: "bg-neutral-100 dark:bg-neutral-800" },
     { value: "sent", label: "Sent", color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-950" },
@@ -1866,14 +1889,25 @@ export default function SprintDetailContent(props: Props) {
       {/* ============================================ */}
       {budgetStatus === "agreed" && (
         <section className={`rounded-md border border-neutral-200 dark:border-neutral-700 p-4 space-y-3 bg-white/40 dark:bg-black/40`}>
-          <h2 className={t.cardHeading}>Invoices</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className={t.cardHeading}>Invoices</h2>
+            {showAdminContent && invoices.length === 0 && (
+              <button
+                onClick={handleCreateInvoices}
+                disabled={creatingInvoices || !budgetPlan}
+                className={`${getTypographyClassName("button-sm")} h-8 px-3 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 disabled:opacity-50 transition-opacity`}
+              >
+                {creatingInvoices ? "Creating..." : "Create invoices"}
+              </button>
+            )}
+          </div>
           <p className={`${t.bodySm} text-text-secondary`}>
             Invoices are sent via Bill.com
           </p>
 
           {invoices.length === 0 ? (
             <p className={`${t.bodySm} text-text-muted`}>
-              No invoices yet. They will be generated automatically from the budget plan.
+              No invoices yet.{showAdminContent ? " Use "Create invoices" to generate them from the current budget." : " They will be generated from the budget plan."}
             </p>
           ) : (
             <div className="space-y-3">

@@ -36,7 +36,7 @@ export default function PermissionsPage() {
           {/* Header */}
           <div className="flex flex-col gap-3">
             <Link
-              href="/signup"
+              href="/dashboard?state=empty"
               className="text-sm font-medium leading-none text-blue-600 dark:text-blue-400 motion-safe:transition-colors motion-safe:duration-150 hover:text-blue-700 dark:hover:text-blue-300"
             >
               &larr; Back
