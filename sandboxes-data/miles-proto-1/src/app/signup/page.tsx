@@ -1,9 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type AuthProvider = "google" | "apple" | null;
+
+interface FormErrors {
+  email?: string;
+  password?: string;
+  terms?: string;
+}
 
 function GoogleLogo2025({ className }: { className?: string }) {
   return (
@@ -115,7 +122,47 @@ function GoogleLogo2025({ className }: { className?: string }) {
 }
 
 export default function SignupPage() {
+  const router = useRouter();
   const [modalProvider, setModalProvider] = useState<AuthProvider>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [terms, setTerms] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [submitted, setSubmitted] = useState(false);
+
+  function validate(): FormErrors {
+    const errs: FormErrors = {};
+    if (!email.trim()) {
+      errs.email = "Email address is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errs.email = "Enter a valid email address.";
+    }
+    if (!password) {
+      errs.password = "Password is required.";
+    } else if (password.length < 8) {
+      errs.password = "Password must be at least 8 characters.";
+    }
+    if (!terms) {
+      errs.terms = "You must agree to the Terms of Service to continue.";
+    }
+    return errs;
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitted(true);
+    const errs = validate();
+    setErrors(errs);
+    if (Object.keys(errs).length === 0) {
+      router.push("/signup-name");
+    }
+  }
+
+  function handleChange() {
+    if (submitted) {
+      setErrors(validate());
+    }
+  }
 
   return (
     <>
@@ -123,12 +170,6 @@ export default function SignupPage() {
         <div className="flex w-full max-w-sm flex-col gap-8">
           {/* Header */}
           <div className="flex flex-col gap-3">
-            <Link
-              href="/"
-              className="text-sm font-medium leading-none text-blue-600 dark:text-blue-400 motion-safe:transition-colors motion-safe:duration-150 hover:text-blue-700 dark:hover:text-blue-300"
-            >
-              &larr; Back
-            </Link>
             <h1 className="text-4xl font-semibold leading-tight text-balance text-neutral-900 dark:text-neutral-100">
               Create account
             </h1>
@@ -138,7 +179,7 @@ export default function SignupPage() {
           </div>
 
           {/* Form */}
-          <form className="flex flex-col gap-4">
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="email"
@@ -152,8 +193,21 @@ export default function SignupPage() {
                 type="email"
                 autoComplete="email"
                 placeholder="you@example.com"
-                className="h-12 rounded-md border border-neutral-300 bg-white px-4 text-base font-normal leading-normal text-neutral-900 outline-none placeholder:text-neutral-500 motion-safe:transition-shadow motion-safe:duration-200 motion-safe:ease-out focus:ring-2 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:ring-blue-400"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); handleChange(); }}
+                aria-describedby={errors.email ? "email-error" : undefined}
+                aria-invalid={!!errors.email}
+                className={`h-12 rounded-md border bg-white px-4 text-base font-normal leading-normal text-neutral-900 outline-none placeholder:text-neutral-500 motion-safe:transition-shadow motion-safe:duration-200 motion-safe:ease-out focus:ring-2 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500 ${
+                  errors.email
+                    ? "border-red-400 focus:ring-red-400 dark:border-red-500 dark:focus:ring-red-500"
+                    : "border-neutral-300 focus:ring-blue-500 dark:border-neutral-600 dark:focus:ring-blue-400"
+                }`}
               />
+              {errors.email && (
+                <p id="email-error" className="text-xs font-normal leading-normal text-red-600 dark:text-red-400">
+                  {errors.email}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -169,9 +223,61 @@ export default function SignupPage() {
                 type="password"
                 autoComplete="new-password"
                 placeholder="Create a password"
-                className="h-12 rounded-md border border-neutral-300 bg-white px-4 text-base font-normal leading-normal text-neutral-900 outline-none placeholder:text-neutral-500 motion-safe:transition-shadow motion-safe:duration-200 motion-safe:ease-out focus:ring-2 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:ring-blue-400"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); handleChange(); }}
+                aria-describedby={errors.password ? "password-error" : undefined}
+                aria-invalid={!!errors.password}
+                className={`h-12 rounded-md border bg-white px-4 text-base font-normal leading-normal text-neutral-900 outline-none placeholder:text-neutral-500 motion-safe:transition-shadow motion-safe:duration-200 motion-safe:ease-out focus:ring-2 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500 ${
+                  errors.password
+                    ? "border-red-400 focus:ring-red-400 dark:border-red-500 dark:focus:ring-red-500"
+                    : "border-neutral-300 focus:ring-blue-500 dark:border-neutral-600 dark:focus:ring-blue-400"
+                }`}
               />
+              {errors.password && (
+                <p id="password-error" className="text-xs font-normal leading-normal text-red-600 dark:text-red-400">
+                  {errors.password}
+                </p>
+              )}
             </div>
+
+            {/* Terms */}
+            <div className="flex flex-col gap-1.5 pt-2">
+              <div className="flex items-start gap-3">
+                <input
+                  id="terms"
+                  name="terms"
+                  type="checkbox"
+                  checked={terms}
+                  onChange={(e) => { setTerms(e.target.checked); handleChange(); }}
+                  aria-describedby={errors.terms ? "terms-error" : undefined}
+                  aria-invalid={!!errors.terms}
+                  className={`mt-0.5 size-4 shrink-0 rounded focus:ring-blue-500 dark:border-neutral-600 ${
+                    errors.terms ? "border-red-400 text-red-600" : "border-neutral-300 text-blue-600"
+                  }`}
+                />
+                <label
+                  htmlFor="terms"
+                  className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500"
+                >
+                  I agree to the{" "}
+                  <a href="#" className="underline">Terms of Service</a> and{" "}
+                  <a href="#" className="underline">Privacy Policy</a>.
+                </label>
+              </div>
+              {errors.terms && (
+                <p id="terms-error" className="text-xs font-normal leading-normal text-red-600 dark:text-red-400">
+                  {errors.terms}
+                </p>
+              )}
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              className="mt-2 flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
+            >
+              Create account
+            </button>
 
             {/* Divider */}
             <div className="flex items-center gap-3 py-2">
@@ -202,43 +308,17 @@ export default function SignupPage() {
               </svg>
               Continue with Apple
             </button>
-
-            {/* Terms */}
-            <div className="flex items-start gap-3 pt-2">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                className="mt-0.5 size-4 shrink-0 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600"
-              />
-              <label
-                htmlFor="terms"
-                className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500"
-              >
-                I agree to the{" "}
-                <a href="#" className="underline">Terms of Service</a> and{" "}
-                <a href="#" className="underline">Privacy Policy</a>.
-              </label>
-            </div>
-
-            {/* Submit */}
-            <Link
-              href="/permissions"
-              className="mt-2 flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
-            >
-              Create account
-            </Link>
           </form>
 
           {/* Secondary */}
           <p className="text-sm font-normal leading-normal text-neutral-500 dark:text-neutral-500">
             Already have an account?{" "}
-            <a
-              href="#"
+            <Link
+              href="/dashboard"
               className="font-medium text-blue-600 dark:text-blue-400 motion-safe:transition-colors motion-safe:duration-150 hover:text-blue-700 dark:hover:text-blue-300"
             >
               Sign in
-            </a>
+            </Link>
           </p>
         </div>
       </main>
@@ -280,7 +360,7 @@ export default function SignupPage() {
               {/* Actions */}
               <div className="flex flex-col gap-3">
                 <Link
-                  href="/permissions"
+                  href="/signup-name"
                   className="flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
                 >
                   Continue

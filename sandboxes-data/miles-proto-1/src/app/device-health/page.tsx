@@ -121,7 +121,7 @@ export default function DeviceHealthPage() {
                 Device is online
               </span>
               <span className="text-xs font-normal leading-normal text-green-700 dark:text-green-400">
-                CR-V &middot; Everything looks good
+                2019 Civic Sport &middot; Everything looks good
               </span>
             </div>
           </div>
@@ -137,7 +137,7 @@ export default function DeviceHealthPage() {
                 Device is offline
               </span>
               <span className="text-xs font-normal leading-normal text-red-700 dark:text-red-400">
-                CR-V &middot; Last seen 3 hours ago
+                2019 Civic Sport &middot; Last seen 3 hours ago
               </span>
             </div>
           </div>

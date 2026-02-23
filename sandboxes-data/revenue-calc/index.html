@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Studio Model — Dynamic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <script>
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
+  <style>
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 9999px;
+      background: rgb(229 229 229);
+      cursor: pointer;
+    }
+    .dark input[type="range"] {
+      background: rgb(64 64 64);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 9999px;
+      background: rgb(37 99 235);
+      border: 2px solid white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .dark input[type="range"]::-webkit-slider-thumb {
+      background: rgb(59 130 246);
+      border-color: rgb(23 23 23);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 9999px;
+      background: rgb(37 99 235);
+      border: 2px solid white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .dark input[type="range"]::-moz-range-thumb {
+      background: rgb(59 130 246);
+      border-color: rgb(23 23 23);
+    }
+    input[type="range"]:focus-visible {
+      outline: 2px solid rgb(59 130 246);
+      outline-offset: 4px;
+    }
+    .dark input[type="range"]:focus-visible {
+      outline-color: rgb(96 165 250);
+    }
+  </style>
+</head>
+
+<body class="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-sans antialiased">
+  <div class="max-w-6xl mx-auto px-6 py-8">
+
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div class="flex flex-col gap-3">
+        <h1 class="text-2xl font-semibold leading-snug text-balance text-neutral-900 dark:text-neutral-100">
+          Studio Model — Dynamic Dials
+        </h1>
+        <p class="text-base font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400 max-w-prose">
+          Adjust the inputs that matter most: <strong class="font-semibold text-neutral-900 dark:text-neutral-100">conversation volume</strong>,
+          <strong class="font-semibold text-neutral-900 dark:text-neutral-100">sales efficiency</strong>,
+          the <strong class="font-semibold text-neutral-900 dark:text-neutral-100">sprint → retainer engine</strong>,
+          and <strong class="font-semibold text-neutral-900 dark:text-neutral-100">retainer lifespan (churn)</strong>.
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <span class="inline-flex items-center gap-2 px-2 py-1 text-xs font-medium rounded-full border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100">
+            <span class="size-2 rounded-full bg-blue-500" aria-hidden="true"></span>
+            <strong>North Star:</strong> Conversations / month
+          </span>
+          <span class="inline-flex items-center gap-2 px-2 py-1 text-xs font-medium rounded-full border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100">
+            <span class="size-2 rounded-full bg-emerald-500" aria-hidden="true"></span>
+            <strong>Efficiency:</strong> Conversations per close
+          </span>
+          <span class="inline-flex items-center gap-2 px-2 py-1 text-xs font-medium rounded-full border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100">
+            <span class="size-2 rounded-full bg-amber-500" aria-hidden="true"></span>
+            <strong>Retention:</strong> Lifespan controls accumulation
+          </span>
+        </div>
+      </div>
+      <button
+        id="themeToggle"
+        type="button"
+        aria-label="Toggle dark mode"
+        class="size-10 flex items-center justify-center rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors duration-150 ease-out hover:bg-neutral-100 dark:hover:bg-neutral-700"
+      >
+        <svg class="size-5 block dark:hidden" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+        </svg>
+        <svg class="size-5 hidden dark:block" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mt-6">
+
+      <!-- Controls -->
+      <section class="lg:col-span-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md p-4 shadow-sm dark:shadow-none">
+        <h2 class="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100">Inputs (Dynamic)</h2>
+        <p class="text-xs font-normal leading-normal text-neutral-500 mt-1 mb-4">Defaults match our "12 conversations/month" scenario.</p>
+
+        <label for="convos" class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mt-4 block">Conversations per month (North Star cap)</label>
+        <div class="flex items-center gap-3 mt-1.5">
+          <input id="convos" type="range" min="4" max="40" step="1" value="12" />
+          <span class="text-sm font-normal leading-normal tabular-nums text-neutral-900 dark:text-neutral-100 min-w-24 text-right"><span id="convosVal">12</span>/mo</span>
+        </div>
+
+        <label for="convPerClose" class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mt-4 block">Conversations per closed sprint (sales efficiency)</label>
+        <div class="flex items-center gap-3 mt-1.5">
+          <input id="convPerClose" type="range" min="10" max="60" step="1" value="30" />
+          <span class="text-sm font-normal leading-normal tabular-nums text-neutral-900 dark:text-neutral-100 min-w-24 text-right"><span id="convPerCloseVal">30</span></span>
+        </div>
+        <p class="text-xs font-normal leading-normal text-neutral-500 mt-1">Lower = better. Improving this is as powerful as increasing conversation volume.</p>
+
+        <label for="sprintPrice" class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mt-4 block">Average sprint price ($)</label>
+        <div class="flex items-center gap-3 mt-1.5">
+          <input id="sprintPrice" type="range" min="6000" max="20000" step="500" value="11000" />
+          <span class="text-sm font-normal leading-normal tabular-nums text-neutral-900 dark:text-neutral-100 min-w-24 text-right">$<span id="sprintPriceVal">11000</span></span>
+        </div>
+
+        <label for="retainerPrice" class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mt-4 block">Retainer price (MRR) ($/month)</label>
+        <div class="flex items-center gap-3 mt-1.5">
+          <input id="retainerPrice" type="range" min="2000" max="12000" step="250" value="4000" />
+          <span class="text-sm font-normal leading-normal tabular-nums text-neutral-900 dark:text-neutral-100 min-w-24 text-right">$<span id="retainerPriceVal">4000</span></span>
+        </div>
+
+        <label for="retainerConv" class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mt-4 block">Sprint → retainer conversion rate (%)</label>
+        <div class="flex items-center gap-3 mt-1.5">
+          <input id="retainerConv" type="range" min="10" max="80" step="1" value="40" />
+          <span class="text-sm font-normal leading-normal tabular-nums text-neutral-900 dark:text-neutral-100 min-w-24 text-right"><span id="retainerConvVal">40</span>%</span>
+        </div>
+        <p class="text-xs font-normal leading-normal text-neutral-500 mt-1">We modeled 30–50%. Default is 40%.</p>
+
+        <label for="retainerLife" class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mt-4 block">Average retainer lifespan (months)</label>
+        <div class="flex items-center gap-3 mt-1.5">
+          <input id="retainerLife" type="range" min="3" max="36" step="1" value="12" />
+          <span class="text-sm font-normal leading-normal tabular-nums text-neutral-900 dark:text-neutral-100 min-w-24 text-right"><span id="retainerLifeVal">12</span> mo</span>
+        </div>
+        <p class="text-xs font-normal leading-normal text-neutral-500 mt-1">This controls churn and therefore how many retainers can accumulate at a fixed acquisition rate.</p>
+
+        <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-6"></div>
+
+        <h2 class="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100">Delivery Capacity (Ceiling)</h2>
+        <p class="text-xs font-normal leading-normal text-neutral-500 mt-1 mb-4">These keep the model honest.</p>
+
+        <label for="maxRetainers" class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mt-4 block">Max concurrent retainers (capacity cap)</label>
+        <div class="flex items-center gap-3 mt-1.5">
+          <input id="maxRetainers" type="range" min="1" max="8" step="1" value="3" />
+          <span class="text-sm font-normal leading-normal tabular-nums text-neutral-900 dark:text-neutral-100 min-w-24 text-right"><span id="maxRetainersVal">3</span></span>
+        </div>
+
+        <label for="maxSprintsPerYear" class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mt-4 block">Max sprints you can deliver per year</label>
+        <div class="flex items-center gap-3 mt-1.5">
+          <input id="maxSprintsPerYear" type="range" min="1" max="24" step="1" value="12" />
+          <span class="text-sm font-normal leading-normal tabular-nums text-neutral-900 dark:text-neutral-100 min-w-24 text-right"><span id="maxSprintsPerYearVal">12</span></span>
+        </div>
+      </section>
+
+      <!-- Outputs -->
+      <section class="lg:col-span-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md p-4 shadow-sm dark:shadow-none flex flex-col gap-6">
+        <div>
+          <h2 class="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100">Outputs (Auto-calculated)</h2>
+          <p class="text-xs font-normal leading-normal text-neutral-500 mt-1">Now includes churn/lifespan, so "stabilized" isn't automatically equal to your max-retainer capacity.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="border border-neutral-200 dark:border-neutral-700 rounded-md p-3 bg-white dark:bg-neutral-900">
+            <div class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500">Conversations / year</div>
+            <div class="text-lg font-medium leading-snug tabular-nums text-neutral-900 dark:text-neutral-100 mt-2" id="kpiConvosYear">144</div>
+          </div>
+          <div class="border border-neutral-200 dark:border-neutral-700 rounded-md p-3 bg-white dark:bg-neutral-900">
+            <div class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500">Expected closed sprints / year</div>
+            <div class="text-lg font-medium leading-snug tabular-nums text-neutral-900 dark:text-neutral-100 mt-2" id="kpiSprintsYear">4–5</div>
+          </div>
+          <div class="border border-neutral-200 dark:border-neutral-700 rounded-md p-3 bg-white dark:bg-neutral-900">
+            <div class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500">Expected new retainers / year</div>
+            <div class="text-lg font-medium leading-snug tabular-nums text-neutral-900 dark:text-neutral-100 mt-2" id="kpiNewRetainersYear">1–2</div>
+          </div>
+          <div class="border border-neutral-200 dark:border-neutral-700 rounded-md p-3 bg-white dark:bg-neutral-900">
+            <div class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500">Stabilized retainers (implied)</div>
+            <div class="text-lg font-medium leading-snug tabular-nums text-neutral-900 dark:text-neutral-100 mt-2" id="kpiStableRetainers">~3</div>
+          </div>
+          <div class="border border-neutral-200 dark:border-neutral-700 rounded-md p-3 bg-white dark:bg-neutral-900">
+            <div class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500">Year 1 revenue (est.)</div>
+            <div class="text-lg font-medium leading-snug tabular-nums text-neutral-900 dark:text-neutral-100 mt-2" id="kpiYear1">$80k–$100k</div>
+          </div>
+          <div class="border border-neutral-200 dark:border-neutral-700 rounded-md p-3 bg-white dark:bg-neutral-900">
+            <div class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500">Year 2 revenue (est.)</div>
+            <div class="text-lg font-medium leading-snug tabular-nums text-neutral-900 dark:text-neutral-100 mt-2" id="kpiYear2">$150k–$220k</div>
+          </div>
+          <div class="border border-neutral-200 dark:border-neutral-700 rounded-md p-3 bg-white dark:bg-neutral-900 md:col-span-3">
+            <div class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500">Stabilized ceiling (annualized)</div>
+            <div class="text-lg font-medium leading-snug tabular-nums text-neutral-900 dark:text-neutral-100 mt-2" id="kpiCeiling">$220k–$275k</div>
+          </div>
+        </div>
+
+        <div class="border-l-2 border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-950 p-3 rounded-md">
+          <p class="text-sm font-normal leading-normal text-blue-700 dark:text-blue-400">
+            <strong class="font-semibold">Retention math:</strong> if you add retainers at a steady rate, and they last
+            <span class="tabular-nums font-medium" id="lifeInline">12</span> months on average,
+            the long-run average active retainers ≈
+            <span class="tabular-nums font-medium">arrival_rate × lifespan</span>
+            (then capped by your max-retainer capacity).
+          </p>
+          <p class="text-xs font-normal leading-normal text-blue-600 dark:text-blue-500 mt-2">
+            This is why lifespan is a "silent multiplier" in studios: you can keep conversations constant and still increase MRR by extending retention.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-3">Stage Table (Auto-updated)</h2>
+          <div class="overflow-x-auto border border-neutral-200 dark:border-neutral-700 rounded-md">
+            <table class="w-full border-collapse">
+              <thead>
+                <tr class="bg-neutral-100 dark:bg-neutral-700">
+                  <th class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-400 text-left px-3 py-3">Stage</th>
+                  <th class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-400 text-left px-3 py-3">Timeframe</th>
+                  <th class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-400 text-left px-3 py-3">Retainers (MRR)</th>
+                  <th class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-400 text-left px-3 py-3">Sprint Activity</th>
+                  <th class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-400 text-left px-3 py-3">Monthly Revenue</th>
+                  <th class="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-400 text-left px-3 py-3">Annualized</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
+                <tr class="bg-white dark:bg-neutral-800">
+                  <td class="text-sm font-medium leading-normal text-neutral-900 dark:text-neutral-100 px-3 py-3">Launch</td>
+                  <td class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 px-3 py-3">Year 1</td>
+                  <td class="text-sm font-normal leading-normal tabular-nums text-neutral-600 dark:text-neutral-400 px-3 py-3" id="tY1Retainers">1–2 retainers</td>
+                  <td class="text-sm font-normal leading-normal tabular-nums text-neutral-600 dark:text-neutral-400 px-3 py-3" id="tY1Sprints">~4–5 sprints/year</td>
+                  <td class="text-sm font-normal leading-normal tabular-nums text-neutral-600 dark:text-neutral-400 px-3 py-3" id="tY1Monthly">$6k–$9k/mo (avg)</td>
+                  <td class="text-sm font-semibold leading-normal tabular-nums text-neutral-900 dark:text-neutral-100 px-3 py-3" id="tY1Annual">$80k–$100k</td>
+                </tr>
+                <tr class="bg-white dark:bg-neutral-800">
+                  <td class="text-sm font-medium leading-normal text-neutral-900 dark:text-neutral-100 px-3 py-3">Early Stability</td>
+                  <td class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 px-3 py-3">Year 2</td>
+                  <td class="text-sm font-normal leading-normal tabular-nums text-neutral-600 dark:text-neutral-400 px-3 py-3" id="tY2Retainers">2–3 retainers</td>
+                  <td class="text-sm font-normal leading-normal tabular-nums text-neutral-600 dark:text-neutral-400 px-3 py-3" id="tY2Sprints">~4–5 sprints/year</td>
+                  <td class="text-sm font-normal leading-normal tabular-nums text-neutral-600 dark:text-neutral-400 px-3 py-3" id="tY2Monthly">$12k–$18k/mo</td>
+                  <td class="text-sm font-semibold leading-normal tabular-nums text-neutral-900 dark:text-neutral-100 px-3 py-3" id="tY2Annual">$150k–$220k</td>
+                </tr>
+                <tr class="bg-white dark:bg-neutral-800">
+                  <td class="text-sm font-medium leading-normal text-neutral-900 dark:text-neutral-100 px-3 py-3">Mature Solo Studio</td>
+                  <td class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 px-3 py-3">Stabilized</td>
+                  <td class="text-sm font-normal leading-normal tabular-nums text-neutral-600 dark:text-neutral-400 px-3 py-3" id="tCeilRetainers">~3 retainers</td>
+                  <td class="text-sm font-normal leading-normal tabular-nums text-neutral-600 dark:text-neutral-400 px-3 py-3" id="tCeilSprints">~1 sprint/month</td>
+                  <td class="text-sm font-normal leading-normal tabular-nums text-neutral-600 dark:text-neutral-400 px-3 py-3" id="tCeilMonthly">$20k–$23k/mo</td>
+                  <td class="text-sm font-semibold leading-normal tabular-nums text-neutral-900 dark:text-neutral-100 px-3 py-3" id="tCeilAnnual">$220k–$275k</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-xs font-normal leading-normal text-neutral-500 mt-2">
+            Note: This is intentionally simple. It's a planning dashboard, not a full cashflow model.
+          </p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    // --- Dark mode toggle ---
+    document.getElementById('themeToggle').addEventListener('click', function() {
+      document.documentElement.classList.toggle('dark');
+      localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    });
+
+    // --- Calculator logic ---
+    const $ = (id) => document.getElementById(id);
+    const fmtMoney = (n) => {
+      const sign = n < 0 ? "-" : "";
+      const abs = Math.abs(n);
+      if (abs >= 1_000_000) return `${sign}$${(abs/1_000_000).toFixed(1)}M`;
+      if (abs >= 1_000) return `${sign}$${Math.round(abs/1_000)}k`;
+      return `${sign}$${Math.round(abs)}`;
+    };
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+    const band = (mid, pct=0.15) => [Math.max(0, mid*(1-pct)), Math.max(0, mid*(1+pct))];
+
+    function endFromArrivals(N, L){
+      const k = 1 - Math.exp(-12 / L);
+      return (N/12) * L * k;
+    }
+    function avgFromArrivals(N, L){
+      const k = 1 - Math.exp(-12 / L);
+      return (N/144) * L * (12 - L * k);
+    }
+    function avgFromStarting(start, L){
+      const k = 1 - Math.exp(-12 / L);
+      return start * (L/12) * k;
+    }
+    function endFromStarting(start, L){
+      return start * Math.exp(-12 / L);
+    }
+
+    function compute() {
+      const convosPerMonth = +$("convos").value;
+      const convosPerClose = +$("convPerClose").value;
+      const sprintPrice = +$("sprintPrice").value;
+      const retainerPrice = +$("retainerPrice").value;
+      const retainerConv = +$("retainerConv").value / 100;
+      const retainerLife = +$("retainerLife").value;
+      const maxRetainers = +$("maxRetainers").value;
+      const maxSprintsPerYear = +$("maxSprintsPerYear").value;
+
+      $("convosVal").textContent = convosPerMonth;
+      $("convPerCloseVal").textContent = convosPerClose;
+      $("sprintPriceVal").textContent = sprintPrice;
+      $("retainerPriceVal").textContent = retainerPrice;
+      $("retainerConvVal").textContent = Math.round(retainerConv * 100);
+      $("retainerLifeVal").textContent = retainerLife;
+      $("maxRetainersVal").textContent = maxRetainers;
+      $("maxSprintsPerYearVal").textContent = maxSprintsPerYear;
+      $("lifeInline").textContent = retainerLife;
+
+      const convosPerYear = convosPerMonth * 12;
+      const expectedSprintsMid = convosPerYear / convosPerClose;
+      let [lowSprints, highSprints] = band(expectedSprintsMid, 0.15);
+
+      lowSprints = Math.min(lowSprints, maxSprintsPerYear);
+      highSprints = Math.min(highSprints, maxSprintsPerYear);
+      const midSprintsCapped = Math.min(expectedSprintsMid, maxSprintsPerYear);
+
+      const lowNewRet = lowSprints * retainerConv;
+      const highNewRet = highSprints * retainerConv;
+      const midNewRet = midSprintsCapped * retainerConv;
+
+      const sprintsStr = `${Math.max(0, Math.floor(lowSprints))}–${Math.max(0, Math.ceil(highSprints))}`;
+      const newRetStr = `${Math.max(0, Math.floor(lowNewRet))}–${Math.max(0, Math.ceil(highNewRet))}`;
+
+      const stableRetainersMid = clamp((midNewRet / 12) * retainerLife, 0, maxRetainers);
+
+      const ceilingMRR = stableRetainersMid * retainerPrice;
+      const ceilingSprintMonthlyAvg = (maxSprintsPerYear * sprintPrice) / 12;
+      const ceilingMonthly = ceilingMRR + ceilingSprintMonthlyAvg;
+      const ceilingAnnual = ceilingMonthly * 12;
+
+      const y1EndRetLow = clamp(endFromArrivals(lowNewRet, retainerLife), 0, maxRetainers);
+      const y1EndRetHigh = clamp(endFromArrivals(highNewRet, retainerLife), 0, maxRetainers);
+      const y1AvgRetLow = clamp(avgFromArrivals(lowNewRet, retainerLife), 0, maxRetainers);
+      const y1AvgRetHigh = clamp(avgFromArrivals(highNewRet, retainerLife), 0, maxRetainers);
+
+      const y1SprintLow = lowSprints * 0.70 * sprintPrice;
+      const y1SprintHigh = highSprints * 0.85 * sprintPrice;
+      const y1RetLow = y1AvgRetLow * retainerPrice * 12;
+      const y1RetHigh = y1AvgRetHigh * retainerPrice * 12;
+      const y1Low = y1SprintLow + y1RetLow;
+      const y1High = y1SprintHigh + y1RetHigh;
+
+      const y2StartLow = y1EndRetLow;
+      const y2StartHigh = y1EndRetHigh;
+      const y2EndLow = clamp(endFromStarting(y2StartLow, retainerLife) + endFromArrivals(lowNewRet, retainerLife), 0, maxRetainers);
+      const y2EndHigh = clamp(endFromStarting(y2StartHigh, retainerLife) + endFromArrivals(highNewRet, retainerLife), 0, maxRetainers);
+      const y2AvgLow = clamp(avgFromStarting(y2StartLow, retainerLife) + avgFromArrivals(lowNewRet, retainerLife), 0, maxRetainers);
+      const y2AvgHigh = clamp(avgFromStarting(y2StartHigh, retainerLife) + avgFromArrivals(highNewRet, retainerLife), 0, maxRetainers);
+
+      const y2SprintLow = lowSprints * 0.85 * sprintPrice;
+      const y2SprintHigh = highSprints * 0.95 * sprintPrice;
+      const y2RetLow = y2AvgLow * retainerPrice * 12;
+      const y2RetHigh = y2AvgHigh * retainerPrice * 12;
+      const y2Low = y2SprintLow + y2RetLow;
+      const y2High = y2SprintHigh + y2RetHigh;
+
+      $("kpiConvosYear").textContent = convosPerYear.toString();
+      $("kpiSprintsYear").textContent = sprintsStr;
+      $("kpiNewRetainersYear").textContent = newRetStr;
+      $("kpiStableRetainers").textContent = `~${stableRetainersMid.toFixed(1)} (cap ${maxRetainers})`;
+      $("kpiYear1").textContent = `${fmtMoney(y1Low)}–${fmtMoney(y1High)}`;
+      $("kpiYear2").textContent = `${fmtMoney(y2Low)}–${fmtMoney(y2High)}`;
+      $("kpiCeiling").textContent = `${fmtMoney(ceilingAnnual * 0.90)}–${fmtMoney(ceilingAnnual)}`;
+
+      $("tY1Retainers").textContent =
+        `${y1EndRetLow.toFixed(1)}–${y1EndRetHigh.toFixed(1)} retainers (${fmtMoney(y1EndRetLow*retainerPrice)}–${fmtMoney(y1EndRetHigh*retainerPrice)} MRR)`;
+      $("tY1Sprints").textContent = `~${sprintsStr} sprints/year (capped at ${maxSprintsPerYear})`;
+      $("tY1Monthly").textContent = `${fmtMoney(y1Low/12)}–${fmtMoney(y1High/12)}/mo (avg)`;
+      $("tY1Annual").textContent = `${fmtMoney(y1Low)}–${fmtMoney(y1High)}`;
+
+      $("tY2Retainers").textContent =
+        `${y2EndLow.toFixed(1)}–${y2EndHigh.toFixed(1)} retainers (${fmtMoney(y2EndLow*retainerPrice)}–${fmtMoney(y2EndHigh*retainerPrice)} MRR)`;
+      $("tY2Sprints").textContent = `~${sprintsStr} sprints/year (demand-dependent)`;
+      $("tY2Monthly").textContent = `${fmtMoney(y2Low/12)}–${fmtMoney(y2High/12)}/mo`;
+      $("tY2Annual").textContent = `${fmtMoney(y2Low)}–${fmtMoney(y2High)}`;
+
+      const sprintMonthlyAvg = (maxSprintsPerYear/12);
+      $("tCeilRetainers").textContent =
+        `~${stableRetainersMid.toFixed(1)} retainers (${fmtMoney(ceilingMRR)} MRR)`;
+      $("tCeilSprints").textContent = `~${sprintMonthlyAvg.toFixed(1)} sprints/month (avg)`;
+      $("tCeilMonthly").textContent = `${fmtMoney(ceilingMonthly*0.90)}–${fmtMoney(ceilingMonthly)}/mo`;
+      $("tCeilAnnual").textContent = `${fmtMoney(ceilingAnnual*0.90)}–${fmtMoney(ceilingAnnual)}`;
+    }
+
+    const inputs = [
+      "convos","convPerClose","sprintPrice","retainerPrice",
+      "retainerConv","retainerLife","maxRetainers","maxSprintsPerYear"
+    ];
+    inputs.forEach(id => $(id).addEventListener("input", compute));
+    compute();
+  </script>
+</body>
+</html>

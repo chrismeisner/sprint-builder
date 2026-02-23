@@ -14,7 +14,7 @@ export function DeviceSwitcher({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState<PresetKey>("mobile");
   const [customInput, setCustomInput] = useState("480");
   const [appliedCustomWidth, setAppliedCustomWidth] = useState("480");
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
   // null = not yet measured (pre-hydration); true = real mobile screen
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
 

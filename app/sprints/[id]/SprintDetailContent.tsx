@@ -865,16 +865,22 @@ export default function SprintDetailContent(props: Props) {
 
   return (
     <main className="min-h-screen max-w-6xl mx-auto p-6 space-y-6">
-      {/* Admin Controls Section */}
+      {/* Admin View Mode Banner */}
       {isAdmin && (
-        <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-black/5 dark:bg-white/5">
-          <div className="flex items-center justify-between gap-4">
+        <section className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 overflow-hidden">
+          {/* View toggle row */}
+          <div className="flex items-center justify-between gap-4 px-4 py-3">
             <div className="flex items-center gap-3">
-              <span className={`${getTypographyClassName("mono-sm")} uppercase tracking-wide text-black dark:text-white`}>Admin Controls</span>
+              <span className={`${getTypographyClassName("mono-sm")} uppercase tracking-wide text-black/50 dark:text-white/50`}>View</span>
               <ViewModeToggle 
                 isAdminView={viewAsAdmin} 
                 onToggle={() => setViewAsAdmin(!viewAsAdmin)} 
               />
+              {!viewAsAdmin && (
+                <span className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400`}>
+                  Showing client view — admin-only content is hidden
+                </span>
+              )}
             </div>
             {showAdminContent && (
               <AdminStatusChanger sprintId={row.id} currentStatus={row.status || "draft"} />

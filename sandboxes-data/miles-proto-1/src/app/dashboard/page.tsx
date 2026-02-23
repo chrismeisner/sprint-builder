@@ -3,74 +3,196 @@
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { MapView } from "@/components/map-view";
 
-const routePoints = [
-  { x: 10, y: 80 },
-  { x: 25, y: 60 },
-  { x: 40, y: 50 },
-  { x: 55, y: 40 },
-  { x: 70, y: 35 },
-  { x: 85, y: 25 },
+// Suburban Plano, TX: neighborhood streets heading toward a retail area
+const DEMO_ROUTE: [number, number][] = [
+  [33.0152, -96.7108],
+  [33.0168, -96.7088],
+  [33.0183, -96.7065],
+  [33.0185, -96.7038],
+  [33.0185, -96.7010],
+  [33.0185, -96.6982],
+  [33.0198, -96.6960],
+  [33.0218, -96.6945],
+  [33.0240, -96.6932],
 ];
 
-function buildPathD(points: { x: number; y: number }[]) {
-  if (points.length < 2) return "";
-  const [first, ...rest] = points;
-  return (
-    `M ${first.x} ${first.y} ` + rest.map((p) => `L ${p.x} ${p.y}`).join(" ")
-  );
+interface MilesInsight {
+  id: string;
+  emoji: string;
+  title: string;
+  body: string;
+  cta?: string;
+  href: string;
+  accent: "blue" | "amber" | "green" | "purple";
 }
 
-type NextAction =
-  | "add-drivers"
-  | "name-locations"
-  | "weekly-recap"
-  | null;
-
-const nextActions: { id: NextAction; label: string; description: string; href: string; icon: "drivers" | "location" | "recap" }[] = [
+const insightCards: MilesInsight[] = [
   {
-    id: "add-drivers",
-    label: "Add other drivers",
-    description: "Improve trip attribution by adding people who share this vehicle.",
+    id: "fuel",
+    emoji: "⛽",
+    title: "Fuel getting low",
+    body: "Your Civic is around 18% fuel. There's a Shell station 0.4 mi from your usual route home.",
+    cta: "See nearby stations",
+    href: "/next-trip-headsup",
+    accent: "amber",
+  },
+  {
+    id: "drivers",
+    emoji: "👥",
+    title: "Who else drives the Civic?",
+    body: "Adding drivers helps Miles assign trips correctly so your mileage and insights stay accurate.",
+    cta: "Add a driver",
     href: "/household",
-    icon: "drivers",
+    accent: "blue",
   },
   {
-    id: "name-locations",
-    label: "Name your frequent places",
-    description: "Label locations like work or school for better trip insights.",
-    href: "/locations",
-    icon: "location",
-  },
-  {
-    id: "weekly-recap",
-    label: "Check your weekly recap",
-    description: "See how your driving week shaped up.",
+    id: "recap",
+    emoji: "📊",
+    title: "Your week in review",
+    body: "4 trips · 38.6 mi · Tuesday was your busiest day. You drove 12% less than last week.",
+    cta: "See full recap",
     href: "/weekly-recap",
-    icon: "recap",
+    accent: "purple",
+  },
+  {
+    id: "locations",
+    emoji: "📍",
+    title: "Name your frequent spots",
+    body: "You've visited the same place 6 times this week. Label it so Miles can auto-tag future trips.",
+    cta: "Name locations",
+    href: "/locations",
+    accent: "blue",
+  },
+  {
+    id: "smooth",
+    emoji: "🌟",
+    title: "Smooth driving streak",
+    body: "3 trips in a row with no hard braking or rapid acceleration. Nice work, Chris.",
+    href: "/insights",
+    accent: "green",
+  },
+  {
+    id: "oil",
+    emoji: "🔧",
+    title: "Oil change coming up",
+    body: "Based on your mileage, you're about 400 mi from your next recommended oil change.",
+    href: "/device-health",
+    accent: "amber",
   },
 ];
 
-function ActionIcon({ type }: { type: "drivers" | "location" | "recap" }) {
-  if (type === "drivers") {
-    return (
-      <svg className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-      </svg>
-    );
+const accentStyles = {
+  blue: {
+    card: "border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/60",
+    title: "text-blue-800 dark:text-blue-300",
+    body: "text-blue-700/80 dark:text-blue-400/80",
+    cta: "text-blue-700 dark:text-blue-300",
+  },
+  amber: {
+    card: "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/60",
+    title: "text-amber-800 dark:text-amber-300",
+    body: "text-amber-700/80 dark:text-amber-400/80",
+    cta: "text-amber-700 dark:text-amber-300",
+  },
+  green: {
+    card: "border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/60",
+    title: "text-green-800 dark:text-green-300",
+    body: "text-green-700/80 dark:text-green-400/80",
+    cta: "text-green-700 dark:text-green-300",
+  },
+  purple: {
+    card: "border-purple-200 bg-purple-50 dark:border-purple-900 dark:bg-purple-950/60",
+    title: "text-purple-800 dark:text-purple-300",
+    body: "text-purple-700/80 dark:text-purple-400/80",
+    cta: "text-purple-700 dark:text-purple-300",
+  },
+};
+
+function FromMiles() {
+  const [index, setIndex] = useState(0);
+  const total = insightCards.length;
+  const card = insightCards[index];
+  const s = accentStyles[card.accent];
+
+  function prev() {
+    setIndex((i) => (i - 1 + total) % total);
   }
-  if (type === "location") {
-    return (
-      <svg className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-      </svg>
-    );
+  function next() {
+    setIndex((i) => (i + 1) % total);
   }
+
   return (
-    <svg className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-    </svg>
+    <div className="flex flex-col gap-3">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-500">
+          From Miles
+        </span>
+        <div className="flex items-center gap-2">
+          {/* Dot indicators */}
+          <div className="flex items-center gap-1">
+            {insightCards.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setIndex(i)}
+                aria-label={`Go to card ${i + 1}`}
+                className={`size-1.5 rounded-full transition-all motion-safe:duration-200 focus-visible:outline-none ${
+                  i === index
+                    ? "bg-neutral-500 dark:bg-neutral-400 w-3"
+                    : "bg-neutral-300 dark:bg-neutral-600"
+                }`}
+              />
+            ))}
+          </div>
+          {/* Prev / Next */}
+          <button
+            type="button"
+            onClick={prev}
+            aria-label="Previous"
+            className="flex size-6 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600 dark:text-neutral-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-300 focus-visible:outline-none"
+          >
+            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={next}
+            aria-label="Next"
+            className="flex size-6 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600 dark:text-neutral-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-300 focus-visible:outline-none"
+          >
+            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Card */}
+      <Link
+        key={card.id}
+        href={card.href}
+        className={`flex flex-col gap-3 rounded-lg border p-4 motion-safe:transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${s.card}`}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xl leading-none" aria-hidden="true">{card.emoji}</span>
+          <span className={`text-sm font-semibold leading-snug ${s.title}`}>
+            {card.title}
+          </span>
+        </div>
+        <span className={`text-sm font-normal leading-relaxed ${s.body}`}>
+          {card.body}
+        </span>
+        {card.cta && (
+          <span className={`text-xs font-semibold leading-none ${s.cta}`}>
+            {card.cta} &rarr;
+          </span>
+        )}
+      </Link>
+    </div>
   );
 }
 
@@ -203,10 +325,83 @@ function QuickLinks() {
 function DashboardContent() {
   const searchParams = useSearchParams();
   const state = searchParams.get("state") === "empty" ? "empty" : "filled";
-  const [actionDismissed, setActionDismissed] = useState(false);
-  const currentAction = nextActions[0];
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+  const showWelcome = searchParams.get("welcome") === "1" && !welcomeDismissed;
 
   return (
+    <>
+    {showWelcome && (
+      <div
+        className="fixed inset-0 z-[60] flex items-end justify-center bg-neutral-900/60 px-4 pb-6 dark:bg-neutral-950/75 sm:items-center sm:pb-0"
+        onClick={() => setWelcomeDismissed(true)}
+      >
+        <div
+          className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl dark:bg-neutral-900"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex flex-col gap-6">
+            {/* Icon */}
+            <div className="flex size-14 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950">
+              <svg
+                className="size-7 text-blue-600 dark:text-blue-400"
+                aria-hidden="true"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
+              </svg>
+            </div>
+
+            {/* Copy */}
+            <div className="flex flex-col gap-2">
+              <h2 className="text-2xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100">
+                Welcome to Miles
+              </h2>
+              <p className="text-sm font-normal leading-relaxed text-neutral-600 dark:text-neutral-400">
+                To start tracking trips automatically, you&rsquo;ll need to plug the Miles device into your car&rsquo;s OBD-II port. Setup takes about 5 minutes and can be done before you head out.
+              </p>
+            </div>
+
+            {/* Steps preview */}
+            <div className="flex flex-col gap-2 rounded-lg border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-800/50">
+              {[
+                "Grant Bluetooth & notification permissions",
+                "Add a payment method to activate your trial",
+                "Plug the device into your OBD-II port",
+              ].map((step, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold leading-none text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                    {i + 1}
+                  </span>
+                  <span className="text-xs font-normal leading-normal text-neutral-600 dark:text-neutral-400">
+                    {step}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-3">
+              <Link
+                href="/install?state=empty"
+                className="flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
+              >
+                Start setup
+              </Link>
+              <button
+                type="button"
+                onClick={() => setWelcomeDismissed(true)}
+                className="flex h-12 w-full items-center justify-center rounded-md border border-neutral-200 bg-white px-6 text-base font-medium leading-none text-neutral-600 motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
+              >
+                I&rsquo;ll do this later
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     <main className="flex min-h-dvh flex-col px-6 py-16">
       <div className="mx-auto flex w-full max-w-sm flex-col gap-8">
 
@@ -231,67 +426,49 @@ function DashboardContent() {
 
         {state === "filled" ? (
           <>
-            {/* Device health strip */}
+            {/* Vehicle card */}
             <Link
               href="/device-health"
-              className="flex items-center gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-4 motion-safe:transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
+              className="flex flex-col rounded-lg border border-neutral-200 bg-neutral-50 overflow-hidden motion-safe:transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
             >
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-green-50 dark:bg-green-950">
-                <svg className="size-5 text-green-600 dark:text-green-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
+              {/* Car image */}
+              <div className="flex items-center justify-center bg-white dark:bg-neutral-800 p-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/api/sandbox-files/styleguide/images/civic.png"
+                  alt="2019 Honda Civic Sport"
+                  className="w-full max-w-[240px] aspect-square object-contain"
+                />
               </div>
-              <div className="flex flex-1 flex-col gap-0.5">
-                <span className="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100">
-                  CR-V &middot; Device online
-                </span>
-                <span className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500">
-                  GPS strong &middot; Cellular connected &middot; Last sync 2 min ago
-                </span>
-              </div>
-              <svg className="size-4 shrink-0 text-neutral-400 dark:text-neutral-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-              </svg>
-            </Link>
-
-            {/* Next best action */}
-            {!actionDismissed && (
-              <div className="flex flex-col gap-3">
-                <span className="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-500">
-                  Suggested next step
-                </span>
-                <div className="flex flex-col gap-3 rounded-md border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
-                  <div className="flex items-start gap-4">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
-                      <ActionIcon type={currentAction.icon} />
-                    </div>
-                    <div className="flex flex-1 flex-col gap-1">
-                      <span className="text-sm font-medium leading-none text-blue-700 dark:text-blue-400">
-                        {currentAction.label}
-                      </span>
-                      <span className="text-sm font-normal leading-normal text-blue-700 dark:text-blue-400">
-                        {currentAction.description}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <Link
-                      href={currentAction.href}
-                      className="flex h-10 flex-1 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-150 hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600"
-                    >
-                      {currentAction.label}
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => setActionDismissed(true)}
-                      className="flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium leading-none text-blue-600 motion-safe:transition-colors motion-safe:duration-150 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
-                    >
-                      Later
-                    </button>
+              {/* Details */}
+              <div className="flex items-center gap-3 px-4 py-3 border-t border-neutral-200 dark:border-neutral-700">
+                <div className="flex flex-1 flex-col gap-1">
+                  <span className="text-sm font-semibold leading-none text-neutral-900 dark:text-neutral-100">
+                    2019 Honda Civic Sport
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1.5 text-xs font-medium leading-none text-green-600 dark:text-green-400">
+                      <span className="size-1.5 rounded-full bg-green-500" />
+                      Online
+                    </span>
+                    <span className="text-xs text-neutral-300 dark:text-neutral-600">&middot;</span>
+                    <span className="text-xs font-normal leading-none text-neutral-500 dark:text-neutral-500">
+                      62,340 mi
+                    </span>
+                    <span className="text-xs text-neutral-300 dark:text-neutral-600">&middot;</span>
+                    <span className="text-xs font-normal leading-none text-neutral-500 dark:text-neutral-500">
+                      Synced 2m ago
+                    </span>
                   </div>
                 </div>
+                <svg className="size-4 shrink-0 text-neutral-400 dark:text-neutral-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                </svg>
               </div>
-            )}
+            </Link>
+
+            {/* From Miles — contextual insights carousel */}
+            <FromMiles />
 
             {/* Recent trips */}
             <div className="flex flex-col gap-3">
@@ -310,25 +487,16 @@ function DashboardContent() {
                 href="/trip-receipt"
                 className="flex flex-col gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-4 motion-safe:transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
               >
-                <div className="relative h-20 w-full overflow-hidden rounded-md bg-neutral-100 dark:bg-neutral-700">
-                  <div className="absolute inset-0 opacity-10">
-                    <div className="grid h-full w-full grid-cols-6 grid-rows-3">
-                      {Array.from({ length: 18 }).map((_, i) => (
-                        <div key={i} className="border border-neutral-400 dark:border-neutral-500" />
-                      ))}
-                    </div>
-                  </div>
-                  <svg className="absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <path
-                      d={buildPathD(routePoints)}
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-blue-500 dark:text-blue-400"
-                    />
-                  </svg>
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md">
+                  <MapView
+                    route={DEMO_ROUTE}
+                    markers={[
+                      { lat: DEMO_ROUTE[0][0], lng: DEMO_ROUTE[0][1], type: "start" },
+                      { lat: DEMO_ROUTE[DEMO_ROUTE.length - 1][0], lng: DEMO_ROUTE[DEMO_ROUTE.length - 1][1], type: "end" },
+                    ]}
+                    interactive={false}
+                    routeWeight={3}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
@@ -395,6 +563,51 @@ function DashboardContent() {
                 </div>
               </div>
             </div>
+
+            {/* Drivers — filled state */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-500">
+                  Drivers
+                </span>
+                <Link
+                  href="/household"
+                  className="text-xs font-medium leading-none text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  Manage
+                </Link>
+              </div>
+              {/* Primary driver row */}
+              <div className="flex items-center gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-800">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+                  <svg className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                  </svg>
+                </div>
+                <div className="flex flex-1 flex-col gap-0.5">
+                  <span className="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100">
+                    Chris
+                  </span>
+                  <span className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500">
+                    Primary driver
+                  </span>
+                </div>
+              </div>
+              {/* Add another driver */}
+              <Link
+                href="/add-drivers"
+                className="flex items-center gap-3 rounded-md border border-dashed border-neutral-200 bg-neutral-50 p-4 motion-safe:transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-800/50 dark:hover:bg-neutral-800"
+              >
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-700">
+                  <svg className="size-5 text-neutral-400 dark:text-neutral-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                </div>
+                <span className="text-sm font-medium leading-none text-neutral-600 dark:text-neutral-400">
+                  Add another driver
+                </span>
+              </Link>
+            </div>
           </>
         ) : (
           <>
@@ -455,6 +668,36 @@ function DashboardContent() {
               </div>
             </div>
 
+            {/* Drivers — empty state */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-500">
+                  Drivers
+                </span>
+              </div>
+              <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-neutral-200 bg-neutral-50 px-6 py-8 text-center dark:border-neutral-700 dark:bg-neutral-800/50">
+                <div className="flex size-10 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-700">
+                  <svg className="size-5 text-neutral-400 dark:text-neutral-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                  </svg>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-medium leading-none text-neutral-600 dark:text-neutral-400">
+                    No drivers added yet
+                  </span>
+                  <p className="text-xs font-normal leading-normal text-neutral-400 dark:text-neutral-500">
+                    Add drivers to attribute trips to the right person.
+                  </p>
+                </div>
+                <Link
+                  href="/primary-driver"
+                  className="mt-1 flex h-9 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-150 hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600"
+                >
+                  Add a driver
+                </Link>
+              </div>
+            </div>
+
             {/* This week — zeroed */}
             <div className="flex flex-col gap-3">
               <span className="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-500">
@@ -503,6 +746,7 @@ function DashboardContent() {
 
       </div>
     </main>
+    </>
   );
 }
 
