@@ -39,7 +39,7 @@ export async function GET(request: Request) {
 
   try {
     const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(secretKey, { apiVersion: "2025-01-27.acacia" });
+    const stripe = new Stripe(secretKey, { apiVersion: "2026-01-28.clover" });
     const endpoints = await stripe.webhookEndpoints.list({ limit: 20 });
 
     return NextResponse.json({

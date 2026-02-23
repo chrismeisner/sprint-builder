@@ -35,7 +35,7 @@ export async function GET() {
 
   try {
     const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(secretKey!, { apiVersion: "2025-01-27.acacia" });
+    const stripe = new Stripe(secretKey!, { apiVersion: "2026-01-28.clover" });
 
     const [account, balance] = await Promise.all([
       stripe.accounts.retrieve(),
