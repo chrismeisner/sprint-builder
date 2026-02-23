@@ -432,12 +432,12 @@ function DashboardContent() {
               className="flex flex-col rounded-lg border border-neutral-200 bg-neutral-50 overflow-hidden motion-safe:transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
             >
               {/* Car image */}
-              <div className="flex items-center justify-center bg-white dark:bg-neutral-800 p-4">
+              <div className="relative w-full aspect-[3/2] bg-white dark:bg-neutral-800">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/api/sandbox-files/styleguide/images/civic.png"
                   alt="2019 Honda Civic Sport"
-                  className="w-full max-w-[240px] aspect-square object-contain"
+                  className="absolute inset-0 w-full h-full object-contain"
                 />
               </div>
               {/* Details */}

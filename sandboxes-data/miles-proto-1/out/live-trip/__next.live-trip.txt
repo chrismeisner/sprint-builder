@@ -1,4 +1,4 @@
 1:"$Sreact.fragment"
 2:I[52010,["/api/sandbox-files/miles-proto-1/_next/static/chunks/b0bd27f064e38d47.js","/api/sandbox-files/miles-proto-1/_next/static/chunks/8de56cefb68a91f2.js"],"default"]
 3:I[38654,["/api/sandbox-files/miles-proto-1/_next/static/chunks/b0bd27f064e38d47.js","/api/sandbox-files/miles-proto-1/_next/static/chunks/8de56cefb68a91f2.js"],"default"]
-0:{"buildId":"9vyIWgLY0IJQjNN32gGuk","rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"loading":null,"isPartial":false}
+0:{"buildId":"X_3z-dVrMbMu-yQYfPlCd","rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"loading":null,"isPartial":false}
