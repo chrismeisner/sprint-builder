@@ -902,6 +902,24 @@ export default function SprintDetailContent(props: Props) {
       </div>
 
       {/* ============================================ */}
+      {/* Book a Feedback Session */}
+      {/* ============================================ */}
+      <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white/40 dark:bg-black/40 flex items-center justify-between gap-4">
+        <div className="space-y-0.5">
+          <p className={`${getTypographyClassName("subtitle-sm")} text-text-muted uppercase tracking-wide`}>Got questions?</p>
+          <p className={`${getTypographyClassName("body-base")} text-black dark:text-white`}>Book a feedback session to talk through this sprint.</p>
+        </div>
+        <a
+          href="https://cal.com/chrismeisner/feedback-sync"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`shrink-0 inline-flex items-center rounded-md border border-black/20 dark:border-white/20 bg-white dark:bg-black px-3 py-1.5 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition ${getTypographyClassName("button-sm")}`}
+        >
+          Book a session →
+        </a>
+      </section>
+
+      {/* ============================================ */}
       {/* EVERYONE SEES: Sprint Overview */}
       {/* ============================================ */}
       <section className={`rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-3 bg-white/40 dark:bg-black/40`}>
@@ -1907,7 +1925,7 @@ export default function SprintDetailContent(props: Props) {
 
           {invoices.length === 0 ? (
             <p className={`${t.bodySm} text-text-muted`}>
-              No invoices yet.{showAdminContent ? " Use "Create invoices" to generate them from the current budget." : " They will be generated from the budget plan."}
+              No invoices yet.{showAdminContent ? " Use the \u201cCreate invoices\u201d button to generate them from the current budget." : " They will be generated from the budget plan."}
             </p>
           ) : (
             <div className="space-y-3">

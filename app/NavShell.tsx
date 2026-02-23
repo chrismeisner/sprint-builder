@@ -33,6 +33,7 @@ export default async function NavShell({ children }: { children: ReactNode }) {
     { href: "/dashboard/fade-tester", label: "🌫️ Fade Tester" },
     { href: "/dashboard/storage-test", label: "💾 Storage Test" },
     { href: "/dashboard/email-test", label: "✉️ Email Test" },
+    { href: "/dashboard/stripe", label: "💳 Stripe" },
     { href: "/deferred-compensation", label: "🔮 Compensation Calculator" },
     { href: "/api/sandbox-files/styleguide-template/index.html", label: "📐 Styleguide Template", external: true },
   ];

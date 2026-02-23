@@ -25,7 +25,7 @@ export default function ProcessSection() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
-          <p className="text-lg opacity-70 mt-2">Same cadence for Foundations and every Expansion Sprint</p>
+          <p className="text-lg opacity-70 mt-2">Same cadence for every sprint, regardless of deliverables</p>
         </button>
       </div>
 
@@ -37,12 +37,12 @@ export default function ProcessSection() {
               <div className="flex-shrink-0 w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xl font-bold">
                 1
               </div>
-              <h3 className="text-2xl font-semibold">Book your Foundation Sprint → pay 50% to lock the week</h3>
-            </div>
-            <div className="pl-16 space-y-2">
-              <p className="text-base opacity-80">
-                Choose Brand or Product Foundations, review the preset deliverables, tell us your preferred kickoff Monday, and sign + pay 50% via Stripe to reserve the 2-week slot. You&apos;ll get a client portal with onboarding tasks, file uploads, and calendar invites before Day 1.
-              </p>
+            <h3 className="text-2xl font-semibold">Build your sprint → pay 50% to lock the week</h3>
+          </div>
+          <div className="pl-16 space-y-2">
+            <p className="text-base opacity-80">
+              Browse the deliverable library, choose what fits your goals, and the studio builds a transparent proposal priced from those selections. Pick your Monday kickoff, sign, and pay 50% via Stripe to reserve the 2-week slot. You&apos;ll get a client portal with onboarding tasks, file uploads, and calendar invites before Day 1.
+            </p>
               <p className="text-sm opacity-60 italic">
                 Need help choosing?{' '}
                 <Link
@@ -58,10 +58,10 @@ export default function ProcessSection() {
               <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 text-sm space-y-1">
                 <p className="font-medium">Step 1 checklist:</p>
                 <ul className="list-disc pl-5 space-y-1 opacity-80">
-                  <li>Pick Brand or Product Foundation sprint</li>
-                  <li>Share goals, links, and preferred kickoff Mondays</li>
+                  <li>Browse deliverables and align on scope with the studio</li>
+                  <li>Review transparent proposal + pricing breakdown</li>
                   <li>Sign digital agreement + pay 50% deposit via Stripe</li>
-                  <li>Complete the 5-step onboarding checklist in your portal</li>
+                  <li>Complete the onboarding checklist in your client portal</li>
                 </ul>
               </div>
             </div>
@@ -140,7 +140,7 @@ export default function ProcessSection() {
             </div>
             <div className="pl-16 space-y-3">
               <p className="text-base opacity-80">
-                Week 2 Friday — sprint complete. You receive final deliverables with source files, a Loom walkthrough, and an optional live demo. Test with customers, gather feedback, then pick new deliverables and schedule another Expansion Sprint whenever you need more momentum.
+                Week 2 Friday — sprint complete. You receive final deliverables with source files, a Loom walkthrough, and an optional live demo. Test with customers, gather feedback, then pick new deliverables and book another sprint whenever you need more momentum.
               </p>
               <div className="rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-4 text-sm space-y-3">
                 <div>

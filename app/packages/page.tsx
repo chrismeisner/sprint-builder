@@ -60,6 +60,7 @@ export default async function PackagesPage() {
     FROM sprint_packages sp
     LEFT JOIN sprint_package_deliverables spd ON sp.id = spd.sprint_package_id
     LEFT JOIN deliverables d ON spd.deliverable_id = d.id AND d.active = true
+      AND (d.deliverable_type IS NULL OR d.deliverable_type != 'workshop')
     WHERE sp.active = true
     GROUP BY sp.id
     ORDER BY sp.featured DESC, sp.sort_order ASC, sp.name ASC

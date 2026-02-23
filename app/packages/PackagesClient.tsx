@@ -33,15 +33,15 @@ export default function PackagesClient({ packages }: Props) {
     return {
       ...pkg,
       priceLabel: `$${Math.round(price).toLocaleString()}`,
-      priceSuffix: `${Math.round(hours)} hours · points-based budget`,
+      priceSuffix: `${Math.round(hours)} hours · 2-week sprint`,
     };
   });
 
   return (
     <main className="min-h-screen">
       <HeroSection
-        title="Sprint packages ready to book"
-        subtitle="Each package is a curated set of deliverables with transparent, pre-modeled pricing so you know exactly what you’re getting."
+        title="Sprint packages"
+        subtitle="Curated starting points built from the deliverable library. Each package is priced transparently from its deliverables—pick one as-is or use it as a starting point."
         primaryCta={{ label: "Talk to us", href: "/intake" }}
         secondaryCta={{ label: "Back to home", href: "/" }}
         primaryVariant="accent"
@@ -76,7 +76,7 @@ export default function PackagesClient({ packages }: Props) {
         <div className="container max-w-4xl text-center space-y-8">
           <SectionHeader
             heading="Need something different?"
-            description="The packages above are our most common starting points, but we can build a custom sprint around any combination of deliverables. Browse the full library, then reach out to scope a 2-week sprint that fits your needs."
+            description="The packages above are curated starting points. Every sprint can be customized—browse the full deliverable library and we'll build a proposal around the exact scope you need."
             maxWidth="lg"
           />
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -100,7 +100,10 @@ export default function PackagesClient({ packages }: Props) {
             </Link>
           </div>
           <p className="text-xs sm:text-sm opacity-60 max-w-2xl mx-auto">
-            Prefer something custom? We can shape a sprint around any combination of deliverables.
+            Sprints start around $8,000 and scale with the deliverables you choose. Always 2 weeks.
+          </p>
+          <p className="text-xs sm:text-sm opacity-50 max-w-2xl mx-auto">
+            Already shipped a sprint? Ask about <strong>Monthly Support</strong>—starting at $4,000/month for biweekly check-ins and ongoing deliverable updates.
           </p>
         </div>
       </section>

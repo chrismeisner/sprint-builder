@@ -8,6 +8,14 @@ import { ATTITUDE_THEMES } from "@/lib/sprintProcess";
 type UpdateLink = { url: string; label: string };
 type UpdateAttachment = { url: string; fileName: string; mimetype: string; fileSizeBytes: number };
 
+const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "avif", "svg"]);
+
+function isImageAttachment(att: UpdateAttachment): boolean {
+  if (att.mimetype?.startsWith("image/")) return true;
+  const ext = att.fileName?.split(".").pop()?.toLowerCase() ?? "";
+  return IMAGE_EXTENSIONS.has(ext);
+}
+
 export type DailyUpdate = {
   id: string;
   sprintDay: number;
@@ -121,6 +129,21 @@ export default function SprintDailyUpdates({
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  // Daily summary email state
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryPreview, setSummaryPreview] = useState<{
+    subject: string;
+    body: string;
+    html: string;
+    recipients: string[];
+    sprintDay: number;
+    totalDays: number;
+    fileContexts: Array<{ name: string; fileName: string }>;
+  } | null>(null);
+  const [summarySending, setSummarySending] = useState(false);
+  const [summarySent, setSummarySent] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   const totalDays = weeks * 5;
 
@@ -274,7 +297,7 @@ export default function SprintDailyUpdates({
     }
   }, [sprintId]);
 
-  // Clipboard paste → upload screenshot (only when form is open)
+  // Clipboard paste → upload image (only when form is open)
   useEffect(() => {
     if (!isAdmin || !showForm) return;
     const handlePaste = (e: ClipboardEvent) => {
@@ -294,6 +317,64 @@ export default function SprintDailyUpdates({
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
   }, [isAdmin, showForm, uploadAttachmentFile]);
+
+  const handleGenerateSummary = async () => {
+    setSummaryLoading(true);
+    setSummaryError(null);
+    setSummarySent(false);
+    try {
+      const res = await fetch(`/api/sprint-drafts/${sprintId}/daily-summary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "preview" }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error || `Failed to generate summary (${res.status})`);
+      }
+      const data = await res.json() as {
+        subject: string;
+        body: string;
+        html: string;
+        recipients: string[];
+        sprintDay: number;
+        totalDays: number;
+        fileContexts: Array<{ name: string; fileName: string }>;
+      };
+      setSummaryPreview(data);
+    } catch (err) {
+      setSummaryError(err instanceof Error ? err.message : "Failed to generate summary");
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  const handleSendSummary = async () => {
+    setSummarySending(true);
+    setSummaryError(null);
+    try {
+      const res = await fetch(`/api/sprint-drafts/${sprintId}/daily-summary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "send" }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error || `Failed to send summary (${res.status})`);
+      }
+      setSummarySent(true);
+    } catch (err) {
+      setSummaryError(err instanceof Error ? err.message : "Failed to send summary");
+    } finally {
+      setSummarySending(false);
+    }
+  };
+
+  const closeSummaryModal = () => {
+    setSummaryPreview(null);
+    setSummarySent(false);
+    setSummaryError(null);
+  };
 
   const t = {
     cardHeading: typography.headingCard,
@@ -331,20 +412,47 @@ export default function SprintDailyUpdates({
       <div className="flex items-center justify-between">
         <h2 className={t.cardHeading}>Daily Updates</h2>
         {isAdmin && !showForm && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingId(null);
-              setFormDay(guessCurrentDay());
-              setFormFrame("");
-              setFormBody("");
-              setFormLinks([]);
-              setShowForm(true);
-            }}
-            className="h-8 px-3 text-sm rounded border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-150 ease-out"
-          >
-            + Add Update
-          </button>
+          <div className="flex items-center gap-2">
+            {updates.length > 0 && (
+              <button
+                type="button"
+                onClick={handleGenerateSummary}
+                disabled={summaryLoading}
+                className="h-8 px-3 text-sm rounded border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-150 ease-out disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {summaryLoading ? (
+                  <>
+                    <svg className="animate-spin size-3.5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Send Daily Summary
+                  </>
+                )}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setEditingId(null);
+                setFormDay(guessCurrentDay());
+                setFormFrame("");
+                setFormBody("");
+                setFormLinks([]);
+                setShowForm(true);
+              }}
+              className="h-8 px-3 text-sm rounded border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-150 ease-out"
+            >
+              + Add Update
+            </button>
+          </div>
         )}
       </div>
 
@@ -485,15 +593,15 @@ export default function SprintDailyUpdates({
                 ) : (
                   <>
                     <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                     </svg>
-                    Add Screenshot
+                    Add Attachment
                   </>
                 )}
                 <input
                   ref={attachmentInputRef}
                   type="file"
-                  accept="image/png,image/jpeg,image/gif,image/webp"
+                  accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain,text/markdown,text/csv,application/json,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -505,9 +613,22 @@ export default function SprintDailyUpdates({
             {formAttachments.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {formAttachments.map((att, idx) => (
-                  <div key={idx} className="group relative aspect-video rounded-md overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={att.url} alt={att.fileName} className="w-full h-full object-cover" />
+                  <div key={idx} className="group relative rounded-md overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800">
+                    {isImageAttachment(att) ? (
+                      <div className="aspect-video">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={att.url} alt={att.fileName} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="aspect-video flex flex-col items-center justify-center gap-1 px-2 text-center">
+                        <svg className="size-5 text-neutral-400 dark:text-neutral-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span className="text-[10px] leading-tight text-neutral-500 dark:text-neutral-400 break-all line-clamp-2">
+                          {att.fileName}
+                        </span>
+                      </div>
+                    )}
                     <button
                       type="button"
                       onClick={() => setFormAttachments((prev) => prev.filter((_, i) => i !== idx))}
@@ -524,7 +645,7 @@ export default function SprintDailyUpdates({
             )}
             {formAttachments.length === 0 && (
               <p className="text-xs text-neutral-400 dark:text-neutral-500">
-                Upload screenshots or paste from clipboard (⌘V / Ctrl+V).
+                Images, PDFs, text files, and more. Paste images from clipboard (⌘V / Ctrl+V).
               </p>
             )}
           </div>
@@ -642,23 +763,202 @@ export default function SprintDailyUpdates({
             {/* Attachments */}
             {update.attachments && update.attachments.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-1">
-                {update.attachments.map((att, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setLightboxUrl(att.url)}
-                    className="relative aspect-video rounded-md overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 hover:opacity-90 transition-opacity"
-                    title={att.fileName}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={att.url} alt={att.fileName} className="w-full h-full object-cover" />
-                  </button>
-                ))}
+                {update.attachments.map((att, idx) =>
+                  isImageAttachment(att) ? (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setLightboxUrl(att.url)}
+                      className="relative aspect-video rounded-md overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 hover:opacity-90 transition-opacity"
+                      title={att.fileName}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={att.url} alt={att.fileName} className="w-full h-full object-cover" />
+                    </button>
+                  ) : (
+                    <a
+                      key={idx}
+                      href={att.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative aspect-video flex flex-col items-center justify-center gap-1.5 px-2 text-center rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                      title={att.fileName}
+                    >
+                      <svg className="size-5 text-neutral-400 dark:text-neutral-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="text-[10px] leading-tight text-neutral-600 dark:text-neutral-400 break-all line-clamp-2">
+                        {att.fileName}
+                      </span>
+                    </a>
+                  )
+                )}
               </div>
             )}
           </article>
         ))}
       </div>
+
+      {/* Daily Summary Preview Modal */}
+      {summaryPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={closeSummaryModal}
+        >
+          <div
+            className="relative w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-700">
+              <div>
+                <h3 className={`${getTypographyClassName("subtitle-sm")} text-text-primary`}>
+                  {summarySent ? "Summary Sent" : "Daily Summary Preview"}
+                </h3>
+                <p className={`${getTypographyClassName("body-sm")} text-text-muted mt-0.5`}>
+                  Day {summaryPreview.sprintDay} of {summaryPreview.totalDays}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeSummaryModal}
+                className="size-8 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              {/* Subject line */}
+              <div className="space-y-1">
+                <span className={`${getTypographyClassName("mono-sm")} text-text-muted`}>Subject</span>
+                <p className={`${getTypographyClassName("body-sm")} text-text-primary font-medium`}>
+                  {summaryPreview.subject}
+                </p>
+              </div>
+
+              {/* Recipients */}
+              <div className="space-y-1">
+                <span className={`${getTypographyClassName("mono-sm")} text-text-muted`}>
+                  To ({summaryPreview.recipients.length})
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {summaryPreview.recipients.map((email) => (
+                    <span
+                      key={email}
+                      className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2.5 py-0.5 text-xs text-neutral-700 dark:text-neutral-300"
+                    >
+                      {email}
+                    </span>
+                  ))}
+                  {summaryPreview.recipients.length === 0 && (
+                    <span className={`${getTypographyClassName("body-sm")} text-amber-600 dark:text-amber-400`}>
+                      No recipients found. Add project members first.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* File context used */}
+              {summaryPreview.fileContexts.length > 0 && (
+                <div className="space-y-1">
+                  <span className={`${getTypographyClassName("mono-sm")} text-text-muted`}>
+                    Files read as context ({summaryPreview.fileContexts.length})
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {summaryPreview.fileContexts.map((f) => (
+                      <span
+                        key={f.fileName}
+                        className="inline-flex items-center gap-1 rounded-full bg-neutral-100 dark:bg-neutral-800 px-2.5 py-0.5 text-xs text-neutral-700 dark:text-neutral-300"
+                      >
+                        <svg className="size-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        {f.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Email body preview */}
+              <div className="space-y-1">
+                <span className={`${getTypographyClassName("mono-sm")} text-text-muted`}>Body</span>
+                <div className="rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 p-4">
+                  <p className={`${getTypographyClassName("body-sm")} text-text-primary whitespace-pre-line`}>
+                    {summaryPreview.body}
+                  </p>
+                </div>
+              </div>
+
+              {/* Error */}
+              {summaryError && (
+                <div className="rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 p-3">
+                  <p className="text-sm text-red-700 dark:text-red-300">{summaryError}</p>
+                </div>
+              )}
+
+              {/* Success */}
+              {summarySent && (
+                <div className="rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 p-3">
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    Summary sent to {summaryPreview.recipients.length} recipient{summaryPreview.recipients.length !== 1 ? "s" : ""}.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal footer */}
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 dark:border-neutral-700">
+              {!summarySent ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={closeSummaryModal}
+                    className="h-10 px-4 text-sm rounded-md border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-150 ease-out"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSendSummary}
+                    disabled={summarySending || summaryPreview.recipients.length === 0}
+                    className="h-10 px-4 text-sm rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 disabled:opacity-50 transition-opacity duration-150 ease-out flex items-center gap-1.5"
+                  >
+                    {summarySending ? (
+                      <>
+                        <svg className="animate-spin size-3.5" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        Send to {summaryPreview.recipients.length} Recipient{summaryPreview.recipients.length !== 1 ? "s" : ""}
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={closeSummaryModal}
+                  className="h-10 px-4 text-sm rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 transition-opacity duration-150 ease-out"
+                >
+                  Done
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightboxUrl && (

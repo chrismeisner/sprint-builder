@@ -6,6 +6,7 @@ type ConfigStatus = {
   mailgun: boolean;
   openai: boolean;
   analytics: boolean;
+  stripe: boolean;
 };
 
 export type StackClientProps = {
@@ -87,6 +88,14 @@ const stackSections: Array<{
         name: "Magic-Link Sessions",
         summary: "Custom HMAC-signed session tokens stored in the `sb_session` cookie guard every admin route.",
         files: ["lib/auth.ts", "app/api/auth/magic-link/*"],
+      },
+      {
+        name: "Stripe",
+        summary: "Payment processing for sprint deposits and final invoices. Keys are managed at /dashboard/stripe. ACH Direct Debit recommended for B2B invoicing at sprint prices.",
+        files: ["app/dashboard/stripe/*", "app/api/admin/stripe/status/route.ts"],
+        env: ["STRIPE_SECRET_KEY", "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "STRIPE_WEBHOOK_SECRET"],
+        statusKey: "stripe",
+        docs: "https://stripe.com/docs",
       },
     ],
   },

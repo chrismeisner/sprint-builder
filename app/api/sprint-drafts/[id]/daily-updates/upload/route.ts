@@ -6,10 +6,19 @@ import { uploadFile, getStorage } from "@/lib/storage";
 type Params = { params: { id: string } };
 
 const ALLOWED_TYPES = new Set([
+  // Images
   "image/png",
   "image/jpeg",
   "image/gif",
   "image/webp",
+  // Documents
+  "application/pdf",
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+  "application/json",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 
 export async function POST(request: Request, { params }: Params) {
@@ -48,7 +57,7 @@ export async function POST(request: Request, { params }: Params) {
     }
     if (!ALLOWED_TYPES.has(file.type)) {
       return NextResponse.json(
-        { error: `Only image files are allowed (PNG, JPG, GIF, WebP).` },
+        { error: "Unsupported file type. Allowed: images (PNG, JPG, GIF, WebP), PDF, plain text, Markdown, CSV, JSON, Word documents." },
         { status: 400 }
       );
     }

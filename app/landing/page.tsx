@@ -65,49 +65,32 @@ export default async function LandingPage() {
 
   const featuredPackages: SprintPackage[] = [
     {
-      id: "foundation-sprint",
-      name: "Foundation Sprint",
-      slug: "foundation-sprint",
-      description: "Foundations sprint scope and pricing.",
-      tagline: "Fixed-scope foundation sprint",
-      summary: "Brand or Product Foundations with fixed scope so you can ship your source of truth in 10 working days.",
-      package_type: "foundation",
-      badgeLabel: "New client starting point",
-      highlights: ["3-hour kickoff workshop", "Source-of-truth deliverables", "Fixed scope & timeline"],
-      priceLabel: "$10,000",
-      priceSuffix: "Flat fee · 2 weeks",
-      ctaLabel: "Kick off foundations",
-      ctaHref: "/intake",
-      deliverables: [],
-    },
-    {
-      id: "expansion-sprint",
-      name: "Expansion Sprint",
-      slug: "expansion-sprint",
-      description: "Follow-on sprint for launches, features, or refreshes.",
-      tagline: "Stackable expansion sprint",
-      summary: "Stack an additional sprint any time you need a launch, feature, or refresh—no re-onboarding required.",
-      package_type: "extend",
-      badgeLabel: "Stack anytime",
-      highlights: ["Mini Foundation alignment", "Execution-only sprint", "Clear demo + handoff"],
-      priceLabel: "$8,000",
-      priceSuffix: "Starting at",
-      ctaLabel: "Plan expansion sprint",
-      ctaHref: "/intake",
+      id: "sprint-builder",
+      name: "Custom Sprint",
+      slug: "packages",
+      description: "Build a sprint around the exact deliverables you need.",
+      tagline: "Your deliverables. Your budget.",
+      summary: "Pick brand, product, or mixed deliverables from our library. The studio builds a transparent proposal—priced from your selections—and we kick off in 2 weeks.",
+      badgeLabel: "Starting at $8,000",
+      highlights: ["Choose your deliverables", "Transparent points-based pricing", "Always 2 weeks"],
+      priceLabel: "From $8,000",
+      priceSuffix: "Budget scales with deliverables",
+      ctaLabel: "Browse sprint packages",
+      ctaHref: "/packages",
       deliverables: [],
     },
     {
       id: "support-subscription",
       name: "Monthly Support",
       slug: "support-subscription",
-      description: "Ongoing subscription support after sprints.",
-      tagline: "Keep the studio plugged in",
-      summary: "Ongoing creative and strategy support after your sprints so you can keep momentum with a predictable crew.",
-      badgeLabel: "Keep momentum",
-      highlights: ["Dedicated studio hours", "Rolling roadmap support", "Priority booking"],
-      priceLabel: "$4,000",
+      description: "Ongoing support for updates and iterations on existing deliverables.",
+      tagline: "Keep the studio on call",
+      summary: "The studio stays available for updates and iterations on your existing deliverables. Includes a biweekly check-in every two weeks to review feedback and plan the next round of work.",
+      badgeLabel: "After your sprint",
+      highlights: ["Biweekly 30-min check-in", "Ongoing deliverable updates", "Feedback → plan → iterate"],
+      priceLabel: "From $4,000",
       priceSuffix: "per month",
-      ctaLabel: "Explore support",
+      ctaLabel: "Ask about support",
       ctaHref: "/intake",
       deliverables: [],
     },
@@ -117,9 +100,9 @@ export default async function LandingPage() {
   const featuredGridPreset = resolveComponentGridPreset(featuredPackages.length || 1);
   const faqItems = [
     {
-      question: "Why start with a Foundation Sprint?",
+      question: "How is sprint pricing determined?",
       answer:
-        "It’s how we capture your strategy, audiences, and constraints once. Every Expansion Sprint references that playbook so we never redo discovery or spin up a new team.",
+        "Every sprint is priced from the deliverables you choose. Each deliverable carries a complexity point value, and the total is calculated transparently before you commit. Sprints start around $8,000 for a lighter scope and can reach $20,000 for a fully loaded set of deliverables.",
     },
     {
       question: "How do payments work?",
@@ -129,12 +112,17 @@ export default async function LandingPage() {
     {
       question: "What if I need a break between sprints?",
       answer:
-        "No problem. Most founders pause 2–4 weeks to test, gather feedback, or get internal buy-in. When you’re ready, we stack the next sprint using the same Uphill → Downhill cadence.",
+        "No problem. Most founders pause 2–4 weeks to test, gather feedback, or get internal buy-in. When you’re ready, we build a new sprint proposal from the deliverable library and kick off on the next available Monday.",
     },
     {
       question: "Can we mix brand, product, and marketing work?",
       answer:
-        "Yes. The deliverable library covers brand identity, messaging, UX/UI, launch assets, and more. We’ll help prioritize the right mix during your intake and kickoff workshop.",
+        "Yes. The deliverable library covers brand identity, messaging, UX/UI, launch assets, and more. We’ll help prioritize the right mix during your kickoff workshop.",
+    },
+    {
+      question: "What is Monthly Support?",
+      answer:
+        "After a sprint, you can keep the studio on call with a monthly support plan starting at $4,000/month. It includes a biweekly 30-minute check-in every two weeks to review feedback on existing deliverables and plan any updates for the next two weeks. Scope stays manageable—no new sprints, just keeping what you shipped sharp.",
     },
   ];
 
@@ -172,7 +160,7 @@ export default async function LandingPage() {
             <SectionIntro text="How sprints work" className="text-text-secondary" />
             <SectionHeader
               heading="Two weeks. One clear outcome."
-              description="This sentence is about how we have a focused 2 week sprint with every one of the ten days accounted for (process wise) an the client can be confident they’ll get real deliverables at the end of any and all sprints."
+              description="Every sprint runs the same 10-day arc—workshop on Day 1, direction locked by Day 5, heads-down build in Week 2, and real deliverables in your hands on Day 10. The cadence is the same every time, regardless of what you’re building."
               headingClassName="text-text-primary"
               descriptionClassName="text-text-secondary"
             />

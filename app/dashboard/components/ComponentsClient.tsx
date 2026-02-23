@@ -36,11 +36,11 @@ const fallbackPackages: SprintPackage[] = [
     deliverables: [
       {
         deliverableId: "sample-del-1",
-        name: "Foundation Workshop",
-        description: "3-hour alignment session",
-        scope: "Live workshop, findings deck, sprint plan",
-        fixedHours: 12,
-        fixedPrice: 3000,
+        name: "Wordmark Logo",
+        description: "Primary logo lockup with variations",
+        scope: "SVG, PNG, Figma source, usage guidelines",
+        fixedHours: 16,
+        fixedPrice: 4000,
         quantity: 1,
         complexityScore: 1,
       },
@@ -58,11 +58,11 @@ const fallbackPackages: SprintPackage[] = [
   },
   {
     id: "fallback-extend",
-    name: "Sample Expansion Sprint",
-    slug: "sample-expansion",
+    name: "Sample Sprint",
+    slug: "sample-sprint",
     description: "Shows the default variant stacked below the detailed card.",
-    package_type: "extend",
-    tagline: "One more stackable sprint",
+    package_type: "foundation",
+    tagline: "A custom-scoped sprint",
     featured: true,
     deliverables: [
       {
@@ -343,7 +343,7 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
           Start with a Brand or Product Foundation Sprint to lock direction, codify your story, and ship premium deliverables your team can run with.
         </span>
         <span className="block mt-4">
-          After that, stack expansion sprints or plug into a monthly subscription whenever you need extra lift—no repeat discovery, just execution.
+          After that, book additional sprints from the deliverable library or add Monthly Support (from $4,000/month) for biweekly check-ins and ongoing deliverable updates.
         </span>
       </>
     ),
@@ -394,7 +394,7 @@ export default function ComponentsClient({ samplePackages }: ComponentsClientPro
       },
       {
         question: "Can we stack multiple sprints?",
-        answer: "Yes. We often run a Foundation sprint then stack expansion sprints for launches or feature pushes.",
+        answer: "Yes. Each sprint is built from the deliverable library so you can run back-to-back sprints with different scopes—brand, product, launch, or mixed.",
       },
     ],
   };

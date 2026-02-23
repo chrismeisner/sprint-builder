@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { AppPageInfo } from "@/lib/page-inventory";
+import Button from "@/components/ui/Button";
 
 type SortKey = "route" | "filePath" | "updatedAt";
 type SortDirection = "asc" | "desc";
@@ -26,8 +28,16 @@ type Props = {
 };
 
 export default function IndexTableClient({ pages }: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [sortKey, setSortKey] = useState<SortKey>("route");
   const [direction, setDirection] = useState<SortDirection>("asc");
+
+  function handleRefresh() {
+    startTransition(() => {
+      router.refresh();
+    });
+  }
 
   const sortedPages = useMemo(() => sortPages(pages, sortKey, direction), [pages, sortKey, direction]);
 
@@ -47,6 +57,12 @@ export default function IndexTableClient({ pages }: Props) {
   };
 
   return (
+    <div className="space-y-4">
+    <div className="flex items-center gap-3">
+      <Button variant="secondary" onClick={handleRefresh} disabled={isPending}>
+        {isPending ? "Scanning…" : "Scan"}
+      </Button>
+    </div>
     <div className="overflow-auto rounded-xl border border-stroke-muted bg-surface-card">
       <table className="min-w-full text-sm">
         <thead className="border-b border-stroke-muted bg-surface-strong/60 text-left text-xs uppercase tracking-wide">
@@ -108,6 +124,7 @@ export default function IndexTableClient({ pages }: Props) {
           ))}
         </tbody>
       </table>
+    </div>
     </div>
   );
 }

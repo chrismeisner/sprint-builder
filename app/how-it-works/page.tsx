@@ -15,10 +15,10 @@ export default function HowItWorksPage() {
           </div>
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight">How we work</h1>
           <p className="text-xl sm:text-2xl opacity-80 max-w-3xl mx-auto">
-            Every sprint is a focused 2-week engagement with Appliance Studio. Week 1: explore and decide. Week 2: execute and deliver. Then rest, reflect, and schedule the next one when you&apos;re ready.
+            Every sprint is a focused 2-week engagement. Week 1: explore and decide. Week 2: execute and deliver. Then rest, reflect, and book the next one when you&apos;re ready.
           </p>
           <p className="text-base sm:text-lg opacity-70 max-w-3xl mx-auto">
-            Every engagement starts with a Brand or Product Foundation Sprint (preset workshops + deliverables). Once delivered, you can stack Expansion Sprints from the Deliverable Library using the exact same cadence—no re-onboarding, no spin-up.
+            Each sprint is built from our deliverable library—brand, product, or mixed. You pick the scope, the studio prices it transparently from your selections, and the same 10-day cadence runs every time. No re-onboarding, no spin-up.
           </p>
           <p className="text-sm sm:text-base opacity-70 max-w-3xl mx-auto">
             Below is the full playbook: the philosophy, the four-step process, and how to plan back-to-back sprints when you need more momentum.
@@ -49,39 +49,39 @@ export default function HowItWorksPage() {
       </section>
 
 
-      {/* Two-phase model */}
+      {/* Sprint builder model */}
       <section className="bg-black/5 dark:bg-white/5 py-16 px-6 border-y border-black/10 dark:border-white/15">
         <div className="max-w-5xl mx-auto space-y-10">
           <div className="text-center space-y-3">
             <div className="inline-flex items-center rounded-full bg-white dark:bg-black px-4 py-1 text-xs font-semibold uppercase tracking-wide">
-              2-phase engagement model
+              How every sprint is built
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold">Foundation → Expansion</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold">Choose deliverables. Lock the scope. Ship in 2 weeks.</h2>
             <p className="text-base sm:text-lg opacity-70 max-w-3xl mx-auto">
-              The Foundation Sprint is your entry ticket. It captures strategy, direction, and source-of-truth documentation that every future sprint references. After that, you can stack Expansion Sprints whenever you need more momentum.
+              Every sprint starts from the same deliverable library. You pick what fits your goals, the studio builds a transparent proposal priced from those selections, and the 10-day cadence does the rest.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
             <div className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 space-y-3">
-              <p className="text-sm font-semibold text-black/70 dark:text-white/70 uppercase tracking-wide">Phase 1</p>
-              <h3 className="text-2xl font-bold">Brand or Product Foundation</h3>
+              <p className="text-sm font-semibold text-black/70 dark:text-white/70 uppercase tracking-wide">Step 1</p>
+              <h3 className="text-2xl font-bold">Pick your deliverables</h3>
               <p className="text-sm opacity-80">
-                2-week sprint with a strategic workshop, preset deliverables, and alignment artifacts. Required for every new client so we never guess in the dark.
+                Browse the deliverable library—brand, product, or mixed. Each item shows scope, complexity points, and estimated hours so you can right-size the sprint before committing.
               </p>
             </div>
             <div className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 space-y-3">
-              <p className="text-sm font-semibold text-black/70 dark:text-white/70 uppercase tracking-wide">Phase 1 Output</p>
-              <h3 className="text-2xl font-bold">Reusable Source of Truth</h3>
+              <p className="text-sm font-semibold text-black/70 dark:text-white/70 uppercase tracking-wide">Step 2</p>
+              <h3 className="text-2xl font-bold">Get a transparent proposal</h3>
               <p className="text-sm opacity-80">
-                Workshop recordings, decision logs, brand/product guidelines, and a prioritized backlog. These sit inside your client portal for every future sprint.
+                The studio builds a sprint draft with your selected deliverables, priced transparently from complexity points. Sprints start around $8,000 and scale up based on scope—no hidden fees.
               </p>
             </div>
             <div className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-black p-6 space-y-3">
-              <p className="text-sm font-semibold text-black/70 dark:text-white/70 uppercase tracking-wide">Phase 2 (repeatable)</p>
-              <h3 className="text-2xl font-bold">Expansion Sprints</h3>
+              <p className="text-sm font-semibold text-black/70 dark:text-white/70 uppercase tracking-wide">Step 3</p>
+              <h3 className="text-2xl font-bold">Kick off and ship</h3>
               <p className="text-sm opacity-80">
-                Additional 2-week sprints you can book on demand for launches, features, and refreshes. Kick off with a 1-hour Mini Foundation session, then we execute.
+                Sign, pay 50%, and pick your Monday kickoff. The same 10-day uphill → downhill cadence runs every sprint. Final delivery and Loom walkthrough on Day 10.
               </p>
             </div>
           </div>
@@ -137,52 +137,49 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Expansion Sprint explainer */}
+      {/* Pricing explainer */}
       <section className="bg-black/[0.02] dark:bg-white/[0.02] py-16 px-6 border-y border-black/10 dark:border-white/15">
         <div className="max-w-5xl mx-auto space-y-8">
           <div className="text-center space-y-3">
             <div className="inline-flex items-center rounded-full bg-white dark:bg-black px-3 py-1 text-xs font-semibold uppercase tracking-wide">
-              After your foundation
+              Transparent pricing
             </div>
-            <h2 className="text-3xl font-bold">Expansion Sprints on demand</h2>
+            <h2 className="text-3xl font-bold">Budget scales with your deliverables</h2>
             <p className="text-base sm:text-lg opacity-70 max-w-3xl mx-auto">
-              Once your Foundation Sprint is done, you can request additional 2-week sprints any time. We reference your original workshop artifacts, run a 1-hour Mini Foundation sync, then build the deliverables you choose from our library.
+              There are no fixed packages. Every sprint is priced from the deliverables you select—each one carries a complexity point value that rolls up to a total before you sign anything.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
             <div className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-black p-5 space-y-2">
-              <p className="text-xs uppercase tracking-wide opacity-60">Menu-based deliverables</p>
-              <h3 className="text-xl font-semibold">Pick what fits</h3>
+              <p className="text-xs uppercase tracking-wide opacity-60">Starting point</p>
+              <h3 className="text-xl font-semibold">From $8,000</h3>
               <p className="text-sm opacity-80">
-                Browse the Deliverables Library, mix Brand + Product work, and right-size a sprint using hours, price, and complexity details.
+                A lighter sprint with a focused set of deliverables. Ideal when you have a single clear goal and want to move fast without overloading the two weeks.
               </p>
             </div>
             <div className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-black p-5 space-y-2">
-              <p className="text-xs uppercase tracking-wide opacity-60">Mini Foundation kickoff</p>
-              <h3 className="text-xl font-semibold">Alignment workshop</h3>
+              <p className="text-xs uppercase tracking-wide opacity-60">Typical range</p>
+              <h3 className="text-xl font-semibold">$10,000 – $15,000</h3>
               <p className="text-sm opacity-80">
-                We run a focused 1-hour alignment workshop to confirm goals, plug new insights into your strategy doc, and make sure deliverables map to outcomes.
+                Most sprints fall in this range—a handful of core deliverables that fill the two weeks without stretching capacity. The Day 1 workshop is included in every sprint.
               </p>
             </div>
             <div className="rounded-2xl border border-black/10 dark:border-white/15 bg-white dark:bg-black p-5 space-y-2">
-              <p className="text-xs uppercase tracking-wide opacity-60">Same 2-week arc</p>
-              <h3 className="text-xl font-semibold">Uphill → downhill cadence</h3>
+              <p className="text-xs uppercase tracking-wide opacity-60">Fully loaded</p>
+              <h3 className="text-xl font-semibold">Up to $20,000</h3>
               <p className="text-sm opacity-80">
-                Diverge Week 1, converge Week 2, ship on Friday. Pause as long as you need between sprints and pick back up when ready.
+                High-complexity deliverables or a larger scope. The budget ceiling keeps the two-week timeline honest—we scope to what can actually be done well.
               </p>
             </div>
           </div>
 
           <div className="text-center space-y-3">
             <p className="text-sm opacity-70">
-              Ready for your next sprint?{' '}
-              <Link href="/intake" className="font-medium underline hover:opacity-100">
-                Submit a follow-on intake →
+              See what&apos;s available in the library.{' '}
+              <Link href="/deliverables" className="font-medium underline hover:opacity-100">
+                Browse deliverables →
               </Link>
-            </p>
-            <p className="text-xs opacity-60">
-              Expansion Sprints unlock after you complete a Brand or Product Foundation Sprint.
             </p>
           </div>
         </div>
@@ -203,7 +200,7 @@ export default function HowItWorksPage() {
                 Instead of a huge 12-week engagement with hidden timelines, you get 2 focused weeks, a clear deliverable, a rest point to reflect, and the option to climb again when ready.
               </p>
               <p className="text-sm opacity-70 pt-2 border-t border-black/10 dark:border-white/15">
-                Foundation first keeps the plan grounded, then Expansion Sprints add momentum without burning your team out.
+                A clear scope before kickoff keeps the plan grounded, and the fixed 2-week window prevents scope creep from burning your team out.
               </p>
             </div>
             <div className="bg-white dark:bg-black rounded-lg p-6 space-y-3">
@@ -239,41 +236,41 @@ export default function HowItWorksPage() {
           </div>
           <div className="bg-white dark:bg-black rounded-lg p-8 space-y-6">
             <p className="text-base opacity-80">
-                Most founders have bigger visions than 2 weeks can solve. That&apos;s by design. The Appliance Studio cadence works for single sprints AND long-term product development.
+                Most founders have bigger visions than 2 weeks can solve. That&apos;s by design. The studio cadence works for a single focused sprint and for long-term product development alike.
             </p>
             <div className="space-y-4">
               <h3 className="font-semibold text-lg">Example journey:</h3>
               <div className="space-y-3 pl-4 border-l-2 border-black/20 dark:border-white/20">
                 <div className="space-y-1">
-                  <p className="font-medium">Foundation Sprint (Required)</p>
-                  <p className="text-sm opacity-70">Brand or Product workshop + core deliverables + source-of-truth documentation</p>
-                  <p className="text-xs opacity-60 italic">→ Sets direction once. Every Expansion Sprint references this groundwork.</p>
-                </div>
-                <div className="space-y-1">
                   <p className="font-medium">Sprint 1: Brand Identity</p>
-                  <p className="text-sm opacity-70">Logo, colors, typography, brand guidelines</p>
+                  <p className="text-sm opacity-70">Logo, typography, color system, brand guidelines — Day 1 workshop included</p>
                   <p className="text-xs opacity-60 italic">→ Rest: 2 weeks. Test brand with early users, finalize messaging.</p>
                 </div>
                 <div className="space-y-1">
                   <p className="font-medium">Sprint 2: Landing Page</p>
-                  <p className="text-sm opacity-70">Marketing site design + Webflow build</p>
+                  <p className="text-sm opacity-70">Marketing site design + build, waitlist automation</p>
                   <p className="text-xs opacity-60 italic">→ Rest: 3 weeks. Launch landing page, collect signups, validate demand.</p>
                 </div>
                 <div className="space-y-1">
                   <p className="font-medium">Sprint 3: MVP Prototype</p>
-                  <p className="text-sm opacity-70">Core user flows, clickable prototype</p>
+                  <p className="text-sm opacity-70">Core user flows, interactive prototype, usability test plan</p>
                   <p className="text-xs opacity-60 italic">→ Rest: 4 weeks. Test prototype with users, secure seed funding.</p>
                 </div>
                 <div className="space-y-1">
                   <p className="font-medium">Sprint 4: Production Build</p>
-                  <p className="text-sm opacity-70">Development, polish, launch prep</p>
-                  <p className="text-xs opacity-60 italic">→ You&apos;re live. 8 weeks of work, spread over 3-4 months at your pace.</p>
+                  <p className="text-sm opacity-70">Development-ready specs, polish, launch prep</p>
+                  <p className="text-xs opacity-60 italic">→ You&apos;re live. 4 sprints of work, spread over 3–4 months at your pace.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium">Monthly Support (optional, ongoing)</p>
+                  <p className="text-sm opacity-70">Biweekly check-ins + updates on existing deliverables</p>
+                  <p className="text-xs opacity-60 italic">→ Studio stays on call. Feedback every 2 weeks, updates shipped on a rolling basis. From $4,000/month.</p>
                 </div>
               </div>
             </div>
             <div className="pt-4 border-t border-black/10 dark:border-white/15">
               <p className="text-sm opacity-70">
-                <span className="font-medium">This is how great products get built:</span> focused bursts with time to breathe, test, and learn. Not endless agency cycles. Not rushed freelancer chaos. Start with a Foundation Sprint, then layer in Expansion Sprints whenever you need another leap.
+                <span className="font-medium">This is how great products get built:</span> focused bursts with time to breathe, test, and learn. Not endless agency cycles. Not rushed freelancer chaos. Each sprint is a fresh proposal built from the deliverable library—same cadence, new goals, no wasted setup.
               </p>
             </div>
           </div>
@@ -282,9 +279,9 @@ export default function HowItWorksPage() {
 
       {/* Foundation previews */}
       <FoundationPackagesPreview
-        heading="Foundation sprint previews"
-        description="Start with one of these preset, fixed-scope sprints. Once delivered you can unlock Expansion Sprint work using the same cadence —"
-        ctaLabel="view all foundation packages"
+        heading="Example sprint packages"
+        description="These are a few curated starting points from our deliverable library—priced transparently from the deliverables included. Every sprint can be customized from there."
+        ctaLabel="browse all packages"
         limit={2}
       />
 
@@ -292,14 +289,14 @@ export default function HowItWorksPage() {
       <section className="container max-w-4xl py-16 text-center space-y-6">
         <h2 className="text-3xl font-bold">Ready to start your sprint?</h2>
         <p className="text-lg opacity-80 max-w-2xl mx-auto">
-          Kick off with a Brand or Product Foundation Sprint, then plug in deliverables and Expansion Sprints whenever you need more momentum.
+          Browse the deliverable library, pick your scope, and we&apos;ll build a transparent proposal. Same 10-day cadence every sprint.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/packages"
             className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-6 py-3 font-semibold hover:opacity-90 transition"
           >
-            View Foundation Packages →
+            View sprint packages →
           </Link>
           <Link
             href="/deliverables"
@@ -311,10 +308,13 @@ export default function HowItWorksPage() {
             href="/intake"
             className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
           >
-            Plan Expansion Sprint
+            Plan a sprint
           </Link>
         </div>
         <p className="text-sm opacity-60">Questions? Reach out to discuss your next sprint</p>
+        <p className="text-sm opacity-50 max-w-lg mx-auto">
+          Already shipped a sprint? <strong>Monthly Support</strong> keeps the studio on call—starting at $4,000/month for biweekly check-ins and ongoing deliverable updates.
+        </p>
       </section>
     </main>
   );

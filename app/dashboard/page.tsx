@@ -1,6 +1,7 @@
 import Link from "next/link";
 import DatabaseToolsClient from "./DatabaseToolsClient";
 import UserUploadsClient from "./UserUploadsClient";
+import DashboardScanClient from "./DashboardScanClient";
 import { getCurrentUser } from "@/lib/auth";
 import Typography from "@/components/ui/Typography";
 import Button from "@/components/ui/Button";
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
     links.push({ href: "/dashboard/sprint-drafts", label: "Sprint Drafts (Admin)" });
     links.push({ href: "/dashboard/users", label: "User Management" });
     links.push({ href: "/dashboard/workshop-cleanup", label: "Workshop Cleanup (Admin)" });
+    links.push({ href: "/dashboard/stripe", label: "Stripe Connection (Admin)" });
   }
 
   return (
@@ -38,6 +40,16 @@ export default async function DashboardPage() {
           Quick links to available pages:
         </Typography>
       </div>
+
+      {isAdmin && (
+        <div className="space-y-2">
+          <Typography as="p" scale="body-sm" className="text-black/50 dark:text-white/50">
+            Scan the filesystem for all dashboard routes:
+          </Typography>
+          <DashboardScanClient />
+        </div>
+      )}
+
       <div className="grid gap-3 md:grid-cols-2">
         {links.map((link) => (
           <Button

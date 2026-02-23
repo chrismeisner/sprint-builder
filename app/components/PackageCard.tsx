@@ -62,7 +62,7 @@ export default function PackageCard({ pkg, className }: PackageCardProps) {
   const { price, hours } = calculatePackageTotal(pkg);
   
   const badgeLabel =
-    pkg.badgeLabel ?? (pkg.package_type === "foundation" ? "New clients" : pkg.package_type === "extend" ? "Expansion sprint" : undefined);
+    pkg.badgeLabel ?? (pkg.package_type === "foundation" || pkg.package_type === "extend" ? "Sprint package" : undefined);
   const summary = pkg.summary ?? pkg.tagline ?? pkg.description ?? "";
   const highlights = buildHighlights(pkg);
   const priceLabel = pkg.priceLabel ?? formatCurrency(price || 0);

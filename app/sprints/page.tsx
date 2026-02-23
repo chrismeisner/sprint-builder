@@ -9,10 +9,10 @@ export const dynamic = "force-static";
 
 const methodologyPillars = [
   {
-    title: "Foundation sprint first",
+    title: "Build your sprint from deliverables",
     description:
-      "Every client starts with a Brand or Product Foundation Sprint. We run the 3-hour kickoff workshop, capture strategy, and ship a source-of-truth that every Expansion Sprint references.",
-    meta: "Required before any Expansion Sprint",
+      "Every sprint is assembled from our deliverable library—brand, product, or mixed. You choose what fits, we price it transparently from those selections, and the scope is locked before kickoff.",
+    meta: "No surprises — priced before you commit",
   },
   {
     title: "Uphill → downhill cadence",
@@ -23,8 +23,8 @@ const methodologyPillars = [
   {
     title: "Modular, stackable momentum",
     description:
-      "Sprint, rest, then stack the next sprint when you are ready. The shared groundwork means we can move fast without redoing discovery or spinning up a new team every time.",
-    meta: "Predictable scope + price every two weeks",
+      "Sprint, rest, then book the next sprint when you are ready. Each sprint is a fresh proposal from the deliverable library—same cadence, new scope, no re-onboarding.",
+    meta: "Predictable timeline · transparent pricing",
   },
 ] as const;
 
@@ -63,10 +63,10 @@ export default function SprintsPage() {
         body={
           <>
             <span className="block">
-              Every engagement begins with a Foundation Sprint so we can capture strategy once. After that you can stack Expansion Sprints that reuse the same cadence without repeating discovery.
+              Every sprint is built from our deliverable library—you choose the scope, we price it transparently, and the same 10-day cadence runs every time.
             </span>
             <span className="block mt-4">
-              The result: predictable progress, clear touchpoints, and space between sprints to test, reflect, and choose the next climb.
+              The result: a clear budget before you commit, predictable progress throughout, and space between sprints to test, reflect, and plan the next climb.
             </span>
           </>
         }
@@ -79,7 +79,7 @@ export default function SprintsPage() {
           <SectionIntro text="Why this works" />
           <SectionHeader
             heading="Groundwork, cadence, and calm momentum"
-            description="We remove agency chaos by pairing a required Foundation Sprint with a repeatable Uphill → Downhill system. Here’s what never changes."
+            description="We remove agency chaos by building every sprint from a transparent deliverable library and running the same Uphill → Downhill system every time. Here’s what never changes."
             maxWidth="lg"
           />
 
@@ -158,7 +158,7 @@ export default function SprintsPage() {
         <SectionIntro text="Ready to climb?" />
         <SectionHeader
           heading="Kick off your next sprint"
-          description="Start with a Foundation Sprint, then stack Expansion Sprints whenever you need more momentum. Same team, same cadence, every time."
+          description="Pick your deliverables, lock the scope, and kick off on a Monday. Same 10-day cadence, every sprint."
         />
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
@@ -183,6 +183,9 @@ export default function SprintsPage() {
           </Link>
         </div>
         <p className="text-sm opacity-60">Questions? Email hello@greatwork.studio and we’ll map the next climb together.</p>
+        <p className="text-sm opacity-50 max-w-lg mx-auto">
+          Already shipped a sprint? Ask about <strong>Monthly Support</strong>—starting at $4,000/month for biweekly check-ins and ongoing updates on your existing deliverables.
+        </p>
       </section>
     </main>
   );

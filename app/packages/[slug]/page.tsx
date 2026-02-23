@@ -75,6 +75,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
     FROM sprint_packages sp
     LEFT JOIN sprint_package_deliverables spd ON sp.id = spd.sprint_package_id
     LEFT JOIN deliverables d ON spd.deliverable_id = d.id AND d.active = true
+      AND (d.deliverable_type IS NULL OR d.deliverable_type != 'workshop')
     WHERE sp.slug = $1 AND sp.active = true
     GROUP BY sp.id
   `,
@@ -108,18 +109,8 @@ export default async function PackageDetailPage({ params }: PageProps) {
                 ⭐ Featured Package
               </div>
             )}
-            <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-              pkg.package_type === "extend" 
-                ? "bg-emerald-500/90 text-white" 
-                : pkg.package_type === "foundation"
-                  ? "bg-blue-500/90 text-white"
-                  : "bg-gray-600 text-white"
-            }`}>
-              {pkg.package_type === "extend"
-                ? "🚀 Expansion Sprint"
-                : pkg.package_type === "foundation"
-                  ? "🏗️ Foundation Sprint"
-                  : "Sprint package"}
+            <div className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-blue-500/90 text-white">
+              🏗️ Sprint package
             </div>
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold mb-4 flex items-center gap-3">

@@ -27,6 +27,7 @@ export async function GET(request: Request) {
           FROM deliverables d
           LEFT JOIN deliverable_tag_links dtl ON dtl.deliverable_id = d.id
           LEFT JOIN deliverable_tags dt ON dt.id = dtl.tag_id
+          WHERE (d.deliverable_type IS NULL OR d.deliverable_type != 'workshop')
           GROUP BY d.id, d.name, d.description, d.category, d.points, d.scope, d.format, d.active, d.created_at, d.updated_at
           ORDER BY d.active DESC, d.name ASC
         `
@@ -47,6 +48,7 @@ export async function GET(request: Request) {
           LEFT JOIN deliverable_tag_links dtl ON dtl.deliverable_id = d.id
           LEFT JOIN deliverable_tags dt ON dt.id = dtl.tag_id
           WHERE d.active = true
+            AND (d.deliverable_type IS NULL OR d.deliverable_type != 'workshop')
           GROUP BY d.id, d.name, d.description, d.category, d.points, d.scope, d.format, d.active, d.created_at, d.updated_at
           ORDER BY d.name ASC
         `

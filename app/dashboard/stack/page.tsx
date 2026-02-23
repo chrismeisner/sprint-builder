@@ -15,6 +15,7 @@ export default async function StackPage() {
     mailgun: Boolean(process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN),
     openai: Boolean(process.env.OPENAI_API_KEY),
     analytics: Boolean(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID),
+    stripe: Boolean(process.env.STRIPE_SECRET_KEY),
   };
 
   return <StackClient configStatus={configStatus} />;

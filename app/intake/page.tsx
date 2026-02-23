@@ -13,10 +13,10 @@ export default function IntakePage() {
             ← Back to home
           </Link>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Request a Follow-On Sprint
+            Plan Your Next Sprint
           </h1>
           <p className="text-base sm:text-lg opacity-80 leading-relaxed">
-            Welcome back! Tell us about your next iteration or expansion sprint. We&apos;ll review your request and get back to you with a proposal within 24 hours.
+            Tell us your goals and which deliverables you have in mind. We&apos;ll build a transparent proposal priced from your selections and get back to you within 24 hours.
           </p>
         </div>
 
@@ -30,11 +30,11 @@ export default function IntakePage() {
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1">2.</span>
-              <span>We&apos;ll review and prepare a sprint proposal with fixed pricing</span>
+              <span>We&apos;ll build a transparent proposal priced from your selected deliverables</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1">3.</span>
-              <span>Schedule your Mini Foundation Workshop (1 hour) to kick things off</span>
+              <span>Review the sprint scope, sign the agreement, and lock a Monday kickoff</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1">4.</span>
@@ -54,7 +54,7 @@ export default function IntakePage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
             <a
-              href="mailto:hello@greatwork.studio?subject=Follow-on Sprint Request&body=Hi! I&apos;m a returning client and would like to request a follow-on sprint.%0A%0AProject Goals:%0A[Describe what you want to achieve]%0A%0ADesired Deliverables:%0A[List specific deliverables you&apos;re interested in]%0A%0ATimeline:%0A[When would you like to start?]%0A%0AThanks!"
+              href="mailto:hello@greatwork.studio?subject=Sprint Request&body=Hi! I'd like to plan a sprint.%0A%0AGoals:%0A[Describe what you want to achieve]%0A%0ADeliverables in mind:%0A[List specific deliverables you're interested in]%0A%0ATimeline:%0A[When would you like to start?]%0A%0AThanks!"
               className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-6 py-3 font-semibold hover:opacity-90 transition"
             >
               Email us directly

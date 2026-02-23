@@ -65,6 +65,7 @@ export default async function DeliverablesPage() {
         points
       FROM deliverables
       WHERE active = true
+        AND (deliverable_type IS NULL OR deliverable_type != 'workshop')
       ORDER BY category ASC, name ASC
     `
   );
@@ -89,15 +90,15 @@ export default async function DeliverablesPage() {
     { label: string; description: string; icon: string }
   > = {
     Branding: {
-      label: "Brand Foundation Deliverables",
+      label: "Brand Deliverables",
       description:
-        "Everything you can plug into a Brand or Expansion Sprint once your foundation is set.",
+        "Brand identity, messaging, and design outputs you can include in any sprint.",
       icon: "🎨",
     },
     Product: {
       label: "Product & Experience Deliverables",
       description:
-        "UX, UI, and build-focused outputs for product foundations or follow-on sprints.",
+        "UX, UI, and build-focused outputs for any sprint focused on product or launch work.",
       icon: "💻",
     },
     Other: {
@@ -119,26 +120,22 @@ export default async function DeliverablesPage() {
             Everything we can ship in a sprint
           </h1>
           <p className="text-lg sm:text-xl opacity-80">
-            Browse the deliverables available inside Brand/Product Foundations and Expansion Sprints. Each item includes scope, pricing, hours, and complexity so you can mix and match with confidence.
+            Browse everything the studio can ship in a 2-week sprint. Each item includes scope, complexity points, and hours so you can build the right sprint for your goals before committing.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/packages"
               className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-6 py-3 font-semibold hover:opacity-90 transition"
             >
-              View Foundation Packages
+              View sprint packages
             </Link>
             <Link
               href="/intake"
               className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
             >
-              Request Expansion Sprint →
+              Plan a sprint →
             </Link>
           </div>
-          <p className="text-sm opacity-60">
-            📌 Every new client starts with Brand or Product Foundations. These deliverables unlock
-            once your foundation is complete.
-          </p>
         </div>
       </section>
 
@@ -241,21 +238,20 @@ export default async function DeliverablesPage() {
         <div className="container max-w-4xl text-center space-y-5">
           <h2 className="text-3xl font-bold">Ready to build your sprint?</h2>
           <p className="text-base sm:text-lg opacity-80">
-            Pick your foundation sprint, then plug in deliverables from this library. Once your
-            foundation is complete, rebook Expansion Sprints whenever you need momentum.
+            Mix brand and product deliverables from this library, and the studio will build a transparent proposal priced from your selections. Every sprint is 2 weeks.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/packages"
               className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-6 py-3 font-semibold hover:opacity-90 transition"
             >
-              Start with Foundations →
+              View sprint packages →
             </Link>
             <Link
               href="/intake"
               className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
             >
-              Plan Expansion Sprint
+              Plan a sprint
             </Link>
           </div>
         </div>
