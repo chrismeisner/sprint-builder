@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getPool } from "@/lib/db";
 
 // Event types our webhook handler supports
-export const SUPPORTED_EVENTS = [
+const SUPPORTED_EVENTS = [
   "payment_intent.succeeded",
   "payment_intent.payment_failed",
   "checkout.session.completed",
