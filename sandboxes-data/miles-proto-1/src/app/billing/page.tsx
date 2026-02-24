@@ -1,65 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-type Phase = "checking" | "found" | "not-found";
+type Phase = "found" | "not-found";
 
 export default function BillingPage() {
-  const [phase, setPhase] = useState<Phase>("checking");
+  const [phase, setPhase] = useState<Phase>("found");
 
-  /* Simulate a brief lookup, then let the user pick a path */
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      /* Default to "found" — swap to "not-found" to test the other path */
-      setPhase("found");
-    }, 1800);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (phase === "checking") return <CheckingScreen />;
   if (phase === "found") return <PaymentFoundScreen onSwitchPath={() => setPhase("not-found")} />;
   return <AddPaymentScreen onSwitchPath={() => setPhase("found")} />;
 }
 
-/* ─── Phase 0: Checking ─── */
-function CheckingScreen() {
-  return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-6 py-16">
-      <div className="flex flex-col items-center gap-6">
-        {/* Spinner */}
-        <div className="size-10 animate-spin rounded-full border-4 border-neutral-200 border-t-blue-600 dark:border-neutral-700 dark:border-t-blue-400" />
-        <div className="flex flex-col items-center gap-2">
-          <h1 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100">
-            Checking your purchase&hellip;
-          </h1>
-          <p className="text-sm font-normal leading-normal text-neutral-500 dark:text-neutral-500">
-            This only takes a moment.
-          </p>
-        </div>
-      </div>
-    </main>
-  );
-}
-
 /* ─── Path A: Payment Found ─── */
 function PaymentFoundScreen({ onSwitchPath }: { onSwitchPath: () => void }) {
+  const [authorized, setAuthorized] = useState(false);
+
   return (
     <main className="flex min-h-dvh flex-col px-6 py-16">
       <div className="mx-auto flex w-full max-w-sm flex-col gap-8">
         {/* Header */}
         <div className="flex flex-col gap-3">
           <Link
-            href="/permissions"
+            href="/install?state=empty"
             className="text-sm font-medium leading-none text-blue-600 dark:text-blue-400 motion-safe:transition-colors motion-safe:duration-150 hover:text-blue-700 dark:hover:text-blue-300"
           >
             &larr; Back
           </Link>
+          <span className="text-xs font-medium uppercase tracking-wide leading-none text-neutral-400 dark:text-neutral-500">
+            Step 2 of 5
+          </span>
           <h1 className="text-4xl font-semibold leading-tight text-balance text-neutral-900 dark:text-neutral-100">
-            Payment on file
+            Set up billing
           </h1>
           <p className="text-base font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400">
-            We found a payment method from your order. You&rsquo;re all set.
+            A payment method is required to activate your trial. You won&rsquo;t be charged until after the 21 days are up.
           </p>
         </div>
 
@@ -93,10 +68,33 @@ function PaymentFoundScreen({ onSwitchPath }: { onSwitchPath: () => void }) {
           </p>
         </div>
 
+        {/* Authorization checkbox */}
+        <div className="flex items-start gap-3">
+          <input
+            id="authorize-found"
+            type="checkbox"
+            checked={authorized}
+            onChange={(e) => setAuthorized(e.target.checked)}
+            className="mt-0.5 size-4 shrink-0 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600"
+          />
+          <label
+            htmlFor="authorize-found"
+            className="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400"
+          >
+            I authorize Miles to charge Visa ending in 4242 for my subscription after the trial ends.
+          </label>
+        </div>
+
         {/* CTA */}
         <Link
           href="/primary-driver"
-          className="flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
+          className={`flex h-12 w-full items-center justify-center rounded-md px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900 ${
+            authorized
+              ? "bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+              : "bg-blue-300 cursor-not-allowed pointer-events-none dark:bg-blue-800"
+          }`}
+          aria-disabled={!authorized}
+          tabIndex={authorized ? undefined : -1}
         >
           Continue
         </Link>
@@ -116,17 +114,22 @@ function PaymentFoundScreen({ onSwitchPath }: { onSwitchPath: () => void }) {
 
 /* ─── Path B: Add Payment ─── */
 function AddPaymentScreen({ onSwitchPath }: { onSwitchPath: () => void }) {
+  const [authorized, setAuthorized] = useState(false);
+
   return (
     <main className="flex min-h-dvh flex-col px-6 py-16">
       <div className="mx-auto flex w-full max-w-sm flex-col gap-8">
         {/* Header */}
         <div className="flex flex-col gap-3">
           <Link
-            href="/permissions"
+            href="/install?state=empty"
             className="text-sm font-medium leading-none text-blue-600 dark:text-blue-400 motion-safe:transition-colors motion-safe:duration-150 hover:text-blue-700 dark:hover:text-blue-300"
           >
             &larr; Back
           </Link>
+          <span className="text-xs font-medium uppercase tracking-wide leading-none text-neutral-400 dark:text-neutral-500">
+            Step 2 of 5
+          </span>
           <h1 className="text-4xl font-semibold leading-tight text-balance text-neutral-900 dark:text-neutral-100">
             Add payment method
           </h1>
@@ -205,11 +208,34 @@ function AddPaymentScreen({ onSwitchPath }: { onSwitchPath: () => void }) {
           </div>
         </div>
 
+        {/* Authorization checkbox */}
+        <div className="flex items-start gap-3">
+          <input
+            id="authorize-add"
+            type="checkbox"
+            checked={authorized}
+            onChange={(e) => setAuthorized(e.target.checked)}
+            className="mt-0.5 size-4 shrink-0 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600"
+          />
+          <label
+            htmlFor="authorize-add"
+            className="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400"
+          >
+            I authorize Miles to charge this card for my subscription after the trial ends.
+          </label>
+        </div>
+
         {/* CTA */}
         <div className="flex flex-col gap-3">
           <Link
             href="/primary-driver"
-            className="flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
+            className={`flex h-12 w-full items-center justify-center rounded-md px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900 ${
+              authorized
+                ? "bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                : "bg-blue-300 cursor-not-allowed pointer-events-none dark:bg-blue-800"
+            }`}
+            aria-disabled={!authorized}
+            tabIndex={authorized ? undefined : -1}
           >
             Add payment &amp; continue
           </Link>

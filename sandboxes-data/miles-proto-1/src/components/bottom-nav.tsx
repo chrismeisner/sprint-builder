@@ -65,7 +65,7 @@ const navItems = [
   },
 ];
 
-const HIDDEN_ON = new Set(["/", "/signup", "/signup-name"]);
+const HIDDEN_ON = new Set(["/", "/signup", "/signup/", "/signup-name", "/signup-name/", "/scan-device", "/scan-device/", "/permissions", "/permissions/", "/billing", "/billing/", "/install", "/install/"]);
 
 export function BottomNav() {
   const pathname = usePathname();

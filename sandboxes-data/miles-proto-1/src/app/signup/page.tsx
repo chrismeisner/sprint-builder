@@ -166,7 +166,7 @@ export default function SignupPage() {
 
   return (
     <>
-      <main className="flex min-h-dvh flex-col items-center justify-center px-6 py-16">
+      <main className="flex min-h-dvh flex-col items-center px-6 py-16">
         <div className="flex w-full max-w-sm flex-col gap-8">
           {/* Header */}
           <div className="flex flex-col gap-3">
@@ -291,7 +291,7 @@ export default function SignupPage() {
             {/* Social stubs */}
             <button
               type="button"
-              onClick={() => setModalProvider("google")}
+              onClick={() => router.push("/signup-name")}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-neutral-300 bg-white px-6 text-base font-medium leading-none text-neutral-900 motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
             >
               <GoogleLogo2025 className="size-5" />
@@ -300,7 +300,7 @@ export default function SignupPage() {
 
             <button
               type="button"
-              onClick={() => setModalProvider("apple")}
+              onClick={() => router.push("/signup-name")}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-neutral-300 bg-white px-6 text-base font-medium leading-none text-neutral-900 motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
             >
               <svg className="size-5 text-neutral-900 dark:text-neutral-100" aria-hidden="true" viewBox="0 0 814 1000" fill="currentColor" xmlns="http://www.w3.org/2000/svg">

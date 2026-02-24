@@ -35,7 +35,7 @@ export default function LinkingDevicePage() {
   const progress = ((currentStep + 1) / steps.length) * 100;
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-6">
+    <main className="flex min-h-dvh flex-col items-center px-6 py-16">
       <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-8">
         {/* Animated device icon */}
         <div className="flex size-20 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950">

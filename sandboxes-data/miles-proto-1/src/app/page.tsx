@@ -24,11 +24,6 @@ export default function WelcomePage() {
           </p>
         </div>
 
-        {/* Reassurance */}
-        <p className="text-sm font-normal leading-normal text-neutral-500 dark:text-neutral-500">
-          Takes ~5 minutes. You&rsquo;ll do most setup before going to the car.
-        </p>
-
         {/* CTA */}
         <Link
           href="/signup"

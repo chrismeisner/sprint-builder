@@ -3,10 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type L from "leaflet";
 
-const TILES = {
-  light: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-};
+const TILE_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
 const TILE_ATTR =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>';
@@ -67,11 +64,6 @@ function markerIcon(Leaf: typeof L, type: MapMarker["type"] = "end"): L.DivIcon 
   });
 }
 
-function isDarkMode(): boolean {
-  if (typeof window === "undefined") return false;
-  return document.documentElement.classList.contains("dark") ||
-    window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
 
 export function MapView({
   route,
@@ -100,9 +92,6 @@ export function MapView({
     import("leaflet").then((Leaf) => {
       if (cancelled || !containerRef.current) return;
 
-      const dark = isDarkMode();
-      const tileUrl = dark ? TILES.dark : TILES.light;
-
       const fallbackCenter: [number, number] = center ?? [37.78, -122.42];
       const fallbackZoom = zoom ?? 13;
 
@@ -119,7 +108,7 @@ export function MapView({
         keyboard: interactive,
       });
 
-      Leaf.tileLayer(tileUrl, {
+      Leaf.tileLayer(TILE_URL, {
         attribution: TILE_ATTR,
         maxZoom: 19,
         detectRetina: true,
@@ -173,7 +162,7 @@ export function MapView({
       />
       <div
         ref={containerRef}
-        className={`z-0 bg-neutral-100 dark:bg-neutral-800 ${className}`}
+        className={`z-0 bg-neutral-100 ${className}`}
         style={{ width: "100%", height: "100%" }}
       />
     </>

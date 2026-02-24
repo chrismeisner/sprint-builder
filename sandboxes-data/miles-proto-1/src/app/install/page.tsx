@@ -4,63 +4,52 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-const preInstallSteps = [
-  {
-    id: "account",
-    label: "Account created",
-    description: "Email and password",
-    href: "/signup",
-    done: true,
-  },
+const allSteps = [
   {
     id: "permissions",
-    label: "Permissions granted",
+    label: "Grant permissions",
     description: "Bluetooth and notifications",
     href: "/permissions",
     done: false,
   },
   {
     id: "billing",
-    label: "Payment method",
+    label: "Add payment method",
     description: "Activate your 21-day trial",
     href: "/billing",
     done: false,
   },
+  {
+    id: "install",
+    label: "Install device in your car",
+    description: "Plug Miles into your OBD-II port",
+    href: "/find-port",
+    done: false,
+  },
+  {
+    id: "pair",
+    label: "Pair device",
+    description: "Link to your account via Bluetooth and cloud",
+    href: "/getting-online",
+    done: false,
+  },
+  {
+    id: "first-drive",
+    label: "Go on your first drive",
+    description: "Miles will log it automatically",
+    href: "/trips",
+    done: false,
+  },
 ];
 
-const completedSteps = [
-  {
-    label: "Account created",
-    icon: (
-      <svg className="size-5 text-green-600 dark:text-green-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-      </svg>
-    ),
-  },
-  {
-    label: "Permissions granted",
-    icon: (
-      <svg className="size-5 text-green-600 dark:text-green-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
-      </svg>
-    ),
-  },
-  {
-    label: "Billing confirmed",
-    icon: (
-      <svg className="size-5 text-green-600 dark:text-green-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
-      </svg>
-    ),
-  },
-];
+const allStepsFilled = allSteps.map((s) => ({ ...s, done: true }));
 
 function InstallContent() {
   const searchParams = useSearchParams();
   const state = searchParams.get("state") === "empty" ? "empty" : "filled";
 
-  const firstIncomplete = preInstallSteps.find((s) => !s.done);
-  const doneCount = preInstallSteps.filter((s) => s.done).length;
+  const firstIncomplete = allSteps.find((s) => !s.done);
+  const doneCount = allSteps.filter((s) => s.done).length;
 
   return (
     <main className="flex min-h-dvh flex-col px-6 py-16">
@@ -68,23 +57,21 @@ function InstallContent() {
 
         {state === "empty" ? (
           <>
+            {/* Back link */}
+            <Link
+              href="/dashboard?state=empty"
+              className="text-sm font-medium leading-none text-blue-600 dark:text-blue-400 motion-safe:transition-colors motion-safe:duration-150 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              &larr; Back
+            </Link>
+
             {/* Header */}
-            <div className="flex flex-col gap-3">
-              <Link
-                href="/dashboard?state=empty"
-                className="text-sm font-medium leading-none text-blue-600 dark:text-blue-400 motion-safe:transition-colors motion-safe:duration-150 hover:text-blue-700 dark:hover:text-blue-300"
-              >
-                &larr; Back
-              </Link>
-              <p className="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-500">
-                Before you install
-              </p>
-              <h1 className="text-4xl font-semibold leading-tight text-balance text-neutral-900 dark:text-neutral-100">
-                A few things first
+            <div className="flex flex-col gap-2">
+              <h1 className="text-4xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
+                Set up Miles
               </h1>
               <p className="text-base font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400">
-                Complete these steps, then we&rsquo;ll walk you through plugging
-                in your Miles device.
+                Complete these steps to start tracking trips automatically. Most people finish in under 5 minutes.
               </p>
             </div>
 
@@ -93,25 +80,25 @@ function InstallContent() {
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
                 <div
                   className="h-full rounded-full bg-blue-600 motion-safe:transition-all motion-safe:duration-500 dark:bg-blue-500"
-                  style={{ width: `${(doneCount / preInstallSteps.length) * 100}%` }}
+                  style={{ width: `${(doneCount / allSteps.length) * 100}%` }}
                 />
               </div>
               <span className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500">
-                {doneCount} of {preInstallSteps.length} complete
+                {doneCount} of {allSteps.length} complete
               </span>
             </div>
 
             {/* Steps checklist */}
             <div className="flex flex-col gap-2">
-              {preInstallSteps.map((step, i) => {
-                const isNext = !step.done && preInstallSteps.slice(0, i).every((s) => s.done);
+              {allSteps.map((step, i) => {
+                const isNext = !step.done && allSteps.slice(0, i).every((s) => s.done);
                 return (
                   <Link
                     key={step.id}
                     href={step.href}
                     className={`flex items-center gap-4 rounded-md p-4 motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900 ${
                       step.done
-                        ? "bg-green-50 dark:bg-green-950"
+                        ? "border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950"
                         : isNext
                           ? "border border-blue-200 bg-blue-50 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:hover:bg-blue-900"
                           : "border border-neutral-200 bg-neutral-50 opacity-50 dark:border-neutral-700 dark:bg-neutral-800"
@@ -177,104 +164,72 @@ function InstallContent() {
               })}
             </div>
 
-            {/* Install step preview — locked */}
-            <div className="flex items-center gap-4 rounded-md border border-dashed border-neutral-200 p-4 opacity-40 dark:border-neutral-700">
-              <div className="flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-neutral-300 dark:border-neutral-600" />
-              <div className="flex flex-1 flex-col gap-0.5">
-                <span className="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100">
-                  Install device in your car
-                </span>
-                <span className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500">
-                  Plug Miles into your OBD-II port
-                </span>
-              </div>
-              <svg className="size-4 shrink-0 text-neutral-300 dark:text-neutral-600" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-              </svg>
-            </div>
-
             {/* CTA */}
             {firstIncomplete && (
               <Link
                 href={firstIncomplete.href}
                 className="flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
               >
-                Continue &rarr; {firstIncomplete.label}
+                Continue
               </Link>
             )}
           </>
         ) : (
           <>
-            {/* Header — filled state (original) */}
-            <div className="flex flex-col gap-3">
-              <Link
-                href="/secondary-drivers"
-                className="text-sm font-medium leading-none text-blue-600 dark:text-blue-400 motion-safe:transition-colors motion-safe:duration-150 hover:text-blue-700 dark:hover:text-blue-300"
-              >
-                &larr; Back
-              </Link>
-              <p className="text-xs font-medium uppercase tracking-wide leading-none text-blue-600 dark:text-blue-400">
-                Before you go to the car
-              </p>
-              <h1 className="text-4xl font-semibold leading-tight text-balance text-neutral-900 dark:text-neutral-100">
-                You&rsquo;re almost ready
+            {/* Back link */}
+            <Link
+              href="/dashboard"
+              className="text-sm font-medium leading-none text-blue-600 dark:text-blue-400 motion-safe:transition-colors motion-safe:duration-150 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              &larr; Back
+            </Link>
+
+            {/* Header */}
+            <div className="flex flex-col gap-2">
+              <h1 className="text-4xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
+                Set up Miles
               </h1>
               <p className="text-base font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400">
-                Everything inside is done. Next we&rsquo;ll plug in Miles in your
-                car.
+                You&rsquo;re all set. Miles is installed and ready to track your trips automatically.
               </p>
             </div>
 
-            {/* Completed checklist */}
-            <div className="flex flex-col gap-3">
-              {completedSteps.map((step) => (
-                <div
-                  key={step.label}
-                  className="flex items-center gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-800"
-                >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-green-50 dark:bg-green-950">
-                    {step.icon}
-                  </div>
-                  <span className="flex-1 text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100">
-                    {step.label}
-                  </span>
-                  <svg
-                    className="size-5 shrink-0 text-green-600 dark:text-green-400"
-                    aria-hidden="true"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                  </svg>
-                </div>
-              ))}
+            {/* Progress indicator — all done */}
+            <div className="flex flex-col gap-2">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
+                <div className="h-full w-full rounded-full bg-green-500 dark:bg-green-400" />
+              </div>
+              <span className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500">
+                {allStepsFilled.length} of {allStepsFilled.length} complete
+              </span>
             </div>
 
-            {/* What to bring */}
-            <div className="flex flex-col gap-3 rounded-md border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
-              <h2 className="text-sm font-medium leading-none text-blue-700 dark:text-blue-400">
-                Bring with you
-              </h2>
-              <ul className="flex flex-col gap-2">
-                <li className="flex items-center gap-3">
-                  <svg className="size-5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
-                  </svg>
-                  <span className="text-sm font-normal leading-normal text-blue-700 dark:text-blue-400">
-                    Your phone (with this app open)
-                  </span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <svg className="size-5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
-                  </svg>
-                  <span className="text-sm font-normal leading-normal text-blue-700 dark:text-blue-400">
-                    Your Miles device
-                  </span>
-                </li>
-              </ul>
+            {/* Steps checklist — all done, same cell structure as empty state */}
+            <div className="flex flex-col gap-2">
+              {allStepsFilled.map((step, i) => {
+                const isNext = !step.done && allStepsFilled.slice(0, i).every((s) => s.done);
+                return (
+                  <Link
+                    key={step.id}
+                    href={step.href}
+                    className="flex items-center gap-4 rounded-md border border-green-200 bg-green-50 p-4 motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-green-900 dark:bg-green-950 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
+                  >
+                    <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-green-600 dark:bg-green-500">
+                      <svg className="size-3.5 text-white" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                    </div>
+                    <div className="flex flex-1 flex-col gap-0.5">
+                      <span className="text-sm font-medium leading-none text-green-700 dark:text-green-400">
+                        {step.label}
+                      </span>
+                      <span className="text-xs font-normal leading-normal text-green-600 dark:text-green-500">
+                        Done
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
 
             {/* CTA */}
@@ -282,7 +237,7 @@ function InstallContent() {
               href="/find-port"
               className="flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
             >
-              I&rsquo;m at my car
+              Continue
             </Link>
           </>
         )}

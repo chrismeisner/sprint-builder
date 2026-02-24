@@ -332,7 +332,7 @@ function DashboardContent() {
     <>
     {showWelcome && (
       <div
-        className="fixed inset-0 z-[60] flex items-end justify-center bg-neutral-900/60 px-4 pb-6 dark:bg-neutral-950/75 sm:items-center sm:pb-0"
+        className="fixed inset-0 z-[60] flex items-end justify-center bg-neutral-900/60 px-8 pb-6 dark:bg-neutral-950/75 sm:items-center sm:pb-0"
         onClick={() => setWelcomeDismissed(true)}
       >
         <div
@@ -357,29 +357,11 @@ function DashboardContent() {
             {/* Copy */}
             <div className="flex flex-col gap-2">
               <h2 className="text-2xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100">
-                Welcome to Miles
+                Install Miles in your car
               </h2>
               <p className="text-sm font-normal leading-relaxed text-neutral-600 dark:text-neutral-400">
-                To start tracking trips automatically, you&rsquo;ll need to plug the Miles device into your car&rsquo;s OBD-II port. Setup takes about 5 minutes and can be done before you head out.
+                Plug the Miles device into your car&rsquo;s OBD-II port and every drive will be tracked automatically. Takes about 5 minutes.
               </p>
-            </div>
-
-            {/* Steps preview */}
-            <div className="flex flex-col gap-2 rounded-lg border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-800/50">
-              {[
-                "Grant Bluetooth & notification permissions",
-                "Add a payment method to activate your trial",
-                "Plug the device into your OBD-II port",
-              ].map((step, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold leading-none text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                    {i + 1}
-                  </span>
-                  <span className="text-xs font-normal leading-normal text-neutral-600 dark:text-neutral-400">
-                    {step}
-                  </span>
-                </div>
-              ))}
             </div>
 
             {/* Actions */}
@@ -668,34 +650,49 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* Drivers — empty state */}
+            {/* Drivers — empty state with account owner pre-populated */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium uppercase tracking-wide leading-none text-neutral-500 dark:text-neutral-500">
                   Drivers
                 </span>
-              </div>
-              <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-neutral-200 bg-neutral-50 px-6 py-8 text-center dark:border-neutral-700 dark:bg-neutral-800/50">
-                <div className="flex size-10 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-700">
-                  <svg className="size-5 text-neutral-400 dark:text-neutral-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                  </svg>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-medium leading-none text-neutral-600 dark:text-neutral-400">
-                    No drivers added yet
-                  </span>
-                  <p className="text-xs font-normal leading-normal text-neutral-400 dark:text-neutral-500">
-                    Add drivers to attribute trips to the right person.
-                  </p>
-                </div>
                 <Link
-                  href="/primary-driver"
-                  className="mt-1 flex h-9 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-150 hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600"
+                  href="/household"
+                  className="text-xs font-medium leading-none text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
-                  Add a driver
+                  Manage
                 </Link>
               </div>
+              {/* Primary driver — from account creation */}
+              <div className="flex items-center gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-800">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+                  <svg className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                  </svg>
+                </div>
+                <div className="flex flex-1 flex-col gap-0.5">
+                  <span className="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100">
+                    Chris
+                  </span>
+                  <span className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500">
+                    Primary driver
+                  </span>
+                </div>
+              </div>
+              {/* Add a secondary driver */}
+              <Link
+                href="/add-drivers"
+                className="flex items-center gap-3 rounded-md border border-dashed border-neutral-200 bg-neutral-50 p-4 motion-safe:transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-800/50 dark:hover:bg-neutral-800"
+              >
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-700">
+                  <svg className="size-5 text-neutral-400 dark:text-neutral-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                </div>
+                <span className="text-sm font-medium leading-none text-neutral-600 dark:text-neutral-400">
+                  Add another driver
+                </span>
+              </Link>
             </div>
 
             {/* This week — zeroed */}

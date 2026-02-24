@@ -28,6 +28,7 @@ export default function PermissionsPage() {
   const showBluetoothModal = step === "bluetooth";
   const showNotificationsModal = step === "notifications";
   const promptsStarted = step !== "primer";
+  const allAnswered = step === "done";
 
   return (
     <>
@@ -36,11 +37,14 @@ export default function PermissionsPage() {
           {/* Header */}
           <div className="flex flex-col gap-3">
             <Link
-              href="/dashboard?state=empty"
+              href="/install?state=empty"
               className="text-sm font-medium leading-none text-blue-600 dark:text-blue-400 motion-safe:transition-colors motion-safe:duration-150 hover:text-blue-700 dark:hover:text-blue-300"
             >
               &larr; Back
             </Link>
+            <span className="text-xs font-medium uppercase tracking-wide leading-none text-neutral-400 dark:text-neutral-500">
+              Step 1 of 5
+            </span>
             <h1 className="text-4xl font-semibold leading-tight text-balance text-neutral-900 dark:text-neutral-100">
               A couple of permissions
             </h1>
@@ -120,25 +124,40 @@ export default function PermissionsPage() {
             You can change these anytime in your phone&rsquo;s settings.
           </p>
 
-          {/* CTA */}
-          {step === "primer" && (
+          {/* CTAs */}
+          <div className="flex flex-col gap-3">
+            {/* Primary: Allow — triggers the OS prompts; stays visible but disabled once answered */}
             <button
               type="button"
-              onClick={startPrompts}
-              className="flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
+              onClick={!allAnswered && step === "primer" ? startPrompts : undefined}
+              disabled={allAnswered}
+              className={`flex h-12 w-full items-center justify-center rounded-md px-6 text-base font-medium leading-none motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900 ${
+                allAnswered
+                  ? "cursor-not-allowed border border-neutral-200 bg-neutral-50 text-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-500"
+                  : "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+              }`}
             >
-              Continue
+              Allow
             </button>
-          )}
 
-          {step === "done" && (
-            <Link
-              href="/billing"
-              className="flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
-            >
-              Continue
-            </Link>
-          )}
+            {/* Secondary: Continue — always visible, active only when all permissions answered */}
+            {allAnswered ? (
+              <Link
+                href="/billing"
+                className="flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
+              >
+                Continue
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="flex h-12 w-full cursor-not-allowed items-center justify-center rounded-md border border-neutral-200 bg-neutral-50 px-6 text-base font-medium leading-none text-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-500"
+              >
+                Continue
+              </button>
+            )}
+          </div>
         </div>
       </main>
 
@@ -178,7 +197,7 @@ function OsPromptModal({
   onDeny: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-neutral-900/50 px-6 dark:bg-neutral-950/70">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-900/50 px-6 dark:bg-neutral-950/70">
       <div className="w-full max-w-xs rounded-md bg-white p-6 shadow-xl dark:bg-neutral-900">
         <div className="flex flex-col gap-4 text-center">
           <div className="flex flex-col gap-2">
