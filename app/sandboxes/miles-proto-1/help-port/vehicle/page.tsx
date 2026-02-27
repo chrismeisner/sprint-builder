@@ -30,14 +30,6 @@ const modelsByMake: Record<string, string[]> = {
 
 const years = Array.from({ length: 30 }, (_, i) => String(2025 - i));
 
-const portLocations: Record<string, string> = {
-  default: "under the dashboard on the driver's side, just above the knee area",
-  BMW: "in the lower-left area of the dashboard, behind a small flip-down panel",
-  "Mercedes-Benz": "behind a trim panel below the steering column — look for a small rectangular cover",
-  Tesla: "inside the center console, below the touchscreen — you'll need a small adapter",
-  Jeep: "under the steering column, slightly to the left — may be behind a removable panel",
-};
-
 
 export default function VehiclePickerPage() {
   const router = useRouter();
