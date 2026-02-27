@@ -46,7 +46,7 @@ const options: {
 ];
 
 export default function WhosDrivingPage() {
-  const [selected, setSelected] = useState<Set<UsageOption>>(new Set(["just-me"]));
+  const [selected, setSelected] = useState<Set<UsageOption>>(new Set<UsageOption>(["just-me"]));
 
   function toggle(id: UsageOption) {
     setSelected((prev) => {
