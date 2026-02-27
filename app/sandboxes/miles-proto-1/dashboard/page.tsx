@@ -794,27 +794,25 @@ function DashboardContent() {
         <QuickLinks />
 
         {/* Proto state toggle */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex items-center justify-center gap-3">
-            {(["empty", "no-trips", "filled"] as const).map((s) => (
-              <Link
-                key={s}
-                href={`/dashboard?state=${s}`}
-                className={`text-xs font-medium leading-none underline underline-offset-2 motion-safe:transition-colors motion-safe:duration-150 ${
-                  state === s
-                    ? "text-neutral-600 dark:text-neutral-300 no-underline"
-                    : "text-neutral-400 hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-400"
-                }`}
-              >
-                {s}
-              </Link>
-            ))}
-          </div>
+        <div className="flex flex-col items-center gap-1.5">
+          {(["empty", "no-trips", "filled"] as const).map((s) => (
+            <Link
+              key={s}
+              href={`/dashboard?state=${s}`}
+              className={`text-xs font-medium leading-none underline underline-offset-2 motion-safe:transition-colors motion-safe:duration-150 ${
+                state === s
+                  ? "text-neutral-600 dark:text-neutral-300 no-underline"
+                  : "text-neutral-400 hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-400"
+              }`}
+            >
+              {s}
+            </Link>
+          ))}
           <Link
             href="/trip-indicator"
             className="text-xs font-medium leading-none text-neutral-400 underline underline-offset-2 motion-safe:transition-colors motion-safe:duration-150 hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-400"
           >
-            trip indicator
+            Start demo live trip
           </Link>
         </div>
 
