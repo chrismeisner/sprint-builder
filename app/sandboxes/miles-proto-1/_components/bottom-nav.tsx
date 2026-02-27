@@ -13,7 +13,7 @@ const HIDDEN_ON = new Set([
   "/pair-device", "/getting-online", "/help-port", "/help-port/vehicle",
   "/help-port/vehicle/result", "/help-port/vin", "/help-port/vin/result",
   "/device-detected",
-  "/whos-driving", "/add-drivers", "/trip-indicator"].flatMap((r) => [p(r), p(r) + "/"])),
+  "/whos-driving", "/add-drivers", "/trip-indicator", "/settings"].flatMap((r) => [p(r), p(r) + "/"])),
 ]);
 
 function HomeIcon({ active }: { active: boolean }) {

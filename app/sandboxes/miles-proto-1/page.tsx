@@ -2,6 +2,7 @@
 
 import Link from "@/app/sandboxes/miles-proto-1/_components/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { p } from "@/app/sandboxes/miles-proto-1/_lib/nav";
 
 function GoogleLogo2025({ className }: { className?: string }) {
@@ -163,7 +164,31 @@ export default function WelcomePage() {
             Sign in
           </Link>
         </p>
+
+        <CopyDemoLink />
       </div>
     </main>
+  );
+}
+
+function CopyDemoLink() {
+  const [copied, setCopied] = useState(false);
+
+  function copy() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="text-xs font-medium leading-none text-neutral-400 underline underline-offset-2 motion-safe:transition-colors motion-safe:duration-150 hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-400"
+    >
+      {copied ? "Link copied!" : "Copy demo link"}
+    </button>
   );
 }
