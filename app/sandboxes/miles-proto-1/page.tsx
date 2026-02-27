@@ -165,7 +165,16 @@ export default function WelcomePage() {
           </Link>
         </p>
 
-        <CopyDemoLink />
+        <div className="flex items-center justify-center gap-3">
+          <CopyDemoLink />
+          <span className="text-xs text-neutral-300">·</span>
+          <Link
+            href="/index"
+            className="text-xs font-medium leading-none text-neutral-400 underline underline-offset-2 motion-safe:transition-colors motion-safe:duration-150 hover:text-neutral-600"
+          >
+            Page index
+          </Link>
+        </div>
       </div>
     </main>
   );
