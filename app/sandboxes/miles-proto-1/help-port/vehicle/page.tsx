@@ -38,9 +38,6 @@ const portLocations: Record<string, string> = {
   Jeep: "under the steering column, slightly to the left — may be behind a removable panel",
 };
 
-function getPortLocation(make: string): string {
-  return portLocations[make] || portLocations.default;
-}
 
 export default function VehiclePickerPage() {
   const router = useRouter();

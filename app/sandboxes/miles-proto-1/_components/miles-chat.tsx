@@ -182,7 +182,7 @@ export function MilesChat({ open, onClose }: MilesChatProps) {
   const convo = convoIndex !== null ? CONVERSATIONS[convoIndex] : null;
   const hasMore = convo !== null && exchangePos < convo.exchanges.length;
   const nextUserText = hasMore ? convo!.exchanges[exchangePos].user : null;
-  const conversationDone = convo !== null && !hasMore && !typing;
+  // const conversationDone = convo !== null && !hasMore && !typing;
 
   return (
     <>
