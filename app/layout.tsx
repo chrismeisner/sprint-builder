@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Inter, Inter_Tight } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -317,10 +317,14 @@ export default async function RootLayout({
 }>) {
   const cookieStore = cookies();
   const themeOverride = cookieStore.get(THEME_OVERRIDE_COOKIE)?.value ?? null;
-  // All users can now choose their theme preference via the override cookie.
   const themeMode = normalizeThemeCookie(themeOverride);
   const fontClasses = `${inter.variable} ${interTight.variable} ${gooper.variable} ${gooperCondensed.variable} ${gooperSemiCondensed.variable} ${gooperText.variable} ${gtAmerica.variable} ${gtAmericaCompressed.variable} ${akkuratLight.variable} ${akkurat.variable} ${akkuratMono.variable} ${generalGrotesque.variable} ${generalGrotesqueMono.variable} ${notoEmoji.variable}`;
   const htmlClassName = `${themeMode === "dark" ? "dark" : ""} ${fontClasses}`.trim();
+
+  // Check if current route is a sandbox prototype — those manage their own UI chrome
+  const headersList = headers();
+  const pathname = headersList.get("x-pathname") ?? "";
+  const isSandbox = pathname.startsWith("/sandboxes/");
 
   return (
     <html
@@ -331,9 +335,15 @@ export default async function RootLayout({
         <ToastProvider>
           <WireframeModeHydrator />
           <GoogleAnalytics />
-          <Header />
-          <NavShell>{children}</NavShell>
-          <Footer />
+          {isSandbox ? (
+            children
+          ) : (
+            <>
+              <Header />
+              <NavShell>{children}</NavShell>
+              <Footer />
+            </>
+          )}
           <ToastContainer />
         </ToastProvider>
       </body>

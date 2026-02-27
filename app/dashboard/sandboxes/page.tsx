@@ -7,13 +7,14 @@ import Typography from "@/components/ui/Typography";
 import { CopyLinkButton } from "./CopyLinkButton";
 
 const SANDBOXES_DIR = path.join(process.cwd(), "sandboxes-data");
+const APP_SANDBOXES_DIR = path.join(process.cwd(), "app", "sandboxes");
 const BUILD_DIRS = ["out", "dist", "build"];
 
 type SandboxFolder = {
   folderName: string;
   displayName: string;
   launchUrl: string;
-  buildDir: string | null; // "root", "out", "dist", "build", or null
+  buildDir: string | null; // "route", "root", "out", "dist", "build", or null
   fileCount: number;
   registeredProjectName: string | null;
 };
@@ -35,7 +36,19 @@ function scanFolders(): Omit<SandboxFolder, "registeredProjectName">[] {
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
 
-      // Determine where index.html lives
+      // Check if this sandbox lives as a native Next.js route in app/sandboxes/
+      const appRoutePath = path.join(APP_SANDBOXES_DIR, folderName);
+      if (fs.existsSync(appRoutePath)) {
+        return {
+          folderName,
+          displayName,
+          launchUrl: `/sandboxes/${folderName}/`,
+          buildDir: "route",
+          fileCount,
+        };
+      }
+
+      // Otherwise look for a static index.html in the folder or a build dir
       let buildDir: string | null = null;
       if (files.includes("index.html")) {
         buildDir = "root";
@@ -49,9 +62,13 @@ function scanFolders(): Omit<SandboxFolder, "registeredProjectName">[] {
         }
       }
 
-      const launchUrl = `/api/sandbox-files/${folderName}/`;
-
-      return { folderName, displayName, launchUrl, buildDir, fileCount };
+      return {
+        folderName,
+        displayName,
+        launchUrl: `/api/sandbox-files/${folderName}/`,
+        buildDir,
+        fileCount,
+      };
     });
 }
 
@@ -147,7 +164,12 @@ export default async function SandboxIndexPage() {
 
                 {/* Status */}
                 <td className="px-4 py-3">
-                  {s.buildDir !== null ? (
+                  {s.buildDir === "route" ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 dark:bg-blue-900/40 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-400">
+                      <span className="size-1.5 rounded-full bg-blue-500 dark:bg-blue-400" />
+                      Live route
+                    </span>
+                  ) : s.buildDir !== null ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/40 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
                       <span className="size-1.5 rounded-full bg-green-500 dark:bg-green-400" />
                       Ready
@@ -164,6 +186,8 @@ export default async function SandboxIndexPage() {
                 <td className="px-4 py-3">
                   {s.buildDir === null ? (
                     <span className="text-black/30 dark:text-white/30">—</span>
+                  ) : s.buildDir === "route" ? (
+                    <span className="font-mono text-xs text-black/50 dark:text-white/40">app/sandboxes/</span>
                   ) : s.buildDir === "root" ? (
                     <span className="font-mono text-xs text-black/50 dark:text-white/40">/</span>
                   ) : (

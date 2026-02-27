@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
   // Continue with the request and add security headers
-  const response = NextResponse.next();
+  const response = NextResponse.next({
+    request: {
+      headers: new Headers({
+        ...Object.fromEntries(request.headers),
+        "x-pathname": request.nextUrl.pathname,
+      }),
+    },
+  });
 
   // Security headers
   response.headers.set("X-Content-Type-Options", "nosniff");

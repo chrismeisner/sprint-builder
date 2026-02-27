@@ -1,6 +1,0 @@
-[
-  {
-    "regexp": "^\\/api\\/sandbox-files\\/miles-proto-1(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|favicon.ico).*))(\\\\.json)?[\\/#\\?]?$",
-    "originalSource": "/((?!_next/static|_next/image|favicon.ico).*)"
-  }
-]
