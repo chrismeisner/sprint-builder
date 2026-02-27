@@ -12,8 +12,35 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000"
+  ),
   title: "Miles",
   description: "Drive smarter. Score every trip.",
+  icons: {
+    icon: "/miles-proto-1/miles-icon.svg",
+    apple: "/miles-proto-1/miles-icon.svg",
+  },
+  openGraph: {
+    title: "Miles",
+    description: "Drive smarter. Score every trip.",
+    images: [
+      {
+        url: "/miles-proto-1/images/scene-01.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Miles — Drive smarter",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Miles",
+    description: "Drive smarter. Score every trip.",
+    images: ["/miles-proto-1/images/scene-01.jpg"],
+  },
 };
 
 export default function MilesLayout({
