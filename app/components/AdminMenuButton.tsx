@@ -46,10 +46,29 @@ export default function AdminMenuButton({ className }: Props) {
     <button
       type="button"
       onClick={handleToggle}
-      aria-label={isOpen ? "Hide admin menu" : "Show admin menu"}
-      className={`hidden md:inline-flex h-8 items-center rounded-full border border-stroke-muted bg-surface-subtle px-3 text-xs font-medium uppercase tracking-wide text-brand-muted transition-colors duration-150 ease-out hover:bg-surface-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-primary ${className ?? ""}`}
+      aria-label={isOpen ? "Close admin menu" : "Open admin menu"}
+      className={`hidden md:inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition-colors duration-150 ease-out hover:bg-surface-strong hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-primary ${className ?? ""}`}
     >
-      {isOpen ? "Hide" : "Menu"}
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 18 18"
+        fill="none"
+        className="transition-transform duration-200"
+      >
+        {isOpen ? (
+          <>
+            <line x1="4" y1="4" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="14" y1="4" x2="4" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </>
+        ) : (
+          <>
+            <line x1="3" y1="5" x2="15" y2="5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="3" y1="13" x2="15" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </>
+        )}
+      </svg>
     </button>
   );
 }

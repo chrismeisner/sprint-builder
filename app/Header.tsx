@@ -55,10 +55,18 @@ export default async function Header() {
                 </Button>
                 <Link 
                   href="/profile" 
-                  className="flex size-8 items-center justify-center rounded-full bg-brand-primary text-brand-inverse text-xs font-semibold transition-opacity duration-150 ease-out hover:opacity-80"
+                  className="flex size-8 items-center justify-center rounded-full bg-brand-primary text-brand-inverse text-xs font-semibold transition-opacity duration-150 ease-out hover:opacity-80 overflow-hidden"
                   title="Profile"
                 >
-                  {getInitials(user.firstName, user.lastName, user.email)}
+                  {user.profileImageUrl ? (
+                    <img
+                      src={user.profileImageUrl}
+                      alt=""
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    getInitials(user.firstName, user.lastName, user.email)
+                  )}
                 </Link>
               </>
             ) : (

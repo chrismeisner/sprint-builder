@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { useToast } from "@/lib/toast-context";
@@ -13,6 +13,7 @@ type Profile = {
   lastName: string | null;
   isAdmin: boolean;
   createdAt: string;
+  profileImageUrl: string | null;
 };
 
 type ProfileData = {
@@ -28,6 +29,8 @@ export default function ProfileClient() {
   const [lastNameValue, setLastNameValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
@@ -121,6 +124,65 @@ export default function ProfileClient() {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/profile/avatar", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to upload avatar");
+      }
+
+      await fetchProfile();
+      router.refresh();
+      showToast("Profile picture updated", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to upload", "error");
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    try {
+      setUploadingAvatar(true);
+      const res = await fetch("/api/profile/avatar", { method: "DELETE" });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to remove avatar");
+      }
+
+      await fetchProfile();
+      router.refresh();
+      showToast("Profile picture removed", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to remove", "error");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const getInitials = () => {
+    if (!data) return "?";
+    const { firstName, lastName, email } = data.profile;
+    if (firstName && lastName) return (firstName[0] + lastName[0]).toUpperCase();
+    if (firstName) return firstName.slice(0, 2).toUpperCase();
+    if (lastName) return lastName.slice(0, 2).toUpperCase();
+    return email.slice(0, 2).toUpperCase();
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -161,15 +223,74 @@ export default function ProfileClient() {
         </button>
       </div>
 
-      {/* Profile Information Card */}
-      <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 p-6 space-y-4">
-        <h2 className={`${sectionTitleClass} text-text-primary mb-2`}>Profile Information</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className={`block mb-1 ${labelClass}`}>Email</label>
-            <div className={bodyClass}>{data.profile.email}</div>
+      {/* Profile Picture + Info Card */}
+      <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 p-6 space-y-6">
+        {/* Avatar section */}
+        <div className="flex items-center gap-5">
+          <div className="relative group">
+            <div className="size-20 rounded-full bg-brand-primary text-brand-inverse flex items-center justify-center text-xl font-semibold overflow-hidden shrink-0">
+              {data.profile.profileImageUrl ? (
+                <img
+                  src={data.profile.profileImageUrl}
+                  alt=""
+                  className="size-full object-cover"
+                />
+              ) : (
+                getInitials()
+              )}
+            </div>
+            {uploadingAvatar && (
+              <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                <svg className="size-5 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+            )}
           </div>
+          <div className="space-y-2">
+            <div>
+              <h2 className={`${sectionTitleClass} text-text-primary`}>Profile Picture</h2>
+              <p className={`${labelClass} mt-0.5`}>JPEG, PNG, WebP, or GIF. Max 5 MB.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className={`${getTypographyClassName("button-md")} px-3 py-1.5 border border-black/10 dark:border-white/15 rounded-md hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+              >
+                {data.profile.profileImageUrl ? "Change" : "Upload"}
+              </button>
+              {data.profile.profileImageUrl && (
+                <button
+                  onClick={handleAvatarRemove}
+                  disabled={uploadingAvatar}
+                  className={`${getTypographyClassName("button-md")} px-3 py-1.5 text-red-600 dark:text-red-400 border border-red-600/20 dark:border-red-400/20 rounded-md hover:bg-red-600/10 dark:hover:bg-red-400/10 disabled:opacity-50 transition`}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <hr className="border-black/10 dark:border-white/15" />
+
+        {/* Profile fields */}
+        <div>
+          <h2 className={`${sectionTitleClass} text-text-primary mb-4`}>Profile Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={`block mb-1 ${labelClass}`}>Email</label>
+              <div className={bodyClass}>{data.profile.email}</div>
+            </div>
 
           <div>
             <label className={`block mb-1 ${labelClass}`}>First Name</label>
@@ -261,6 +382,7 @@ export default function ProfileClient() {
             <div className={bodyClass}>
               {new Date(data.profile.createdAt).toLocaleDateString()}
             </div>
+          </div>
           </div>
         </div>
       </div>

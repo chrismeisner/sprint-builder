@@ -13,7 +13,6 @@ import {
   readWireframePreference,
   readTypographyLabelsPreference,
 } from "@/lib/wireframe-mode";
-import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 
 export type NavItem = {
   href: string;
@@ -110,174 +109,148 @@ export default function AdminNavShellClient({ nav, children }: Props) {
     setShowTypographyLabels((prev) => !prev);
   };
 
+  const ToggleSwitch = ({
+    checked,
+    onToggle,
+    label,
+    danger = false,
+  }: {
+    checked: boolean;
+    onToggle: () => void;
+    label: string;
+    danger?: boolean;
+  }) => (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={onToggle}
+      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+        checked
+          ? danger
+            ? "bg-red-500 border-red-500 focus-visible:ring-red-500"
+            : "bg-brand-primary border-brand-primary focus-visible:ring-brand-primary"
+          : "bg-surface-subtle border-stroke-muted focus-visible:ring-brand-primary"
+      }`}
+    >
+      <span
+        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200 ${
+          checked ? "translate-x-4" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  );
+
   return (
     <div className="w-full bg-background text-foreground">
-      <div className="relative flex w-full md:flex-row min-h-[calc(100vh-4rem)]">
+      <div className="relative flex w-full md:flex-row min-h-[calc(100vh-3rem)]">
         <aside
           id="admin-sidebar"
           aria-hidden={!isSidebarOpen}
-          className={`hidden md:flex md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:max-h-[calc(100vh-4rem)] shrink-0 bg-surface-card transition-all duration-300 overflow-hidden md:overflow-y-auto ${
-            isSidebarOpen ? "w-64 border-r border-stroke-muted" : "w-0 border-r-0"
+          className={`hidden md:flex md:sticky md:top-12 md:h-[calc(100vh-3rem)] shrink-0 bg-surface-card transition-all duration-200 overflow-hidden ${
+            isSidebarOpen ? "w-56 border-r border-stroke-muted" : "w-0 border-r-0"
           }`}
         >
           <div
-            className={`flex h-full w-64 flex-col min-h-0 transition-opacity duration-200 ${
+            className={`flex h-full w-56 flex-col min-h-0 transition-opacity duration-150 ${
               isSidebarOpen ? "opacity-100" : "opacity-0"
             }`}
           >
-          <nav className="flex-1 overflow-y-auto p-2">
-            <ul className="space-y-1">
-              {nav.map((item) => (
-                <li key={item.href}>
-                  {item.external ? (
-                    <a
-                      href={item.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`block rounded-md px-3 py-2 ${getTypographyClassName("body-sm")} hover:bg-surface-strong transition`}
-                    >
-                      {item.label}
-                    </a>
-                  ) : (
-                    <Link
-                      href={item.href}
-                      className={`block rounded-md px-3 py-2 ${getTypographyClassName("body-sm")} hover:bg-surface-strong transition`}
-                    >
-                      {item.label}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <div className="px-4 py-3 border-t border-stroke-muted space-y-4 text-xs">
-            <div className="flex items-center justify-between gap-3">
-              <div className="space-y-1">
-                <div className="font-semibold uppercase tracking-wide opacity-70">
-                  Wireframe mode
-                </div>
-                <p className="text-[11px] opacity-60 normal-case">
-                  Adds dashed outlines to every div for quick layout debugging.
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={isWireframeEnabled}
-                aria-label="Toggle wireframe mode"
-                onClick={toggleWireframeMode}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-                  isWireframeEnabled
-                    ? "bg-red-500 border-red-500 focus-visible:ring-red-500"
-                    : "bg-surface-subtle border-stroke-muted focus-visible:ring-brand-primary"
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
-                    isWireframeEnabled ? "translate-x-5" : "translate-x-1"
-                  }`}
+            <nav className="flex-1 overflow-y-auto py-2 px-1.5">
+              <ul>
+                {nav.map((item) => (
+                  <li key={item.href}>
+                    {item.external ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block rounded-md px-2.5 py-1.5 text-[13px] leading-tight text-text-secondary hover:bg-surface-strong hover:text-text-primary transition-colors"
+                      >
+                        {item.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className="block rounded-md px-2.5 py-1.5 text-[13px] leading-tight text-text-secondary hover:bg-surface-strong hover:text-text-primary transition-colors"
+                      >
+                        {item.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            <div className="px-3 py-2.5 border-t border-stroke-muted space-y-2.5 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-text-secondary">Wireframe</span>
+                <ToggleSwitch
+                  checked={isWireframeEnabled}
+                  onToggle={toggleWireframeMode}
+                  label="Toggle wireframe mode"
+                  danger
                 />
-              </button>
+              </div>
+
+              {isWireframeEnabled && (
+                <>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-text-secondary">Div labels</span>
+                    <ToggleSwitch
+                      checked={showDivLabels}
+                      onToggle={toggleDivLabels}
+                      label="Toggle div labels"
+                      danger
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-text-secondary">Font labels</span>
+                    <ToggleSwitch
+                      checked={showTypographyLabels}
+                      onToggle={toggleTypographyLabels}
+                      label="Toggle typography labels"
+                      danger
+                    />
+                  </div>
+                </>
+              )}
             </div>
-
-            {isWireframeEnabled ? (
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="font-semibold uppercase tracking-wide opacity-70">
-                    Show div names
-                  </div>
-                  <p className="text-[11px] opacity-60 normal-case">
-                    Displays a red badge with each div&apos;s identifier.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={showDivLabels}
-                  aria-label="Toggle div labels"
-                  onClick={toggleDivLabels}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-                    showDivLabels
-                      ? "bg-red-500 border-red-500 focus-visible:ring-red-500"
-                      : "bg-surface-subtle border-stroke-muted focus-visible:ring-brand-primary"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
-                      showDivLabels ? "translate-x-5" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-            ) : null}
-
-            {isWireframeEnabled ? (
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="font-semibold uppercase tracking-wide opacity-70">
-                    Show font style
-                  </div>
-                  <p className="text-[11px] opacity-60 normal-case">
-                    Labels text elements with their typography token (e.g., h2).
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={showTypographyLabels}
-                  aria-label="Toggle typography labels"
-                  onClick={toggleTypographyLabels}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-                    showTypographyLabels
-                      ? "bg-red-500 border-red-500 focus-visible:ring-red-500"
-                      : "bg-surface-subtle border-stroke-muted focus-visible:ring-brand-primary"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
-                      showTypographyLabels ? "translate-x-5" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-            ) : null}
-
-            <div className="uppercase tracking-wide opacity-60">sprint builder</div>
           </div>
-        </div>
-      </aside>
+        </aside>
 
-      <div className="flex-1 h-full flex flex-col overflow-hidden min-h-0">
-        {/* Mobile top nav */}
-        <div className="md:hidden sticky top-0 z-10 border-b border-stroke-muted bg-surface-card backdrop-blur">
-          <div className="px-4 py-2 flex gap-2 overflow-x-auto">
-            {nav.map((item) =>
-              item.external ? (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`inline-flex shrink-0 items-center rounded-md border border-stroke-muted px-3 py-1.5 ${getTypographyClassName("body-sm")} hover:bg-surface-strong transition`}
-                >
-                  {item.label}
-                </a>
-              ) : (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`inline-flex shrink-0 items-center rounded-md border border-stroke-muted px-3 py-1.5 ${getTypographyClassName("body-sm")} hover:bg-surface-strong transition`}
-                >
-                  {item.label}
-                </Link>
-              )
-            )}
+        <div className="flex-1 h-full flex flex-col overflow-hidden min-h-0">
+          {/* Mobile top nav */}
+          <div className="md:hidden sticky top-0 z-10 border-b border-stroke-muted bg-surface-card backdrop-blur">
+            <div className="px-3 py-1.5 flex gap-1.5 overflow-x-auto">
+              {nav.map((item) =>
+                item.external ? (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center rounded-md border border-stroke-muted px-2.5 py-1 text-xs hover:bg-surface-strong transition-colors"
+                  >
+                    {item.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="inline-flex shrink-0 items-center rounded-md border border-stroke-muted px-2.5 py-1 text-xs hover:bg-surface-strong transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                )
+              )}
+            </div>
           </div>
+          <main className="flex-1 overflow-auto min-h-0">{children}</main>
         </div>
-        <main className="flex-1 overflow-auto min-h-0">{children}</main>
       </div>
     </div>
-  </div>
   );
 }
 
