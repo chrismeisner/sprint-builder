@@ -204,12 +204,14 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
                       <div className="text-xs opacity-60">{new Date(sprint.createdAt).toLocaleTimeString()}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/sprints/${sprint.id}`}
-                        className="inline-flex items-center px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition text-xs"
-                      >
-                        View
-                      </Link>
+                      {sprint.status === "draft" && (
+                        <Link
+                          href={`/sprints/${sprint.id}`}
+                          className="inline-flex items-center px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition text-xs"
+                        >
+                          View Draft
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 ))

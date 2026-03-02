@@ -18,7 +18,7 @@ export default function SprintShareLink({ sprintId, shareToken, status, isAdmin 
   if (isAdmin) {
     return (
       <div className="flex items-center gap-2">
-        {shareToken && (
+        {shareToken && status !== 'complete' && (
           <Link
             href={`/shared/sprint/${shareToken}`}
             target="_blank"

@@ -1,7 +1,5 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
-
 // Simple but accurate moon phase calculation.
 // Reference new moon: Jan 6, 2000 at 18:14 UTC (J2000 epoch).
 const KNOWN_NEW_MOON_MS = new Date("2000-01-06T18:14:00Z").getTime();

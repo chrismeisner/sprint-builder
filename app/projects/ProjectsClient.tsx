@@ -79,12 +79,12 @@ export default function ProjectsClient() {
   const [welcomeSaving, setWelcomeSaving] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [typeUpdating, setTypeUpdating] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('active');
   const [sortKey, setSortKey] = useState<'name' | 'type' | 'status' | 'created' | 'members'>('created');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>(() => {
-    if (typeof window === 'undefined') return 'table';
-    return (localStorage.getItem('projects-view-mode') as 'table' | 'grid') ?? 'table';
+    if (typeof window === 'undefined') return 'grid';
+    return (localStorage.getItem('projects-view-mode') as 'table' | 'grid') ?? 'grid';
   });
 
   const handleSetViewMode = (mode: 'table' | 'grid') => {

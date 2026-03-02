@@ -99,94 +99,146 @@ function TaskCard({
   onToggleWeekFocus: (task: Task) => void;
   onShowDetail: (task: Task) => void;
 }) {
+  const [showEditModal, setShowEditModal] = useState(false);
+
   return (
-    <div
-      className={`p-3 rounded-md border bg-white dark:bg-neutral-900 space-y-2 transition ${
-        task.completed
-          ? "opacity-50 border-neutral-200 dark:border-neutral-700"
-          : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
-      }`}
-    >
-      <div className="flex items-start gap-2">
-        <button
-          onClick={() => onToggleComplete(task)}
-          className={`mt-0.5 size-4 rounded border flex-shrink-0 flex items-center justify-center text-xs transition ${
-            task.completed
-              ? "bg-green-500 border-green-500 text-white"
-              : "border-neutral-300 dark:border-neutral-600 hover:border-green-500"
-          }`}
-        >
-          {task.completed && "✓"}
-        </button>
-        <div className="flex-1 min-w-0">
+    <>
+      <div
+        onClick={() => onShowDetail(task)}
+        className={`cursor-pointer p-3 rounded-md border bg-white dark:bg-neutral-900 space-y-2 transition ${
+          task.completed
+            ? "opacity-50 border-neutral-200 dark:border-neutral-700"
+            : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-500 hover:shadow-sm"
+        }`}
+      >
+        <div className="flex items-start gap-2">
           <button
-            onClick={() => onShowDetail(task)}
-            className={`text-sm text-left leading-snug hover:underline block w-full ${
+            onClick={(e) => { e.stopPropagation(); onToggleComplete(task); }}
+            className={`mt-0.5 size-4 rounded border flex-shrink-0 flex items-center justify-center text-xs transition ${
               task.completed
-                ? "line-through text-neutral-400 dark:text-neutral-600"
-                : "text-neutral-900 dark:text-neutral-100"
+                ? "bg-green-500 border-green-500 text-white"
+                : "border-neutral-300 dark:border-neutral-600 hover:border-green-500"
             }`}
           >
-            {task.name}
+            {task.completed && "✓"}
           </button>
-          {task.idea_title && (
-            <Link
-              href={`/dashboard/tasks/${task.idea_id}`}
-              className="text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 transition block mt-0.5 truncate"
+          <div className="flex-1 min-w-0">
+            <p
+              className={`text-sm leading-snug ${
+                task.completed
+                  ? "line-through text-neutral-400 dark:text-neutral-600"
+                  : "text-neutral-900 dark:text-neutral-100"
+              }`}
             >
-              {task.idea_title}
-            </Link>
+              {task.name}
+            </p>
+            {task.idea_title && (
+              <Link
+                href={`/dashboard/tasks/${task.idea_id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 transition block mt-0.5 truncate"
+              >
+                {task.idea_title}
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Footer: active focus badges + attachment count + edit link */}
+        <div className="flex items-center gap-1 flex-wrap">
+          {task.focus.includes("now") && (
+            <span className="px-1.5 py-0.5 rounded text-xs bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30">🔥 Now</span>
           )}
+          {task.focus.includes("today") && (
+            <span className="px-1.5 py-0.5 rounded text-xs bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">☀️ Today</span>
+          )}
+          {task.focus.includes("week") && (
+            <span className="px-1.5 py-0.5 rounded text-xs bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">📅 Week</span>
+          )}
+          {task.attachments && task.attachments.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              📎 {task.attachments.length}
+            </span>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowEditModal(true); }}
+            className="ml-auto text-xs text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition underline underline-offset-2"
+          >
+            Edit
+          </button>
         </div>
       </div>
-      <div className="flex items-center gap-1">
-        <button
-          onClick={() => onToggleNowFocus(task)}
-          className={`px-1.5 py-0.5 rounded text-xs transition ${
-            task.focus.includes("now")
-              ? "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
-              : "text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-          }`}
-          title={task.focus.includes("now") ? "Remove now focus" : "Set as now"}
+
+      {/* Edit modal */}
+      {showEditModal && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowEditModal(false)}
         >
-          🔥
-        </button>
-        <button
-          onClick={() => onToggleFocus(task)}
-          className={`px-1.5 py-0.5 rounded text-xs transition ${
-            task.focus.includes("today")
-              ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
-              : "text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-          }`}
-          title={task.focus.includes("today") ? "Remove from today" : "Add to today"}
-        >
-          ☀️
-        </button>
-        <button
-          onClick={() => onToggleWeekFocus(task)}
-          className={`px-1.5 py-0.5 rounded text-xs transition ${
-            task.focus.includes("week")
-              ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30"
-              : "text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-          }`}
-          title={task.focus.includes("week") ? "Remove from this week" : "Add to this week"}
-        >
-          📅
-        </button>
-        {task.attachments && task.attachments.length > 0 && (
-          <span className="px-1.5 py-0.5 rounded text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400">
-            📎 {task.attachments.length}
-          </span>
-        )}
-        <button
-          onClick={() => onShowDetail(task)}
-          className="ml-auto px-1.5 py-0.5 rounded text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition"
-          title="View details"
-        >
-          ℹ️
-        </button>
-      </div>
-    </div>
+          <div
+            className="bg-white dark:bg-neutral-900 rounded-lg shadow-xl dark:border dark:border-neutral-700 w-72 p-4 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-medium leading-snug text-neutral-900 dark:text-neutral-100 line-clamp-2">{task.name}</p>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="flex-shrink-0 text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition text-base leading-none mt-0.5"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <button
+                onClick={() => { onToggleNowFocus(task); }}
+                className={`w-full px-3 py-2 rounded-md text-sm text-left flex items-center gap-2 transition border ${
+                  task.focus.includes("now")
+                    ? "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30"
+                    : "bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                }`}
+              >
+                <span>🔥</span>
+                <span>{task.focus.includes("now") ? "Remove from Now" : "Set as Now"}</span>
+              </button>
+              <button
+                onClick={() => { onToggleFocus(task); }}
+                className={`w-full px-3 py-2 rounded-md text-sm text-left flex items-center gap-2 transition border ${
+                  task.focus.includes("today")
+                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                    : "bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                }`}
+              >
+                <span>☀️</span>
+                <span>{task.focus.includes("today") ? "Remove from Today" : "Add to Today"}</span>
+              </button>
+              <button
+                onClick={() => { onToggleWeekFocus(task); }}
+                className={`w-full px-3 py-2 rounded-md text-sm text-left flex items-center gap-2 transition border ${
+                  task.focus.includes("week")
+                    ? "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30"
+                    : "bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                }`}
+              >
+                <span>📅</span>
+                <span>{task.focus.includes("week") ? "Remove from This Week" : "Add to This Week"}</span>
+              </button>
+              <button
+                onClick={() => { onToggleComplete(task); setShowEditModal(false); }}
+                className={`w-full px-3 py-2 rounded-md text-sm text-left flex items-center gap-2 transition border ${
+                  task.completed
+                    ? "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30"
+                    : "bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                }`}
+              >
+                <span>✓</span>
+                <span>{task.completed ? "Mark Incomplete" : "Mark Complete"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -1241,6 +1293,28 @@ export default function TasksClient() {
       {viewMode === "board" && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* Open column */}
+            <BoardColumn
+              title="Open"
+              icon="📋"
+              count={boardOpenTasks.length}
+              accentClass="border-neutral-200 dark:border-neutral-700"
+              headerClass="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300"
+              emptyText="No open tasks"
+            >
+              {boardOpenTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onToggleComplete={toggleTaskComplete}
+                  onToggleNowFocus={toggleNowFocus}
+                  onToggleFocus={toggleTaskFocus}
+                  onToggleWeekFocus={toggleWeekFocus}
+                  onShowDetail={openTaskDetail}
+                />
+              ))}
+            </BoardColumn>
+
             {/* Now column */}
             <BoardColumn
               title="Now"
@@ -1295,28 +1369,6 @@ export default function TasksClient() {
               emptyText="No tasks this week"
             >
               {boardWeekTasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onToggleComplete={toggleTaskComplete}
-                  onToggleNowFocus={toggleNowFocus}
-                  onToggleFocus={toggleTaskFocus}
-                  onToggleWeekFocus={toggleWeekFocus}
-                  onShowDetail={openTaskDetail}
-                />
-              ))}
-            </BoardColumn>
-
-            {/* Open column */}
-            <BoardColumn
-              title="Open"
-              icon="📋"
-              count={boardOpenTasks.length}
-              accentClass="border-neutral-200 dark:border-neutral-700"
-              headerClass="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300"
-              emptyText="No open tasks"
-            >
-              {boardOpenTasks.map((task) => (
                 <TaskCard
                   key={task.id}
                   task={task}

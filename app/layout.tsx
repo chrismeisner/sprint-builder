@@ -308,6 +308,9 @@ const notoEmoji = localFont({
 export const metadata: Metadata = {
   title: "Appliance Studio",
   description: "Two-week design sprints with senior creative direction",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default async function RootLayout({
