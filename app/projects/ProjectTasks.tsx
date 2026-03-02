@@ -45,7 +45,7 @@ export default function ProjectTasks({ projectId }: Props) {
       setIdeas(projectIdeas);
       setError(null);
     } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load ideas");
+        setError(err instanceof Error ? err.message : "Failed to load epics");
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export default function ProjectTasks({ projectId }: Props) {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to create idea");
+        throw new Error(data.error || "Failed to create epic");
       }
 
       setNewIdeaTitle("");
@@ -81,7 +81,7 @@ export default function ProjectTasks({ projectId }: Props) {
       setShowNewIdeaModal(false);
       await fetchIdeas();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create idea");
+      alert(err instanceof Error ? err.message : "Failed to create epic");
     } finally {
       setCreatingIdea(false);
     }
@@ -100,7 +100,7 @@ export default function ProjectTasks({ projectId }: Props) {
 
   if (loading) {
     return (
-      <div className="py-4 text-sm opacity-70">Loading ideas...</div>
+      <div className="py-4 text-sm opacity-70">Loading epics...</div>
     );
   }
 
@@ -115,7 +115,7 @@ export default function ProjectTasks({ projectId }: Props) {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <Typography as="h2" scale="h3">
-            Ideas
+            Epics
           </Typography>
           <Typography as="span" scale="body-sm" className="opacity-60">
             {ideas.length} total
@@ -126,29 +126,29 @@ export default function ProjectTasks({ projectId }: Props) {
             onClick={() => setShowNewIdeaModal(true)}
             className="inline-flex items-center rounded-md bg-black text-white dark:bg-white dark:text-black px-3 py-1.5 text-sm hover:bg-black/80 dark:hover:bg-white/80 transition"
           >
-            + New idea
+            + New epic
           </button>
           <Link
             href="/dashboard/tasks"
             className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
           >
-            Manage all ideas →
+            Manage all epics →
           </Link>
         </div>
       </div>
 
       {ideas.length === 0 ? (
         <Typography as="div" scale="body-sm" className="opacity-70">
-          No ideas yet.{" "}
+          No epics yet.{" "}
           <button
             onClick={() => setShowNewIdeaModal(true)}
             className="text-blue-600 dark:text-blue-400 hover:underline"
           >
-            Create a new idea
+            Create a new epic
           </button>{" "}
-          or link existing ideas from the{" "}
+          or link existing epics from the{" "}
           <Link href="/dashboard/tasks" className="text-blue-600 dark:text-blue-400 hover:underline">
-            Ideas dashboard
+            Tasks dashboard
           </Link>
           .
         </Typography>
@@ -225,7 +225,7 @@ export default function ProjectTasks({ projectId }: Props) {
             {/* Header */}
             <div className="p-4 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
               <Typography as="h3" scale="h3">
-                New Idea
+                New Epic
               </Typography>
               <button
                 onClick={() => setShowNewIdeaModal(false)}
@@ -245,7 +245,7 @@ export default function ProjectTasks({ projectId }: Props) {
                   type="text"
                   value={newIdeaTitle}
                   onChange={(e) => setNewIdeaTitle(e.target.value)}
-                  placeholder="What's the idea?"
+                  placeholder="What's the epic?"
                   className="w-full px-3 py-2 border border-black/10 dark:border-white/15 rounded-md bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={creatingIdea}
                   autoFocus
@@ -284,7 +284,7 @@ export default function ProjectTasks({ projectId }: Props) {
                   disabled={creatingIdea || !newIdeaTitle.trim()}
                   className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  {creatingIdea ? "Creating..." : "Create Idea"}
+                  {creatingIdea ? "Creating..." : "Create Epic"}
                 </button>
               </div>
             </form>

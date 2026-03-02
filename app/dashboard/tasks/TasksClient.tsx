@@ -67,6 +67,8 @@ type Task = {
   focus: string;
   sort_order: number;
   sub_sort_order: number;
+  archived: boolean;
+  archived_at: string | null;
   idea_title: string | null;
   milestone_name: string | null;
   milestone_target_date: string | null;
@@ -79,6 +81,149 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Compact task card for the board view
+function TaskCard({
+  task,
+  onToggleComplete,
+  onToggleNowFocus,
+  onToggleFocus,
+  onToggleWeekFocus,
+  onShowDetail,
+}: {
+  task: Task;
+  onToggleComplete: (task: Task) => void;
+  onToggleNowFocus: (task: Task) => void;
+  onToggleFocus: (task: Task) => void;
+  onToggleWeekFocus: (task: Task) => void;
+  onShowDetail: (task: Task) => void;
+}) {
+  return (
+    <div
+      className={`p-3 rounded-md border bg-white dark:bg-neutral-900 space-y-2 transition ${
+        task.completed
+          ? "opacity-50 border-neutral-200 dark:border-neutral-700"
+          : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
+      }`}
+    >
+      <div className="flex items-start gap-2">
+        <button
+          onClick={() => onToggleComplete(task)}
+          className={`mt-0.5 size-4 rounded border flex-shrink-0 flex items-center justify-center text-xs transition ${
+            task.completed
+              ? "bg-green-500 border-green-500 text-white"
+              : "border-neutral-300 dark:border-neutral-600 hover:border-green-500"
+          }`}
+        >
+          {task.completed && "✓"}
+        </button>
+        <div className="flex-1 min-w-0">
+          <button
+            onClick={() => onShowDetail(task)}
+            className={`text-sm text-left leading-snug hover:underline block w-full ${
+              task.completed
+                ? "line-through text-neutral-400 dark:text-neutral-600"
+                : "text-neutral-900 dark:text-neutral-100"
+            }`}
+          >
+            {task.name}
+          </button>
+          {task.idea_title && (
+            <Link
+              href={`/dashboard/tasks/${task.idea_id}`}
+              className="text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 transition block mt-0.5 truncate"
+            >
+              {task.idea_title}
+            </Link>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onToggleNowFocus(task)}
+          className={`px-1.5 py-0.5 rounded text-xs transition ${
+            task.focus.includes("now")
+              ? "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
+              : "text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+          }`}
+          title={task.focus.includes("now") ? "Remove now focus" : "Set as now"}
+        >
+          🔥
+        </button>
+        <button
+          onClick={() => onToggleFocus(task)}
+          className={`px-1.5 py-0.5 rounded text-xs transition ${
+            task.focus.includes("today")
+              ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+              : "text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+          }`}
+          title={task.focus.includes("today") ? "Remove from today" : "Add to today"}
+        >
+          ☀️
+        </button>
+        <button
+          onClick={() => onToggleWeekFocus(task)}
+          className={`px-1.5 py-0.5 rounded text-xs transition ${
+            task.focus.includes("week")
+              ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30"
+              : "text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+          }`}
+          title={task.focus.includes("week") ? "Remove from this week" : "Add to this week"}
+        >
+          📅
+        </button>
+        {task.attachments && task.attachments.length > 0 && (
+          <span className="px-1.5 py-0.5 rounded text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400">
+            📎 {task.attachments.length}
+          </span>
+        )}
+        <button
+          onClick={() => onShowDetail(task)}
+          className="ml-auto px-1.5 py-0.5 rounded text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-600 dark:hover:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition"
+          title="View details"
+        >
+          ℹ️
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Board column wrapper
+function BoardColumn({
+  title,
+  icon,
+  count,
+  accentClass,
+  headerClass,
+  emptyText,
+  children,
+}: {
+  title: string;
+  icon: string;
+  count: number;
+  accentClass: string;
+  headerClass: string;
+  emptyText: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`rounded-md border ${accentClass} overflow-hidden flex flex-col`}>
+      <div className={`px-3 py-2.5 flex items-center gap-2 ${headerClass}`}>
+        <span>{icon}</span>
+        <span className="font-medium text-sm">{title}</span>
+        <span className="ml-auto text-xs font-mono opacity-60">{count}</span>
+      </div>
+      <div className="flex-1 p-2 space-y-2 min-h-[120px]">
+        {count === 0 ? (
+          <p className="text-xs text-neutral-400 dark:text-neutral-600 text-center py-4">{emptyText}</p>
+        ) : (
+          children
+        )}
+      </div>
+    </div>
+  );
 }
 
 // Sortable Task Item Component
@@ -253,6 +398,9 @@ export default function TasksClient() {
   // Status management
   const [changingStatusIdeaId, setChangingStatusIdeaId] = useState<string | null>(null);
   
+  // View mode: board (columns by focus) or list (ideas with nested tasks)
+  const [viewMode, setViewMode] = useState<"board" | "list">("board");
+
   // Filters
   const [showArchived, setShowArchived] = useState(false);
 
@@ -539,21 +687,21 @@ export default function TasksClient() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to create idea");
+        throw new Error(data.error || "Failed to create epic");
       }
 
       setNewIdeaTitle("");
       setNewIdeaSummary("");
       await fetchData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create idea");
+      alert(err instanceof Error ? err.message : "Failed to create epic");
     } finally {
       setCreatingIdea(false);
     }
   };
 
   const deleteIdea = async (idea: Idea) => {
-    if (!confirm(`Delete "${idea.title}" and all its tasks?`)) return;
+    if (!confirm(`Delete epic "${idea.title}" and all its tasks?`)) return;
 
     try {
       const res = await fetch(`/api/admin/tasks/ideas?id=${idea.id}`, {
@@ -562,12 +710,12 @@ export default function TasksClient() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to delete idea");
+        throw new Error(data.error || "Failed to delete epic");
       }
 
       await fetchData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete idea");
+      alert(err instanceof Error ? err.message : "Failed to delete epic");
     }
   };
 
@@ -695,26 +843,46 @@ export default function TasksClient() {
   };
 
   const toggleTaskFocus = async (task: Task) => {
-    // Toggle "today" while preserving "now" if set
-    const hasToday = task.focus.includes("today");
-    const hasNow = task.focus.includes("now");
-    let newFocus: string;
-    if (hasToday) {
-      // Remove today, keep now if present
-      newFocus = hasNow ? "now" : "";
-    } else {
-      // Add today, keep now if present
-      newFocus = hasNow ? "now,today" : "today";
-    }
-    
+    // Toggle "today" while preserving "now" and "week" if set
+    const parts = task.focus ? task.focus.split(",").filter(Boolean) : [];
+    const hasToday = parts.includes("today");
+    const newFocus = hasToday
+      ? parts.filter((p) => p !== "today").join(",")
+      : [...parts, "today"].join(",");
+
     try {
       const res = await fetch("/api/admin/tasks/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: task.id,
-          focus: newFocus,
-        }),
+        body: JSON.stringify({ id: task.id, focus: newFocus }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update task");
+      }
+
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, focus: newFocus } : t))
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update task");
+    }
+  };
+
+  // Toggle "week" focus — preserves all other focus flags
+  const toggleWeekFocus = async (task: Task) => {
+    const parts = task.focus ? task.focus.split(",").filter(Boolean) : [];
+    const hasWeek = parts.includes("week");
+    const newFocus = hasWeek
+      ? parts.filter((p) => p !== "week").join(",")
+      : [...parts, "week"].join(",");
+
+    try {
+      const res = await fetch("/api/admin/tasks/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: task.id, focus: newFocus }),
       });
 
       if (!res.ok) {
@@ -732,26 +900,18 @@ export default function TasksClient() {
 
   // Toggle "now" focus - only one task can be "in focus" at a time
   const toggleNowFocus = async (task: Task) => {
-    // Toggle "now" while preserving "today" if set
-    const hasNow = task.focus.includes("now");
-    const hasToday = task.focus.includes("today");
-    let newFocus: string;
-    if (hasNow) {
-      // Remove now, keep today if present
-      newFocus = hasToday ? "today" : "";
-    } else {
-      // Add now, keep today if present
-      newFocus = hasToday ? "now,today" : "now";
-    }
-    
+    // Toggle "now" while preserving "today" and "week" if set
+    const parts = task.focus ? task.focus.split(",").filter(Boolean) : [];
+    const hasNow = parts.includes("now");
+    const newFocus = hasNow
+      ? parts.filter((p) => p !== "now").join(",")
+      : ["now", ...parts].join(",");
+
     try {
       const res = await fetch("/api/admin/tasks/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: task.id,
-          focus: newFocus,
-        }),
+        body: JSON.stringify({ id: task.id, focus: newFocus }),
       });
 
       if (!res.ok) {
@@ -759,15 +919,13 @@ export default function TasksClient() {
         throw new Error(data.error || "Failed to update task");
       }
 
-      // Clear "now" from all other tasks (but keep their "today" if set) and set on this one
+      // Clear "now" from all other tasks (preserve "today" and "week") and set on this one
       setTasks((prev) =>
         prev.map((t) => {
-          if (t.id === task.id) {
-            return { ...t, focus: newFocus };
-          }
-          // If another task had "now", remove it but keep "today" if present
+          if (t.id === task.id) return { ...t, focus: newFocus };
           if (t.focus.includes("now")) {
-            return { ...t, focus: t.focus.includes("today") ? "today" : "" };
+            const cleared = t.focus.split(",").filter((p) => p !== "now").join(",");
+            return { ...t, focus: cleared };
           }
           return t;
         })
@@ -914,6 +1072,20 @@ export default function TasksClient() {
   const todayTasks = tasks.filter((t) => t.focus.includes("today") && !t.completed);
   const inFocusTask = tasks.find((t) => t.focus.includes("now") && !t.completed);
 
+  // Board view columns — top-level tasks only, mutually exclusive by priority (now > today > week > open)
+  const boardNowTasks = tasks.filter(
+    (t) => !t.parent_task_id && !t.completed && t.focus.includes("now")
+  );
+  const boardTodayTasks = tasks.filter(
+    (t) => !t.parent_task_id && !t.completed && t.focus.includes("today") && !t.focus.includes("now")
+  );
+  const boardWeekTasks = tasks.filter(
+    (t) => !t.parent_task_id && !t.completed && t.focus.includes("week") && !t.focus.includes("today") && !t.focus.includes("now")
+  );
+  const boardOpenTasks = tasks.filter(
+    (t) => !t.parent_task_id && !t.completed && !t.focus
+  );
+
   if (loading) {
     return (
       <div className="p-6">
@@ -936,61 +1108,79 @@ export default function TasksClient() {
   return (
     <div className="p-6 space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start gap-4">
         <div>
           <h1 className="text-2xl font-semibold leading-snug text-balance text-neutral-900 dark:text-neutral-100">Tasks</h1>
           <div className="flex items-center gap-3 mt-1 text-sm text-neutral-600 dark:text-neutral-400 flex-wrap">
-            <span>
-              {ideas.filter((i) => i.status === "active").length} active
-            </span>
+            <span>{ideas.filter((i) => i.status === "active").length} active epics</span>
             {ideas.filter((i) => i.status === "backburner").length > 0 && (
               <span className="text-orange-600 dark:text-orange-400">
                 · {ideas.filter((i) => i.status === "backburner").length} backburner
               </span>
             )}
-            {ideas.filter((i) => i.status === "archived").length > 0 && (
-              <span className="text-neutral-600 dark:text-neutral-400">
-                · {ideas.filter((i) => i.status === "archived").length} archived
-              </span>
-            )}
             <span>· {tasks.filter((t) => !t.completed).length} open tasks</span>
           </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className={`px-3 py-2 text-sm rounded-md transition border ${
-              showArchived
-                ? "bg-neutral-500/10 text-neutral-600 dark:text-neutral-400 border-neutral-500/30"
-                : "border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-            }`}
-          >
-            {showArchived ? "Hide" : "Show"} Archived ({ideas.filter((i) => i.status === "archived").length})
-          </button>
+        <div className="flex gap-2 flex-wrap items-center">
+          {/* Board / List toggle */}
+          <div className="flex rounded-md border border-neutral-200 dark:border-neutral-700 overflow-hidden text-sm">
+            <button
+              onClick={() => setViewMode("board")}
+              className={`px-3 py-1.5 transition ${
+                viewMode === "board"
+                  ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
+                  : "hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400"
+              }`}
+            >
+              Board
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`px-3 py-1.5 border-l border-neutral-200 dark:border-neutral-700 transition ${
+                viewMode === "list"
+                  ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
+                  : "hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400"
+              }`}
+            >
+              List
+            </button>
+          </div>
+          {viewMode === "list" && (
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className={`px-3 py-1.5 text-sm rounded-md transition border ${
+                showArchived
+                  ? "bg-neutral-500/10 text-neutral-600 dark:text-neutral-400 border-neutral-500/30"
+                  : "border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              }`}
+            >
+              {showArchived ? "Hide" : "Show"} Archived Epics ({ideas.filter((i) => i.status === "archived").length})
+            </button>
+          )}
           <Link
             href="/dashboard/tasks/today"
-            className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition flex items-center gap-2"
+            className="px-3 py-1.5 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition flex items-center gap-1.5 text-sm"
           >
             <span>☀️</span>
             Today ({todayTasks.length})
           </Link>
           <Link
             href="/dashboard/tasks/milestones"
-            className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition"
+            className="px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition"
           >
             🎯 Milestones
           </Link>
           <Link
             href="/dashboard/tasks/activity"
-            className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition"
+            className="px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition"
           >
             📋 Activity
           </Link>
         </div>
       </div>
 
-      {/* In Focus Task */}
-      {inFocusTask && (
+      {/* In Focus Task — only shown in List view (board has its own Now column) */}
+      {viewMode === "list" && inFocusTask && (
         <div className="p-4 border-2 border-red-500/50 bg-red-500/5 rounded-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1047,19 +1237,115 @@ export default function TasksClient() {
         </div>
       )}
 
+      {/* ── Board View ── */}
+      {viewMode === "board" && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* Now column */}
+            <BoardColumn
+              title="Now"
+              icon="🔥"
+              count={boardNowTasks.length}
+              accentClass="border-red-500/30"
+              headerClass="bg-red-500/5 border-b border-red-500/20 text-red-700 dark:text-red-400"
+              emptyText="Nothing in focus"
+            >
+              {boardNowTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onToggleComplete={toggleTaskComplete}
+                  onToggleNowFocus={toggleNowFocus}
+                  onToggleFocus={toggleTaskFocus}
+                  onToggleWeekFocus={toggleWeekFocus}
+                  onShowDetail={openTaskDetail}
+                />
+              ))}
+            </BoardColumn>
+
+            {/* Today column */}
+            <BoardColumn
+              title="Today"
+              icon="☀️"
+              count={boardTodayTasks.length}
+              accentClass="border-amber-500/30"
+              headerClass="bg-amber-500/5 border-b border-amber-500/20 text-amber-700 dark:text-amber-400"
+              emptyText="No tasks for today"
+            >
+              {boardTodayTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onToggleComplete={toggleTaskComplete}
+                  onToggleNowFocus={toggleNowFocus}
+                  onToggleFocus={toggleTaskFocus}
+                  onToggleWeekFocus={toggleWeekFocus}
+                  onShowDetail={openTaskDetail}
+                />
+              ))}
+            </BoardColumn>
+
+            {/* This Week column */}
+            <BoardColumn
+              title="This Week"
+              icon="📅"
+              count={boardWeekTasks.length}
+              accentClass="border-blue-500/30"
+              headerClass="bg-blue-500/5 border-b border-blue-500/20 text-blue-700 dark:text-blue-400"
+              emptyText="No tasks this week"
+            >
+              {boardWeekTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onToggleComplete={toggleTaskComplete}
+                  onToggleNowFocus={toggleNowFocus}
+                  onToggleFocus={toggleTaskFocus}
+                  onToggleWeekFocus={toggleWeekFocus}
+                  onShowDetail={openTaskDetail}
+                />
+              ))}
+            </BoardColumn>
+
+            {/* Open column */}
+            <BoardColumn
+              title="Open"
+              icon="📋"
+              count={boardOpenTasks.length}
+              accentClass="border-neutral-200 dark:border-neutral-700"
+              headerClass="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300"
+              emptyText="No open tasks"
+            >
+              {boardOpenTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onToggleComplete={toggleTaskComplete}
+                  onToggleNowFocus={toggleNowFocus}
+                  onToggleFocus={toggleTaskFocus}
+                  onToggleWeekFocus={toggleWeekFocus}
+                  onShowDetail={openTaskDetail}
+                />
+              ))}
+            </BoardColumn>
+          </div>
+        </div>
+      )}
+
+      {/* ── List View ── */}
       {/* New Idea Form */}
-      <form
+      {viewMode === "list" && <form
         onSubmit={createIdea}
         className="p-4 border border-neutral-200 dark:border-neutral-700 rounded-md bg-neutral-50 dark:bg-neutral-800"
       >
-        <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-3">New Idea</h3>
+        <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-3">New Epic</h3>
         <div className="flex flex-col md:flex-row gap-3">
           <input
             type="text"
             value={newIdeaTitle}
             onChange={(e) => setNewIdeaTitle(e.target.value)}
-            placeholder="Idea title..."
-            aria-label="Idea title"
+            placeholder="Epic title..."
+            aria-label="Epic title"
             className="flex-1 h-10 px-3 text-sm border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:ring-blue-400"
             disabled={creatingIdea}
           />
@@ -1068,7 +1354,7 @@ export default function TasksClient() {
             value={newIdeaSummary}
             onChange={(e) => setNewIdeaSummary(e.target.value)}
             placeholder="Summary (optional)"
-            aria-label="Idea summary"
+            aria-label="Epic summary"
             className="flex-1 h-10 px-3 text-sm border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:ring-blue-400"
             disabled={creatingIdea}
           />
@@ -1077,16 +1363,16 @@ export default function TasksClient() {
             disabled={creatingIdea || !newIdeaTitle.trim()}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            {creatingIdea ? "Creating..." : "Create Idea"}
+            {creatingIdea ? "Creating..." : "Create Epic"}
           </button>
         </div>
-      </form>
+      </form>}
 
       {/* Ideas List */}
-      {ideas.length === 0 ? (
+      {viewMode === "list" && (ideas.length === 0 ? (
         <div className="text-center py-12 text-neutral-500 dark:text-neutral-500">
-          <p className="text-lg font-normal leading-relaxed text-pretty">No ideas yet</p>
-          <p className="text-sm font-normal leading-normal mt-1">Create your first idea above to get started</p>
+          <p className="text-lg font-normal leading-relaxed text-pretty">No epics yet</p>
+          <p className="text-sm font-normal leading-normal mt-1">Create your first epic above to get started</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -1363,7 +1649,7 @@ export default function TasksClient() {
             );
           })}
         </div>
-      )}
+      ))}
 
       {/* Task Detail Modal */}
       {detailTask && (
@@ -1610,7 +1896,7 @@ export default function TasksClient() {
                   href={`/dashboard/tasks/${detailTask.idea_id}`}
                   className="px-4 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 rounded transition"
                 >
-                  Open Idea →
+                  Open Epic →
                 </Link>
                 <button
                   onClick={() => setDetailTask(null)}

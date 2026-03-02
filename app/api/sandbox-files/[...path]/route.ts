@@ -253,6 +253,16 @@ export async function GET(
         }
       }
       
+      // Replace {{BASE_URL}} placeholder with the actual request origin.
+      // This allows sandbox HTML files to reference absolute URLs (e.g. OG images)
+      // without hardcoding the domain.
+      const origin = new URL(request.url).origin;
+      let htmlContent = content.toString("utf-8");
+      if (htmlContent.includes("{{BASE_URL}}")) {
+        htmlContent = htmlContent.replace(/\{\{BASE_URL\}\}/g, origin);
+        content = Buffer.from(htmlContent, "utf-8");
+      }
+
       // Inject user admin status for admin-only controls
       const needsAdminInjection =
         filePath.includes("style-tiles.html") ||
@@ -264,8 +274,8 @@ export async function GET(
         const user = await getCurrentUser();
         const isAdmin = user?.isAdmin || false;
         const userInfoScript = `<script>window.__USER_IS_ADMIN__ = ${isAdmin};</script>`;
-        const htmlContent = content.toString("utf-8");
-        const modifiedHtml = htmlContent.replace("</head>", `${userInfoScript}\n  </head>`);
+        const currentHtml = content.toString("utf-8");
+        const modifiedHtml = currentHtml.replace("</head>", `${userInfoScript}\n  </head>`);
         content = Buffer.from(modifiedHtml, "utf-8");
       }
     }

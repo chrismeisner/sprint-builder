@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
     const ideaId = searchParams.get("ideaId");
     const focus = searchParams.get("focus");
     const includeCompleted = searchParams.get("includeCompleted") !== "false";
+    const includeArchived = searchParams.get("includeArchived") === "true";
 
     const pool = getPool();
     
@@ -69,6 +70,11 @@ export async function GET(request: NextRequest) {
 
     if (!includeCompleted) {
       query += ` AND t.completed = false`;
+    }
+
+    // Exclude archived tasks by default
+    if (!includeArchived) {
+      query += ` AND t.archived = false`;
     }
 
     query += ` ORDER BY t.completed ASC, t.sort_order ASC, t.sub_sort_order ASC, t.created_at DESC`;
@@ -203,7 +209,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Handle single task update
-    const { id, name, note, completed, focus, milestone_id, progress } = body;
+    const { id, name, note, completed, focus, milestone_id, progress, archived } = body;
     
     if (!id) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
@@ -211,7 +217,7 @@ export async function PATCH(request: NextRequest) {
 
     // Get current task state for event logging
     const currentTaskResult = await pool.query(
-      `SELECT id, idea_id, name, note, completed, focus, milestone_id, progress FROM admin_tasks WHERE id = $1`,
+      `SELECT id, idea_id, name, note, completed, focus, milestone_id, progress, archived FROM admin_tasks WHERE id = $1`,
       [id]
     );
     const currentTask = currentTaskResult.rows[0];
@@ -247,18 +253,25 @@ export async function PATCH(request: NextRequest) {
         values.push(currentTask.progress >= 100 ? 90 : currentTask.progress);
       }
       
-      // If completing a task that's "in focus", remove the "now" but keep "today" if present
+      // If completing a task that's "in focus", remove "now" but keep "today" and "week" if present
       if (completed && currentTask.focus.includes("now")) {
         updates.push(`focus = $${paramCount++}`);
-        const newFocus = currentTask.focus.includes("today") ? "today" : "";
+        const newFocus = currentTask.focus.split(",").filter((p: string) => p !== "now").join(",");
         values.push(newFocus);
       }
     }
     if (focus !== undefined) {
-      // If setting focus to "now", clear any other task's "now" focus first (but keep their "today" if set)
+      // If setting focus to "now", clear "now" from all other tasks but preserve "today" and "week"
       if (focus.includes("now")) {
-        // For tasks with "now,today", change to "today"; for just "now", change to ""
-        await pool.query(`UPDATE admin_tasks SET focus = CASE WHEN focus LIKE '%today%' THEN 'today' ELSE '' END WHERE focus LIKE '%now%'`);
+        await pool.query(`
+          UPDATE admin_tasks SET focus = CASE
+            WHEN focus LIKE '%today%' AND focus LIKE '%week%' THEN 'today,week'
+            WHEN focus LIKE '%today%' THEN 'today'
+            WHEN focus LIKE '%week%' THEN 'week'
+            ELSE ''
+          END
+          WHERE focus LIKE '%now%'
+        `);
       }
       updates.push(`focus = $${paramCount++}`);
       values.push(focus);
@@ -272,6 +285,12 @@ export async function PATCH(request: NextRequest) {
     if (milestone_id !== undefined) {
       updates.push(`milestone_id = $${paramCount++}`);
       values.push(milestone_id || null);
+    }
+    if (archived !== undefined) {
+      updates.push(`archived = $${paramCount++}`);
+      values.push(archived);
+      updates.push(`archived_at = $${paramCount++}`);
+      values.push(archived ? new Date().toISOString() : null);
     }
 
     if (updates.length === 0) {
@@ -359,6 +378,13 @@ export async function PATCH(request: NextRequest) {
         name: updatedTask.name,
         previous_progress: currentTask.progress,
         new_progress: updatedTask.progress,
+      });
+    }
+
+    // Archived status changed
+    if (archived !== undefined && archived !== currentTask.archived) {
+      await logTaskEvent(id, currentTask.idea_id, archived ? "archived" : "unarchived", {
+        name: updatedTask.name,
       });
     }
 

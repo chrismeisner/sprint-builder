@@ -79,6 +79,18 @@ export default function ProjectsClient() {
   const [welcomeSaving, setWelcomeSaving] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [typeUpdating, setTypeUpdating] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
+  const [sortKey, setSortKey] = useState<'name' | 'type' | 'status' | 'created' | 'members'>('created');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>(() => {
+    if (typeof window === 'undefined') return 'table';
+    return (localStorage.getItem('projects-view-mode') as 'table' | 'grid') ?? 'table';
+  });
+
+  const handleSetViewMode = (mode: 'table' | 'grid') => {
+    setViewMode(mode);
+    localStorage.setItem('projects-view-mode', mode);
+  };
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
@@ -361,6 +373,58 @@ export default function ProjectsClient() {
     }
   };
 
+  const getStatusAccentClasses = (status: ProjectStatus) => {
+    switch (status) {
+      case 'active':    return 'bg-green-500';
+      case 'on_hold':   return 'bg-yellow-400';
+      case 'completed': return 'bg-blue-500';
+      case 'cancelled': return 'bg-gray-400';
+      default:          return 'bg-gray-300';
+    }
+  };
+
+  const handleSort = (key: typeof sortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const sortProjects = (list: Project[]) => {
+    const statusOrder: Record<ProjectStatus, number> = { active: 0, on_hold: 1, completed: 2, cancelled: 3 };
+    const typeOrder: Record<string, number> = { client: 0, internal: 1 };
+    return [...list].sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case 'name':
+          cmp = a.name.localeCompare(b.name);
+          break;
+        case 'type':
+          cmp = (typeOrder[a.projectType] ?? 9) - (typeOrder[b.projectType] ?? 9);
+          break;
+        case 'status':
+          cmp = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+          break;
+        case 'created':
+          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+        case 'members':
+          cmp = (data?.projectMembers?.[a.id]?.length ?? 0) - (data?.projectMembers?.[b.id]?.length ?? 0);
+          break;
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  };
+
+  const SortIcon = ({ col }: { col: typeof sortKey }) => {
+    if (sortKey !== col) {
+      return <span className="ml-1 opacity-30">↕</span>;
+    }
+    return <span className="ml-1 opacity-80">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -552,7 +616,7 @@ export default function ProjectsClient() {
         )}
       </div>
 
-      {/* Projects Table */}
+      {/* Projects Table / Grid */}
       <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 overflow-hidden">
         <div className="px-6 py-4 border-b border-black/10 dark:border-white/15 space-y-3">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -562,7 +626,86 @@ export default function ProjectsClient() {
                 Track the initiatives you&apos;re running sprints for.
               </p>
             </div>
+            <div className="flex items-center gap-2">
+              {/* Sort dropdown — shown in grid mode */}
+              {viewMode === 'grid' && data.projects.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={`${sortKey}-${sortDir}`}
+                    onChange={(e) => {
+                      const [k, d] = e.target.value.split('-') as [typeof sortKey, 'asc' | 'desc'];
+                      setSortKey(k);
+                      setSortDir(d);
+                    }}
+                    className={`${bodySmClass} px-2 py-1.5 rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white cursor-pointer`}
+                  >
+                    <option value="created-desc">Newest first</option>
+                    <option value="created-asc">Oldest first</option>
+                    <option value="name-asc">Name A→Z</option>
+                    <option value="name-desc">Name Z→A</option>
+                    <option value="status-asc">Status</option>
+                    <option value="type-asc">Type</option>
+                    <option value="members-desc">Most members</option>
+                  </select>
+                </div>
+              )}
+              {/* View toggle */}
+              <div className="flex items-center rounded-md border border-black/15 dark:border-white/15 overflow-hidden">
+                <button
+                  onClick={() => handleSetViewMode('table')}
+                  title="Table view"
+                  className={`px-2.5 py-1.5 transition ${viewMode === 'table' ? 'bg-black dark:bg-white text-white dark:text-black' : 'hover:bg-black/5 dark:hover:bg-white/10'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>
+                  </svg>
+                </button>
+                <button
+                  onClick={() => handleSetViewMode('grid')}
+                  title="Grid view"
+                  className={`px-2.5 py-1.5 transition border-l border-black/15 dark:border-white/15 ${viewMode === 'grid' ? 'bg-black dark:bg-white text-white dark:text-black' : 'hover:bg-black/5 dark:hover:bg-white/10'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
+          {/* Status filter pills */}
+          {data.projects.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`${bodySmClass} px-3 py-1 rounded-full border transition ${
+                  statusFilter === 'all'
+                    ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white'
+                    : 'border-black/15 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10'
+                }`}
+              >
+                All
+                <span className="ml-1.5 opacity-60">{data.projects.length}</span>
+              </button>
+              {PROJECT_STATUSES.map((s) => {
+                const count = data.projects.filter((p) => (p.status || 'active') === s.value).length;
+                if (count === 0) return null;
+                return (
+                  <button
+                    key={s.value}
+                    onClick={() => setStatusFilter(statusFilter === s.value ? 'all' : s.value)}
+                    className={`${bodySmClass} px-3 py-1 rounded-full border transition ${
+                      statusFilter === s.value
+                        ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white'
+                        : 'border-black/15 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10'
+                    }`}
+                  >
+                    {s.label}
+                    <span className="ml-1.5 opacity-60">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
         {data.projects.length === 0 ? (
           <div className="p-6 text-center">
@@ -570,37 +713,134 @@ export default function ProjectsClient() {
               No projects yet. Add your first project to keep related sprints together.
             </p>
           </div>
-        ) : (
+        ) : (() => {
+          const filtered = statusFilter === 'all'
+            ? data.projects
+            : data.projects.filter((p) => (p.status || 'active') === statusFilter);
+          const filteredProjects = sortProjects(filtered);
+          if (filteredProjects.length === 0) return (
+            <div className="p-6 text-center">
+              <p className={helperTextClass}>
+                No {PROJECT_STATUSES.find((s) => s.value === statusFilter)?.label.toLowerCase()} projects.
+              </p>
+            </div>
+          );
+          if (viewMode === 'grid') return (
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredProjects.map((project) => {
+                const status = project.status || 'active';
+                const type = project.projectType || 'client';
+                const memberCount = data.projectMembers?.[project.id]?.length ?? 0;
+                return (
+                  <div key={project.id} className="flex flex-col rounded-lg border border-black/10 dark:border-white/15 overflow-hidden hover:shadow-md transition">
+                    {/* Top accent bar */}
+                    <div className={`h-1.5 w-full ${getStatusAccentClasses(status)}`} />
+                    <div className="flex flex-col flex-1 p-4 gap-3">
+                      {/* Name + badges */}
+                      <div className="flex flex-col gap-1.5">
+                        <Link href={`/projects/${project.id}`} className={`${bodyClass} font-semibold hover:underline leading-snug`}>
+                          {project.name}
+                        </Link>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={getStatusBadgeClasses(status)}>
+                            {PROJECT_STATUSES.find(s => s.value === status)?.label}
+                          </span>
+                          <span className={getTypeBadgeClasses(type)}>
+                            {PROJECT_TYPES.find(t => t.value === type)?.label}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Meta row */}
+                      <div className={`flex items-center gap-3 ${monoMetaClass}`}>
+                        <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+                        <span>·</span>
+                        <span>{memberCount} {memberCount === 1 ? 'member' : 'members'}</span>
+                        <span>·</span>
+                        <span>{project.isOwner ? 'Owner' : 'Shared'}</span>
+                      </div>
+                      {/* Admin controls */}
+                      {data.profile.isAdmin && (
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={type}
+                            onChange={(e) => handleTypeChange(project.id, e.target.value as ProjectType)}
+                            disabled={typeUpdating === project.id}
+                            className={`${bodySmClass} flex-1 px-2 py-1 rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
+                          >
+                            {PROJECT_TYPES.map((t) => (
+                              <option key={t.value} value={t.value}>{t.label}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={status}
+                            onChange={(e) => handleStatusChange(project.id, e.target.value as ProjectStatus)}
+                            disabled={statusUpdating === project.id}
+                            className={`${bodySmClass} flex-1 px-2 py-1 rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
+                          >
+                            {PROJECT_STATUSES.map((s) => (
+                              <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                    {/* Card footer */}
+                    <div className="px-4 pb-4">
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className={`${getTypographyClassName("button-sm")} w-full flex items-center justify-center px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                      >
+                        Open project
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+          return (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/15">
                 <tr>
+                  <th className="w-1 p-0" />
+                  {(
+                    [
+                      { key: 'name',    label: 'Project'  },
+                      { key: 'type',    label: 'Type'     },
+                      { key: 'status',  label: 'Status'   },
+                      { key: 'created', label: 'Created'  },
+                    ] as { key: typeof sortKey; label: string }[]
+                  ).map(({ key, label }) => (
+                    <th key={key} className={`px-4 py-3 ${tableHeadingClass}`}>
+                      <button
+                        onClick={() => handleSort(key)}
+                        className="inline-flex items-center gap-0.5 hover:opacity-100 opacity-70 transition select-none"
+                      >
+                        {label}
+                        <SortIcon col={key} />
+                      </button>
+                    </th>
+                  ))}
+                  <th className={`px-4 py-3 ${tableHeadingClass}`}>Access</th>
                   <th className={`px-4 py-3 ${tableHeadingClass}`}>
-                    Project
+                    <button
+                      onClick={() => handleSort('members')}
+                      className="inline-flex items-center gap-0.5 hover:opacity-100 opacity-70 transition select-none"
+                    >
+                      Members
+                      <SortIcon col="members" />
+                    </button>
                   </th>
-                  <th className={`px-4 py-3 ${tableHeadingClass}`}>
-                    Type
-                  </th>
-                  <th className={`px-4 py-3 ${tableHeadingClass}`}>
-                    Status
-                  </th>
-                  <th className={`px-4 py-3 ${tableHeadingClass}`}>
-                    Created
-                  </th>
-                  <th className={`px-4 py-3 ${tableHeadingClass}`}>
-                    Access
-                  </th>
-                  <th className={`px-4 py-3 ${tableHeadingClass}`}>
-                    Members
-                  </th>
-                  <th className={`px-4 py-3 ${tableHeadingClass}`}>
-                    Actions
-                  </th>
+                  <th className={`px-4 py-3 ${tableHeadingClass}`}>Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/10 dark:divide-white/15">
-                {data.projects.map((project) => (
+                {filteredProjects.map((project) => (
                   <tr key={project.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition">
+                    <td className="w-1 p-0">
+                      <div className={`w-1 h-full min-h-[3rem] ${getStatusAccentClasses(project.status || 'active')}`} />
+                    </td>
                     <td className="px-4 py-3">
                       <Link href={`/projects/${project.id}`} className="flex flex-col">
                         <div className={`${bodyClass} font-medium hover:underline`}>{project.name}</div>
@@ -675,7 +915,9 @@ export default function ProjectsClient() {
               </tbody>
             </table>
           </div>
-        )}
+          );
+        })()}
+
       </div>
     </div>
   );

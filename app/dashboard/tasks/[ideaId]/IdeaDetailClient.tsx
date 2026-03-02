@@ -59,6 +59,8 @@ type Task = {
   focus: string;
   sort_order: number;
   sub_sort_order: number;
+  archived: boolean;
+  archived_at: string | null;
   idea_title: string | null;
   milestone_name: string | null;
   milestone_target_date: string | null;
@@ -86,6 +88,32 @@ type Props = {
   ideaId: string;
 };
 
+// Tooltip wrapper for action buttons
+function ActionButton({
+  label,
+  onClick,
+  disabled,
+  className,
+  children,
+}: {
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  className: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative group/tt">
+      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-1.5 py-0.5 text-xs bg-neutral-800 dark:bg-neutral-600 text-white rounded whitespace-nowrap opacity-0 group-hover/tt:opacity-100 transition-opacity z-30">
+        {label}
+      </span>
+      <button onClick={onClick} disabled={disabled} className={className}>
+        {children}
+      </button>
+    </div>
+  );
+}
+
 // Sortable Task Item Component
 type SortableTaskItemProps = {
   task: Task;
@@ -103,6 +131,8 @@ type SortableTaskItemProps = {
   onSetMilestoneModal: (task: Task) => void;
   onSetAddingSubtask: (taskId: string | null) => void;
   onDelete: (task: Task) => void;
+  onArchive: (task: Task) => void;
+  onToggleWeekFocus: (task: Task) => void;
   onEditTaskName: (task: Task) => void;
   onUpdateTaskName: (task: Task) => void;
   onCancelEditTask: () => void;
@@ -134,6 +164,8 @@ function SortableTaskItem({
   onSetMilestoneModal,
   onSetAddingSubtask,
   onDelete,
+  onArchive,
+  onToggleWeekFocus,
   onEditTaskName,
   onUpdateTaskName,
   onCancelEditTask,
@@ -165,17 +197,19 @@ function SortableTaskItem({
     zIndex: isDragging ? 1000 : 1,
   };
 
+  const hasSubsection = subtasks.length > 0 || addingSubtaskTo === task.id;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="border border-neutral-200 dark:border-neutral-700 rounded-md overflow-hidden bg-white dark:bg-neutral-900"
+      className="border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900"
     >
-      {/* Task Row */}
+      {/* Task Row — rounded corners handled per-child so tooltips can escape overflow */}
       <div
-        className={`p-3 flex items-start gap-3 ${
-          task.completed ? "bg-neutral-50 dark:bg-neutral-800 opacity-60" : ""
-        }`}
+        className={`p-3 flex items-start gap-3 rounded-t-md ${
+          !hasSubsection ? "rounded-b-md" : ""
+        } ${task.completed ? "bg-neutral-50 dark:bg-neutral-800 opacity-60" : ""}`}
       >
         {/* Drag Handle */}
         <button
@@ -313,20 +347,19 @@ function SortableTaskItem({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <button
-            onClick={() => fileInputRef.current?.click()}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <ActionButton
+            label="Attach"
             disabled={uploadingTaskId === task.id}
-            className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
+            onClick={() => fileInputRef.current?.click()}
+            className={`px-2 py-1 rounded-md text-sm transition flex items-center gap-1 ${
               uploadingTaskId === task.id
                 ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 cursor-wait"
                 : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:text-neutral-600 dark:hover:text-neutral-300"
             }`}
-            title="Upload file/image"
-            aria-label="Upload file or image"
           >
             {uploadingTaskId === task.id ? "⏳" : "📎"}
-          </button>
+          </ActionButton>
           <input
             ref={fileInputRef}
             type="file"
@@ -340,73 +373,84 @@ function SortableTaskItem({
               }
             }}
           />
-          <button
+          <ActionButton
+            label={task.focus.includes("now") ? "Unfocus" : "Focus Now"}
             onClick={() => onToggleNowFocus(task)}
-            className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
+            className={`px-2 py-1 rounded-md text-sm transition flex items-center gap-1 ${
               task.focus.includes("now")
                 ? "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
                 : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:text-neutral-600 dark:hover:text-neutral-300"
             }`}
-            title={task.focus.includes("now") ? "Remove focus" : "Focus now"}
-            aria-label={task.focus.includes("now") ? "Remove focus" : "Focus now"}
           >
             🔥
-            <span className="text-xs">{task.focus.includes("now") ? "Focus" : ""}</span>
-          </button>
-          <button
+            {task.focus.includes("now") && <span className="text-xs">Now</span>}
+          </ActionButton>
+          <ActionButton
+            label={task.focus.includes("today") ? "Remove Today" : "Add to Today"}
             onClick={() => onToggleFocus(task)}
-            className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
+            className={`px-2 py-1 rounded-md text-sm transition flex items-center gap-1 ${
               task.focus.includes("today")
                 ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
                 : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:text-neutral-600 dark:hover:text-neutral-300"
             }`}
-            title={task.focus.includes("today") ? "Remove from Today" : "Add to Today"}
-            aria-label={task.focus.includes("today") ? "Remove from Today" : "Add to Today"}
           >
             ☀️
-            <span className="text-xs">{task.focus.includes("today") ? "Today" : ""}</span>
-          </button>
-          <button
+            {task.focus.includes("today") && <span className="text-xs">Today</span>}
+          </ActionButton>
+          <ActionButton
+            label={task.focus.includes("week") ? "Remove This Week" : "Add to This Week"}
+            onClick={() => onToggleWeekFocus(task)}
+            className={`px-2 py-1 rounded-md text-sm transition flex items-center gap-1 ${
+              task.focus.includes("week")
+                ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30"
+                : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:text-neutral-600 dark:hover:text-neutral-300"
+            }`}
+          >
+            📅
+            {task.focus.includes("week") && <span className="text-xs">Week</span>}
+          </ActionButton>
+          <ActionButton
+            label={task.milestone_id ? "Milestone set" : "Set Milestone"}
             onClick={() => onSetMilestoneModal(task)}
-            className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
+            className={`px-2 py-1 rounded-md text-sm transition flex items-center gap-1 ${
               task.milestone_id
                 ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30"
                 : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:text-neutral-600 dark:hover:text-neutral-300"
             }`}
-            title="Set milestone"
-            aria-label="Set milestone"
           >
             🎯
-            <span className="text-xs">{task.milestone_id ? "Set" : ""}</span>
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
+            label="Add Subtask"
             onClick={() => onSetAddingSubtask(addingSubtaskTo === task.id ? null : task.id)}
-            className={`px-2 py-1 rounded-md text-sm font-medium transition flex items-center gap-1 ${
+            className={`px-2 py-1 rounded-md text-sm transition flex items-center gap-1 ${
               addingSubtaskTo === task.id
                 ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30"
                 : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:text-neutral-600 dark:hover:text-neutral-300"
             }`}
-            title="Add subtask"
-            aria-label="Add subtask"
           >
             ➕
-          </button>
-          <button
-            onClick={() => {
-              if (confirm("Delete this task?")) onDelete(task);
-            }}
-            className="px-2 py-1 rounded-md text-sm font-medium transition bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500/30"
-            title="Delete task"
-            aria-label="Delete task"
+          </ActionButton>
+          <ActionButton
+            label="Archive"
+            onClick={() => onArchive(task)}
+            className="px-2 py-1 rounded-md text-sm transition bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-amber-500/15 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-500/30"
+          >
+            📦
+          </ActionButton>
+          <ActionButton
+            label="Delete"
+            onClick={() => { if (confirm("Delete this task?")) onDelete(task); }}
+            className="px-2 py-1 rounded-md text-sm transition bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border border-transparent hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500/30"
           >
             🗑️
-          </button>
+          </ActionButton>
         </div>
       </div>
 
       {/* Subtasks */}
       {(subtasks.length > 0 || addingSubtaskTo === task.id) && (
-        <div className="border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-800/50">
+        <div className="border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-800/50 rounded-b-md overflow-hidden">
           {subtasks.map((sub) => (
             <div
               key={sub.id}
@@ -534,6 +578,10 @@ export default function IdeaDetailClient({ ideaId }: Props) {
   const [ideaTitleValue, setIdeaTitleValue] = useState("");
   const [ideaSummaryValue, setIdeaSummaryValue] = useState("");
 
+  // Archived tasks
+  const [archivedTasks, setArchivedTasks] = useState<Task[]>([]);
+  const [showArchivedTasks, setShowArchivedTasks] = useState(false);
+
   // File upload
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null);
 
@@ -544,9 +592,10 @@ export default function IdeaDetailClient({ ideaId }: Props) {
     try {
       setLoading(true);
 
-      const [ideasRes, tasksRes, milestonesRes, projectsRes] = await Promise.all([
+      const [ideasRes, tasksRes, archivedTasksRes, milestonesRes, projectsRes] = await Promise.all([
         fetch("/api/admin/tasks/ideas"),
         fetch(`/api/admin/tasks/tasks?ideaId=${ideaId}`),
+        fetch(`/api/admin/tasks/tasks?ideaId=${ideaId}&includeArchived=true&includeCompleted=false`),
         fetch("/api/admin/tasks/milestones"),
         fetch("/api/admin/tasks/projects"),
       ]);
@@ -557,6 +606,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
 
       const ideasData = await ideasRes.json();
       const tasksData = await tasksRes.json();
+      const archivedTasksData = archivedTasksRes.ok ? await archivedTasksRes.json() : { tasks: [] };
       const milestonesData = await milestonesRes.json();
       const projectsData = await projectsRes.json();
 
@@ -585,8 +635,12 @@ export default function IdeaDetailClient({ ideaId }: Props) {
         })
       );
 
+      // Archived tasks are those fetched with includeArchived=true that are actually archived
+      const archived = archivedTasksData.tasks.filter((t: Task) => t.archived);
+
       setIdea(foundIdea);
       setTasks(tasksWithAttachments);
+      setArchivedTasks(archived);
       setMilestones(milestonesData.milestones);
       setProjects(projectsData.projects);
       setError(null);
@@ -714,18 +768,38 @@ export default function IdeaDetailClient({ ideaId }: Props) {
   };
 
   const toggleTaskFocus = async (task: Task) => {
-    // Toggle "today" while preserving "now" if set
-    const hasToday = task.focus.includes("today");
-    const hasNow = task.focus.includes("now");
-    let newFocus: string;
-    if (hasToday) {
-      // Remove today, keep now if present
-      newFocus = hasNow ? "now" : "";
-    } else {
-      // Add today, keep now if present
-      newFocus = hasNow ? "now,today" : "today";
-    }
+    // Toggle "today" while preserving "now" and "week" if set
+    const parts = task.focus ? task.focus.split(",").filter(Boolean) : [];
+    const hasToday = parts.includes("today");
+    const newFocus = hasToday
+      ? parts.filter((p) => p !== "today").join(",")
+      : [...parts, "today"].join(",");
     
+    try {
+      const res = await fetch("/api/admin/tasks/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: task.id, focus: newFocus }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update");
+
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, focus: newFocus } : t))
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update task");
+    }
+  };
+
+  // Toggle "week" focus — add or remove "week" while preserving other flags
+  const toggleWeekFocus = async (task: Task) => {
+    const parts = task.focus ? task.focus.split(",").filter(Boolean) : [];
+    const hasWeek = parts.includes("week");
+    const newFocus = hasWeek
+      ? parts.filter((p) => p !== "week").join(",")
+      : [...parts, "week"].join(",");
+
     try {
       const res = await fetch("/api/admin/tasks/tasks", {
         method: "PATCH",
@@ -745,17 +819,12 @@ export default function IdeaDetailClient({ ideaId }: Props) {
 
   // Toggle "now" focus - only one task can be "in focus" at a time
   const toggleNowFocus = async (task: Task) => {
-    // Toggle "now" while preserving "today" if set
-    const hasNow = task.focus.includes("now");
-    const hasToday = task.focus.includes("today");
-    let newFocus: string;
-    if (hasNow) {
-      // Remove now, keep today if present
-      newFocus = hasToday ? "today" : "";
-    } else {
-      // Add now, keep today if present
-      newFocus = hasToday ? "now,today" : "now";
-    }
+    // Toggle "now" while preserving "today" and "week" if set
+    const parts = task.focus ? task.focus.split(",").filter(Boolean) : [];
+    const hasNow = parts.includes("now");
+    const newFocus = hasNow
+      ? parts.filter((p) => p !== "now").join(",")
+      : ["now", ...parts].join(",");
     
     try {
       const res = await fetch("/api/admin/tasks/tasks", {
@@ -766,15 +835,13 @@ export default function IdeaDetailClient({ ideaId }: Props) {
 
       if (!res.ok) throw new Error("Failed to update");
 
-      // Clear "now" from all other tasks (but keep their "today" if set) and set on this one
+      // Clear "now" from all other tasks (preserve "today" and "week") and set on this one
       setTasks((prev) =>
         prev.map((t) => {
-          if (t.id === task.id) {
-            return { ...t, focus: newFocus };
-          }
-          // If another task had "now", remove it but keep "today" if present
+          if (t.id === task.id) return { ...t, focus: newFocus };
           if (t.focus.includes("now")) {
-            return { ...t, focus: t.focus.includes("today") ? "today" : "" };
+            const cleared = t.focus.split(",").filter((p) => p !== "now").join(",");
+            return { ...t, focus: cleared };
           }
           return t;
         })
@@ -851,6 +918,45 @@ export default function IdeaDetailClient({ ideaId }: Props) {
       setTasks((prev) => prev.filter((t) => t.id !== task.id && t.parent_task_id !== task.id));
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete task");
+    }
+  };
+
+  const archiveTask = async (task: Task) => {
+    try {
+      const res = await fetch("/api/admin/tasks/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: task.id, archived: true }),
+      });
+
+      if (!res.ok) throw new Error("Failed to archive");
+
+      const archivedNow = new Date().toISOString();
+      setTasks((prev) => prev.filter((t) => t.id !== task.id && t.parent_task_id !== task.id));
+      setArchivedTasks((prev) => [
+        ...prev,
+        { ...task, archived: true, archived_at: archivedNow },
+      ]);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to archive task");
+    }
+  };
+
+  const unarchiveTask = async (task: Task) => {
+    try {
+      const res = await fetch("/api/admin/tasks/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: task.id, archived: false }),
+      });
+
+      if (!res.ok) throw new Error("Failed to unarchive");
+
+      const { task: updated } = await res.json();
+      setArchivedTasks((prev) => prev.filter((t) => t.id !== task.id));
+      setTasks((prev) => [...prev, updated]);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to restore task");
     }
   };
 
@@ -1138,7 +1244,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
           ← Back to Tasks
         </Link>
         <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md p-4 mt-4">
-          <p className="text-sm text-red-700 dark:text-red-400">{error || "Idea not found"}</p>
+          <p className="text-sm text-red-700 dark:text-red-400">{error || "Epic not found"}</p>
         </div>
       </div>
     );
@@ -1200,9 +1306,9 @@ export default function IdeaDetailClient({ ideaId }: Props) {
       {showIdeaMilestoneModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-neutral-900 rounded-md p-6 max-w-md w-full mx-4 shadow-xl dark:shadow-none dark:border dark:border-neutral-600">
-            <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-4">Link Idea to Milestone</h3>
+            <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-4">Link Epic to Milestone</h3>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-              Idea: {idea.title}
+              Epic: {idea.title}
             </p>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               <button
@@ -1250,9 +1356,9 @@ export default function IdeaDetailClient({ ideaId }: Props) {
       {showIdeaProjectModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-neutral-900 rounded-md p-6 max-w-md w-full mx-4 shadow-xl dark:shadow-none dark:border dark:border-neutral-600">
-            <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-4">Link Idea to Project</h3>
+            <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-4">Link Epic to Project</h3>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-              Idea: {idea.title}
+              Epic: {idea.title}
             </p>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               <button
@@ -1390,21 +1496,33 @@ export default function IdeaDetailClient({ ideaId }: Props) {
           </button>
 
           {/* Project Link */}
-          <button
-            onClick={() => setShowIdeaProjectModal(true)}
-            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border transition ${
-              idea.project_id
-                ? "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20"
-                : "border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-            }`}
-          >
-            <span>📁</span>
-            {idea.project_name ? (
-              <span>{idea.project_name}</span>
-            ) : (
+          {idea.project_id ? (
+            <div className="inline-flex items-center rounded-md border border-blue-500/30 bg-blue-500/10 overflow-hidden">
+              <button
+                onClick={() => setShowIdeaProjectModal(true)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition"
+                title="Change project"
+              >
+                <span>📁</span>
+                <span>{idea.project_name}</span>
+              </button>
+              <Link
+                href={`/projects/${idea.project_id}`}
+                className="px-2.5 py-1.5 border-l border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition text-sm"
+                title={`Open ${idea.project_name} project page`}
+              >
+                →
+              </Link>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowIdeaProjectModal(true)}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition"
+            >
+              <span>📁</span>
               <span className="text-sm">Link to project...</span>
-            )}
-          </button>
+            </button>
+          )}
         </div>
 
         {/* Countdown Timer for Milestone */}
@@ -1520,6 +1638,8 @@ export default function IdeaDetailClient({ ideaId }: Props) {
                     onSetMilestoneModal={setMilestoneModalTask}
                     onSetAddingSubtask={setAddingSubtaskTo}
                     onDelete={deleteTask}
+                    onArchive={archiveTask}
+                    onToggleWeekFocus={toggleWeekFocus}
                     onEditTaskName={(task) => {
                       setEditingTaskId(task.id);
                       setEditingTaskName(task.name);
@@ -1552,6 +1672,52 @@ export default function IdeaDetailClient({ ideaId }: Props) {
           </DndContext>
         )}
       </div>
+
+      {/* Archived Tasks */}
+      {archivedTasks.length > 0 && (
+        <div className="border border-neutral-200 dark:border-neutral-700 rounded-md overflow-hidden">
+          <button
+            onClick={() => setShowArchivedTasks((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-neutral-50 dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition text-left"
+          >
+            <span className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
+              <span>📦</span>
+              Archived
+              <span className="px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 text-xs font-mono">
+                {archivedTasks.length}
+              </span>
+            </span>
+            <span className="text-neutral-400 dark:text-neutral-600 text-sm">
+              {showArchivedTasks ? "▲" : "▼"}
+            </span>
+          </button>
+          {showArchivedTasks && (
+            <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+              {archivedTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-neutral-900"
+                >
+                  <span className="flex-1 text-sm text-neutral-500 dark:text-neutral-400 line-through">
+                    {task.name}
+                  </span>
+                  {task.archived_at && (
+                    <span className="text-xs text-neutral-400 dark:text-neutral-600 shrink-0">
+                      {new Date(task.archived_at).toLocaleDateString()}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => unarchiveTask(task)}
+                    className="shrink-0 px-2.5 py-1 text-xs rounded border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:text-neutral-900 dark:hover:text-neutral-100 transition"
+                  >
+                    Restore
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -47,6 +47,8 @@ type Task = {
   sort_order: number;
   sub_sort_order: number;
   progress: number;
+  archived: boolean;
+  archived_at: string | null;
   idea_title: string | null;
   milestone_name: string | null;
   milestone_target_date: string | null;
@@ -853,7 +855,7 @@ export default function TodayClient() {
           <p className="text-4xl mb-4">🎉</p>
           <p className="text-lg font-medium">No tasks for today</p>
           <p className="opacity-70 mt-1">
-            Add tasks to &quot;Today&quot; from your ideas to see them here
+            Add tasks to &quot;Today&quot; from your epics to see them here
           </p>
           <Link
             href="/dashboard/tasks"

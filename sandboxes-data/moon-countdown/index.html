@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" style="background: #0a0a0a;">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Moon Illumination</title>
@@ -12,14 +12,14 @@
   
   <!-- Inline critical styles to prevent white flash -->
   <style>
-    html, body { background: #0a0a0a; margin: 0; }
+    html, body { background: #0a0a0a; margin: 0; color-scheme: dark; }
   </style>
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Moon Illumination" />
   <meta property="og:description" content="Real-time moon phase percentage and zodiac position" />
-  <meta property="og:image" content="https://storage.googleapis.com/YOUR_BUCKET/sandboxes/moon-countdown/TIMESTAMP-moon-preview.png" />
+  <meta property="og:image" content="{{BASE_URL}}/api/og/moon-countdown" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   
@@ -27,7 +27,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Moon Illumination" />
   <meta name="twitter:description" content="Real-time moon phase percentage and zodiac position" />
-  <meta name="twitter:image" content="https://storage.googleapis.com/YOUR_BUCKET/sandboxes/moon-countdown/TIMESTAMP-moon-preview.png" />
+  <meta name="twitter:image" content="{{BASE_URL}}/api/og/moon-countdown" />
   
   <style>
 	body {
@@ -70,6 +70,26 @@
 	  opacity: 0.6;
 	}
 
+	.countdown {
+	  margin-top: 1.5rem;
+	  padding-top: 1.5rem;
+	  border-top: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.countdown-label {
+	  font-size: 0.75rem;
+	  text-transform: uppercase;
+	  letter-spacing: 0.08em;
+	  opacity: 0.4;
+	  margin-bottom: 0.35rem;
+	}
+
+	.countdown-timer {
+	  font-size: 1.5rem;
+	  font-weight: 600;
+	  font-variant-numeric: tabular-nums;
+	}
+
 	/* Moon graphic visualization */
 	.moon-graphic {
 	  width: 8rem;
@@ -88,7 +108,7 @@
 	  border-radius: 50%;
 	  background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 30%, transparent 70%);
 	  opacity: 0;
-	  transition: all 0.5s ease;
+	  transition: opacity 0.5s ease;
 	  pointer-events: none;
 	}
 
@@ -153,6 +173,25 @@
 	.loading-dot {
 	  animation: pulse 1s ease-in-out infinite;
 	}
+
+	@media (prefers-reduced-motion: reduce) {
+	  .loading-dot {
+		animation: none;
+		opacity: 0.6;
+	  }
+	  .moon-glow.full-moon {
+		animation: none;
+	  }
+	  .moon-glow {
+		transition: none;
+	  }
+	  .moon-graphic svg {
+		transition: none;
+	  }
+	  .container {
+		transition: none;
+	  }
+	}
   </style>
 </head>
 <body>
@@ -196,6 +235,11 @@
 	<div class="sub" id="moonPhase">Waxing</div>
 	
 	<div class="zodiac" id="moonZodiac">Moon in Aries</div>
+
+	<div class="countdown">
+	  <div class="countdown-label" id="countdownLabel">Next full moon</div>
+	  <div class="countdown-timer" id="countdownTimer">--d --h --m --s</div>
+	</div>
   </div>
 
   <!-- Load astronomy library asynchronously -->
@@ -326,6 +370,36 @@
 	  terminator.setAttribute('rx', terminatorRx);
 	}
 
+	function getNextNewOrFullMoon(now) {
+	  const date = new Date(now);
+	  // SearchMoonQuarter finds the next quarter event (0=new, 1=first, 2=full, 3=last)
+	  let mq = Astronomy.SearchMoonQuarter(date);
+	  // Advance until we land on new moon (0) or full moon (2)
+	  while (mq.quarter !== 0 && mq.quarter !== 2) {
+		mq = Astronomy.NextMoonQuarter(mq);
+	  }
+	  return {
+		targetDate: mq.time.date,
+		isFullMoon: mq.quarter === 2,
+		msUntil: mq.time.date - date,
+	  };
+	}
+
+	function formatCountdown(ms) {
+	  if (ms <= 0) return "now";
+	  const totalSecs = Math.floor(ms / 1000);
+	  const days  = Math.floor(totalSecs / 86400);
+	  const hours = Math.floor((totalSecs % 86400) / 3600);
+	  const mins  = Math.floor((totalSecs % 3600) / 60);
+	  const secs  = totalSecs % 60;
+	  const parts = [];
+	  if (days > 0)                      parts.push(`${days}d`);
+	  if (hours > 0 || days > 0)         parts.push(`${hours}h`);
+	  if (mins > 0 || hours > 0 || days > 0) parts.push(`${mins}m`);
+	  parts.push(`${secs}s`);
+	  return parts.join(" ");
+	}
+
 	function update() {
 	  const now = Date.now();
 	  const { phaseAngle, percent, waxing } = getMoonData(now);
@@ -347,6 +421,12 @@
 	  updateMoonGraphic(phaseAngle, waxing, percent);
 
 	  document.getElementById("moonZodiac").textContent = `Moon in ${zodiac.name}`;
+
+	  // Countdown to next new or full moon
+	  const { isFullMoon, msUntil } = getNextNewOrFullMoon(now);
+	  document.getElementById("countdownLabel").textContent =
+		isFullMoon ? "Next full moon" : "Next new moon";
+	  document.getElementById("countdownTimer").textContent = formatCountdown(msUntil);
 	}
 
 	function showContent() {

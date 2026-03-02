@@ -1049,6 +1049,21 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS progress integer NOT NULL DEFAULT 0
   `).catch(() => { /* Column may already exist */ });
 
+  // Add archived columns to admin_tasks (daily reset archives open tasks)
+  await pool.query(`
+    ALTER TABLE admin_tasks
+    ADD COLUMN IF NOT EXISTS archived boolean NOT NULL DEFAULT false
+  `).catch(() => { /* Column may already exist */ });
+
+  await pool.query(`
+    ALTER TABLE admin_tasks
+    ADD COLUMN IF NOT EXISTS archived_at timestamptz
+  `).catch(() => { /* Column may already exist */ });
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_admin_tasks_archived ON admin_tasks(archived)
+  `).catch(() => { /* Index may already exist */ });
+
   // Admin Task Events: Log task activities for analytics
   await pool.query(`
     CREATE TABLE IF NOT EXISTS admin_task_events (
