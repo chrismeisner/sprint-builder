@@ -184,7 +184,7 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
   });
 
   return (
-    <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6 font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold">
           {isEdit ? "Edit Sprint Package" : "Create Sprint Package"}

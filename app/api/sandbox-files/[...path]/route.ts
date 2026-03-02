@@ -253,10 +253,14 @@ export async function GET(
         }
       }
       
-      // Replace {{BASE_URL}} placeholder with the actual request origin.
-      // This allows sandbox HTML files to reference absolute URLs (e.g. OG images)
-      // without hardcoding the domain.
-      const origin = new URL(request.url).origin;
+      // Replace {{BASE_URL}} placeholder with the actual public-facing origin.
+      // On Heroku, request.url contains an internal localhost address, so we
+      // read x-forwarded-host / x-forwarded-proto set by the Heroku router instead.
+      const fwdHost = request.headers.get("x-forwarded-host");
+      const fwdProto = request.headers.get("x-forwarded-proto");
+      const origin = fwdHost
+        ? `${(fwdProto ?? "https").split(",")[0].trim()}://${fwdHost.split(",")[0].trim()}`
+        : new URL(request.url).origin;
       let htmlContent = content.toString("utf-8");
       if (htmlContent.includes("{{BASE_URL}}")) {
         htmlContent = htmlContent.replace(/\{\{BASE_URL\}\}/g, origin);

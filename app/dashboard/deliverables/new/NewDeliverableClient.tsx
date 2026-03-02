@@ -112,7 +112,7 @@ export default function NewDeliverableClient() {
   }
 
   return (
-    <main className="min-h-screen container py-10 space-y-8 font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen container py-10 space-y-8">
       <div className="flex items-center justify-between">
         <Typography as="h1" scale="h2">
           New Deliverable

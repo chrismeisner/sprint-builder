@@ -30,7 +30,7 @@ export default async function WorkPage() {
   const others = projects.filter((p) => !p.featured);
 
   return (
-    <main className="min-h-screen font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen">
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-black/5 to-transparent dark:from-white/5 py-16">
         <div className="container max-w-4xl text-center space-y-4">

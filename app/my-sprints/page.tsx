@@ -42,7 +42,7 @@ export default async function MySprintsPage() {
   const rows = res.rows as Row[];
 
   return (
-    <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6 font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen max-w-4xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold">My sprints</h1>
         <Link

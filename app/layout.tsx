@@ -30,112 +30,6 @@ const interTight = Inter_Tight({
   display: "swap",
 });
 
-const gooper = localFont({
-  src: [
-    { path: "./fonts/Gooper-Thin.otf", weight: "100", style: "normal" },
-    { path: "./fonts/Gooper-ThinItalic.otf", weight: "100", style: "italic" },
-    { path: "./fonts/Gooper-Light.otf", weight: "300", style: "normal" },
-    { path: "./fonts/Gooper-LightItalic.otf", weight: "300", style: "italic" },
-    { path: "./fonts/Gooper-Regular.otf", weight: "400", style: "normal" },
-    { path: "./fonts/Gooper-RegularItalic.otf", weight: "400", style: "italic" },
-    { path: "./fonts/Gooper-MediumItalic.otf", weight: "500", style: "italic" },
-    { path: "./fonts/Gooper-SemiBold.otf", weight: "600", style: "normal" },
-    { path: "./fonts/Gooper-Bold.otf", weight: "700", style: "normal" },
-    { path: "./fonts/Gooper-BoldItalic.otf", weight: "700", style: "italic" },
-    { path: "./fonts/Gooper-Super.otf", weight: "800", style: "normal" },
-    { path: "./fonts/Gooper-SuperItalic.otf", weight: "800", style: "italic" },
-    { path: "./fonts/Gooper-Black.otf", weight: "900", style: "normal" },
-    { path: "./fonts/Gooper-BlackItalic.otf", weight: "900", style: "italic" },
-  ],
-  variable: "--font-gooper",
-  display: "swap",
-});
-
-const gooperCondensed = localFont({
-  src: [
-    { path: "./fonts/GooperCondensed-Thin.otf", weight: "100", style: "normal" },
-    { path: "./fonts/GooperCondensed-Light.otf", weight: "300", style: "normal" },
-    { path: "./fonts/GooperCondensed-Regular.otf", weight: "400", style: "normal" },
-    { path: "./fonts/GooperCondensed-Medium.otf", weight: "500", style: "normal" },
-    { path: "./fonts/GooperCondensed-SemiBold.otf", weight: "600", style: "normal" },
-    { path: "./fonts/GooperCondensed-Bold.otf", weight: "700", style: "normal" },
-    { path: "./fonts/GooperCondensed-Super.otf", weight: "800", style: "normal" },
-    { path: "./fonts/GooperCondensed-Black.otf", weight: "900", style: "normal" },
-  ],
-  variable: "--font-gooper-condensed",
-  display: "swap",
-});
-
-const gooperSemiCondensed = localFont({
-  src: [
-    { path: "./fonts/GooperSemiCondensed-Thin.otf", weight: "100", style: "normal" },
-    { path: "./fonts/GooperSemiCondensed-Light.otf", weight: "300", style: "normal" },
-    { path: "./fonts/GooperSemiCondensed-Regular.otf", weight: "400", style: "normal" },
-    { path: "./fonts/GooperSemiCondensed-Medium.otf", weight: "500", style: "normal" },
-    { path: "./fonts/GooperSemiCondensed-SemiBold.otf", weight: "600", style: "normal" },
-    { path: "./fonts/GooperSemiCondensed-Bold.otf", weight: "700", style: "normal" },
-    { path: "./fonts/GooperSemiCondensed-Super.otf", weight: "800", style: "normal" },
-    { path: "./fonts/GooperSemiCondensed-Black.otf", weight: "900", style: "normal" },
-  ],
-  variable: "--font-gooper-semicondensed",
-  display: "swap",
-});
-
-const gooperText = localFont({
-  src: [
-    { path: "./fonts/GooperText-Light.otf", weight: "300", style: "normal" },
-    { path: "./fonts/GooperText-Regular.otf", weight: "400", style: "normal" },
-    { path: "./fonts/GooperText-RegularItalic.otf", weight: "400", style: "italic" },
-    { path: "./fonts/GooperText-MediumItalic.otf", weight: "500", style: "italic" },
-    { path: "./fonts/GooperText-Bold.otf", weight: "700", style: "normal" },
-    { path: "./fonts/GooperText-BoldItalic.otf", weight: "700", style: "italic" },
-    { path: "./fonts/GooperText-SemiBoldItalic.otf", weight: "600", style: "italic" },
-    { path: "./fonts/GooperText-BlackItalic.otf", weight: "900", style: "italic" },
-  ],
-  variable: "--font-gooper-text",
-  display: "swap",
-});
-
-const gtAmerica = localFont({
-  src: "./fonts/GT-America-Condensed-Black.otf",
-  variable: "--font-gt-america",
-  display: "swap",
-});
-
-const gtAmericaCompressed = localFont({
-  src: [
-    {
-      path: "./fonts/GT-America-Compressed-Bold.otf",
-      weight: "700",
-      style: "normal",
-    },
-    {
-      path: "./fonts/GT-America-Compressed-Black.otf",
-      weight: "900",
-      style: "normal",
-    },
-  ],
-  variable: "--font-gt-america-compressed",
-  display: "swap",
-});
-
-const akkuratLight = localFont({
-  src: [
-    {
-      path: "./fonts/AkkuratLightPro-Regular.otf",
-      weight: "300",
-      style: "normal",
-    },
-    {
-      path: "./fonts/AkkuratLightPro-Italic.otf",
-      weight: "300",
-      style: "italic",
-    },
-  ],
-  variable: "--font-akkurat-light",
-  display: "swap",
-});
-
 const akkurat = localFont({
   src: [
     {
@@ -226,53 +120,6 @@ const generalGrotesque = localFont({
   display: "swap",
 });
 
-const generalGrotesqueMono = localFont({
-  src: [
-    {
-      path: "./fonts/GeneralGrotesqueMono-Thin.otf",
-      weight: "100",
-      style: "normal",
-    },
-    {
-      path: "./fonts/GeneralGrotesqueMono-Light.otf",
-      weight: "300",
-      style: "normal",
-    },
-    {
-      path: "./fonts/GeneralGrotesqueMono-Book.otf",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "./fonts/GeneralGrotesqueMono-Regular.otf",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "./fonts/GeneralGrotesqueMono-Demi.otf",
-      weight: "600",
-      style: "normal",
-    },
-    {
-      path: "./fonts/GeneralGrotesqueMono-Bold.otf",
-      weight: "700",
-      style: "normal",
-    },
-    {
-      path: "./fonts/GeneralGrotesqueMono-ExtraBold.otf",
-      weight: "800",
-      style: "normal",
-    },
-    {
-      path: "./fonts/GeneralGrotesqueMono-Heavy.otf",
-      weight: "900",
-      style: "normal",
-    },
-  ],
-  variable: "--font-general-grotesque-mono",
-  display: "swap",
-});
-
 const notoEmoji = localFont({
   src: [
     {
@@ -306,8 +153,8 @@ const notoEmoji = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Appliance Studio",
-  description: "Two-week design sprints with senior creative direction",
+  title: "Chris Meisner Studio",
+  description: "Two-week design sprints by Chris Meisner",
   icons: {
     icon: "/favicon.svg",
   },
@@ -321,7 +168,7 @@ export default async function RootLayout({
   const cookieStore = cookies();
   const themeOverride = cookieStore.get(THEME_OVERRIDE_COOKIE)?.value ?? null;
   const themeMode = normalizeThemeCookie(themeOverride);
-  const fontClasses = `${inter.variable} ${interTight.variable} ${gooper.variable} ${gooperCondensed.variable} ${gooperSemiCondensed.variable} ${gooperText.variable} ${gtAmerica.variable} ${gtAmericaCompressed.variable} ${akkuratLight.variable} ${akkurat.variable} ${akkuratMono.variable} ${generalGrotesque.variable} ${generalGrotesqueMono.variable} ${notoEmoji.variable}`;
+  const fontClasses = `${inter.variable} ${interTight.variable} ${akkurat.variable} ${akkuratMono.variable} ${generalGrotesque.variable} ${notoEmoji.variable}`;
   const htmlClassName = `${themeMode === "dark" ? "dark" : ""} ${fontClasses}`.trim();
 
   // Check if current route is a sandbox prototype — those manage their own UI chrome

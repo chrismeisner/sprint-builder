@@ -67,7 +67,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   };
 
   return (
-    <main className="min-h-screen font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen">
       {/* Header */}
       <section className="bg-gradient-to-b from-black/5 to-transparent dark:from-white/5 py-12">
         <div className="container max-w-4xl space-y-4">

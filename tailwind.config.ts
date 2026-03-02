@@ -93,7 +93,7 @@ const config: Config = {
         card: "0 24px 70px rgba(0,0,0,0.08)",
       },
       fontFamily: {
-        sans: ["var(--font-akkurat)", "var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["var(--font-inter)", "var(--font-akkurat)", "system-ui", "-apple-system", "sans-serif"],
         mono: ["var(--font-akkurat-mono)", "ui-monospace", "monospace"],
         "gt-america": ["var(--font-gt-america)", "sans-serif"],
         "gt-compressed": ["var(--font-gt-america-compressed)", "var(--font-gt-america)", "sans-serif"],
@@ -104,16 +104,8 @@ const config: Config = {
         "general-mono": ["var(--font-general-grotesque-mono)", "var(--font-akkurat-mono)", "ui-monospace", "monospace"],
         inter: ["var(--font-inter)", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
         "inter-tight": ["var(--font-inter-tight)", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
-        gooper: ["var(--font-gooper)", "var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
-        "gooper-condensed": ["var(--font-gooper-condensed)", "var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
-        "gooper-semicondensed": ["var(--font-gooper-semicondensed)", "var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
-        "gooper-text": ["var(--font-gooper-text)", "var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
         system: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Helvetica Neue", "sans-serif"],
         emoji: ["var(--font-noto-emoji)", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "sans-serif"],
-      },
-      fontSize: {
-        "display-1": ["4rem", { lineHeight: "1", letterSpacing: "-0.04em" }],
-        "display-2": ["3rem", { lineHeight: "1", letterSpacing: "-0.03em" }],
       },
       keyframes: {
         "slide-in-right": {

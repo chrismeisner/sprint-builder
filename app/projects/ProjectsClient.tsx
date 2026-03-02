@@ -23,6 +23,7 @@ type Project = {
   name: string;
   status: ProjectStatus;
   projectType: ProjectType;
+  emoji: string | null;
   createdAt: string | Date;
   updatedAt: string | Date;
   accountId?: string | null;
@@ -732,15 +733,30 @@ export default function ProjectsClient() {
                 const type = project.projectType || 'client';
                 const memberCount = data.projectMembers?.[project.id]?.length ?? 0;
                 return (
-                  <div key={project.id} className="flex flex-col rounded-lg border border-black/10 dark:border-white/15 overflow-hidden hover:shadow-md transition">
-                    {/* Top accent bar */}
-                    <div className={`h-1.5 w-full ${getStatusAccentClasses(status)}`} />
+                  <Link
+                    key={project.id}
+                    href={`/projects/${project.id}`}
+                    className="flex flex-col rounded-lg border border-black/10 dark:border-white/15 overflow-hidden hover:shadow-md hover:border-black/20 dark:hover:border-white/25 transition"
+                  >
+                    {/* Cover area */}
+                    {project.emoji ? (
+                      <div className={`flex items-center justify-center h-20 text-5xl select-none ${
+                        status === 'active'    ? 'bg-green-50 dark:bg-green-950/30' :
+                        status === 'on_hold'   ? 'bg-yellow-50 dark:bg-yellow-950/30' :
+                        status === 'completed' ? 'bg-blue-50 dark:bg-blue-950/30' :
+                                                 'bg-neutral-100 dark:bg-white/5'
+                      }`}>
+                        {project.emoji}
+                      </div>
+                    ) : (
+                      <div className={`h-1.5 w-full ${getStatusAccentClasses(status)}`} />
+                    )}
                     <div className="flex flex-col flex-1 p-4 gap-3">
                       {/* Name + badges */}
                       <div className="flex flex-col gap-1.5">
-                        <Link href={`/projects/${project.id}`} className={`${bodyClass} font-semibold hover:underline leading-snug`}>
+                        <span className={`${bodyClass} font-semibold leading-snug`}>
                           {project.name}
-                        </Link>
+                        </span>
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className={getStatusBadgeClasses(status)}>
                             {PROJECT_STATUSES.find(s => s.value === status)?.label}
@@ -758,42 +774,8 @@ export default function ProjectsClient() {
                         <span>·</span>
                         <span>{project.isOwner ? 'Owner' : 'Shared'}</span>
                       </div>
-                      {/* Admin controls */}
-                      {data.profile.isAdmin && (
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={type}
-                            onChange={(e) => handleTypeChange(project.id, e.target.value as ProjectType)}
-                            disabled={typeUpdating === project.id}
-                            className={`${bodySmClass} flex-1 px-2 py-1 rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
-                          >
-                            {PROJECT_TYPES.map((t) => (
-                              <option key={t.value} value={t.value}>{t.label}</option>
-                            ))}
-                          </select>
-                          <select
-                            value={status}
-                            onChange={(e) => handleStatusChange(project.id, e.target.value as ProjectStatus)}
-                            disabled={statusUpdating === project.id}
-                            className={`${bodySmClass} flex-1 px-2 py-1 rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 cursor-pointer`}
-                          >
-                            {PROJECT_STATUSES.map((s) => (
-                              <option key={s.value} value={s.value}>{s.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
                     </div>
-                    {/* Card footer */}
-                    <div className="px-4 pb-4">
-                      <Link
-                        href={`/projects/${project.id}`}
-                        className={`${getTypographyClassName("button-sm")} w-full flex items-center justify-center px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
-                      >
-                        Open project
-                      </Link>
-                    </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>

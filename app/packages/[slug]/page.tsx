@@ -93,7 +93,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
   );
 
   return (
-    <main className="min-h-screen font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen">
       {/* Header */}
       <section className="bg-gradient-to-b from-black to-gray-900 text-white py-16 px-6">
         <div className="max-w-4xl mx-auto">

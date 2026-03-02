@@ -442,6 +442,7 @@ export default function TasksClient() {
   // New idea form
   const [newIdeaTitle, setNewIdeaTitle] = useState("");
   const [newIdeaSummary, setNewIdeaSummary] = useState("");
+  const [newIdeaProjectId, setNewIdeaProjectId] = useState<string>("");
   const [creatingIdea, setCreatingIdea] = useState(false);
 
   // Project linking
@@ -734,6 +735,7 @@ export default function TasksClient() {
         body: JSON.stringify({
           title: newIdeaTitle,
           summary: newIdeaSummary || null,
+          project_id: newIdeaProjectId || null,
         }),
       });
 
@@ -744,6 +746,7 @@ export default function TasksClient() {
 
       setNewIdeaTitle("");
       setNewIdeaSummary("");
+      setNewIdeaProjectId("");
       await fetchData();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to create epic");
@@ -1410,6 +1413,20 @@ export default function TasksClient() {
             className="flex-1 h-10 px-3 text-sm border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:ring-blue-400"
             disabled={creatingIdea}
           />
+          <select
+            value={newIdeaProjectId}
+            onChange={(e) => setNewIdeaProjectId(e.target.value)}
+            aria-label="Link to project (optional)"
+            className="h-10 px-3 text-sm border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:ring-blue-400"
+            disabled={creatingIdea}
+          >
+            <option value="">Project (optional)</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}{p.account_name ? ` — ${p.account_name}` : ""}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
             disabled={creatingIdea || !newIdeaTitle.trim()}

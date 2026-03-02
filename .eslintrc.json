@@ -25,10 +25,6 @@
       {
         "selector": "JSXAttribute[name.name='className'] Literal[value=/\\\\btracking-[^\\\\s]+/]",
         "message": "Use Typography/design-system tokens for letter spacing instead of raw tracking-* classes."
-      },
-      {
-        "selector": "JSXAttribute[name.name='className'] Literal[value=/\\\\bfont-gooper[^\\\\s]*/]",
-        "message": "Use the design-system Typography scale for font family."
       }
     ]
   }

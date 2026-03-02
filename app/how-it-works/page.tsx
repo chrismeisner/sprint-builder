@@ -232,7 +232,7 @@ export default function HowItWorksPage() {
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="text-center space-y-2">
             <h2 className="text-3xl font-bold">One sprint or many—your pace</h2>
-            <p className="text-lg opacity-70">How the Appliance Studio cadence scales with your ambition</p>
+            <p className="text-lg opacity-70">How the Chris Meisner Studio cadence scales with your ambition</p>
           </div>
           <div className="bg-white dark:bg-black rounded-lg p-8 space-y-6">
             <p className="text-base opacity-80">

@@ -1,3 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <text y=".9em" font-size="90"><</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- Row 1 -->
+  <rect x="0" y="0" width="4" height="4" fill="#000"/>
+  <rect x="4" y="0" width="4" height="4" fill="#fff"/>
+  <rect x="8" y="0" width="4" height="4" fill="#000"/>
+  <rect x="12" y="0" width="4" height="4" fill="#fff"/>
+  <!-- Row 2 -->
+  <rect x="0" y="4" width="4" height="4" fill="#fff"/>
+  <rect x="4" y="4" width="4" height="4" fill="#000"/>
+  <rect x="8" y="4" width="4" height="4" fill="#fff"/>
+  <rect x="12" y="4" width="4" height="4" fill="#000"/>
+  <!-- Row 3 -->
+  <rect x="0" y="8" width="4" height="4" fill="#000"/>
+  <rect x="4" y="8" width="4" height="4" fill="#fff"/>
+  <rect x="8" y="8" width="4" height="4" fill="#000"/>
+  <rect x="12" y="8" width="4" height="4" fill="#fff"/>
+  <!-- Row 4 -->
+  <rect x="0" y="12" width="4" height="4" fill="#fff"/>
+  <rect x="4" y="12" width="4" height="4" fill="#000"/>
+  <rect x="8" y="12" width="4" height="4" fill="#fff"/>
+  <rect x="12" y="12" width="4" height="4" fill="#000"/>
 </svg>

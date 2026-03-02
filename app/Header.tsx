@@ -33,7 +33,7 @@ export default async function Header() {
           {user?.isAdmin ? <AdminMenuButton /> : null}
           <Link href="/" className="flex items-center">
             <span className="text-base font-semibold leading-none text-text-primary tracking-tight">
-              Appliance Studio
+              Chris Meisner Studio
             </span>
           </Link>
         </div>

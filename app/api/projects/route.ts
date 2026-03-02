@@ -9,6 +9,7 @@ type ProjectRow = {
   description: string;
   status: string;
   project_type: string;
+  emoji: string | null;
   created_at: string | Date;
   updated_at: string | Date;
 };
@@ -37,6 +38,7 @@ export async function GET() {
         p.name,
         p.status,
         p.project_type,
+        p.emoji,
         p.created_at,
         p.updated_at,
         p.account_id,
@@ -58,6 +60,7 @@ export async function GET() {
         name: row.name as string,
         status: (row as ProjectRow).status ?? 'active',
         projectType: (row as ProjectRow).project_type ?? 'client',
+        emoji: (row as ProjectRow).emoji ?? null,
         createdAt: new Date((row as ProjectRow).created_at).toISOString(),
         updatedAt: new Date((row as ProjectRow).updated_at).toISOString(),
         accountId: (row as ProjectRow & { account_id?: string }).account_id ?? null,
@@ -142,7 +145,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { id, name, description, status, projectType } = body as { id?: unknown; name?: unknown; description?: unknown; status?: unknown; projectType?: unknown };
+    const { id, name, description, status, projectType, emoji } = body as { id?: unknown; name?: unknown; description?: unknown; status?: unknown; projectType?: unknown; emoji?: unknown };
 
     if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json({ error: "Project id is required" }, { status: 400 });
@@ -153,9 +156,10 @@ export async function PATCH(request: Request) {
     const hasDescriptionUpdate = typeof description === "string";
     const hasStatusUpdate = typeof status === "string" && status.trim();
     const hasProjectTypeUpdate = typeof projectType === "string" && projectType.trim();
+    const hasEmojiUpdate = typeof emoji === "string";
     
-    if (!hasNameUpdate && !hasDescriptionUpdate && !hasStatusUpdate && !hasProjectTypeUpdate) {
-      return NextResponse.json({ error: "At least name, description, status, or projectType is required" }, { status: 400 });
+    if (!hasNameUpdate && !hasDescriptionUpdate && !hasStatusUpdate && !hasProjectTypeUpdate && !hasEmojiUpdate) {
+      return NextResponse.json({ error: "At least name, description, status, projectType, or emoji is required" }, { status: 400 });
     }
 
     // Validate status value if provided
@@ -197,8 +201,8 @@ export async function PATCH(request: Request) {
     }
     const accountId = (ownerCheck.rows[0] as { account_id: string | null }).account_id;
     
-    // For name/description updates, require ownership. For status-only updates, require admin.
-    if ((hasNameUpdate || hasDescriptionUpdate) && !user.isAdmin && (!accountId || accountId !== user.accountId)) {
+    // For name/description/emoji updates, require ownership. For status-only updates, require admin.
+    if ((hasNameUpdate || hasDescriptionUpdate || hasEmojiUpdate) && !user.isAdmin && (!accountId || accountId !== user.accountId)) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
@@ -231,6 +235,12 @@ export async function PATCH(request: Request) {
       paramIndex++;
     }
 
+    if (hasEmojiUpdate) {
+      updates.push(`emoji = $${paramIndex}`);
+      params.push((emoji as string).trim() || null);
+      paramIndex++;
+    }
+
     updates.push("updated_at = now()");
     params.push(id.trim());
 
@@ -238,7 +248,7 @@ export async function PATCH(request: Request) {
       `UPDATE projects
        SET ${updates.join(", ")}
        WHERE id = $${paramIndex}
-       RETURNING id, name, description, status, project_type, created_at, updated_at, account_id`,
+       RETURNING id, name, description, status, project_type, emoji, created_at, updated_at, account_id`,
       params
     );
 
@@ -251,6 +261,7 @@ export async function PATCH(request: Request) {
         description: row.description ?? '',
         status: row.status ?? 'active',
         projectType: row.project_type ?? 'client',
+        emoji: row.emoji ?? null,
         createdAt: new Date(row.created_at).toISOString(),
         updatedAt: new Date(row.updated_at).toISOString(),
         accountId: row.account_id,

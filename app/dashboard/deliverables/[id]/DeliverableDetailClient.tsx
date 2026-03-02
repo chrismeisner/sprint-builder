@@ -175,7 +175,7 @@ export default function DeliverableDetailClient({ row, availableTags: initialTag
   }
 
   return (
-    <main className="min-h-screen container py-8 space-y-6 font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen container py-8 space-y-6">
       <div className="flex items-center justify-between">
         <Typography as="h1" scale="h2">
           Deliverable detail

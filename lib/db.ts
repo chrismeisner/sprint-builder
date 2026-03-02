@@ -9,6 +9,8 @@ declare global {
   var _basePointsPatched: boolean | undefined;
   // eslint-disable-next-line no-var
   var _deliveryUrlPatched: boolean | undefined;
+  // eslint-disable-next-line no-var
+  var _projectEmojiPatched: boolean | undefined;
 }
 
 function createPool(): Pool {
@@ -76,6 +78,20 @@ export async function ensureSchema(): Promise<void> {
     } catch {
       // Ignore if table doesn't exist yet; later schema creation will add column
       global._deliveryUrlPatched = true;
+    }
+  }
+
+  // Hotfix: add emoji column to projects
+  if (!global._projectEmojiPatched) {
+    try {
+      const pool = getPool();
+      await pool.query(`
+        ALTER TABLE projects
+        ADD COLUMN IF NOT EXISTS emoji text
+      `);
+      global._projectEmojiPatched = true;
+    } catch {
+      global._projectEmojiPatched = true;
     }
   }
 

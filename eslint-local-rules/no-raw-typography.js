@@ -10,7 +10,6 @@
  * - text-{size} (xs, sm, base, lg, xl, 2xl-9xl or arbitrary text-[...])
  * - font-{weight} (thin, extralight, light, normal, medium, semibold, bold, extrabold, black)
  * - leading-* and tracking-* (line-height/letter-spacing)
- * - font-gooper* families
  */
 
 const DISALLOWED_PATTERNS = [
@@ -19,7 +18,6 @@ const DISALLOWED_PATTERNS = [
   /\bfont-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)\b/,
   /\bleading-[^\s]+/,
   /\btracking-[^\s]+/,
-  /\bfont-gooper[^\s]*/,
 ];
 
 function extractLiteralClassName(value) {
@@ -46,7 +44,7 @@ module.exports = {
     schema: [],
     messages: {
       noRawTypography:
-        "Use the Typography component or design-system helpers for type. Raw typography classes (text-*, font-*, leading-*, tracking-*, font-gooper*) are disallowed to keep the style guide as the single source of truth.",
+        "Use the Typography component or design-system helpers for type. Raw typography classes (text-*, font-*, leading-*, tracking-*) are disallowed to keep the style guide as the single source of truth.",
     },
   },
   create(context) {
