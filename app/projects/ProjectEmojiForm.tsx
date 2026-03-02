@@ -50,7 +50,7 @@ export default function ProjectEmojiForm({ projectId, initialEmoji }: Props) {
       ? new (Intl as unknown as { Segmenter: new (locale: string, opts: object) => { segment: (s: string) => Iterable<{ segment: string }> } }).Segmenter("en", { granularity: "grapheme" })
       : null;
     if (segmenter) {
-      const segments = [...segmenter.segment(val)];
+      const segments = Array.from(segmenter.segment(val));
       setEmoji(segments[0]?.segment ?? "");
     } else {
       setEmoji(val.slice(0, 2));
