@@ -70,6 +70,8 @@ type Task = {
   archived: boolean;
   archived_at: string | null;
   idea_title: string | null;
+  project_id: string | null;
+  project_name: string | null;
   milestone_name: string | null;
   milestone_target_date: string | null;
   attachments: Attachment[];
@@ -140,6 +142,11 @@ function TaskCard({
               >
                 {task.idea_title}
               </Link>
+            )}
+            {task.project_name && (
+              <span className="text-xs text-blue-500/70 dark:text-blue-400/60 block truncate">
+                📁 {task.project_name}
+              </span>
             )}
           </div>
         </div>
@@ -1767,6 +1774,11 @@ export default function TasksClient() {
                   >
                     📁 {detailTask.idea_title}
                   </Link>
+                )}
+                {detailTask.project_name && (
+                  <span className="text-xs text-blue-500/70 dark:text-blue-400/60 mt-0.5 block">
+                    🗂️ {detailTask.project_name}
+                  </span>
                 )}
               </div>
               <button

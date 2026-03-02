@@ -47,10 +47,13 @@ export async function GET(request: NextRequest) {
       SELECT 
         t.*,
         i.title as idea_title,
+        i.project_id as project_id,
+        p.name as project_name,
         m.name as milestone_name,
         m.target_date as milestone_target_date
       FROM admin_tasks t
       LEFT JOIN admin_ideas i ON t.idea_id = i.id
+      LEFT JOIN projects p ON i.project_id = p.id
       LEFT JOIN admin_milestones m ON t.milestone_id = m.id
       WHERE 1=1
     `;

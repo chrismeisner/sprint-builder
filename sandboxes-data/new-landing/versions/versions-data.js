@@ -4,6 +4,23 @@
 
 const VERSIONS = [
   {
+    name: "v3-mvp-2026-03-02",
+    version: "3",
+    title: "MVP",
+    date: "March 2, 2026",
+    dateValue: "2026-03-02",
+    lastModified: "2026-03-02T12:00:00Z",
+    description: "Streamlined MVP based on v2. Hides samples carousel, projects table, and availability calendar. Book-a-call links updated to the real Cal.com sprint planning page.",
+    features: [
+      "Cal.com sprint planning link on hero CTA and sticky header",
+      "Samples carousel hidden (commented out for later)",
+      "Availability section hidden (commented out for later)",
+      "Projects section hidden (commented out for later)"
+    ],
+    status: "current",
+    path: "v3-mvp-2026-03-02/index.html"
+  },
+  {
     name: "v2-samples-carousel-2026-02-11",
     version: "2",
     title: "Samples Carousel",
@@ -17,7 +34,7 @@ const VERSIONS = [
       "Previous/Next navigation with dot indicators",
       "Keyboard arrow-key support"
     ],
-    status: "current",
+    status: "archived",
     path: "v2-samples-carousel-2026-02-11/index.html"
   },
   {
