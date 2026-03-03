@@ -160,8 +160,6 @@ export default function SprintBuilderClient({
   const metricValueClass = `${getTypographyClassName("h3")} text-text-primary`;
   const totalValueClass = `${getTypographyClassName("h2")} text-text-primary`;
   const canQuickCreate = isAuthenticated && Boolean(title.trim() && projectId);
-  const primaryCtaLabel = isEditing ? "Update sprint" : "Create sprint";
-  const primaryCtaBusy = isEditing ? "Updating..." : "Creating...";
   // showSprintDetailsSection removed — replaced by Sprint Outline section
 
   // Prefill from existing sprint
