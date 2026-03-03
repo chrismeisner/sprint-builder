@@ -84,11 +84,12 @@ export async function PATCH(request: Request, { params }: Params) {
 
     // Calculate adjusted values based on complexity
     const basePoints = deliverable.points ?? 0;
-    const adjustedPoints = Math.round(basePoints * complexity * 10) / 10;
-    const adjustedHours = hoursFromPoints(adjustedPoints); // hours = 15x complexity
+    const adjustedPoints = Math.round(basePoints * complexity * 100) / 100;
+    const adjustedHours = hoursFromPoints(adjustedPoints);
     const adjustedPrice = priceFromPoints(adjustedPoints);
 
     // Update complexity score and adjusted values in junction table
+    // Note: base_points stores the original deliverable points (before multiplier)
     await pool.query(
       `UPDATE sprint_deliverables 
        SET complexity_score = $1,
@@ -96,7 +97,7 @@ export async function PATCH(request: Request, { params }: Params) {
            custom_estimate_points = $3,
            base_points = $4
        WHERE sprint_draft_id = $5 AND deliverable_id = $6`,
-      [complexity, adjustedHours, adjustedPoints, adjustedPoints, params.id, deliverableId]
+      [complexity, adjustedHours, adjustedPoints, basePoints, params.id, deliverableId]
     );
 
     // Recalculate totals

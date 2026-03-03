@@ -558,7 +558,7 @@ export async function PATCH(request: Request, { params }: Params) {
           points: number | null;
         };
         const basePoints = asNumber(d.points, 0);
-        const adjustedPoints = Math.round(basePoints * multiplier * 10) / 10;
+        const adjustedPoints = Math.round(basePoints * multiplier * 100) / 100;
         const adjustedHours = hoursFromPoints(adjustedPoints);
 
         await pool.query(
