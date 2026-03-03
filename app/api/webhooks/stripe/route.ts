@@ -19,6 +19,8 @@ import { getStripe } from "@/lib/stripe";
  *   checkout.session.completed      → mark matching invoice as "paid"
  *   invoice.paid                    → mark matching invoice as "paid"
  *   invoice.payment_failed          → mark matching invoice as "failed"
+ *   invoice.voided                  → mark matching invoice as "voided"
+ *   charge.refunded                 → mark matching invoice as "refunded"
  */
 export async function POST(request: Request) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -99,6 +101,18 @@ async function handleEvent(event: import("stripe").Stripe.Event) {
       );
       break;
 
+    case "invoice.voided":
+      await onInvoiceVoided(
+        event.data.object as import("stripe").Stripe.Invoice
+      );
+      break;
+
+    case "charge.refunded":
+      await onChargeRefunded(
+        event.data.object as import("stripe").Stripe.Charge
+      );
+      break;
+
     default:
       console.log(`[StripeWebhook] Unhandled event type: ${event.type}`);
   }
@@ -144,6 +158,22 @@ async function onInvoicePaymentFailed(invoice: import("stripe").Stripe.Invoice) 
   await updateInvoiceStatus(invoice.id, "failed", invoice.metadata ?? undefined);
 }
 
+async function onInvoiceVoided(invoice: import("stripe").Stripe.Invoice) {
+  console.log(`[StripeWebhook] Invoice voided: ${invoice.id}`);
+  await updateInvoiceStatus(invoice.id, "voided", invoice.metadata ?? undefined);
+}
+
+async function onChargeRefunded(charge: import("stripe").Stripe.Charge) {
+  console.log(`[StripeWebhook] Charge refunded: ${charge.id}`);
+  const invoiceId = typeof charge.invoice === "string" ? charge.invoice : charge.invoice?.id;
+  const metadata = charge.metadata ?? undefined;
+  if (invoiceId) {
+    await updateInvoiceStatus(invoiceId, "refunded", metadata);
+  } else {
+    await updateInvoiceStatus(charge.payment_intent as string, "refunded", metadata);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Database helpers
 // ---------------------------------------------------------------------------
@@ -156,7 +186,7 @@ async function onInvoicePaymentFailed(invoice: import("stripe").Stripe.Invoice) 
  */
 async function updateInvoiceStatus(
   stripeId: string,
-  status: "paid" | "failed",
+  status: "paid" | "failed" | "voided" | "refunded",
   metadata?: Record<string, string>
 ) {
   try {

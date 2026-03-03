@@ -1169,6 +1169,12 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS stripe_invoice_id text;
   `);
 
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_sprint_invoices_stripe_id
+    ON sprint_invoices(stripe_invoice_id)
+    WHERE stripe_invoice_id IS NOT NULL;
+  `);
+
   global._schemaInitialized = true;
 }
 

@@ -95,15 +95,8 @@ export async function POST(_request: Request, { params }: Params) {
     const amountCents = Math.round(inv.amount * 100);
     const description = [sprint.title, inv.label].filter(Boolean).join(" — ");
 
-    // Create pending invoice line item (attached to customer's upcoming invoice)
-    await stripe.invoiceItems.create({
-      customer: stripeCustomerId,
-      amount: amountCents,
-      currency: "usd",
-      description,
-    });
-
-    // Create the invoice
+    // Create the draft invoice first so the line item is scoped to it,
+    // preventing orphaned pending items if a later step fails on retry.
     const stripeInvoice = await stripe.invoices.create({
       customer: stripeCustomerId,
       collection_method: "send_invoice",
@@ -114,7 +107,14 @@ export async function POST(_request: Request, { params }: Params) {
       },
     });
 
-    // Finalize and send
+    await stripe.invoiceItems.create({
+      customer: stripeCustomerId,
+      invoice: stripeInvoice.id,
+      amount: amountCents,
+      currency: "usd",
+      description,
+    });
+
     await stripe.invoices.sendInvoice(stripeInvoice.id);
 
     // Re-fetch the invoice to get the hosted URL (available after finalization)
