@@ -320,14 +320,6 @@ export default function SprintBuilderClient({
     editingDeliverable?.points != null && Number.isFinite(Number(editingDeliverable.points))
       ? Number(editingDeliverable.points)
       : null;
-  const editingAdjustedPoints =
-    editingBasePoints != null && Number.isFinite(editingMultiplier)
-      ? editingBasePoints * editingMultiplier
-      : null;
-  const editingAdjustedHours =
-    editingAdjustedPoints != null && Number.isFinite(editingAdjustedPoints)
-      ? hoursFromPoints(editingAdjustedPoints)
-      : null;
   const hasCustomMultiplierInput = customMultiplierInput.trim().length > 0;
   const isCustomMultiplierValid =
     hasCustomMultiplierInput &&
@@ -337,6 +329,23 @@ export default function SprintBuilderClient({
   const customMultiplierError =
     isCustomMultiplier && !isCustomMultiplierValid
       ? "Enter a whole number from 1 to 99."
+      : null;
+  // In custom mode use the typed value directly so the preview is always
+  // in sync with the input; fall back to editingMultiplier in preset mode.
+  const effectiveMultiplier = isCustomMultiplier
+    ? isCustomMultiplierValid
+      ? Number(customMultiplierInput)
+      : null
+    : editingMultiplier;
+  const editingAdjustedPoints =
+    editingBasePoints != null &&
+    effectiveMultiplier != null &&
+    Number.isFinite(effectiveMultiplier)
+      ? editingBasePoints * effectiveMultiplier
+      : null;
+  const editingAdjustedHours =
+    editingAdjustedPoints != null && Number.isFinite(editingAdjustedPoints)
+      ? hoursFromPoints(editingAdjustedPoints)
       : null;
 
   function closeEditingComplexityModal() {
@@ -1466,7 +1475,7 @@ export default function SprintBuilderClient({
                   setSelectedDeliverables((prev) =>
                     prev.map((d) =>
                       d.deliverableId === editingDeliverableId
-                        ? { ...d, multiplier: editingMultiplier || 1, note: editingNote }
+                        ? { ...d, multiplier: effectiveMultiplier ?? editingMultiplier ?? 1, note: editingNote }
                         : d
                     )
                   );
