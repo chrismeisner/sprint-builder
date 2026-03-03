@@ -709,14 +709,25 @@ export default function SprintBuilderClient({
           {isAuthenticated ? (
             <>
               {canQuickCreate && (
-                <button
-                  type="submit"
-                  form="sprint-form"
-                  disabled={submitting || loadingExisting}
-                  className={`${bodySmClass} inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 hover:bg-black/80 dark:hover:bg-white/80 disabled:opacity-60 transition-colors duration-150`}
-                >
-                  {submitting ? primaryCtaBusy : primaryCtaLabel}
-                </button>
+                isEditing ? (
+                  <button
+                    type="button"
+                    onClick={handleSaveDraft}
+                    disabled={savingDraft || loadingExisting}
+                    className={`${bodySmClass} inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 hover:bg-black/80 dark:hover:bg-white/80 disabled:opacity-60 transition-colors duration-150`}
+                  >
+                    {savingDraft ? "Saving..." : "Update"}
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    form="sprint-form"
+                    disabled={submitting || loadingExisting}
+                    className={`${bodySmClass} inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 hover:bg-black/80 dark:hover:bg-white/80 disabled:opacity-60 transition-colors duration-150`}
+                  >
+                    {submitting ? "Creating..." : "Create sprint"}
+                  </button>
+                )
               )}
               <Link
                 href="/dashboard"
@@ -1080,23 +1091,35 @@ export default function SprintBuilderClient({
               <section className="space-y-2">
                 {isAuthenticated ? (
                   <>
-                    <button
-                      type="submit"
-                      disabled={submitting || selectedDeliverables.length === 0 || loadingExisting}
-                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-3 disabled:opacity-60 hover:bg-black/80 dark:hover:bg-white/80 transition-colors duration-150`}
-                    >
-                      {submitting ? primaryCtaBusy : primaryCtaLabel}
-                    </button>
+                    {isEditing ? (
+                      <button
+                        type="button"
+                        onClick={handleSaveDraft}
+                        disabled={savingDraft || selectedDeliverables.length === 0 || !title.trim() || loadingExisting}
+                        className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-3 disabled:opacity-60 hover:bg-black/80 dark:hover:bg-white/80 transition-colors duration-150`}
+                      >
+                        {savingDraft ? "Saving..." : "Update"}
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="submit"
+                          disabled={submitting || selectedDeliverables.length === 0 || loadingExisting}
+                          className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-3 disabled:opacity-60 hover:bg-black/80 dark:hover:bg-white/80 transition-colors duration-150`}
+                        >
+                          {submitting ? "Creating..." : "Create sprint"}
+                        </button>
 
-                    {/* Save Draft (saves without navigating away) */}
-                    <button
-                      type="button"
-                      onClick={handleSaveDraft}
-                      disabled={savingDraft || submitting || selectedDeliverables.length === 0 || !title.trim() || loadingExisting}
-                      className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-60 transition-colors duration-150`}
-                    >
-                      {savingDraft ? "Saving..." : savedShareToken ? "Update draft" : "Save draft"}
-                    </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveDraft}
+                          disabled={savingDraft || submitting || selectedDeliverables.length === 0 || !title.trim() || loadingExisting}
+                          className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-60 transition-colors duration-150`}
+                        >
+                          {savingDraft ? "Saving..." : "Save draft"}
+                        </button>
+                      </>
+                    )}
                     
                     <Link
                       href="/dashboard"

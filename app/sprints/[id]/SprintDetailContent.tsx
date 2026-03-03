@@ -134,6 +134,7 @@ type SprintInvoice = {
   invoice_pdf_url: string | null;
   amount: number | null;
   sort_order: number;
+  stripe_invoice_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -224,6 +225,11 @@ export default function SprintDetailContent(props: Props) {
   const [savingInvoiceField, setSavingInvoiceField] = useState<string | null>(null); // stores invoiceId being saved
   const [uploadingInvoicePdfId, setUploadingInvoicePdfId] = useState<string | null>(null);
   const [creatingInvoices, setCreatingInvoices] = useState(false);
+  const [sendingStripeInvoiceId, setSendingStripeInvoiceId] = useState<string | null>(null);
+  const [showNewInvoiceForm, setShowNewInvoiceForm] = useState(false);
+  const [newInvoiceLabel, setNewInvoiceLabel] = useState("");
+  const [newInvoiceAmount, setNewInvoiceAmount] = useState("");
+  const [creatingCustomInvoice, setCreatingCustomInvoice] = useState(false);
   
   // Budget status state
   const [budgetStatus, setBudgetStatus] = useState(row.budget_status || "draft");
@@ -705,6 +711,56 @@ export default function SprintDetailContent(props: Props) {
       alert("Failed to remove PDF");
     } finally {
       setUploadingInvoicePdfId(null);
+    }
+  };
+
+  const handleSendStripeInvoice = async (invoiceId: string) => {
+    if (!confirm("Create and send a Stripe invoice to the client for this line item?")) return;
+    try {
+      setSendingStripeInvoiceId(invoiceId);
+      const res = await fetch(`/api/sprint-drafts/${row.id}/invoices/${invoiceId}/stripe`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error || "Failed to send Stripe invoice");
+      }
+      const data = await res.json() as { invoice: SprintInvoice };
+      setInvoices((prev) => prev.map((inv) => inv.id === invoiceId ? data.invoice : inv));
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Failed to send Stripe invoice");
+    } finally {
+      setSendingStripeInvoiceId(null);
+    }
+  };
+
+  const handleCreateCustomInvoice = async () => {
+    const label = newInvoiceLabel.trim();
+    const amount = parseFloat(newInvoiceAmount);
+    if (!label) { alert("Enter a label for the invoice"); return; }
+    if (!amount || amount <= 0) { alert("Enter a valid amount"); return; }
+    try {
+      setCreatingCustomInvoice(true);
+      const res = await fetch(`/api/sprint-drafts/${row.id}/invoices/custom`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label, amount }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error || "Failed to create invoice");
+      }
+      const data = await res.json() as { invoice: SprintInvoice };
+      setInvoices((prev) => [...prev, data.invoice]);
+      setNewInvoiceLabel("");
+      setNewInvoiceAmount("");
+      setShowNewInvoiceForm(false);
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Failed to create invoice");
+    } finally {
+      setCreatingCustomInvoice(false);
     }
   };
 
@@ -1916,22 +1972,61 @@ export default function SprintDetailContent(props: Props) {
           <div className="flex items-center justify-between gap-2">
             <h2 className={t.cardHeading}>Invoices</h2>
             {showAdminContent && (
-              <button
-                onClick={handleCreateInvoices}
-                disabled={creatingInvoices || !budgetPlan}
-                className={`${getTypographyClassName("button-sm")} h-8 px-3 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 disabled:opacity-50 transition-opacity`}
-              >
-                {creatingInvoices ? "Creating..." : "Create invoices"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowNewInvoiceForm((v) => !v)}
+                  className={`${getTypographyClassName("button-sm")} h-8 px-3 rounded-md border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors`}
+                >
+                  {showNewInvoiceForm ? "Cancel" : "+ New invoice"}
+                </button>
+                <button
+                  onClick={handleCreateInvoices}
+                  disabled={creatingInvoices || !budgetPlan}
+                  className={`${getTypographyClassName("button-sm")} h-8 px-3 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 disabled:opacity-50 transition-opacity`}
+                >
+                  {creatingInvoices ? "Creating..." : "Create from budget"}
+                </button>
+              </div>
             )}
           </div>
-          <p className={`${t.bodySm} text-text-secondary`}>
-            Invoices are sent via Bill.com
-          </p>
+
+          {showAdminContent && showNewInvoiceForm && (
+            <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3 space-y-2">
+              <p className={`${getTypographyClassName("body-sm")} font-medium`}>New custom invoice</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newInvoiceLabel}
+                  onChange={(e) => setNewInvoiceLabel(e.target.value)}
+                  placeholder="Label (e.g. Additional Design Work)"
+                  className="flex-1 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-text-muted">$</span>
+                  <input
+                    type="number"
+                    value={newInvoiceAmount}
+                    onChange={(e) => setNewInvoiceAmount(e.target.value)}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    className="w-28 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 pl-6 pr-2 py-1 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <button
+                  onClick={handleCreateCustomInvoice}
+                  disabled={creatingCustomInvoice}
+                  className={`${getTypographyClassName("button-sm")} h-8 px-3 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 disabled:opacity-50 transition-opacity`}
+                >
+                  {creatingCustomInvoice ? "Creating..." : "Add"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {invoices.length === 0 ? (
             <p className={`${t.bodySm} text-text-muted`}>
-              No invoices yet.{showAdminContent ? " Use the \u201cCreate invoices\u201d button to generate them from the current budget." : " They will be generated from the budget plan."}
+              No invoices yet.{showAdminContent ? " Use \u201cCreate from budget\u201d or \u201c+ New invoice\u201d to get started." : " They will be generated from the budget plan."}
             </p>
           ) : (
             <div className="space-y-3">
@@ -2056,6 +2151,28 @@ export default function SprintDetailContent(props: Props) {
                           View invoice link <span className="opacity-50" aria-hidden="true">↗</span>
                         </a>
                       )
+                    )}
+
+                    {/* Stripe send action */}
+                    {showAdminContent && !inv.stripe_invoice_id && inv.amount != null && inv.amount > 0 && inv.invoice_status === "not_sent" && (
+                      <button
+                        onClick={() => handleSendStripeInvoice(inv.id)}
+                        disabled={sendingStripeInvoiceId === inv.id}
+                        className={`${getTypographyClassName("button-sm")} w-full h-8 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5`}
+                      >
+                        <svg className="size-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                        </svg>
+                        {sendingStripeInvoiceId === inv.id ? "Sending..." : "Send via Stripe"}
+                      </button>
+                    )}
+                    {showAdminContent && inv.stripe_invoice_id && (
+                      <p className={`${getTypographyClassName("body-sm")} text-indigo-600 dark:text-indigo-400 flex items-center gap-1`}>
+                        <svg className="size-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        Stripe invoice sent
+                      </p>
                     )}
 
                     {/* PDF section */}

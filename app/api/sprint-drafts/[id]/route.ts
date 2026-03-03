@@ -589,6 +589,63 @@ export async function PATCH(request: Request, { params }: Params) {
     }
 
     const totals = await recalcTotals(pool, params.id);
+
+    // Sync the deferred_comp_plans record with the new total price,
+    // preserving the existing payment structure/ratios set by the user.
+    try {
+      const budgetRes = await pool.query(
+        `SELECT id, inputs, outputs FROM deferred_comp_plans WHERE sprint_id = $1 ORDER BY created_at DESC LIMIT 1`,
+        [params.id]
+      );
+      if ((budgetRes.rowCount ?? 0) > 0) {
+        const budgetRow = budgetRes.rows[0] as {
+          id: string;
+          inputs: {
+            isDeferred?: boolean;
+            totalProjectValue?: number;
+            upfrontPayment?: number;
+            equitySplit?: number;
+            milestones?: unknown[];
+          };
+          outputs: {
+            upfrontAmount?: number;
+            equityAmount?: number;
+            deferredAmount?: number;
+            milestoneBonusAmount?: number;
+            remainingOnCompletion?: number;
+            totalProjectValue?: number;
+          };
+        };
+
+        const existingInputs = budgetRow.inputs;
+        const newTotalPrice = totals.totalPrice;
+        const upfrontRatio =
+          typeof existingInputs.upfrontPayment === "number" &&
+          Number.isFinite(existingInputs.upfrontPayment)
+            ? existingInputs.upfrontPayment
+            : 0.5;
+        const newUpfrontAmount = newTotalPrice * upfrontRatio;
+        const newRemainingAmount = newTotalPrice * (1 - upfrontRatio);
+
+        const updatedInputs = { ...existingInputs, totalProjectValue: newTotalPrice };
+        const updatedOutputs = {
+          ...budgetRow.outputs,
+          upfrontAmount: newUpfrontAmount,
+          remainingOnCompletion: existingInputs.isDeferred ? 0 : newRemainingAmount,
+          deferredAmount: existingInputs.isDeferred ? newRemainingAmount : 0,
+          totalProjectValue: newTotalPrice,
+        };
+
+        await pool.query(
+          `UPDATE deferred_comp_plans SET inputs = $1::jsonb, outputs = $2::jsonb, updated_at = now() WHERE id = $3`,
+          [JSON.stringify(updatedInputs), JSON.stringify(updatedOutputs), budgetRow.id]
+        );
+      }
+    } catch (budgetErr) {
+      console.error("[Budget plan sync]", budgetErr);
+      // Non-blocking — don't fail the sprint update if budget sync fails
+    }
+
     await logChangelog(pool, params.id, user.accountId, "full_update", `Updated sprint via builder (${Array.isArray(deliverables) ? deliverables.length : 0} deliverables)`, {
       title: title.trim(),
       weeks: weeksValue,

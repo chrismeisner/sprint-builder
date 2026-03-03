@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
+import { getStripe } from "@/lib/stripe";
 
 /**
  * POST /api/webhooks/stripe
@@ -39,10 +40,7 @@ export async function POST(request: Request) {
 
   let event: import("stripe").Stripe.Event;
   try {
-    const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: "2026-01-28.clover",
-    });
+    const stripe = getStripe();
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -114,14 +112,14 @@ async function onPaymentIntentSucceeded(
   pi: import("stripe").Stripe.PaymentIntent
 ) {
   console.log(`[StripeWebhook] PaymentIntent succeeded: ${pi.id}`);
-  await updateInvoiceByStripeId(pi.id, "paid");
+  await updateInvoiceStatus(pi.id, "paid", pi.metadata);
 }
 
 async function onPaymentIntentFailed(
   pi: import("stripe").Stripe.PaymentIntent
 ) {
   console.log(`[StripeWebhook] PaymentIntent failed: ${pi.id}`);
-  await updateInvoiceByStripeId(pi.id, "failed");
+  await updateInvoiceStatus(pi.id, "failed", pi.metadata);
 }
 
 async function onCheckoutSessionCompleted(
@@ -129,22 +127,21 @@ async function onCheckoutSessionCompleted(
 ) {
   console.log(`[StripeWebhook] Checkout session completed: ${session.id}`);
 
-  // Try to match by payment_intent first, then by session id stored in invoice_url
   if (session.payment_intent && typeof session.payment_intent === "string") {
-    await updateInvoiceByStripeId(session.payment_intent, "paid");
+    await updateInvoiceStatus(session.payment_intent, "paid", session.metadata ?? undefined);
   } else {
-    await updateInvoiceByStripeId(session.id, "paid");
+    await updateInvoiceStatus(session.id, "paid", session.metadata ?? undefined);
   }
 }
 
 async function onInvoicePaid(invoice: import("stripe").Stripe.Invoice) {
   console.log(`[StripeWebhook] Invoice paid: ${invoice.id}`);
-  await updateInvoiceByStripeId(invoice.id, "paid");
+  await updateInvoiceStatus(invoice.id, "paid", invoice.metadata ?? undefined);
 }
 
 async function onInvoicePaymentFailed(invoice: import("stripe").Stripe.Invoice) {
   console.log(`[StripeWebhook] Invoice payment failed: ${invoice.id}`);
-  await updateInvoiceByStripeId(invoice.id, "failed");
+  await updateInvoiceStatus(invoice.id, "failed", invoice.metadata ?? undefined);
 }
 
 // ---------------------------------------------------------------------------
@@ -152,37 +149,78 @@ async function onInvoicePaymentFailed(invoice: import("stripe").Stripe.Invoice) 
 // ---------------------------------------------------------------------------
 
 /**
- * Looks up a sprint_invoice by its Stripe ID (stored in invoice_url or a
- * dedicated stripe_id column if you add one later) and updates its status.
- *
- * The invoice_url column currently stores the Stripe-hosted invoice URL.
- * We match loosely by checking whether the URL contains the given Stripe ID.
+ * Updates a sprint_invoice's status. Matching strategy (in priority order):
+ * 1. metadata.invoice_id — direct row ID set when we created the Stripe invoice
+ * 2. stripe_invoice_id column — matches the Stripe object ID we stored on creation
+ * 3. invoice_url ILIKE — legacy fallback for manually-pasted Stripe URLs
  */
-async function updateInvoiceByStripeId(stripeId: string, status: "paid" | "failed") {
+async function updateInvoiceStatus(
+  stripeId: string,
+  status: "paid" | "failed",
+  metadata?: Record<string, string>
+) {
   try {
     const pool = getPool();
-    const result = await pool.query(
+
+    // Strategy 1: direct match via metadata.invoice_id
+    if (metadata?.invoice_id) {
+      const result = await pool.query(
+        `UPDATE sprint_invoices
+            SET invoice_status = $1, updated_at = now()
+          WHERE id = $2
+          RETURNING id, sprint_id, label, invoice_status`,
+        [status, metadata.invoice_id]
+      );
+      if ((result.rowCount ?? 0) > 0) {
+        logUpdated(result.rows, status, `metadata.invoice_id=${metadata.invoice_id}`);
+        return;
+      }
+    }
+
+    // Strategy 2: match by stripe_invoice_id column
+    const byCol = await pool.query(
+      `UPDATE sprint_invoices
+          SET invoice_status = $1, updated_at = now()
+        WHERE stripe_invoice_id = $2
+        RETURNING id, sprint_id, label, invoice_status`,
+      [status, stripeId]
+    );
+    if ((byCol.rowCount ?? 0) > 0) {
+      logUpdated(byCol.rows, status, `stripe_invoice_id=${stripeId}`);
+      return;
+    }
+
+    // Strategy 3: legacy URL-based fuzzy match
+    const byUrl = await pool.query(
       `UPDATE sprint_invoices
           SET invoice_status = $1, updated_at = now()
         WHERE invoice_url ILIKE $2
         RETURNING id, sprint_id, label, invoice_status`,
       [status, `%${stripeId}%`]
     );
-
-    if ((result.rowCount ?? 0) > 0) {
-      console.log(
-        `[StripeWebhook] Updated ${result.rowCount} invoice(s) to "${status}" for Stripe ID: ${stripeId}`
-      );
-      result.rows.forEach((row) => {
-        console.log(`  → invoice ${row.id} (${row.label}) on sprint ${row.sprint_id}`);
-      });
-    } else {
-      console.warn(
-        `[StripeWebhook] No sprint_invoices matched Stripe ID: ${stripeId} — event logged but no DB update made`
-      );
+    if ((byUrl.rowCount ?? 0) > 0) {
+      logUpdated(byUrl.rows, status, `invoice_url ILIKE %${stripeId}%`);
+      return;
     }
+
+    console.warn(
+      `[StripeWebhook] No sprint_invoices matched Stripe ID: ${stripeId} — event logged but no DB update made`
+    );
   } catch (err) {
     console.error("[StripeWebhook] DB update error:", err);
     throw err;
   }
+}
+
+function logUpdated(
+  rows: Array<{ id: string; sprint_id: string; label: string }>,
+  status: string,
+  matchedBy: string
+) {
+  console.log(
+    `[StripeWebhook] Updated ${rows.length} invoice(s) to "${status}" (matched by ${matchedBy})`
+  );
+  rows.forEach((row) => {
+    console.log(`  → invoice ${row.id} (${row.label}) on sprint ${row.sprint_id}`);
+  });
 }

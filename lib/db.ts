@@ -455,6 +455,12 @@ export async function ensureSchema(): Promise<void> {
     ALTER TABLE accounts
     ADD COLUMN IF NOT EXISTS email_verified_at timestamptz;
   `);
+
+  // Stripe customer linkage
+  await pool.query(`
+    ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS stripe_customer_id text;
+  `);
   
   // Email verification codes for new account signup
   await pool.query(`
@@ -1156,6 +1162,11 @@ export async function ensureSchema(): Promise<void> {
       updated_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS idx_sprint_invoices_sprint ON sprint_invoices(sprint_id);
+  `);
+
+  await pool.query(`
+    ALTER TABLE sprint_invoices
+    ADD COLUMN IF NOT EXISTS stripe_invoice_id text;
   `);
 
   global._schemaInitialized = true;
