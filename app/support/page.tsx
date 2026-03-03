@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Typography from "@/components/ui/Typography";
 import SupportForm from "./SupportForm";
 
@@ -51,37 +50,11 @@ export default function SupportPage() {
         <Typography as="h1" scale="h2">
           Support
         </Typography>
-        <Typography as="p" scale="body-lg" className="text-text-secondary">
+        <Typography as="p" scale="body-md" className="text-text-secondary">
           Need help with a sprint, your account, or something else? Browse the FAQ below or send us a message and we&apos;ll get back to you within one business day.
         </Typography>
       </section>
 
-      {/* Quick links */}
-      <section className="container max-w-3xl pb-12">
-        <div className="grid sm:grid-cols-3 gap-4">
-          <Link
-            href="/login"
-            className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-gray-950 p-5 hover:border-black/20 dark:hover:border-white/20 transition space-y-1"
-          >
-            <p className="text-base font-semibold">Client portal</p>
-            <p className="text-sm text-text-secondary">Log in to view your project and sprint activity.</p>
-          </Link>
-          <Link
-            href="/packages"
-            className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-gray-950 p-5 hover:border-black/20 dark:hover:border-white/20 transition space-y-1"
-          >
-            <p className="text-base font-semibold">Sprint packages</p>
-            <p className="text-sm text-text-secondary">Browse available packages and pricing.</p>
-          </Link>
-          <a
-            href="mailto:hello@meisner.design"
-            className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-gray-950 p-5 hover:border-black/20 dark:hover:border-white/20 transition space-y-1"
-          >
-            <p className="text-base font-semibold">Email us directly</p>
-            <p className="text-sm text-text-secondary">hello@meisner.design</p>
-          </a>
-        </div>
-      </section>
 
       {/* FAQ */}
       <section className="container max-w-3xl pb-16 space-y-6">

@@ -2,7 +2,7 @@
 // Manually update this file when creating new versions
 // Or use the versions-data.json for a more dynamic approach
 
-const VERSIONS = [
+var VERSIONS = [
   {
     name: "v3-mvp-2026-03-02",
     version: "3",

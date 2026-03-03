@@ -13,6 +13,9 @@ export default function Footer() {
           <Link href="/terms" className={`${typography.bodySm} text-white`}>
             Terms
           </Link>
+          <Link href="/support" className={`${typography.bodySm} text-white`}>
+            Support
+          </Link>
         </div>
       </div>
     </footer>

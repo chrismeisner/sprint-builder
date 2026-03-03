@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Rewrite homepage to serve the sandbox landing page
+  if (pathname === "/") {
+    const rewriteUrl = request.nextUrl.clone();
+    rewriteUrl.pathname = "/api/sandbox-files/new-landing/index.html";
+    return NextResponse.rewrite(rewriteUrl);
+  }
+
   // Continue with the request and add security headers
   const response = NextResponse.next({
     request: {
       headers: new Headers({
         ...Object.fromEntries(request.headers),
-        "x-pathname": request.nextUrl.pathname,
+        "x-pathname": pathname,
       }),
     },
   });
@@ -16,7 +25,6 @@ export function middleware(request: NextRequest) {
   
   // Allow sandbox files to be framed (for the sandbox viewer)
   // Use SAMEORIGIN for sandbox paths, DENY for everything else
-  const pathname = request.nextUrl.pathname;
   if (pathname.startsWith("/sandboxes/") && pathname.includes(".")) {
     // Static sandbox files (e.g., /sandboxes/demo/index.html) can be framed from same origin
     response.headers.set("X-Frame-Options", "SAMEORIGIN");

@@ -160,11 +160,18 @@ export async function GET(
     // Check if it's a file (not a directory)
     const stat = fs.statSync(normalizedPath);
     if (stat.isDirectory()) {
-      // If directory, try to serve index.html
       const indexPath = path.join(normalizedPath, "index.html");
       if (fs.existsSync(indexPath)) {
-        const content = fs.readFileSync(indexPath);
-        return new NextResponse(content, {
+        let html = fs.readFileSync(indexPath, "utf-8");
+        // Inject a <base> tag so relative asset paths (e.g. <script src="versions-data.js">)
+        // resolve correctly even when the browser URL lacks a trailing slash.
+        // Next.js strips trailing slashes by default, so we can't rely on a redirect.
+        const urlPath = request.nextUrl.pathname;
+        const baseHref = urlPath.endsWith("/") ? urlPath : urlPath + "/";
+        if (!html.includes("<base ")) {
+          html = html.replace("<head>", `<head>\n  <base href="${baseHref}">`);
+        }
+        return new NextResponse(html, {
           headers: {
             "Content-Type": "text/html",
             "X-Frame-Options": "SAMEORIGIN",

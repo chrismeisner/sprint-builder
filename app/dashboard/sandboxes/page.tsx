@@ -14,6 +14,7 @@ type SandboxFolder = {
   folderName: string;
   displayName: string;
   launchUrl: string;
+  versionsUrl: string | null;
   buildDir: string | null; // "route", "root", "out", "dist", "build", or null
   fileCount: number;
   registeredProjectName: string | null;
@@ -36,6 +37,12 @@ function scanFolders(): Omit<SandboxFolder, "registeredProjectName">[] {
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
 
+      // Check if this sandbox has a versions browser
+      const versionsIndexPath = path.join(folderPath, "versions", "index.html");
+      const versionsUrl = fs.existsSync(versionsIndexPath)
+        ? `/api/sandbox-files/${folderName}/versions/`
+        : null;
+
       // Check if this sandbox lives as a native Next.js route in app/sandboxes/
       const appRoutePath = path.join(APP_SANDBOXES_DIR, folderName);
       if (fs.existsSync(appRoutePath)) {
@@ -43,6 +50,7 @@ function scanFolders(): Omit<SandboxFolder, "registeredProjectName">[] {
           folderName,
           displayName,
           launchUrl: `/sandboxes/${folderName}/`,
+          versionsUrl,
           buildDir: "route",
           fileCount,
         };
@@ -66,6 +74,7 @@ function scanFolders(): Omit<SandboxFolder, "registeredProjectName">[] {
         folderName,
         displayName,
         launchUrl: `/api/sandbox-files/${folderName}/`,
+        versionsUrl,
         buildDir,
         fileCount,
       };
@@ -214,9 +223,9 @@ export default async function SandboxIndexPage() {
                 <td className="px-4 py-3">
                   {s.buildDir !== null ? (
                     <div className="flex items-center justify-end gap-2">
-                      <CopyLinkButton url={s.launchUrl} />
+                      <CopyLinkButton url={s.versionsUrl ?? s.launchUrl} />
                       <a
-                        href={s.launchUrl}
+                        href={s.versionsUrl ?? s.launchUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 rounded-lg border border-stroke-muted bg-surface-strong/60 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-surface-strong"
