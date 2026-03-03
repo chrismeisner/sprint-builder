@@ -165,7 +165,13 @@ async function onInvoiceVoided(invoice: import("stripe").Stripe.Invoice) {
 
 async function onChargeRefunded(charge: import("stripe").Stripe.Charge) {
   console.log(`[StripeWebhook] Charge refunded: ${charge.id}`);
-  const invoiceId = typeof charge.invoice === "string" ? charge.invoice : charge.invoice?.id;
+  const maybeWithInvoice = charge as import("stripe").Stripe.Charge & {
+    invoice?: string | { id?: string } | null;
+  };
+  const invoiceId =
+    typeof maybeWithInvoice.invoice === "string"
+      ? maybeWithInvoice.invoice
+      : maybeWithInvoice.invoice?.id;
   const metadata = charge.metadata ?? undefined;
   if (invoiceId) {
     await updateInvoiceStatus(invoiceId, "refunded", metadata);
