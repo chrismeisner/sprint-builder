@@ -27,6 +27,8 @@ type Props = {
   loginRedirectPath?: string;
 };
 
+const PRESET_MULTIPLIERS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2] as const;
+
 export default function SprintBuilderClient({
   deliverables,
   projects,
@@ -133,6 +135,8 @@ export default function SprintBuilderClient({
   const [error, setError] = useState<string | null>(null);
   const [editingDeliverableId, setEditingDeliverableId] = useState<string | null>(null);
   const [editingMultiplier, setEditingMultiplier] = useState<number>(1);
+  const [isCustomMultiplier, setIsCustomMultiplier] = useState(false);
+  const [customMultiplierInput, setCustomMultiplierInput] = useState("1");
   const [editingNote, setEditingNote] = useState<string>("");
   const [infoDeliverable, setInfoDeliverable] = useState<Deliverable | null>(null);
   useEffect(() => {
@@ -270,9 +274,7 @@ export default function SprintBuilderClient({
   function removeDeliverable(deliverableId: string) {
     setSelectedDeliverables(selectedDeliverables.filter((d) => d.deliverableId !== deliverableId));
     if (editingDeliverableId === deliverableId) {
-      setEditingDeliverableId(null);
-      setEditingMultiplier(1);
-      setEditingNote("");
+      closeEditingComplexityModal();
     }
   }
 
@@ -326,6 +328,24 @@ export default function SprintBuilderClient({
     editingAdjustedPoints != null && Number.isFinite(editingAdjustedPoints)
       ? hoursFromPoints(editingAdjustedPoints)
       : null;
+  const hasCustomMultiplierInput = customMultiplierInput.trim().length > 0;
+  const isCustomMultiplierValid =
+    hasCustomMultiplierInput &&
+    /^\d+$/.test(customMultiplierInput.trim()) &&
+    Number(customMultiplierInput) >= 1 &&
+    Number(customMultiplierInput) <= 99;
+  const customMultiplierError =
+    isCustomMultiplier && !isCustomMultiplierValid
+      ? "Enter a whole number from 1 to 99."
+      : null;
+
+  function closeEditingComplexityModal() {
+    setEditingDeliverableId(null);
+    setEditingMultiplier(1);
+    setIsCustomMultiplier(false);
+    setCustomMultiplierInput("1");
+    setEditingNote("");
+  }
 
   function formatFriendly(dateStr: string | null): string | null {
     if (!dateStr) return null;
@@ -1015,8 +1035,17 @@ export default function SprintBuilderClient({
                             <button
                               type="button"
                               onClick={() => {
+                                const isPresetMultiplier = PRESET_MULTIPLIERS.includes(
+                                  item.multiplier as (typeof PRESET_MULTIPLIERS)[number]
+                                );
+                                const safeCustomValue = Math.max(
+                                  1,
+                                  Math.min(99, Math.round(item.multiplier || 1))
+                                );
                                 setEditingDeliverableId(item.deliverableId);
                                 setEditingMultiplier(item.multiplier);
+                                setIsCustomMultiplier(!isPresetMultiplier);
+                                setCustomMultiplierInput(String(safeCustomValue));
                                 setEditingNote(item.note || "");
                               }}
                               className={`${bodySmClass} underline`}
@@ -1320,11 +1349,7 @@ export default function SprintBuilderClient({
       {editingDeliverableId && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-          onClick={() => {
-            setEditingDeliverableId(null);
-            setEditingMultiplier(1);
-            setEditingNote("");
-          }}
+          onClick={closeEditingComplexityModal}
         >
           <div
             className="w-full max-w-md rounded-md bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 p-6 shadow-lg space-y-4"
@@ -1336,18 +1361,73 @@ export default function SprintBuilderClient({
               <label className={`${labelClass} block mb-2`} htmlFor="complexity-multiplier">
                 Multiplier
               </label>
-              <select
-                id="complexity-multiplier"
-                value={editingMultiplier}
-                onChange={(e) => setEditingMultiplier(Number(e.target.value))}
-                className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 bg-white dark:bg-neutral-900 text-black dark:text-white`}
-              >
-                {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 2].map((val) => (
-                  <option key={val} value={val}>
-                    {val}x
-                  </option>
-                ))}
-              </select>
+              {isCustomMultiplier ? (
+                <input
+                  id="complexity-multiplier"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={2}
+                  value={customMultiplierInput}
+                  onChange={(e) => {
+                    const nextValue = e.target.value.replace(/\D/g, "");
+                    setCustomMultiplierInput(nextValue);
+                    if (nextValue.length === 0) return;
+                    const parsedValue = Number(nextValue);
+                    if (parsedValue >= 1 && parsedValue <= 99) {
+                      setEditingMultiplier(parsedValue);
+                    }
+                  }}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 bg-white dark:bg-neutral-900 text-black dark:text-white`}
+                  aria-invalid={Boolean(customMultiplierError)}
+                  aria-describedby={customMultiplierError ? "complexity-multiplier-error" : undefined}
+                />
+              ) : (
+                <select
+                  id="complexity-multiplier"
+                  value={editingMultiplier}
+                  onChange={(e) => setEditingMultiplier(Number(e.target.value))}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 bg-white dark:bg-neutral-900 text-black dark:text-white`}
+                >
+                  {PRESET_MULTIPLIERS.map((val) => (
+                    <option key={val} value={val}>
+                      {val}x
+                    </option>
+                  ))}
+                </select>
+              )}
+              <div className="mt-2 flex items-center justify-between">
+                {customMultiplierError ? (
+                  <p
+                    id="complexity-multiplier-error"
+                    className={`${labelClass} text-red-600 dark:text-red-400`}
+                  >
+                    {customMultiplierError}
+                  </p>
+                ) : (
+                  <span />
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isCustomMultiplier) {
+                      setIsCustomMultiplier(false);
+                      setEditingMultiplier(1);
+                      setCustomMultiplierInput("1");
+                      return;
+                    }
+                    const safeCustomValue = Math.max(
+                      1,
+                      Math.min(99, Math.round(editingMultiplier || 1))
+                    );
+                    setIsCustomMultiplier(true);
+                    setCustomMultiplierInput(String(safeCustomValue));
+                    setEditingMultiplier(safeCustomValue);
+                  }}
+                  className={`${labelClass} underline hover:text-black dark:hover:text-white`}
+                >
+                  {isCustomMultiplier ? "use presets" : "custom"}
+                </button>
+              </div>
             </div>
             {editingDeliverable && (
               <div className="rounded-md border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 px-3 py-2">
@@ -1374,17 +1454,14 @@ export default function SprintBuilderClient({
             <div className="flex items-center justify-end gap-3">
               <button
                 type="button"
-                onClick={() => {
-                  setEditingDeliverableId(null);
-                  setEditingMultiplier(1);
-                  setEditingNote("");
-                }}
+                onClick={closeEditingComplexityModal}
                 className={`${bodySmClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1 hover:bg-black/5 dark:hover:bg-white/10`}
               >
                 Cancel
               </button>
               <button
                 type="button"
+                disabled={Boolean(customMultiplierError)}
                 onClick={() => {
                   setSelectedDeliverables((prev) =>
                     prev.map((d) =>
@@ -1393,11 +1470,9 @@ export default function SprintBuilderClient({
                         : d
                     )
                   );
-                  setEditingDeliverableId(null);
-                  setEditingMultiplier(1);
-                  setEditingNote("");
+                  closeEditingComplexityModal();
                 }}
-                className={`${bodySmClass} inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-2`}
+                className={`${bodySmClass} inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-2 disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 Apply
               </button>
