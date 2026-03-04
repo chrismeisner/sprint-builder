@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { typography } from "@/app/components/typography";
-import { POINT_PRICE_PER_POINT, HOURS_PER_POINT, DEFAULT_HOURLY_RATE, pointPriceFromRate } from "@/lib/pricing";
+import { HOURS_PER_POINT, DEFAULT_HOURLY_RATE, pointPriceFromRate } from "@/lib/pricing";
 
 type Props = {
   initialPoints: number;

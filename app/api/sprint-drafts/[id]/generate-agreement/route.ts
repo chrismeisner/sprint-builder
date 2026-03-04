@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { POINT_PRICE_PER_POINT, DEFAULT_HOURLY_RATE, pointPriceFromRate } from "@/lib/pricing";
+import { DEFAULT_HOURLY_RATE, pointPriceFromRate } from "@/lib/pricing";
 
 type Params = { params: { id: string } };
 

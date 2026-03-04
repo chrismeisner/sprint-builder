@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
-import { POINT_BASE_FEE, priceFromPoints, DEFAULT_HOURLY_RATE } from "@/lib/pricing";
+import { POINT_BASE_FEE, priceFromPoints } from "@/lib/pricing";
 import { getCurrentUser } from "@/lib/auth";
 import { randomUUID, randomBytes } from "crypto";
 
