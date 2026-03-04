@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { priceFromPoints, hoursFromPoints } from "@/lib/pricing";
+import { priceFromPoints, hoursFromPoints, DEFAULT_HOURLY_RATE } from "@/lib/pricing";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 
 type Deliverable = {
@@ -103,13 +103,10 @@ export default function SprintBuilderClient({
   }
 
   const upcomingMondays = getUpcomingMondays(6);
-  const [startDate, setStartDate] = useState(() => upcomingMondays[0] || toLocalISO(new Date()));
+  const [startDate, setStartDate] = useState(() => upcomingMondays[1] || toLocalISO(new Date()));
   const [weeks, setWeeks] = useState<number>(2);
   
-  // Debug logging
-  console.log('[RENDER DEBUG] Current startDate state:', startDate);
-  console.log('[RENDER DEBUG] startDate type:', typeof startDate);
-  
+  const [baseRate, setBaseRate] = useState<number>(DEFAULT_HOURLY_RATE);
   const [approach, setApproach] = useState("");
 
   // Dynamic week notes: keyed by "week1", "week2", etc.
@@ -137,6 +134,8 @@ export default function SprintBuilderClient({
   const [editingMultiplier, setEditingMultiplier] = useState<number>(1);
   const [isCustomMultiplier, setIsCustomMultiplier] = useState(false);
   const [customMultiplierInput, setCustomMultiplierInput] = useState("1");
+  const [editingMode, setEditingMode] = useState<"multiplier" | "hours">("multiplier");
+  const [editingHoursInput, setEditingHoursInput] = useState<string>("");
   const [editingNote, setEditingNote] = useState<string>("");
   const [infoDeliverable, setInfoDeliverable] = useState<Deliverable | null>(null);
   useEffect(() => {
@@ -172,10 +171,8 @@ export default function SprintBuilderClient({
       try {
         setLoadingExisting(true);
         setError(null);
-        console.log('[CLIENT DEBUG] Fetching sprint:', existingId);
         const res = await fetch(`/api/sprint-drafts/${existingId}`);
         const data = await res.json().catch(() => ({}));
-        console.log('[CLIENT DEBUG] Full API response:', JSON.stringify(data, null, 2));
         
         if (!res.ok) {
           throw new Error(data?.error || "Failed to load sprint");
@@ -187,12 +184,8 @@ export default function SprintBuilderClient({
           startDate?: string | null;
           weeks?: number | null;
           draft?: unknown;
+          baseRate?: number | null;
         };
-
-        console.log('[CLIENT DEBUG] Parsed sprint object:', sprint);
-        console.log('[CLIENT DEBUG] sprint.startDate value:', sprint.startDate);
-        console.log('[CLIENT DEBUG] sprint.startDate type:', typeof sprint.startDate);
-        console.log('[CLIENT DEBUG] Checking if startDate exists:', !!sprint.startDate);
 
         const delivs = Array.isArray(data.deliverables) ? data.deliverables : [];
         setIsEditing(true);
@@ -201,14 +194,13 @@ export default function SprintBuilderClient({
           setProjectId(sprint.projectId);
         }
         if (sprint.startDate) {
-          console.log('[CLIENT DEBUG] Setting startDate to:', String(sprint.startDate));
           setStartDate(String(sprint.startDate));
-          console.log('[CLIENT DEBUG] startDate state should now be:', String(sprint.startDate));
-        } else {
-          console.log('[CLIENT DEBUG] startDate is falsy, not setting');
         }
         if (Number.isFinite(Number(sprint.weeks))) {
           setWeeks(Number(sprint.weeks));
+        }
+        if (sprint.baseRate != null && Number.isFinite(Number(sprint.baseRate)) && Number(sprint.baseRate) > 0) {
+          setBaseRate(Number(sprint.baseRate));
         }
 
         // Custom content from draft
@@ -292,7 +284,7 @@ export default function SprintBuilderClient({
       }
     });
 
-    const totalPrice = priceFromPoints(totalComplexity);
+    const totalPrice = priceFromPoints(totalComplexity, baseRate);
     const totalHours = hoursFromPoints(totalComplexity);
     return { totalComplexity, totalPrice, totalHours };
   }
@@ -323,20 +315,37 @@ export default function SprintBuilderClient({
   const hasCustomMultiplierInput = customMultiplierInput.trim().length > 0;
   const isCustomMultiplierValid =
     hasCustomMultiplierInput &&
-    /^\d+$/.test(customMultiplierInput.trim()) &&
-    Number(customMultiplierInput) >= 1 &&
-    Number(customMultiplierInput) <= 99;
+    /^\d*\.?\d+$/.test(customMultiplierInput.trim()) &&
+    Number(customMultiplierInput) >= 0.01;
   const customMultiplierError =
     isCustomMultiplier && !isCustomMultiplierValid
-      ? "Enter a whole number from 1 to 99."
+      ? "Enter a number of 0.01 or greater."
       : null;
-  // In custom mode use the typed value directly so the preview is always
-  // in sync with the input; fall back to editingMultiplier in preset mode.
-  const effectiveMultiplier = isCustomMultiplier
-    ? isCustomMultiplierValid
-      ? Number(customMultiplierInput)
-      : null
-    : editingMultiplier;
+
+  // Hours-mode validation
+  const editingBaseHours = editingBasePoints != null ? hoursFromPoints(editingBasePoints) : null;
+  const parsedHoursInput = Number(editingHoursInput);
+  const isHoursInputValid =
+    editingHoursInput.trim().length > 0 &&
+    /^\d*\.?\d+$/.test(editingHoursInput.trim()) &&
+    Number.isFinite(parsedHoursInput) &&
+    parsedHoursInput > 0;
+  const hoursInputError =
+    editingMode === "hours" && editingHoursInput.trim().length > 0 && !isHoursInputValid
+      ? "Enter a valid number of hours greater than 0."
+      : null;
+
+  // Derive effectiveMultiplier from whichever mode is active
+  const effectiveMultiplier: number | null = (() => {
+    if (editingMode === "hours") {
+      if (!isHoursInputValid || editingBaseHours == null || editingBaseHours === 0) return null;
+      return parsedHoursInput / editingBaseHours;
+    }
+    // multiplier mode
+    if (isCustomMultiplier) return isCustomMultiplierValid ? Number(customMultiplierInput) : null;
+    return editingMultiplier;
+  })();
+
   const editingAdjustedPoints =
     editingBasePoints != null &&
     effectiveMultiplier != null &&
@@ -353,6 +362,8 @@ export default function SprintBuilderClient({
     setEditingMultiplier(1);
     setIsCustomMultiplier(false);
     setCustomMultiplierInput("1");
+    setEditingMode("multiplier");
+    setEditingHoursInput("");
     setEditingNote("");
   }
 
@@ -453,6 +464,7 @@ export default function SprintBuilderClient({
         projectId: finalProjectId,
         customContent,
         status: "draft",
+        baseRate: baseRate !== DEFAULT_HOURLY_RATE ? baseRate : null,
       };
 
       const endpoint = sprintIdFromQuery ? `/api/sprint-drafts/${sprintIdFromQuery}` : "/api/sprint-drafts";
@@ -560,6 +572,7 @@ export default function SprintBuilderClient({
         projectId: finalProjectId,
         customContent,
         status: "draft",
+        baseRate: baseRate !== DEFAULT_HOURLY_RATE ? baseRate : null,
       };
 
       const existingId = savedSprintId || sprintIdFromQuery;
@@ -634,10 +647,10 @@ export default function SprintBuilderClient({
   const { totalComplexity, totalPrice, totalHours } = calculateTotals();
   const hoursPerDay = totalDays > 0 ? Number(totalHours || 0) / totalDays : 0;
   const totalPriceCents = Math.max(0, Math.round(Number(totalPrice || 0) * 100));
-  const canBudget = selectedDeliverables.length > 0 && totalPriceCents > 0;
-  // Pass cents explicitly so the deferred comp page can render dollars accurately
+  const resolvedSprintId = savedSprintId || sprintIdFromQuery || "";
+  const canBudget = selectedDeliverables.length > 0 && totalPriceCents > 0 && Boolean(resolvedSprintId);
   const budgetHref = canBudget
-    ? `/deferred-compensation?amountCents=${totalPriceCents}&sprintId=${sprintIdFromQuery ?? ""}`
+    ? `/deferred-compensation?amountCents=${totalPriceCents}&sprintId=${resolvedSprintId}`
     : "#";
 
   function escapeCsv(val: unknown) {
@@ -1047,14 +1060,15 @@ export default function SprintBuilderClient({
                                 const isPresetMultiplier = PRESET_MULTIPLIERS.includes(
                                   item.multiplier as (typeof PRESET_MULTIPLIERS)[number]
                                 );
-                                const safeCustomValue = Math.max(
-                                  1,
-                                  Math.min(99, Math.round(item.multiplier || 1))
-                                );
+                                const safeCustomValue = item.multiplier ?? 1;
+                                const deliverable = deliverables.find((d) => d.id === item.deliverableId);
+                                const baseHrs = deliverable?.points != null ? hoursFromPoints(Number(deliverable.points)) : 0;
                                 setEditingDeliverableId(item.deliverableId);
                                 setEditingMultiplier(item.multiplier);
                                 setIsCustomMultiplier(!isPresetMultiplier);
                                 setCustomMultiplierInput(String(safeCustomValue));
+                                setEditingMode("multiplier");
+                                setEditingHoursInput(String(Math.round(safeCustomValue * baseHrs * 100) / 100));
                                 setEditingNote(item.note || "");
                               }}
                               className={`${bodySmClass} underline`}
@@ -1107,6 +1121,36 @@ export default function SprintBuilderClient({
 
                   {showExtras && (
                     <>
+                      <div>
+                        <div className={`${metricLabelClass} mb-1`}>Base Rate ($/hr)</div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={1}
+                            step={5}
+                            value={baseRate}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              if (Number.isFinite(val) && val > 0) setBaseRate(val);
+                            }}
+                            className={`${bodySmClass} w-28 rounded-md border border-black/15 dark:border-white/15 px-2 py-1.5 bg-white dark:bg-neutral-900 text-black dark:text-white tabular-nums`}
+                          />
+                          {baseRate !== DEFAULT_HOURLY_RATE && (
+                            <button
+                              type="button"
+                              onClick={() => setBaseRate(DEFAULT_HOURLY_RATE)}
+                              className={`${labelClass} underline hover:text-black dark:hover:text-white`}
+                            >
+                              reset
+                            </button>
+                          )}
+                        </div>
+                        {baseRate !== DEFAULT_HOURLY_RATE && (
+                          <div className={`${labelClass} mt-1`}>
+                            Default: ${DEFAULT_HOURLY_RATE}/hr
+                          </div>
+                        )}
+                      </div>
                       <div>
                         <div className={`${metricLabelClass} mb-1`}>Estimated Hours per Day</div>
                         <div className={`${metricValueClass} tabular-nums`}>
@@ -1364,90 +1408,180 @@ export default function SprintBuilderClient({
             className="w-full max-w-md rounded-md bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 p-6 shadow-lg space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className={sectionHeadingClass}>Edit complexity</h3>
-            <p className={sectionHelperClass}>Apply a multiplier to adjust this deliverable&apos;s complexity and totals.</p>
             <div>
-              <label className={`${labelClass} block mb-2`} htmlFor="complexity-multiplier">
-                Multiplier
-              </label>
-              {isCustomMultiplier ? (
-                <input
-                  id="complexity-multiplier"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={2}
-                  value={customMultiplierInput}
-                  onChange={(e) => {
-                    const nextValue = e.target.value.replace(/\D/g, "");
-                    setCustomMultiplierInput(nextValue);
-                    if (nextValue.length === 0) return;
-                    const parsedValue = Number(nextValue);
-                    if (parsedValue >= 1 && parsedValue <= 99) {
-                      setEditingMultiplier(parsedValue);
-                    }
-                  }}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 bg-white dark:bg-neutral-900 text-black dark:text-white`}
-                  aria-invalid={Boolean(customMultiplierError)}
-                  aria-describedby={customMultiplierError ? "complexity-multiplier-error" : undefined}
-                />
-              ) : (
-                <select
-                  id="complexity-multiplier"
-                  value={editingMultiplier}
-                  onChange={(e) => setEditingMultiplier(Number(e.target.value))}
-                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 bg-white dark:bg-neutral-900 text-black dark:text-white`}
-                >
-                  {PRESET_MULTIPLIERS.map((val) => (
-                    <option key={val} value={val}>
-                      {val}x
-                    </option>
-                  ))}
-                </select>
+              <h3 className={sectionHeadingClass}>Edit complexity</h3>
+              {editingDeliverable && (
+                <p className={`${sectionHelperClass} mt-1`}>{editingDeliverable.name}</p>
               )}
-              <div className="mt-2 flex items-center justify-between">
-                {customMultiplierError ? (
-                  <p
-                    id="complexity-multiplier-error"
-                    className={`${labelClass} text-red-600 dark:text-red-400`}
-                  >
-                    {customMultiplierError}
-                  </p>
-                ) : (
-                  <span />
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isCustomMultiplier) {
-                      setIsCustomMultiplier(false);
-                      setEditingMultiplier(1);
-                      setCustomMultiplierInput("1");
-                      return;
-                    }
-                    const safeCustomValue = Math.max(
-                      1,
-                      Math.min(99, Math.round(editingMultiplier || 1))
-                    );
-                    setIsCustomMultiplier(true);
-                    setCustomMultiplierInput(String(safeCustomValue));
-                    setEditingMultiplier(safeCustomValue);
-                  }}
-                  className={`${labelClass} underline hover:text-black dark:hover:text-white`}
-                >
-                  {isCustomMultiplier ? "use presets" : "custom"}
-                </button>
-              </div>
             </div>
-            {editingDeliverable && (
+
+            {/* Original complexity */}
+            {editingBasePoints != null && (
               <div className="rounded-md border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 px-3 py-2">
                 <p className={`${labelClass} flex items-center justify-between`}>
-                  <span>New Complexity</span>
+                  <span>Original complexity</span>
                   <span className={`${bodyClass} font-semibold`}>
-                    {formatNumber(editingAdjustedPoints)} ({formatNumber(editingAdjustedHours)} hrs)
+                    {formatNumber(editingBasePoints)} pts&nbsp;&middot;&nbsp;{formatNumber(editingBaseHours)} hrs
                   </span>
                 </p>
               </div>
             )}
+
+            {/* Mode toggle */}
+            <div className="flex rounded-md border border-black/15 dark:border-white/15 overflow-hidden text-sm">
+              {(["multiplier", "hours"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    if (mode === editingMode) return;
+                    if (mode === "hours") {
+                      // Convert current multiplier → hours
+                      const hrs = effectiveMultiplier != null && editingBaseHours != null
+                        ? effectiveMultiplier * editingBaseHours
+                        : editingBaseHours ?? 0;
+                      setEditingHoursInput(String(Math.round(hrs * 100) / 100));
+                    } else {
+                      // Convert current hours → multiplier
+                      const mult = isHoursInputValid && editingBaseHours != null && editingBaseHours > 0
+                        ? parsedHoursInput / editingBaseHours
+                        : effectiveMultiplier ?? 1;
+                      const roundedMult = Math.round(mult * 1000) / 1000;
+                      const isPreset = PRESET_MULTIPLIERS.includes(roundedMult as (typeof PRESET_MULTIPLIERS)[number]);
+                      setIsCustomMultiplier(!isPreset);
+                      setEditingMultiplier(roundedMult);
+                      setCustomMultiplierInput(String(roundedMult));
+                    }
+                    setEditingMode(mode);
+                  }}
+                  className={`flex-1 py-1.5 capitalize transition-colors duration-100 ${
+                    editingMode === mode
+                      ? "bg-black dark:bg-white text-white dark:text-black font-medium"
+                      : "bg-white dark:bg-neutral-900 text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10"
+                  }`}
+                >
+                  {mode === "multiplier" ? "Multiplier" : "Hours"}
+                </button>
+              ))}
+            </div>
+
+            {/* Input area — switches by mode */}
+            {editingMode === "multiplier" ? (
+              <div>
+                <label className={`${labelClass} block mb-2`} htmlFor="complexity-multiplier">
+                  Multiplier
+                </label>
+                {isCustomMultiplier ? (
+                  <input
+                    id="complexity-multiplier"
+                    type="text"
+                    inputMode="decimal"
+                    value={customMultiplierInput}
+                    onChange={(e) => {
+                      const nextValue = e.target.value.replace(/[^0-9.]/g, "").replace(/^(\d*\.?\d*).*$/, "$1");
+                      setCustomMultiplierInput(nextValue);
+                      if (nextValue.length === 0) return;
+                      const parsedValue = Number(nextValue);
+                      if (Number.isFinite(parsedValue) && parsedValue >= 0.01) {
+                        setEditingMultiplier(parsedValue);
+                      }
+                    }}
+                    className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 bg-white dark:bg-neutral-900 text-black dark:text-white`}
+                    aria-invalid={Boolean(customMultiplierError)}
+                    aria-describedby={customMultiplierError ? "complexity-multiplier-error" : undefined}
+                  />
+                ) : (
+                  <select
+                    id="complexity-multiplier"
+                    value={editingMultiplier}
+                    onChange={(e) => setEditingMultiplier(Number(e.target.value))}
+                    className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 bg-white dark:bg-neutral-900 text-black dark:text-white`}
+                  >
+                    {PRESET_MULTIPLIERS.map((val) => (
+                      <option key={val} value={val}>
+                        {val}x
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <div className="mt-2 flex items-center justify-between">
+                  {customMultiplierError ? (
+                    <p
+                      id="complexity-multiplier-error"
+                      className={`${labelClass} text-red-600 dark:text-red-400`}
+                    >
+                      {customMultiplierError}
+                    </p>
+                  ) : (
+                    <span />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isCustomMultiplier) {
+                        setIsCustomMultiplier(false);
+                        setEditingMultiplier(1);
+                        setCustomMultiplierInput("1");
+                        return;
+                      }
+                      const safeCustomValue = editingMultiplier ?? 1;
+                      setIsCustomMultiplier(true);
+                      setCustomMultiplierInput(String(safeCustomValue));
+                      setEditingMultiplier(safeCustomValue);
+                    }}
+                    className={`${labelClass} underline hover:text-black dark:hover:text-white`}
+                  >
+                    {isCustomMultiplier ? "use presets" : "custom"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className={`${labelClass} block mb-2`} htmlFor="complexity-hours">
+                  Hours
+                </label>
+                <input
+                  id="complexity-hours"
+                  type="text"
+                  inputMode="decimal"
+                  value={editingHoursInput}
+                  onChange={(e) => {
+                    const nextValue = e.target.value.replace(/[^0-9.]/g, "").replace(/^(\d*\.?\d*).*$/, "$1");
+                    setEditingHoursInput(nextValue);
+                  }}
+                  className={`${bodySmClass} w-full rounded-md border border-black/15 dark:border-white/15 px-2 py-2 bg-white dark:bg-neutral-900 text-black dark:text-white`}
+                  placeholder={`e.g. ${editingBaseHours ?? 10}`}
+                  aria-invalid={Boolean(hoursInputError)}
+                  aria-describedby={hoursInputError ? "complexity-hours-error" : undefined}
+                />
+                {hoursInputError && (
+                  <p
+                    id="complexity-hours-error"
+                    className={`${labelClass} text-red-600 dark:text-red-400 mt-1`}
+                  >
+                    {hoursInputError}
+                  </p>
+                )}
+                {isHoursInputValid && effectiveMultiplier != null && (
+                  <p className={`${labelClass} mt-1`}>
+                    Implied multiplier: {Math.round(effectiveMultiplier * 1000) / 1000}x
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* New complexity preview */}
+            {editingDeliverable && (
+              <div className="rounded-md border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 px-3 py-2">
+                <p className={`${labelClass} flex items-center justify-between`}>
+                  <span>New complexity</span>
+                  <span className={`${bodyClass} font-semibold`}>
+                    {formatNumber(editingAdjustedPoints)} pts&nbsp;&middot;&nbsp;{formatNumber(editingAdjustedHours)} hrs
+                  </span>
+                </p>
+              </div>
+            )}
+
             <div>
               <label className={`${labelClass} block mb-2`} htmlFor="complexity-note">
                 Reason / notes (optional)
@@ -1470,7 +1604,11 @@ export default function SprintBuilderClient({
               </button>
               <button
                 type="button"
-                disabled={Boolean(customMultiplierError)}
+                disabled={
+                  Boolean(editingMode === "multiplier" && customMultiplierError) ||
+                  Boolean(editingMode === "hours" && (!isHoursInputValid || editingHoursInput.trim().length === 0)) ||
+                  effectiveMultiplier == null
+                }
                 onClick={() => {
                   setSelectedDeliverables((prev) =>
                     prev.map((d) =>

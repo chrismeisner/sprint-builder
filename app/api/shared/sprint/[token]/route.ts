@@ -31,6 +31,7 @@ export async function GET(_request: Request, { params }: Params) {
          sd.total_estimate_points, sd.total_fixed_hours, sd.total_fixed_price,
          sd.deliverable_count, sd.draft, sd.created_at, sd.updated_at,
          sd.package_name_snapshot, sd.package_description_snapshot,
+         sd.base_rate,
          p.name as project_name
        FROM sprint_drafts sd
        LEFT JOIN projects p ON sd.project_id = p.id
@@ -92,9 +93,10 @@ export async function GET(_request: Request, { params }: Params) {
     });
 
     // Recalculate totals from deliverables for accuracy
+    const sprintBaseRate = sprint.base_rate != null ? Number(sprint.base_rate) : null;
     const totalPoints = deliverables.reduce((sum, d) => sum + d.adjustedPoints * d.quantity, 0);
     const totalHours = hoursFromPoints(totalPoints);
-    const totalPrice = priceFromPoints(totalPoints);
+    const totalPrice = priceFromPoints(totalPoints, sprintBaseRate);
 
     // Parse draft content for approach / week notes
     const draft = sprint.draft && typeof sprint.draft === "object" ? sprint.draft as Record<string, unknown> : {};

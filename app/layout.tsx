@@ -171,7 +171,7 @@ export default async function RootLayout({
   const fontClasses = `${inter.variable} ${interTight.variable} ${akkurat.variable} ${akkuratMono.variable} ${generalGrotesque.variable} ${notoEmoji.variable}`;
   const htmlClassName = `${themeMode === "dark" ? "dark" : ""} ${fontClasses}`.trim();
 
-  // Check if current route is a sandbox prototype — those manage their own UI chrome
+  // Check if current route manages its own UI chrome
   const headersList = headers();
   const pathname = headersList.get("x-pathname") ?? "";
   const isSandbox = pathname.startsWith("/sandboxes/");

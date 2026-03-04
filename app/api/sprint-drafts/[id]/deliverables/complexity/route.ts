@@ -44,7 +44,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
     // Verify sprint ownership
     const sprintCheck = await pool.query(
-      `SELECT sd.id, sd.status, d.account_id 
+      `SELECT sd.id, sd.status, sd.base_rate, d.account_id 
        FROM sprint_drafts sd
        LEFT JOIN documents d ON sd.document_id = d.id
        WHERE sd.id = $1`,
@@ -55,7 +55,7 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Sprint not found" }, { status: 404 });
     }
 
-    const sprint = sprintCheck.rows[0] as { id: string; status: string | null; account_id: string | null };
+    const sprint = sprintCheck.rows[0] as { id: string; status: string | null; account_id: string | null; base_rate: number | null };
     
     if (sprint.account_id !== user.accountId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -85,8 +85,9 @@ export async function PATCH(request: Request, { params }: Params) {
     // Calculate adjusted values based on complexity
     const basePoints = deliverable.points ?? 0;
     const adjustedPoints = Math.round(basePoints * complexity * 100) / 100;
+    const sprintRate = sprint.base_rate != null ? Number(sprint.base_rate) : null;
     const adjustedHours = hoursFromPoints(adjustedPoints);
-    const adjustedPrice = priceFromPoints(adjustedPoints);
+    const adjustedPrice = priceFromPoints(adjustedPoints, sprintRate);
 
     // Update complexity score and adjusted values in junction table
     // Note: base_points stores the original deliverable points (before multiplier)
@@ -153,14 +154,19 @@ async function recalculateTotals(pool: ReturnType<typeof getPool>, sprintId: str
     [sprintId]
   );
 
+  // Read the sprint's stored base_rate
+  const rateRes = await pool.query(`SELECT base_rate FROM sprint_drafts WHERE id = $1`, [sprintId]);
+  const storedRate = rateRes.rows[0]?.base_rate;
+  const hourlyRate = storedRate != null ? Number(storedRate) : null;
+
   const totals = result.rows[0] as {
     deliverable_count: number;
     total_points: number;
   };
 
   const totalPoints = Number(totals.total_points);
-  const totalHours = hoursFromPoints(totalPoints); // hours = 15x complexity
-  const totalPrice = priceFromPoints(totalPoints);
+  const totalHours = hoursFromPoints(totalPoints);
+  const totalPrice = priceFromPoints(totalPoints, hourlyRate);
 
   await pool.query(
     `UPDATE sprint_drafts 

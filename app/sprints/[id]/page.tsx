@@ -28,7 +28,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
             sd.project_id, sd.contract_url, sd.contract_status,
             sd.signed_by_studio, sd.signed_by_client,
             sd.invoice_url, sd.invoice_status, sd.budget_status, sd.contract_pdf_url,
-            sd.invoice_pdf_url,
+            sd.invoice_pdf_url, sd.base_rate,
             d.email, d.account_id, d.project_id AS document_project_id
      FROM sprint_drafts sd
      LEFT JOIN documents d ON sd.document_id = d.id
@@ -67,6 +67,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
     budget_status: string | null;
     contract_pdf_url: string | null;
     invoice_pdf_url: string | null;
+    base_rate: number | null;
   };
   
   // Check if current user owns this sprint or is a member of the linked project
@@ -364,6 +365,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
     budget_status: row.budget_status,
     contract_pdf_url: row.contract_pdf_url,
     invoice_pdf_url: row.invoice_pdf_url,
+    base_rate: row.base_rate != null ? Number(row.base_rate) : null,
   };
 
   const budgetPlanForClient = budgetPlan

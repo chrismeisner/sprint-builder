@@ -121,7 +121,7 @@ export default function DeferredCompensationClient({
     if (savedPlan?.upfrontPayment != null && Number.isFinite(savedPlan.upfrontPayment)) {
       return savedPlan.upfrontPayment;
     }
-    return 0.4;
+    return 0.5;
   }, [savedPlan]);
 
   const initialEquitySplit = useMemo(() => {
@@ -162,7 +162,7 @@ export default function DeferredCompensationClient({
     return "net30";
   }, [savedPlan]);
 
-  // Deferred toggle — priority: savedPlan > sprint setting > default true
+  // Deferred toggle — priority: savedPlan > sprint setting > default false
   const initialIsDeferred = useMemo(() => {
     if (savedPlan && typeof savedPlan.isDeferred === "boolean") {
       return savedPlan.isDeferred;
@@ -170,7 +170,7 @@ export default function DeferredCompensationClient({
     if (sprintFromUrl && typeof sprintFromUrl.hasDeferredComp === "boolean") {
       return sprintFromUrl.hasDeferredComp;
     }
-    return true;
+    return false;
   }, [savedPlan, sprintFromUrl]);
 
   // User inputs
@@ -1371,7 +1371,7 @@ export default function DeferredCompensationClient({
           <div className="space-y-2">
             <label htmlFor="selectedSprintSave">
               <Typography as="span" scale="subtitle-sm" className="text-text-secondary">
-                Project to attach budget
+                Sprint to attach budget
               </Typography>
             </label>
             {resolvedSprintOptions.length > 0 ? (
@@ -1381,7 +1381,7 @@ export default function DeferredCompensationClient({
                 onChange={(e) => setSelectedSprint(e.target.value)}
                 className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
               >
-                <option value="">Select your project</option>
+                <option value="">Select a sprint</option>
                 {resolvedSprintOptions.map((sprint) => (
                   <option key={sprint.id} value={sprint.id}>
                     {sprint.label}
@@ -1390,7 +1390,7 @@ export default function DeferredCompensationClient({
               </select>
             ) : (
               <div className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-sm text-text-secondary">
-                No projects found for your account yet.
+                No sprints found for your account yet.
               </div>
             )}
           </div>

@@ -123,6 +123,7 @@ type SprintRow = {
   budget_status: string | null;
   contract_pdf_url: string | null;
   invoice_pdf_url: string | null;
+  base_rate: number | null;
 };
 
 type SprintInvoice = {
@@ -1159,6 +1160,7 @@ export default function SprintDetailContent(props: Props) {
                   showRate={true}
                   variant="inline"
                   hideHeading
+                  baseRate={row.base_rate}
                 />
               </div>
             )}

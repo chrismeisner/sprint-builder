@@ -133,9 +133,14 @@ export async function POST(request: Request, { params }: Params) {
       total_points: number;
     };
 
+    // Read sprint's stored base_rate
+    const rateRes = await pool.query(`SELECT base_rate FROM sprint_drafts WHERE id = $1`, [params.id]);
+    const storedRate = rateRes.rows[0]?.base_rate;
+    const hourlyRate = storedRate != null ? Number(storedRate) : null;
+
     const totalPoints = Number(totals.total_points);
     const totalHours = hoursFromPoints(totalPoints);
-    const totalPrice = priceFromPoints(totalPoints);
+    const totalPrice = priceFromPoints(totalPoints, hourlyRate);
 
     await pool.query(
       `UPDATE sprint_drafts 

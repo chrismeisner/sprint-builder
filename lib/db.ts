@@ -228,6 +228,14 @@ export async function ensureSchema(): Promise<void> {
     // Columns may already exist
   });
 
+  // Add base_rate (hourly rate) to sprint_drafts — nullable means "use global default"
+  await pool.query(`
+    ALTER TABLE sprint_drafts
+    ADD COLUMN IF NOT EXISTS base_rate numeric(10,2)
+  `).catch(() => {
+    // Column may already exist
+  });
+
   // Add constraint to validate status values
   // Workflow: draft -> scheduled -> in_progress -> complete
   await pool.query(`

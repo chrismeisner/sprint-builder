@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
-import { POINT_BASE_FEE, priceFromPoints } from "@/lib/pricing";
+import { POINT_BASE_FEE, priceFromPoints, DEFAULT_HOURLY_RATE } from "@/lib/pricing";
 import { getCurrentUser } from "@/lib/auth";
 import { randomUUID, randomBytes } from "crypto";
 
@@ -22,43 +22,6 @@ export async function POST(request: Request) {
   try {
     await ensureSchema();
     const pool = getPool();
-    // Hotfix: ensure base_points column supports decimals (some DBs may still be int)
-    try {
-      await pool.query(
-        `ALTER TABLE sprint_deliverables
-         ALTER COLUMN base_points TYPE numeric(10,2)
-         USING base_points::numeric(10,2)`
-      );
-    } catch {
-      // ignore if already correct / no-op
-    }
-    // Force sprint_deliverables numeric columns to accept decimals
-    try {
-      await pool.query(
-        `ALTER TABLE sprint_deliverables
-         ALTER COLUMN base_points TYPE numeric(10,2) USING base_points::numeric(10,2),
-         ALTER COLUMN custom_estimate_points TYPE numeric(10,2) USING custom_estimate_points::numeric(10,2),
-         ALTER COLUMN complexity_score TYPE numeric(10,2) USING complexity_score::numeric(10,2)`
-      );
-    } catch {
-      // ignore if already correct
-    }
-    // Defensive: legacy DBs may still have integer totals; normalize to numeric
-    try {
-      await pool.query(
-        `ALTER TABLE sprint_drafts
-         ALTER COLUMN total_estimate_points TYPE numeric(10,2)
-         USING total_estimate_points::numeric(10,2)`
-      );
-    } catch {
-      // ignore if already correct / no-op
-    }
-    // Ensure sprint_deliverables numeric columns accept decimals (defensive, enforced)
-    await pool.query(
-      `ALTER TABLE sprint_deliverables
-       ALTER COLUMN base_points TYPE numeric(10,2) USING base_points::numeric(10,2),
-       ALTER COLUMN custom_estimate_points TYPE numeric(10,2) USING custom_estimate_points::numeric(10,2);`
-    );
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
@@ -69,7 +32,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const { title, sprintPackageId, deliverables, customContent, status, projectId, startDate, dueDate, weeks } = body as {
+    const { title, sprintPackageId, deliverables, customContent, status, projectId, startDate, dueDate, weeks, baseRate: baseRateRaw } = body as {
       title?: unknown;
       sprintPackageId?: unknown;
       deliverables?: unknown;
@@ -79,7 +42,11 @@ export async function POST(request: Request) {
       startDate?: unknown;
       dueDate?: unknown;
       weeks?: unknown;
+      baseRate?: unknown;
     };
+
+    const baseRateNum = Number(baseRateRaw);
+    const baseRateValue = Number.isFinite(baseRateNum) && baseRateNum > 0 ? baseRateNum : null;
 
     // Validate
     if (typeof title !== "string" || !title.trim()) {
@@ -190,10 +157,10 @@ export async function POST(request: Request) {
          id, draft, status, title, sprint_package_id,
          project_id, start_date, due_date, weeks,
          package_name_snapshot, package_description_snapshot,
-         share_token,
+         share_token, base_rate,
          updated_at
        )
-       VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())`,
+       VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, now())`,
       [
         sprintDraftId,
         JSON.stringify(draftContent),
@@ -207,6 +174,7 @@ export async function POST(request: Request) {
         packageNameSnapshot,
         packageDescriptionSnapshot,
         shareToken,
+        baseRateValue,
       ]
     );
 
@@ -333,7 +301,7 @@ export async function POST(request: Request) {
 
     // Final pricing via shared pricing helper
     if (deliverablesCount > 0) {
-      totalPrice = priceFromPoints(totalComplexity);
+      totalPrice = priceFromPoints(totalComplexity, baseRateValue);
     }
 
     // Update sprint with totals

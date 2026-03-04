@@ -251,14 +251,19 @@ async function recalculateTotals(pool: ReturnType<typeof getPool>, sprintId: str
     [sprintId]
   );
 
+  // Read the sprint's stored base_rate
+  const rateRes = await pool.query(`SELECT base_rate FROM sprint_drafts WHERE id = $1`, [sprintId]);
+  const storedRate = rateRes.rows[0]?.base_rate;
+  const hourlyRate = storedRate != null ? Number(storedRate) : null;
+
   const totals = result.rows[0] as {
     deliverable_count: number;
     total_points: number;
   };
 
   const totalPoints = Number(totals.total_points);
-  const totalHours = hoursFromPoints(totalPoints); // hours = 15x complexity
-  const totalPrice = priceFromPoints(totalPoints);
+  const totalHours = hoursFromPoints(totalPoints);
+  const totalPrice = priceFromPoints(totalPoints, hourlyRate);
 
   await pool.query(
     `UPDATE sprint_drafts 

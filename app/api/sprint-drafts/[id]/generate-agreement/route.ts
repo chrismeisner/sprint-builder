@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { POINT_PRICE_PER_POINT } from "@/lib/pricing";
+import { POINT_PRICE_PER_POINT, DEFAULT_HOURLY_RATE, pointPriceFromRate } from "@/lib/pricing";
 
 type Params = { params: { id: string } };
 
@@ -50,12 +50,13 @@ Chris Meisner LLC will deliver a defined set of brand and design deliverables as
 
 ## 2. Deliverables & Scope
 
-The following deliverables are included in this sprint, calculated using a point-based pricing system at \$${POINT_PRICE_PER_POINT.toLocaleString()} per point:
+The following deliverables are included in this sprint, calculated using a point-based pricing system at {perPointRate} per point:
 
 {deliverablesTable}
 
 **Total Points:** {totalPoints}
-**Per Point Rate:** \$${POINT_PRICE_PER_POINT.toLocaleString()}
+**Per Point Rate:** {perPointRate}
+**Hourly Rate:** {hourlyRate}
 **Total Sprint Fee:** {totalPriceFormatted}
 
 ---
@@ -409,7 +410,7 @@ export async function POST(request: Request, { params }: Params) {
         sd.id, sd.title, sd.start_date, sd.due_date, sd.weeks,
         sd.total_estimate_points, sd.total_fixed_price, sd.total_fixed_hours,
         sd.project_id, sd.draft,
-        sd.has_deferred_comp, sd.upfront_payment_percent,
+        sd.has_deferred_comp, sd.upfront_payment_percent, sd.base_rate,
         p.name as project_name,
         p.account_id as project_account_id
        FROM sprint_drafts sd
@@ -437,6 +438,7 @@ export async function POST(request: Request, { params }: Params) {
       project_account_id: string | null;
       has_deferred_comp: boolean | null;
       upfront_payment_percent: number | null;
+      base_rate: number | null;
     };
 
     // Fetch deliverables
@@ -590,6 +592,10 @@ export async function POST(request: Request, { params }: Params) {
       ? ", an organization" 
       : "";
 
+    // Derive rate values for the agreement
+    const sprintHourlyRate = sprint.base_rate != null ? Number(sprint.base_rate) : DEFAULT_HOURLY_RATE;
+    const sprintPerPointRate = pointPriceFromRate(sprintHourlyRate);
+
     // Generate the agreement by filling in the template
     const agreement = template
       .replace(/{sprintTitle}/g, `${clientCompany} ${sprintTitle}`)
@@ -599,6 +605,8 @@ export async function POST(request: Request, { params }: Params) {
       .replace(/{dueDate}/g, formatDate(sprint.due_date))
       .replace(/{deliverablesTable}/g, deliverablesTable)
       .replace(/{totalPoints}/g, totalPoints.toFixed(1))
+      .replace(/{perPointRate}/g, formatCurrency(sprintPerPointRate))
+      .replace(/{hourlyRate}/g, formatCurrency(sprintHourlyRate))
       .replace(/{totalPriceFormatted}/g, formatCurrency(totalPrice))
       .replace(/{paymentSections}/g, paymentSections);
 

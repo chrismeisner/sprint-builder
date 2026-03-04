@@ -135,7 +135,12 @@ export async function PATCH(request: Request, { params }: Params) {
       totalPoints += points * complexity;
     }
 
-    const totalPrice = priceFromPoints(totalPoints);
+    // Read sprint's stored rate
+    const rateRes = await pool.query(`SELECT base_rate FROM sprint_drafts WHERE id = $1`, [params.id]);
+    const storedRate = rateRes.rows[0]?.base_rate;
+    const hourlyRate = storedRate != null ? Number(storedRate) : null;
+
+    const totalPrice = priceFromPoints(totalPoints, hourlyRate);
     const totalHours = hoursFromPoints(totalPoints);
 
     // Update sprint totals and updated_at

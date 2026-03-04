@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { typography } from "@/app/components/typography";
-import { POINT_PRICE_PER_POINT, HOURS_PER_POINT } from "@/lib/pricing";
+import { POINT_PRICE_PER_POINT, HOURS_PER_POINT, DEFAULT_HOURLY_RATE, pointPriceFromRate } from "@/lib/pricing";
 
 type Props = {
   initialPoints: number;
@@ -17,6 +17,7 @@ type Props = {
   hideHelper?: boolean;
   className?: string;
   title?: string;
+  baseRate?: number | null;
 };
 
 export default function SprintTotals({
@@ -31,7 +32,10 @@ export default function SprintTotals({
   hideHelper = false,
   className = "",
   title = "Sprint Totals",
+  baseRate,
 }: Props) {
+  const effectiveRate = baseRate != null && Number.isFinite(baseRate) && baseRate > 0 ? baseRate : DEFAULT_HOURLY_RATE;
+  const effectivePricePerPoint = pointPriceFromRate(effectiveRate);
   const [totals, setTotals] = useState({
     points: initialPoints,
     hours: initialHours,
@@ -97,10 +101,11 @@ export default function SprintTotals({
           <div>
             <div className={`${getTypographyClassName("subtitle-sm")} text-text-muted mb-1`}>Rate</div>
             <div className={`${getTypographyClassName("h3")} text-text-primary`}>
-              ${POINT_PRICE_PER_POINT.toLocaleString()}
+              ${effectiveRate.toLocaleString()}/hr
             </div>
             <div className={`${getTypographyClassName("mono-sm")} text-text-muted mt-1`}>
-              per point
+              ${effectivePricePerPoint.toLocaleString()}/pt
+              {effectiveRate !== DEFAULT_HOURLY_RATE && " (custom)"}
             </div>
           </div>
         )}

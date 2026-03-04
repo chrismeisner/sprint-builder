@@ -11,7 +11,7 @@ function asNumber(value: unknown, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-async function recalcTotals(pool: ReturnType<typeof getPool>, sprintId: string) {
+async function recalcTotals(pool: ReturnType<typeof getPool>, sprintId: string, hourlyRate?: number | null) {
   const result = await pool.query(
     `SELECT 
        COUNT(*)::int as deliverable_count,
@@ -22,10 +22,18 @@ async function recalcTotals(pool: ReturnType<typeof getPool>, sprintId: string) 
     [sprintId]
   );
 
+  // If no rate passed, read the sprint's stored rate
+  let rateToUse = hourlyRate;
+  if (rateToUse === undefined) {
+    const rateRes = await pool.query(`SELECT base_rate FROM sprint_drafts WHERE id = $1`, [sprintId]);
+    const storedRate = rateRes.rows[0]?.base_rate;
+    rateToUse = storedRate != null ? Number(storedRate) : null;
+  }
+
   const totals = result.rows[0] as { deliverable_count: number; total_points: number };
   const totalPoints = Number(totals.total_points);
   const totalHours = hoursFromPoints(totalPoints);
-  const totalPrice = priceFromPoints(totalPoints);
+  const totalPrice = priceFromPoints(totalPoints, rateToUse);
 
   await pool.query(
     `UPDATE sprint_drafts 
@@ -73,7 +81,7 @@ export async function GET(request: Request, { params }: Params) {
     if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
 
     const sprintRes = await pool.query(
-      `SELECT sd.id, sd.title, sd.project_id, sd.start_date, sd.weeks, sd.due_date, sd.draft,
+      `SELECT sd.id, sd.title, sd.project_id, sd.start_date, sd.weeks, sd.due_date, sd.draft, sd.base_rate,
               d.account_id
        FROM sprint_drafts sd
        LEFT JOIN documents d ON sd.document_id = d.id
@@ -91,12 +99,8 @@ export async function GET(request: Request, { params }: Params) {
       due_date: string | null;
       draft: unknown;
       account_id: string | null;
+      base_rate: number | null;
     };
-
-    console.log('[API DEBUG] Raw DB row:', JSON.stringify(sprintRes.rows[0], null, 2));
-    console.log('[API DEBUG] start_date from DB:', sprint.start_date);
-    console.log('[API DEBUG] start_date type:', typeof sprint.start_date);
-    console.log('[API DEBUG] start_date toString:', sprint.start_date ? String(sprint.start_date) : 'null');
 
     // Helper to format date properly
     const formatDateISO = (dateValue: unknown): string | null => {
@@ -166,13 +170,10 @@ export async function GET(request: Request, { params }: Params) {
         weeks: sprint.weeks,
         dueDate: formatDateISO(sprint.due_date),
         draft: sprint.draft,
+        baseRate: sprint.base_rate != null ? Number(sprint.base_rate) : null,
       },
       deliverables,
     };
-
-    console.log('[API DEBUG] Response startDate:', responseData.sprint.startDate);
-    console.log('[API DEBUG] Response dueDate:', responseData.sprint.dueDate);
-    console.log('[API DEBUG] Response JSON:', JSON.stringify(responseData.sprint, null, 2));
 
     return NextResponse.json(responseData);
   } catch (err) {
@@ -199,6 +200,7 @@ export async function PATCH(request: Request, { params }: Params) {
       customContent,
       contract_url,
       contract_status,
+      baseRate: baseRateRaw,
     } = body as {
       title?: string;
       projectId?: string;
@@ -209,7 +211,15 @@ export async function PATCH(request: Request, { params }: Params) {
       customContent?: Record<string, unknown>;
       contract_url?: string | null;
       contract_status?: string | null;
+      baseRate?: number | null;
     };
+
+    const baseRateNum = Number(baseRateRaw);
+    // null = use global default, number = override, undefined = not provided (keep current)
+    const baseRateProvided = baseRateRaw !== undefined;
+    const baseRateValue: number | null = baseRateRaw === null
+      ? null
+      : (Number.isFinite(baseRateNum) && baseRateNum > 0 ? baseRateNum : null);
 
     const sprintRes = await pool.query(
       `SELECT sd.id, sd.project_id, d.account_id
@@ -526,9 +536,12 @@ export async function PATCH(request: Request, { params }: Params) {
            due_date = $4,
            weeks = $5,
            draft = $6::jsonb,
+           ${baseRateProvided ? "base_rate = $8," : ""}
            updated_at = now()
        WHERE id = $7`,
-      [title.trim(), projectId.trim(), startValue, dueValue, weeksValue, JSON.stringify(draftContent), params.id]
+      baseRateProvided
+        ? [title.trim(), projectId.trim(), startValue, dueValue, weeksValue, JSON.stringify(draftContent), params.id, baseRateValue]
+        : [title.trim(), projectId.trim(), startValue, dueValue, weeksValue, JSON.stringify(draftContent), params.id]
     );
 
     // Replace deliverables
@@ -588,7 +601,7 @@ export async function PATCH(request: Request, { params }: Params) {
       }
     }
 
-    const totals = await recalcTotals(pool, params.id);
+    const totals = await recalcTotals(pool, params.id, baseRateProvided ? baseRateValue : undefined);
 
     // Sync the deferred_comp_plans record with the new total price,
     // preserving the existing payment structure/ratios set by the user.
