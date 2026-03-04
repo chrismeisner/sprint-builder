@@ -7,16 +7,11 @@ import GettingStartedStep, { getGettingStartedStackClassName } from "../componen
 import AboutFounder from "../components/AboutFounder";
 import FAQSection from "@/components/ui/FAQSection";
 import FadeInSection from "../components/FadeInSection";
-import AdminSectionCopyLink from "../components/AdminSectionCopyLink";
 import { resolveComponentGridPreset } from "../components/componentGrid";
-import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function LandingPage() {
-  const user = await getCurrentUser();
-  const isAdmin = user?.isAdmin ?? false;
-
   const gettingStartedSteps = [
     {
       number: "01",
@@ -117,12 +112,12 @@ export default async function LandingPage() {
     {
       question: "What if I need a break between sprints?",
       answer:
-        "No problem. Most founders pause 2–4 weeks to test, gather feedback, or get internal buy-in. When you’re ready, we build a new sprint proposal from the deliverable library and kick off on the next available Monday.",
+        "No problem. Most founders pause 2–4 weeks to test, gather feedback, or get internal buy-in. When you're ready, we build a new sprint proposal from the deliverable library and kick off on the next available Monday.",
     },
     {
       question: "Can we mix brand, product, and marketing work?",
       answer:
-        "Yes. The deliverable library covers brand identity, messaging, UX/UI, launch assets, and more. We’ll help prioritize the right mix during your kickoff workshop.",
+        "Yes. The deliverable library covers brand identity, messaging, UX/UI, launch assets, and more. We'll help prioritize the right mix during your kickoff workshop.",
     },
     {
       question: "What is Monthly Support?",
@@ -145,103 +140,85 @@ export default async function LandingPage() {
       </FadeInSection>
 
       {/* Services */}
-      <div className="relative group/section">
-        <FadeInSection>
-          <section id="packages" className="container max-w-6xl py-16 space-y-10 scroll-mt-16">
-            <div
-              className={`${featuredGridPreset.className} mb-12`}
-              data-component-grid={featuredGridPreset.id}
-            >
-              {featuredPackages.map((pkg) => (
-                <PackageCard key={pkg.id} pkg={pkg} variant="detailed" showEmojis={true} />
-              ))}
-            </div>
-          </section>
-        </FadeInSection>
-        {isAdmin && <AdminSectionCopyLink anchorId="packages" />}
-      </div>
+      <FadeInSection>
+        <section className="container max-w-6xl py-16 space-y-10">
+          <div
+            className={`${featuredGridPreset.className} mb-12`}
+            data-component-grid={featuredGridPreset.id}
+          >
+            {featuredPackages.map((pkg) => (
+              <PackageCard key={pkg.id} pkg={pkg} variant="detailed" showEmojis={true} />
+            ))}
+          </div>
+        </section>
+      </FadeInSection>
 
       {/* How sprints work */}
-      <div className="relative group/section">
-        <FadeInSection>
-          <section id="how-it-works" className="py-20 scroll-mt-16">
-            <div className="container max-w-6xl space-y-6">
-              <SectionIntro text="How sprints work" className="text-text-secondary" anchorId="how-it-works" />
+      <FadeInSection>
+        <section className="py-20">
+          <div className="container max-w-6xl space-y-6">
+            <SectionIntro text="How sprints work" className="text-text-secondary" />
             <SectionHeader
               heading="Two weeks. One clear outcome."
-              description="Every sprint runs the same 10-day arc—workshop on Day 1, direction locked by Day 5, heads-down build in Week 2, and real deliverables in your hands on Day 10. The cadence is the same every time, regardless of what you’re building."
+              description="Every sprint runs the same 10-day arc—workshop on Day 1, direction locked by Day 5, heads-down build in Week 2, and real deliverables in your hands on Day 10. The cadence is the same every time, regardless of what you're building."
               headingClassName="text-text-primary"
               descriptionClassName="text-text-secondary"
             />
-            </div>
-          </section>
-        </FadeInSection>
-        {isAdmin && <AdminSectionCopyLink anchorId="how-it-works" />}
-      </div>
+          </div>
+        </section>
+      </FadeInSection>
 
       {/* Getting Started */}
-      <div className="relative group/section">
-        <FadeInSection>
-          <section id="getting-started" className="py-16 bg-background scroll-mt-16">
-            <div className="container max-w-6xl space-y-10">
-              <SectionIntro text="Getting started" anchorId="getting-started" />
+      <FadeInSection>
+        <section className="py-16 bg-background">
+          <div className="container max-w-6xl space-y-10">
+            <SectionIntro text="Getting started" />
 
-              <div className={gettingStartedLayoutClass}>
-                {gettingStartedSteps.map((step) => (
-                  <GettingStartedStep key={step.number} number={step.number} title={step.title} body={step.body} />
-                ))}
-              </div>
+            <div className={gettingStartedLayoutClass}>
+              {gettingStartedSteps.map((step) => (
+                <GettingStartedStep key={step.number} number={step.number} title={step.title} body={step.body} />
+              ))}
             </div>
-          </section>
-        </FadeInSection>
-        {isAdmin && <AdminSectionCopyLink anchorId="getting-started" />}
-      </div>
+          </div>
+        </section>
+      </FadeInSection>
 
-      <div className="relative group/section">
-        <FadeInSection>
-          <FAQSection
-            id="faq"
-            heading="Questions about the sprint cadence?"
-            description="A few quick answers about how we book, build, and deliver every 10-day sprint."
-            items={faqItems}
-            className="bg-surface-subtle"
-          />
-        </FadeInSection>
-        {isAdmin && <AdminSectionCopyLink anchorId="faq" />}
-      </div>
+      <FadeInSection>
+        <FAQSection
+          heading="Questions about the sprint cadence?"
+          description="A few quick answers about how we book, build, and deliver every 10-day sprint."
+          items={faqItems}
+          className="bg-surface-subtle"
+        />
+      </FadeInSection>
 
-      <div className="relative group/section">
-        <FadeInSection>
-          <AboutFounder
-            id="about"
-            name="Chris Meisner"
-            title="Founder & Creative Director"
-            imageSrc="/founder.jpg"
-            socialLinks={[
-              { label: "LinkedIn", href: "https://linkedin.com/in/chrismeisner" },
-              { label: "Twitter", href: "https://twitter.com/chrismeisner" },
-            ]}
-            experienceLinks={[
-              { label: "NYTimes feature — Fast launches", href: "https://www.nytimes.com/" },
-              { label: "TechCrunch — Studio playbooks", href: "https://techcrunch.com/" },
-              { label: "Case study — Global retail sprint", href: "/work" },
-            ]}
-            bio={
-              <>
-                <p>
-                  I&apos;ve led sprints for pre-seed teams and public companies alike. Every engagement is built on the same promise: decisive direction, high fidelity work, and zero wasted cycles.
-                </p>
-                <p>
-                  In past lives I&apos;ve run in-house design teams, launched new ventures inside enterprise orgs, and helped founders sharpen the story behind their next raise or release. This studio is the best of those reps packaged into a repeatable climb.
-                </p>
-              </>
-            }
-          />
-        </FadeInSection>
-        {isAdmin && <AdminSectionCopyLink anchorId="about" />}
-      </div>
+      <FadeInSection>
+        <AboutFounder
+          name="Chris Meisner"
+          title="Founder & Creative Director"
+          imageSrc="/founder.jpg"
+          socialLinks={[
+            { label: "LinkedIn", href: "https://linkedin.com/in/chrismeisner" },
+            { label: "Twitter", href: "https://twitter.com/chrismeisner" },
+          ]}
+          experienceLinks={[
+            { label: "NYTimes feature — Fast launches", href: "https://www.nytimes.com/" },
+            { label: "TechCrunch — Studio playbooks", href: "https://techcrunch.com/" },
+            { label: "Case study — Global retail sprint", href: "/work" },
+          ]}
+          bio={
+            <>
+              <p>
+                I&apos;ve led sprints for pre-seed teams and public companies alike. Every engagement is built on the same promise: decisive direction, high fidelity work, and zero wasted cycles.
+              </p>
+              <p>
+                In past lives I&apos;ve run in-house design teams, launched new ventures inside enterprise orgs, and helped founders sharpen the story behind their next raise or release. This studio is the best of those reps packaged into a repeatable climb.
+              </p>
+            </>
+          }
+        />
+      </FadeInSection>
 
     </main>
   );
 }
-
