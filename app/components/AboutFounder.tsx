@@ -10,6 +10,8 @@ type AboutFounderProps = {
   imageAlt?: string;
   socialLinks?: Array<{ label: string; href: string }>;
   experienceLinks?: Array<{ label: string; href: string }>;
+  /** Section id for URL anchor linking (e.g. "about" → #about) */
+  id?: string;
 };
 
 export default function AboutFounder({
@@ -20,12 +22,24 @@ export default function AboutFounder({
   imageAlt = name,
   socialLinks = [],
   experienceLinks = [],
+  id,
 }: AboutFounderProps) {
   return (
-    <section className="container max-w-6xl py-16">
+    <section id={id} className="container max-w-6xl py-16 scroll-mt-16">
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-6">
-          <h2 className={`${typography.headingSection} text-balance`}>{name}</h2>
+          <h2 className={`${typography.headingSection} text-balance group/anchor inline-flex items-center gap-2`}>
+            {name}
+            {id && (
+              <a
+                href={`#${id}`}
+                className="opacity-0 group-hover/anchor:opacity-50 text-text-muted hover:text-text-primary transition-opacity duration-150 select-none font-normal text-[0.65em]"
+                aria-label="Link to section"
+              >
+                §
+              </a>
+            )}
+          </h2>
           <p className={`${typography.bodyBase} text-text-secondary`}>{title}</p>
           <div className={`${typography.bodyBase} text-text-secondary space-y-3`}>{bio}</div>
 

@@ -268,6 +268,62 @@ ${muted("You're receiving this because you're a lead on this project.")}
 }
 
 /**
+ * Invoice draft preview — sent to admin before sending to client
+ */
+export function generateInvoiceDraftEmail(params: {
+  invoiceLabel: string;
+  invoiceAmount: number;
+  hostedUrl: string;
+  adminName: string | null;
+  sprintTitle?: string | null;
+}): { subject: string; text: string; html: string } {
+  const { invoiceLabel, invoiceAmount, hostedUrl, adminName, sprintTitle } = params;
+  const greeting = adminName ? `Hi ${adminName},` : "Hi there,";
+  const formattedAmount = `$${invoiceAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const context = sprintTitle ? ` for <strong>${sprintTitle}</strong>` : "";
+  const contextText = sprintTitle ? ` for ${sprintTitle}` : "";
+
+  const subject = `Draft invoice preview: ${invoiceLabel}${sprintTitle ? ` — ${sprintTitle}` : ""}`;
+
+  const text = `${greeting}
+
+Here is a preview of the Stripe invoice before it's sent to the client.
+
+Invoice: ${invoiceLabel}${contextText}
+Amount: ${formattedAmount}
+
+Review it here: ${hostedUrl}
+
+This is a draft preview — the client has not been notified yet. Once you're ready, return to the sprint page and click "Send Invoice to Client".
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">Here is a preview of the Stripe invoice before it&rsquo;s sent to the client.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">${invoiceLabel}${context}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formattedAmount}</p>
+    </td>
+  </tr>
+</table>
+${linkButton(hostedUrl, "Preview Invoice")}
+<p style="margin:16px 0 0;font-size:13px;color:#71717a;">This is a draft preview&nbsp;&mdash; the client has <strong>not</strong> been notified yet. Once you&rsquo;re ready, return to the sprint page and click &ldquo;Send Invoice to Client&rdquo;.</p>
+${divider()}
+${muted("Meisner Design")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
  * Intake form confirmation
  */
 export function generateIntakeConfirmationEmail(): { subject: string; text: string; html: string } {

@@ -12,6 +12,8 @@ type SectionIntroProps<T extends ElementType = "p"> = {
   tone?: SectionIntroTone;
   scale?: TypographyScaleId;
   className?: string;
+  /** When provided, renders a Wikipedia-style § anchor that appears on hover */
+  anchorId?: string;
 } & Omit<ComponentPropsWithoutRef<T>, "as" | "children" | "className">;
 
 const WRAPPER_ALIGN_CLASSES: Record<SectionIntroAlign, string> = {
@@ -33,6 +35,7 @@ export default function SectionIntro<T extends ElementType = "p">({
   tone = "default",
   scale = "button-sm",
   className,
+  anchorId,
   ...rest
 }: SectionIntroProps<T>) {
   const Component = as ?? ("p" as ElementType);
@@ -43,6 +46,7 @@ export default function SectionIntro<T extends ElementType = "p">({
     getTypographyClassName(scale),
     uppercase ? ["uppercase", baseTracking] : "normal-case tracking-[0.2em]",
     TONE_CLASSES[tone],
+    anchorId ? "group/anchor" : "",
     className,
   ]
     .filter(Boolean)
@@ -52,6 +56,15 @@ export default function SectionIntro<T extends ElementType = "p">({
     <div className={wrapperClass}>
       <Component className={textClasses} {...rest}>
         {text}
+        {anchorId && (
+          <a
+            href={`#${anchorId}`}
+            className="ml-1.5 opacity-0 group-hover/anchor:opacity-50 text-text-muted hover:text-text-primary transition-opacity duration-150 select-none"
+            aria-label={`Link to section`}
+          >
+            §
+          </a>
+        )}
       </Component>
     </div>
   );

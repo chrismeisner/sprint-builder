@@ -141,7 +141,7 @@ export default async function LandingPage() {
 
       {/* Services */}
       <FadeInSection>
-        <section id="foundation-packages" className="container max-w-6xl py-16 space-y-10">
+        <section id="packages" className="container max-w-6xl py-16 space-y-10 scroll-mt-16">
           <div
             className={`${featuredGridPreset.className} mb-12`}
             data-component-grid={featuredGridPreset.id}
@@ -155,9 +155,9 @@ export default async function LandingPage() {
 
       {/* How sprints work */}
       <FadeInSection>
-        <section className="py-20">
+        <section id="how-it-works" className="py-20 scroll-mt-16">
           <div className="container max-w-6xl space-y-6">
-            <SectionIntro text="How sprints work" className="text-text-secondary" />
+            <SectionIntro text="How sprints work" className="text-text-secondary" anchorId="how-it-works" />
             <SectionHeader
               heading="Two weeks. One clear outcome."
               description="Every sprint runs the same 10-day arc—workshop on Day 1, direction locked by Day 5, heads-down build in Week 2, and real deliverables in your hands on Day 10. The cadence is the same every time, regardless of what you’re building."
@@ -170,9 +170,9 @@ export default async function LandingPage() {
 
       {/* Getting Started */}
       <FadeInSection>
-        <section className="py-16 bg-background">
+        <section id="getting-started" className="py-16 bg-background scroll-mt-16">
           <div className="container max-w-6xl space-y-10">
-            <SectionIntro text="Getting started" />
+            <SectionIntro text="Getting started" anchorId="getting-started" />
 
             <div className={gettingStartedLayoutClass}>
               {gettingStartedSteps.map((step) => (
@@ -185,6 +185,7 @@ export default async function LandingPage() {
 
       <FadeInSection>
         <FAQSection
+          id="faq"
           heading="Questions about the sprint cadence?"
           description="A few quick answers about how we book, build, and deliver every 10-day sprint."
           items={faqItems}
@@ -194,6 +195,7 @@ export default async function LandingPage() {
 
       <FadeInSection>
         <AboutFounder
+          id="about"
           name="Chris Meisner"
           title="Founder & Creative Director"
           imageSrc="/founder.jpg"

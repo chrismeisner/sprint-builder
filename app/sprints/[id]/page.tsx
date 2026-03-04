@@ -500,6 +500,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
       weekCount={weekCount}
       invoices={invoices}
       dailyUpdates={dailyUpdates}
+      currentUserEmail={currentUser.email}
     />
   );
 }

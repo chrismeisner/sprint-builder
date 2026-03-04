@@ -14,6 +14,8 @@ type FAQSectionProps = {
   description?: string;
   items: FAQItem[];
   className?: string;
+  /** Section id for URL anchor linking (e.g. "faq" → #faq) */
+  id?: string;
 };
 
 const eyebrowClasses = cx(getTypographyClassName("subtitle-sm"), "uppercase tracking-[0.35em] text-text-muted");
@@ -22,17 +24,30 @@ const descriptionClasses = cx(getTypographyClassName("subtitle-lg"), "text-balan
 const questionClasses = cx(getTypographyClassName("h3"), "text-lg text-text-primary");
 const answerClasses = cx(getTypographyClassName("body-md"), "mt-4 text-text-secondary");
 
-export default function FAQSection({ eyebrow, heading, description, items, className }: FAQSectionProps) {
+export default function FAQSection({ eyebrow, heading, description, items, className, id }: FAQSectionProps) {
   const showHeader = Boolean(eyebrow || heading || description);
 
   return (
-    <section className={cx("py-16", className)}>
+    <section id={id} className={cx("py-16 scroll-mt-16", className)}>
       <div className="container max-w-6xl">
         <div className="mx-auto max-w-4xl space-y-10">
           {showHeader && (
             <div className="space-y-3 text-center">
               {eyebrow && <p className={eyebrowClasses}>{eyebrow}</p>}
-              {heading && <h2 className={headingClasses}>{heading}</h2>}
+              {heading && (
+                <h2 className={cx(headingClasses, id && "group/anchor inline-flex items-center justify-center gap-2")}>
+                  {heading}
+                  {id && (
+                    <a
+                      href={`#${id}`}
+                      className="opacity-0 group-hover/anchor:opacity-50 text-text-muted hover:text-text-primary transition-opacity duration-150 select-none font-normal text-[0.65em]"
+                      aria-label="Link to section"
+                    >
+                      §
+                    </a>
+                  )}
+                </h2>
+              )}
               {description && <p className={descriptionClasses}>{description}</p>}
             </div>
           )}

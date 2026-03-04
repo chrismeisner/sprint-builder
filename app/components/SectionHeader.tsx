@@ -8,6 +8,8 @@ type SectionHeaderProps = {
   className?: string;
   headingClassName?: string;
   descriptionClassName?: string;
+  /** When provided, renders a Wikipedia-style § anchor that appears on hover next to the heading */
+  anchorId?: string;
 };
 
 const widthMap: Record<NonNullable<SectionHeaderProps["maxWidth"]>, string> = {
@@ -23,6 +25,7 @@ export default function SectionHeader({
   className,
   headingClassName,
   descriptionClassName,
+  anchorId,
 }: SectionHeaderProps) {
   const resolvedWidthKey = maxWidth ?? "md";
   const alignmentClass = "text-center";
@@ -38,8 +41,17 @@ export default function SectionHeader({
   return (
     <div className={`w-full ${alignmentClass}`}>
       <div className={`${widthMap[resolvedWidthKey]} ${containerAlignment} space-y-4 ${className ?? ""}`}>
-        <h2 className={headingClasses} data-typography-id="h2">
+        <h2 className={mergeClasses(headingClasses, anchorId ? "group/anchor inline-flex items-center justify-center gap-1.5" : undefined)} data-typography-id="h2">
           {heading}
+          {anchorId && (
+            <a
+              href={`#${anchorId}`}
+              className="opacity-0 group-hover/anchor:opacity-50 text-text-muted hover:text-text-primary transition-opacity duration-150 select-none font-normal text-[0.65em]"
+              aria-label="Link to section"
+            >
+              §
+            </a>
+          )}
         </h2>
         <p className={descriptionClasses} data-typography-id="subtitle-lg">
           {description}
