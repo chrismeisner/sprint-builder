@@ -3,8 +3,29 @@ import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, getOrCreateStripeCustomer } from "@/lib/stripe";
 import { sendEmail, generateInvoiceDraftEmail } from "@/lib/email";
+import { randomUUID } from "crypto";
 
 type Params = { params: { id: string; invoiceId: string } };
+
+async function writeChangelog(
+  pool: ReturnType<typeof getPool>,
+  sprintId: string,
+  accountId: string | null,
+  action: string,
+  summary: string,
+  details?: Record<string, unknown>
+) {
+  try {
+    await pool.query(
+      `INSERT INTO sprint_draft_changelog (id, sprint_draft_id, account_id, action, summary, details)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+      [randomUUID(), sprintId, accountId, action, summary, details ? JSON.stringify(details) : null]
+    );
+  } catch (err) {
+    // Non-blocking — don't fail the main operation if changelog fails
+    console.error("[Changelog write]", err);
+  }
+}
 
 /**
  * POST /api/sprint-drafts/[id]/invoices/[invoiceId]/stripe
@@ -143,6 +164,21 @@ export async function POST(request: Request, { params }: Params) {
         [finalizedInvoice.id, finalizedInvoice.hosted_invoice_url, params.invoiceId]
       );
 
+      await writeChangelog(
+        pool,
+        params.id,
+        user.accountId ?? null,
+        "stripe_link_generated",
+        `Stripe payment link generated for invoice "${inv.label}"`,
+        {
+          invoice_id: inv.id,
+          label: inv.label,
+          amount: inv.amount,
+          stripe_invoice_id: finalizedInvoice.id,
+          invoice_url: finalizedInvoice.hosted_invoice_url,
+        }
+      );
+
       const updatedRes = await pool.query(
         `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url,
                 amount, sort_order, stripe_invoice_id, created_at, updated_at
@@ -173,6 +209,20 @@ export async function POST(request: Request, { params }: Params) {
              updated_at     = now()
          WHERE id = $1`,
         [params.invoiceId]
+      );
+
+      await writeChangelog(
+        pool,
+        params.id,
+        user.accountId ?? null,
+        "invoice_sent",
+        `Invoice "${inv.label}" sent to client via Stripe`,
+        {
+          invoice_id: inv.id,
+          label: inv.label,
+          amount: inv.amount,
+          stripe_invoice_id: inv.stripe_invoice_id,
+        }
       );
 
       const updatedRes = await pool.query(

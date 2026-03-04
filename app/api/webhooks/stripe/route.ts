@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
+import { randomUUID } from "crypto";
 
 /**
  * POST /api/webhooks/stripe
@@ -209,6 +210,7 @@ async function updateInvoiceStatus(
       );
       if ((result.rowCount ?? 0) > 0) {
         logUpdated(result.rows, status, `metadata.invoice_id=${metadata.invoice_id}`);
+        await writeChangelogs(pool, result.rows, status, stripeId);
         return;
       }
     }
@@ -223,6 +225,7 @@ async function updateInvoiceStatus(
     );
     if ((byCol.rowCount ?? 0) > 0) {
       logUpdated(byCol.rows, status, `stripe_invoice_id=${stripeId}`);
+      await writeChangelogs(pool, byCol.rows, status, stripeId);
       return;
     }
 
@@ -236,6 +239,7 @@ async function updateInvoiceStatus(
     );
     if ((byUrl.rowCount ?? 0) > 0) {
       logUpdated(byUrl.rows, status, `invoice_url ILIKE %${stripeId}%`);
+      await writeChangelogs(pool, byUrl.rows, status, stripeId);
       return;
     }
 
@@ -259,4 +263,44 @@ function logUpdated(
   rows.forEach((row) => {
     console.log(`  → invoice ${row.id} (${row.label}) on sprint ${row.sprint_id}`);
   });
+}
+
+async function writeChangelogs(
+  pool: ReturnType<typeof getPool>,
+  rows: Array<{ id: string; sprint_id: string; label: string; invoice_status: string }>,
+  status: "paid" | "failed" | "voided" | "refunded",
+  stripeId: string
+) {
+  const summaryMap: Record<string, string> = {
+    paid: "Invoice payment received via Stripe",
+    failed: "Stripe invoice payment failed",
+    voided: "Stripe invoice voided",
+    refunded: "Stripe charge refunded",
+  };
+  const actionMap: Record<string, string> = {
+    paid: "invoice_paid",
+    failed: "invoice_payment_failed",
+    voided: "invoice_voided",
+    refunded: "invoice_refunded",
+  };
+
+  for (const row of rows) {
+    try {
+      await pool.query(
+        `INSERT INTO sprint_draft_changelog (id, sprint_draft_id, account_id, action, summary, details)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+        [
+          randomUUID(),
+          row.sprint_id,
+          null,
+          actionMap[status],
+          `${summaryMap[status]} for invoice "${row.label}"`,
+          JSON.stringify({ invoice_id: row.id, label: row.label, stripe_id: stripeId, status }),
+        ]
+      );
+    } catch (err) {
+      // Non-blocking — don't fail the webhook if changelog write fails
+      console.error("[StripeWebhook] Changelog write error:", err);
+    }
+  }
 }
