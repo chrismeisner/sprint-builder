@@ -56,10 +56,10 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const body = await request.json().catch(() => ({})) as { action?: string; ccAdmin?: boolean; ccClient?: boolean };
+    const body = await request.json().catch(() => ({})) as { action?: string; ccAdmin?: boolean; ccClientEmails?: string[] };
     const action = body.action ?? "send";
     const ccAdmin = body.ccAdmin === true;
-    const ccClient = body.ccClient === true;
+    const ccClientEmails: string[] = Array.isArray(body.ccClientEmails) ? body.ccClientEmails : [];
 
     const origin = new URL(request.url).origin;
     const sprintUrl = `${origin}/sprints/${params.id}`;
@@ -230,34 +230,19 @@ export async function POST(request: Request, { params }: Params) {
         }
       );
 
-      // Fetch shared context needed for studio emails (admin CC and/or client studio email)
+      // Fetch sprint title (needed for admin CC and client studio emails)
       let sharedSprintTitle: string | null = null;
-      let sharedClientEmail: string | null = null;
-      let sharedClientFirstName: string | null = null;
-      let sharedClientLastName: string | null = null;
-
-      if (ccAdmin || ccClient) {
+      if (ccAdmin || ccClientEmails.length > 0) {
         try {
-          const contextRes = await pool.query(
-            `SELECT sd.title,
-                    COALESCE(a.email, d.email) AS client_email,
-                    a.first_name AS client_first_name,
-                    a.last_name  AS client_last_name
-             FROM sprint_drafts sd
-             LEFT JOIN projects p  ON p.id = sd.project_id
-             LEFT JOIN documents d ON d.id = p.intake_document_id
-             LEFT JOIN accounts a  ON a.id = COALESCE(p.account_id, d.account_id)
-             WHERE sd.id = $1`,
+          const titleRes = await pool.query(
+            `SELECT title FROM sprint_drafts WHERE id = $1`,
             [params.id]
           );
-          if ((contextRes.rowCount ?? 0) > 0) {
-            sharedSprintTitle     = contextRes.rows[0].title ?? null;
-            sharedClientEmail     = contextRes.rows[0].client_email ?? null;
-            sharedClientFirstName = contextRes.rows[0].client_first_name ?? null;
-            sharedClientLastName  = contextRes.rows[0].client_last_name ?? null;
+          if ((titleRes.rowCount ?? 0) > 0) {
+            sharedSprintTitle = titleRes.rows[0].title ?? null;
           }
         } catch (err) {
-          console.error("[Send action] Failed to fetch email context:", err);
+          console.error("[Send action] Failed to fetch sprint title:", err);
         }
       }
 
@@ -265,13 +250,14 @@ export async function POST(request: Request, { params }: Params) {
       if (ccAdmin && user.email) {
         try {
           const adminName = user.name ?? user.email.split("@")[0] ?? null;
+          const clientEmailSummary = ccClientEmails.length > 0 ? ccClientEmails.join(", ") : null;
 
           const emailContent = generateInvoiceSentAdminEmail({
             invoiceLabel: inv.label,
             invoiceAmount: inv.amount ?? 0,
             hostedUrl: inv.invoice_url ?? "",
             adminName,
-            clientEmail: sharedClientEmail,
+            clientEmail: clientEmailSummary,
             sprintTitle: sharedSprintTitle,
             sprintUrl,
           });
@@ -288,29 +274,51 @@ export async function POST(request: Request, { params }: Params) {
         }
       }
 
-      // Send studio-branded invoice email to client if requested
-      if (ccClient && sharedClientEmail) {
+      // Send studio-branded invoice email to each checked client recipient
+      if (ccClientEmails.length > 0) {
+        // Look up names for all recipient emails in one query
+        type AccountRow = { email: string; first_name: string | null; last_name: string | null; name: string | null };
+        let namesByEmail: Map<string, AccountRow> = new Map();
         try {
-          const clientName = [sharedClientFirstName, sharedClientLastName].filter(Boolean).join(" ") || null;
-
-          const emailContent = generateInvoiceClientEmail({
-            invoiceLabel: inv.label,
-            invoiceAmount: inv.amount ?? 0,
-            hostedUrl: inv.invoice_url ?? "",
-            clientName,
-            sprintTitle: sharedSprintTitle,
-            sprintUrl,
-          });
-
-          await sendEmail({
-            to: sharedClientEmail,
-            subject: emailContent.subject,
-            text: emailContent.text,
-            html: emailContent.html,
-          });
+          const namesRes = await pool.query(
+            `SELECT lower(email) AS email, first_name, last_name, name
+             FROM accounts
+             WHERE lower(email) = ANY($1::text[])`,
+            [ccClientEmails.map((e) => e.toLowerCase())]
+          );
+          namesByEmail = new Map(
+            (namesRes.rows as AccountRow[]).map((r) => [r.email.toLowerCase(), r])
+          );
         } catch (err) {
-          // Non-blocking — don't fail the send if studio client email fails
-          console.error("[Send action] Studio client email error:", err);
+          console.error("[Send action] Failed to fetch recipient names:", err);
+        }
+
+        for (const recipientEmail of ccClientEmails) {
+          try {
+            const accountData = namesByEmail.get(recipientEmail.toLowerCase());
+            const clientName = accountData
+              ? ([accountData.first_name, accountData.last_name].filter(Boolean).join(" ") || accountData.name || null)
+              : null;
+
+            const emailContent = generateInvoiceClientEmail({
+              invoiceLabel: inv.label,
+              invoiceAmount: inv.amount ?? 0,
+              hostedUrl: inv.invoice_url ?? "",
+              clientName,
+              sprintTitle: sharedSprintTitle,
+              sprintUrl,
+            });
+
+            await sendEmail({
+              to: recipientEmail,
+              subject: emailContent.subject,
+              text: emailContent.text,
+              html: emailContent.html,
+            });
+          } catch (err) {
+            // Non-blocking — don't fail the overall send if one studio email fails
+            console.error(`[Send action] Studio client email error for ${recipientEmail}:`, err);
+          }
         }
       }
 

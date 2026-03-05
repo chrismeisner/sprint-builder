@@ -61,8 +61,10 @@ export async function POST(request: Request) {
 
   console.log(`[StripeWebhook] Received event: ${event.type} (${event.id})`);
 
+  const origin = new URL(request.url).origin;
+
   try {
-    await handleEvent(event);
+    await handleEvent(event, origin);
   } catch (err) {
     console.error(`[StripeWebhook] Handler error for ${event.type}:`, err);
     // Return 200 so Stripe doesn't retry — log the error internally instead
@@ -75,47 +77,54 @@ export async function POST(request: Request) {
 // Event dispatcher
 // ---------------------------------------------------------------------------
 
-async function handleEvent(event: import("stripe").Stripe.Event) {
+async function handleEvent(event: import("stripe").Stripe.Event, origin: string) {
   switch (event.type) {
     case "payment_intent.succeeded":
       await onPaymentIntentSucceeded(
-        event.data.object as import("stripe").Stripe.PaymentIntent
+        event.data.object as import("stripe").Stripe.PaymentIntent,
+        origin
       );
       break;
 
     case "payment_intent.payment_failed":
       await onPaymentIntentFailed(
-        event.data.object as import("stripe").Stripe.PaymentIntent
+        event.data.object as import("stripe").Stripe.PaymentIntent,
+        origin
       );
       break;
 
     case "checkout.session.completed":
       await onCheckoutSessionCompleted(
-        event.data.object as import("stripe").Stripe.Checkout.Session
+        event.data.object as import("stripe").Stripe.Checkout.Session,
+        origin
       );
       break;
 
     case "invoice.paid":
       await onInvoicePaid(
-        event.data.object as import("stripe").Stripe.Invoice
+        event.data.object as import("stripe").Stripe.Invoice,
+        origin
       );
       break;
 
     case "invoice.payment_failed":
       await onInvoicePaymentFailed(
-        event.data.object as import("stripe").Stripe.Invoice
+        event.data.object as import("stripe").Stripe.Invoice,
+        origin
       );
       break;
 
     case "invoice.voided":
       await onInvoiceVoided(
-        event.data.object as import("stripe").Stripe.Invoice
+        event.data.object as import("stripe").Stripe.Invoice,
+        origin
       );
       break;
 
     case "charge.refunded":
       await onChargeRefunded(
-        event.data.object as import("stripe").Stripe.Charge
+        event.data.object as import("stripe").Stripe.Charge,
+        origin
       );
       break;
 
@@ -129,47 +138,50 @@ async function handleEvent(event: import("stripe").Stripe.Event) {
 // ---------------------------------------------------------------------------
 
 async function onPaymentIntentSucceeded(
-  pi: import("stripe").Stripe.PaymentIntent
+  pi: import("stripe").Stripe.PaymentIntent,
+  origin: string
 ) {
   console.log(`[StripeWebhook] PaymentIntent succeeded: ${pi.id}`);
-  await updateInvoiceStatus(pi.id, "paid", pi.metadata);
+  await updateInvoiceStatus(pi.id, "paid", origin, pi.metadata);
 }
 
 async function onPaymentIntentFailed(
-  pi: import("stripe").Stripe.PaymentIntent
+  pi: import("stripe").Stripe.PaymentIntent,
+  origin: string
 ) {
   console.log(`[StripeWebhook] PaymentIntent failed: ${pi.id}`);
-  await updateInvoiceStatus(pi.id, "failed", pi.metadata);
+  await updateInvoiceStatus(pi.id, "failed", origin, pi.metadata);
 }
 
 async function onCheckoutSessionCompleted(
-  session: import("stripe").Stripe.Checkout.Session
+  session: import("stripe").Stripe.Checkout.Session,
+  origin: string
 ) {
   console.log(`[StripeWebhook] Checkout session completed: ${session.id}`);
 
   if (session.payment_intent && typeof session.payment_intent === "string") {
-    await updateInvoiceStatus(session.payment_intent, "paid", session.metadata ?? undefined);
+    await updateInvoiceStatus(session.payment_intent, "paid", origin, session.metadata ?? undefined);
   } else {
-    await updateInvoiceStatus(session.id, "paid", session.metadata ?? undefined);
+    await updateInvoiceStatus(session.id, "paid", origin, session.metadata ?? undefined);
   }
 }
 
-async function onInvoicePaid(invoice: import("stripe").Stripe.Invoice) {
+async function onInvoicePaid(invoice: import("stripe").Stripe.Invoice, origin: string) {
   console.log(`[StripeWebhook] Invoice paid: ${invoice.id}`);
-  await updateInvoiceStatus(invoice.id, "paid", invoice.metadata ?? undefined);
+  await updateInvoiceStatus(invoice.id, "paid", origin, invoice.metadata ?? undefined);
 }
 
-async function onInvoicePaymentFailed(invoice: import("stripe").Stripe.Invoice) {
+async function onInvoicePaymentFailed(invoice: import("stripe").Stripe.Invoice, origin: string) {
   console.log(`[StripeWebhook] Invoice payment failed: ${invoice.id}`);
-  await updateInvoiceStatus(invoice.id, "failed", invoice.metadata ?? undefined);
+  await updateInvoiceStatus(invoice.id, "failed", origin, invoice.metadata ?? undefined);
 }
 
-async function onInvoiceVoided(invoice: import("stripe").Stripe.Invoice) {
+async function onInvoiceVoided(invoice: import("stripe").Stripe.Invoice, origin: string) {
   console.log(`[StripeWebhook] Invoice voided: ${invoice.id}`);
-  await updateInvoiceStatus(invoice.id, "voided", invoice.metadata ?? undefined);
+  await updateInvoiceStatus(invoice.id, "voided", origin, invoice.metadata ?? undefined);
 }
 
-async function onChargeRefunded(charge: import("stripe").Stripe.Charge) {
+async function onChargeRefunded(charge: import("stripe").Stripe.Charge, origin: string) {
   console.log(`[StripeWebhook] Charge refunded: ${charge.id}`);
   const maybeWithInvoice = charge as import("stripe").Stripe.Charge & {
     invoice?: string | { id?: string } | null;
@@ -180,9 +192,9 @@ async function onChargeRefunded(charge: import("stripe").Stripe.Charge) {
       : maybeWithInvoice.invoice?.id;
   const metadata = charge.metadata ?? undefined;
   if (invoiceId) {
-    await updateInvoiceStatus(invoiceId, "refunded", metadata);
+    await updateInvoiceStatus(invoiceId, "refunded", origin, metadata);
   } else {
-    await updateInvoiceStatus(charge.payment_intent as string, "refunded", metadata);
+    await updateInvoiceStatus(charge.payment_intent as string, "refunded", origin, metadata);
   }
 }
 
@@ -199,6 +211,7 @@ async function onChargeRefunded(charge: import("stripe").Stripe.Charge) {
 async function updateInvoiceStatus(
   stripeId: string,
   status: "paid" | "failed" | "voided" | "refunded",
+  origin: string,
   metadata?: Record<string, string>
 ) {
   try {
@@ -215,7 +228,7 @@ async function updateInvoiceStatus(
       );
       if ((result.rowCount ?? 0) > 0) {
         logUpdated(result.rows, status, `metadata.invoice_id=${metadata.invoice_id}`);
-        await writeChangelogs(pool, result.rows, status, stripeId);
+        await writeChangelogs(pool, result.rows, status, stripeId, origin);
         return;
       }
     }
@@ -230,7 +243,7 @@ async function updateInvoiceStatus(
     );
     if ((byCol.rowCount ?? 0) > 0) {
       logUpdated(byCol.rows, status, `stripe_invoice_id=${stripeId}`);
-      await writeChangelogs(pool, byCol.rows, status, stripeId);
+      await writeChangelogs(pool, byCol.rows, status, stripeId, origin);
       return;
     }
 
@@ -244,7 +257,7 @@ async function updateInvoiceStatus(
     );
     if ((byUrl.rowCount ?? 0) > 0) {
       logUpdated(byUrl.rows, status, `invoice_url ILIKE %${stripeId}%`);
-      await writeChangelogs(pool, byUrl.rows, status, stripeId);
+      await writeChangelogs(pool, byUrl.rows, status, stripeId, origin);
       return;
     }
 
@@ -274,7 +287,8 @@ async function writeChangelogs(
   pool: ReturnType<typeof getPool>,
   rows: Array<{ id: string; sprint_id: string; label: string; invoice_status: string }>,
   status: "paid" | "failed" | "voided" | "refunded",
-  stripeId: string
+  stripeId: string,
+  origin: string
 ) {
   const summaryMap: Record<string, string> = {
     paid: "Invoice payment received via Stripe",
@@ -310,40 +324,33 @@ async function writeChangelogs(
   }
 
   if (status === "paid") {
-    await sendInvoicePaidNotifications(pool, rows);
+    await sendInvoicePaidNotifications(pool, rows, origin);
   }
 }
 
 /**
- * Sends a payment confirmation to the client and an internal notification to
- * all admin accounts whenever a Stripe invoice is marked as paid.
+ * Sends a payment confirmation to non-admin project members and an internal
+ * notification to all admin accounts whenever a Stripe invoice is marked as paid.
  */
 async function sendInvoicePaidNotifications(
   pool: ReturnType<typeof getPool>,
-  rows: Array<{ id: string; sprint_id: string; label: string }>
+  rows: Array<{ id: string; sprint_id: string; label: string }>,
+  origin: string
 ) {
   for (const row of rows) {
     try {
-      // Resolve invoice amount, sprint title, and client account in one query
+      // Resolve invoice amount and sprint info
       const infoRes = await pool.query(
-        `SELECT
-           si.amount,
-           sd.title AS sprint_title,
-           a.email AS client_email,
-           a.first_name AS client_first_name,
-           a.last_name AS client_last_name
+        `SELECT si.amount, sd.title AS sprint_title, sd.project_id
          FROM sprint_invoices si
          JOIN sprint_drafts sd ON sd.id = si.sprint_id
-         LEFT JOIN projects p ON p.id = sd.project_id
-         LEFT JOIN documents d ON d.id = sd.document_id
-         JOIN accounts a ON a.id = COALESCE(p.account_id, d.account_id)
          WHERE si.id = $1`,
         [row.id]
       );
 
       if ((infoRes.rowCount ?? 0) === 0) {
         console.warn(
-          `[StripeWebhook] Could not resolve client for invoice ${row.id} — skipping paid notification`
+          `[StripeWebhook] Could not resolve sprint for invoice ${row.id} — skipping paid notification`
         );
         continue;
       }
@@ -351,25 +358,73 @@ async function sendInvoicePaidNotifications(
       const info = infoRes.rows[0] as {
         amount: number | null;
         sprint_title: string | null;
-        client_email: string;
-        client_first_name: string | null;
-        client_last_name: string | null;
+        project_id: string | null;
       };
 
-      const clientName =
-        [info.client_first_name, info.client_last_name].filter(Boolean).join(" ") || null;
       const amount = info.amount ?? 0;
+      const sprintUrl = `${origin}/sprints/${row.sprint_id}`;
 
-      // — Client confirmation email —
-      const clientContent = generateInvoicePaidClientEmail({
-        invoiceLabel: row.label,
-        invoiceAmount: amount,
-        sprintTitle: info.sprint_title,
-        clientName,
-      });
-      await sendEmail({ to: info.client_email, ...clientContent });
+      // Resolve client recipients: non-admin project members
+      type MemberRow = { email: string; name: string | null };
+      let clientRecipients: MemberRow[] = [];
+
+      if (info.project_id) {
+        const membersRes = await pool.query(
+          `SELECT pm.email,
+                  COALESCE(
+                    NULLIF(TRIM(CONCAT(a.first_name, ' ', a.last_name)), ''),
+                    a.name
+                  ) AS name
+           FROM project_members pm
+           LEFT JOIN accounts a ON lower(pm.email) = lower(a.email)
+           WHERE pm.project_id = $1 AND COALESCE(a.is_admin, false) = false
+           ORDER BY pm.created_at ASC`,
+          [info.project_id]
+        );
+        clientRecipients = membersRes.rows as MemberRow[];
+      }
+
+      // Fall back to the project/document account owner if no project members found
+      if (clientRecipients.length === 0) {
+        const fallbackRes = await pool.query(
+          `SELECT a.email,
+                  COALESCE(
+                    NULLIF(TRIM(CONCAT(a.first_name, ' ', a.last_name)), ''),
+                    a.name
+                  ) AS name
+           FROM sprint_drafts sd
+           LEFT JOIN projects p ON p.id = sd.project_id
+           LEFT JOIN documents d ON d.id = sd.document_id
+           LEFT JOIN accounts a ON a.id = COALESCE(p.account_id, d.account_id)
+           WHERE sd.id = $1 AND a.is_admin = false AND a.email IS NOT NULL`,
+          [row.sprint_id]
+        );
+        clientRecipients = fallbackRes.rows as MemberRow[];
+      }
+
+      // — Client confirmation emails (one per recipient) —
+      for (const recipient of clientRecipients) {
+        try {
+          const clientContent = generateInvoicePaidClientEmail({
+            invoiceLabel: row.label,
+            invoiceAmount: amount,
+            sprintTitle: info.sprint_title,
+            clientName: recipient.name,
+            sprintUrl,
+          });
+          await sendEmail({ to: recipient.email, ...clientContent });
+        } catch (err) {
+          console.error(
+            `[StripeWebhook] Failed to send paid confirmation to ${recipient.email}:`,
+            err
+          );
+        }
+      }
 
       // — Admin notification email (all admin accounts) —
+      const clientEmailSummary = clientRecipients.map((r) => r.email).join(", ") || null;
+      const clientNameSummary = clientRecipients[0]?.name ?? null;
+
       const adminRes = await pool.query(
         `SELECT email, first_name, last_name FROM accounts WHERE is_admin = true`
       );
@@ -383,11 +438,15 @@ async function sendInvoicePaidNotifications(
           invoiceLabel: row.label,
           invoiceAmount: amount,
           sprintTitle: info.sprint_title,
-          clientName,
-          clientEmail: info.client_email,
+          clientName: clientNameSummary,
+          clientEmail: clientEmailSummary ?? "",
           adminName,
         });
-        await sendEmail({ to: admin.email, ...adminContent });
+        try {
+          await sendEmail({ to: admin.email, ...adminContent });
+        } catch (err) {
+          console.error(`[StripeWebhook] Failed to send admin notification to ${admin.email}:`, err);
+        }
       }
     } catch (err) {
       // Non-blocking — a notification failure must never cause Stripe retries

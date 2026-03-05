@@ -178,6 +178,7 @@ type Props = {
   dailyUpdates?: DailyUpdate[];
   currentUserEmail?: string;
   parentSprint?: { id: string; title: string | null } | null;
+  projectMembers?: Array<{ email: string; name: string | null }>;
 };
 
 // Helper function to format currency
@@ -231,6 +232,7 @@ export default function SprintDetailContent(props: Props) {
     dailyUpdates: initialDailyUpdates,
     currentUserEmail,
     parentSprint,
+    projectMembers,
   } = props;
   const isUpdateCycle = row.type === "update_cycle";
   const [viewAsAdmin, setViewAsAdmin] = useState(true);
@@ -2599,9 +2601,10 @@ export default function SprintDetailContent(props: Props) {
           invoice={stripeModalInvoice}
           sprintId={row.id}
           sprintTitle={row.title}
-          clientEmail={row.email}
+          clientEmail={row.email ?? (projectMembers?.[0]?.email ?? null)}
           adminEmail={currentUserEmail ?? ""}
           adminRole="admin"
+          projectMembers={projectMembers}
           onClose={() => setStripeModalInvoice(null)}
           onUpdate={(updated) => {
             setInvoices((prev) => prev.map((inv) => inv.id === updated.id ? updated : inv));

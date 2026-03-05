@@ -17,6 +17,8 @@ type SprintInvoice = {
   updated_at: string;
 };
 
+type ProjectMember = { email: string; name: string | null };
+
 type Props = {
   invoice: SprintInvoice;
   sprintId: string;
@@ -24,6 +26,7 @@ type Props = {
   clientEmail: string | null;
   adminEmail: string;
   adminRole?: string;
+  projectMembers?: ProjectMember[];
   onClose: () => void;
   onUpdate: (invoice: SprintInvoice) => void;
 };
@@ -157,6 +160,7 @@ export default function StripeInvoiceModal({
   clientEmail,
   adminEmail,
   adminRole = "admin",
+  projectMembers,
   onClose,
   onUpdate,
 }: Props) {
@@ -168,8 +172,33 @@ export default function StripeInvoiceModal({
   const [draftSentTo, setDraftSentTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ccAdmin, setCcAdmin] = useState(true);
-  const [ccClient, setCcClient] = useState(false);
   const [showEmailPreview, setShowEmailPreview] = useState(true);
+
+  // Determine which people to show as studio-branded email checkboxes.
+  // If project members exist, use those (pre-checked). Otherwise fall back to the
+  // single clientEmail as a legacy opt-in row (unchecked by default).
+  const hasProjectMembers = (projectMembers?.length ?? 0) > 0;
+  const studioEmailMembers: ProjectMember[] = hasProjectMembers
+    ? projectMembers!
+    : clientEmail
+      ? [{ email: clientEmail, name: null }]
+      : [];
+
+  const [checkedMembers, setCheckedMembers] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const m of studioEmailMembers) {
+      // Pre-check project members; keep legacy single-email row unchecked (matching old default)
+      init[m.email] = hasProjectMembers;
+    }
+    return init;
+  });
+
+  const toggleMember = (email: string, checked: boolean) =>
+    setCheckedMembers((prev) => ({ ...prev, [email]: checked }));
+
+  const ccClientEmails = studioEmailMembers
+    .filter((m) => checkedMembers[m.email])
+    .map((m) => m.email);
 
   const updateInvoice = (updated: SprintInvoice) => {
     setInvoice(updated);
@@ -208,7 +237,7 @@ export default function StripeInvoiceModal({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "send", ccAdmin, ccClient }),
+          body: JSON.stringify({ action: "send", ccAdmin, ccClientEmails }),
         }
       );
       const data = await res.json() as { invoice?: SprintInvoice; error?: string };
@@ -298,7 +327,7 @@ export default function StripeInvoiceModal({
               <p className={`${getTypographyClassName("body-sm")} font-medium text-text-secondary`}>Recipients</p>
             </div>
 
-            {/* Row: Stripe → client (always) */}
+            {/* Row: Stripe → client (always sent by Stripe directly) */}
             <div className="px-3 py-2.5 flex items-start gap-3">
               <div className="pt-0.5 shrink-0">
                 <svg className="w-3.5 h-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
@@ -332,23 +361,46 @@ export default function StripeInvoiceModal({
               </div>
             </label>
 
-            {/* Row: Studio email to client checkbox */}
-            <label className="px-3 py-2.5 flex items-start gap-3 cursor-pointer hover:bg-black/[0.015] dark:hover:bg-white/[0.015] transition-colors">
-              <div className="pt-0.5 shrink-0">
-                <Checkbox checked={ccClient} onChange={setCcClient} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {clientEmail ? (
-                    <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>{clientEmail}</span>
-                  ) : (
-                    <span className={`${getTypographyClassName("body-sm")} text-text-muted italic`}>No client email on file</span>
-                  )}
-                  <RoleBadge role="client" />
+            {/* Rows: Studio-branded email checkboxes — one per project member (or single legacy row) */}
+            {studioEmailMembers.length > 0 ? (
+              studioEmailMembers.map((member) => (
+                <label
+                  key={member.email}
+                  className="px-3 py-2.5 flex items-start gap-3 cursor-pointer hover:bg-black/[0.015] dark:hover:bg-white/[0.015] transition-colors"
+                >
+                  <div className="pt-0.5 shrink-0">
+                    <Checkbox
+                      checked={checkedMembers[member.email] ?? false}
+                      onChange={(v) => toggleMember(member.email, v)}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>
+                        {member.name ?? member.email}
+                      </span>
+                      {member.name && (
+                        <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>{member.email}</span>
+                      )}
+                      <RoleBadge role="client" />
+                    </div>
+                    <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>
+                      Studio-branded email with sprint context — in addition to Stripe&apos;s
+                    </p>
+                  </div>
+                </label>
+              ))
+            ) : (
+              <div className="px-3 py-2.5 flex items-start gap-3">
+                <div className="pt-0.5 shrink-0 w-4" />
+                <div className="flex-1 min-w-0">
+                  <span className={`${getTypographyClassName("body-sm")} text-text-muted italic`}>No client email on file</span>
+                  <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>
+                    Studio-branded email with sprint context — in addition to Stripe&apos;s
+                  </p>
                 </div>
-                <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>Studio-branded email with sprint context — in addition to Stripe&apos;s</p>
               </div>
-            </label>
+            )}
           </div>
 
           {/* Email preview toggle */}

@@ -454,8 +454,9 @@ export function generateInvoicePaidClientEmail(params: {
   invoiceAmount: number;
   sprintTitle?: string | null;
   clientName?: string | null;
+  sprintUrl?: string | null;
 }): { subject: string; text: string; html: string } {
-  const { invoiceLabel, invoiceAmount, sprintTitle, clientName } = params;
+  const { invoiceLabel, invoiceAmount, sprintTitle, clientName, sprintUrl } = params;
   const greeting = clientName ? `Hi ${clientName},` : "Hi there,";
   const formattedAmount = `$${invoiceAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const context = sprintTitle ? ` for <strong>${sprintTitle}</strong>` : "";
@@ -463,17 +464,22 @@ export function generateInvoicePaidClientEmail(params: {
 
   const subject = `Payment confirmed — thank you!`;
 
+  const sprintLinkText = sprintUrl ? `\nView your project: ${sprintUrl}\n` : "";
   const text = `${greeting}
 
 We've received your payment — thank you!
 
 Invoice: ${invoiceLabel}${contextText}
 Amount: ${formattedAmount}
-
+${sprintLinkText}
 Your account is all up to date. Reply to this email if you have any questions.
 
 — Meisner Design
 `;
+
+  const sprintLinkHtml = sprintUrl
+    ? `<p style="margin:16px 0 0;"><a href="${sprintUrl}" style="color:#4f46e5;text-decoration:none;font-weight:500;">View your project →</a></p>`
+    : "";
 
   const html = emailShell(`
 <p style="margin:0 0 16px;">${greeting}</p>
@@ -490,7 +496,8 @@ Your account is all up to date. Reply to this email if you have any questions.
     </td>
   </tr>
 </table>
-<p style="margin:0 0 0;">Your account is all up to date. Reply to this email if you have any questions.</p>
+<p style="margin:0;">Your account is all up to date. Reply to this email if you have any questions.</p>
+${sprintLinkHtml}
 ${divider()}
 ${muted("Meisner Design")}
 `);

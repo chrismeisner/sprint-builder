@@ -398,6 +398,27 @@ export default async function SprintDetailPage({ params }: PageProps) {
       }
     : null;
 
+  // Fetch non-admin project members to use as client email recipients in the Stripe invoice modal
+  let projectMembers: Array<{ email: string; name: string | null }> = [];
+  if (projectId) {
+    const clientMembersRes = await pool.query(
+      `SELECT pm.email,
+              COALESCE(
+                NULLIF(TRIM(CONCAT(a.first_name, ' ', a.last_name)), ''),
+                a.name
+              ) AS name
+       FROM project_members pm
+       LEFT JOIN accounts a ON lower(pm.email) = lower(a.email)
+       WHERE pm.project_id = $1 AND COALESCE(a.is_admin, false) = false
+       ORDER BY pm.created_at ASC`,
+      [projectId]
+    );
+    projectMembers = clientMembersRes.rows.map((r) => ({
+      email: r.email as string,
+      name: (r.name as string | null) ?? null,
+    }));
+  }
+
   // Fetch agreement data if it exists
   let agreementData: { agreement: string | null; generatedAt: string | null } = {
     agreement: null,
@@ -522,6 +543,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
       dailyUpdates={dailyUpdates}
       currentUserEmail={currentUser.email}
       parentSprint={parentSprint}
+      projectMembers={projectMembers}
     />
   );
 }
