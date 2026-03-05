@@ -27,12 +27,14 @@ export async function POST(request: Request) {
       parentSprintId,
       startDate,
       weeks: weeksRaw,
+      priceOverride: priceOverrideRaw,
     } = body as {
       title?: unknown;
       projectId?: unknown;
       parentSprintId?: unknown;
       startDate?: unknown;
       weeks?: unknown;
+      priceOverride?: unknown;
     };
 
     if (typeof title !== "string" || !title.trim()) {
@@ -80,7 +82,11 @@ export async function POST(request: Request) {
       }
     }
 
-    const totalPrice = UPDATE_CYCLE_WEEKLY_RATE * weeks;
+    const standardPrice = UPDATE_CYCLE_WEEKLY_RATE * weeks;
+    const parsedOverride = priceOverrideRaw != null ? Number(priceOverrideRaw) : NaN;
+    const totalPrice = Number.isFinite(parsedOverride) && parsedOverride > 0
+      ? parsedOverride
+      : standardPrice;
     const id = randomUUID();
     const shareToken = randomBytes(16).toString("base64url");
 

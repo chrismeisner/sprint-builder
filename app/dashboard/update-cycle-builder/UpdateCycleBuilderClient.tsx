@@ -70,6 +70,8 @@ export default function UpdateCycleBuilderClient({ projects, sprintsByProject }:
   const [parentSprintId, setParentSprintId] = useState("");
   const [weeks, setWeeks] = useState(1);
   const [title, setTitle] = useState("");
+  const [useCustomPrice, setUseCustomPrice] = useState(false);
+  const [customPriceInput, setCustomPriceInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,7 +86,10 @@ export default function UpdateCycleBuilderClient({ projects, sprintsByProject }:
     return availableSprints.find((s) => s.id === parentSprintId) ?? null;
   }, [availableSprints, parentSprintId]);
 
-  const totalPrice = UPDATE_CYCLE_WEEKLY_RATE * weeks;
+  const standardPrice = UPDATE_CYCLE_WEEKLY_RATE * weeks;
+  const parsedCustomPrice = useCustomPrice ? parseFloat(customPriceInput.replace(/,/g, "")) : NaN;
+  const customPriceValid = useCustomPrice && Number.isFinite(parsedCustomPrice) && parsedCustomPrice > 0;
+  const totalPrice = customPriceValid ? parsedCustomPrice : standardPrice;
 
   const autoTitle = useMemo(() => {
     if (selectedParentSprint?.title) {
@@ -110,6 +115,7 @@ export default function UpdateCycleBuilderClient({ projects, sprintsByProject }:
           parentSprintId,
           startDate,
           weeks,
+          ...(customPriceValid ? { priceOverride: parsedCustomPrice } : {}),
         }),
       });
 
@@ -262,18 +268,60 @@ export default function UpdateCycleBuilderClient({ projects, sprintsByProject }:
         </div>
 
         {/* Price Summary */}
-        <div className="rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 p-4">
+        <div className="rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 p-4 flex flex-col gap-3">
           <div className="flex items-baseline justify-between">
             <span className="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100">
               Total Price
             </span>
-            <span className="text-2xl font-semibold leading-snug text-balance tabular-nums text-neutral-900 dark:text-neutral-100">
+            <span className="text-2xl font-semibold leading-snug tabular-nums text-neutral-900 dark:text-neutral-100">
               ${totalPrice.toLocaleString()}
             </span>
           </div>
-          <p className="text-xs font-normal leading-normal text-neutral-500 mt-2">
-            ${UPDATE_CYCLE_WEEKLY_RATE.toLocaleString()}/week &times; {weeks} week{weeks > 1 ? "s" : ""}
-          </p>
+          {!useCustomPrice && (
+            <p className="text-xs font-normal leading-normal text-neutral-500">
+              ${UPDATE_CYCLE_WEEKLY_RATE.toLocaleString()}/week &times; {weeks} week{weeks > 1 ? "s" : ""}
+            </p>
+          )}
+          {useCustomPrice && customPriceValid && (
+            <p className="text-xs font-normal leading-normal text-neutral-500">
+              Custom price override &mdash; standard would be ${standardPrice.toLocaleString()}
+            </p>
+          )}
+
+          {/* Custom price toggle */}
+          <div className="pt-1 border-t border-neutral-200 dark:border-neutral-700 flex flex-col gap-2">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={useCustomPrice}
+                onChange={(e) => {
+                  setUseCustomPrice(e.target.checked);
+                  if (!e.target.checked) setCustomPriceInput("");
+                }}
+                className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-600 accent-neutral-900 dark:accent-neutral-100"
+              />
+              <span className="text-sm font-medium leading-none text-neutral-700 dark:text-neutral-300">
+                Set custom price override
+              </span>
+            </label>
+            {useCustomPrice && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-neutral-500">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={customPriceInput}
+                  onChange={(e) => setCustomPriceInput(e.target.value)}
+                  placeholder={String(standardPrice)}
+                  className="h-9 px-3 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 w-40 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 tabular-nums"
+                />
+                {useCustomPrice && !customPriceValid && customPriceInput !== "" && (
+                  <span className="text-xs text-red-500">Enter a valid amount</span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Error */}
