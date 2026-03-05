@@ -285,6 +285,7 @@ export default function SprintDetailContent(props: Props) {
   // Budget status state
   const [budgetStatus, setBudgetStatus] = useState(row.budget_status || "draft");
   const [savingBudgetStatus, setSavingBudgetStatus] = useState(false);
+  const [updatingBudgetToAgreed, setUpdatingBudgetToAgreed] = useState(false);
   
   // Agreement state
   const [agreement, setAgreement] = useState(agreementData?.agreement || null);
@@ -817,8 +818,10 @@ export default function SprintDetailContent(props: Props) {
   };
 
   const handleBudgetStatusChange = async (newStatus: string) => {
+    const isAgreeingBudget = newStatus === "agreed";
     try {
       setSavingBudgetStatus(true);
+      if (isAgreeingBudget) setUpdatingBudgetToAgreed(true);
       const res = await fetch(`/api/sprint-drafts/${row.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -831,23 +834,15 @@ export default function SprintDetailContent(props: Props) {
       }
       setBudgetStatus(newStatus);
 
-      // When transitioning to "agreed", fetch the auto-generated invoices
-      if (newStatus === "agreed") {
-        try {
-          const invRes = await fetch(`/api/sprint-drafts/${row.id}/invoices`);
-          if (invRes.ok) {
-            const invData = await invRes.json();
-            if (invData.invoices && invData.invoices.length > 0) {
-              setInvoices(invData.invoices);
-            }
-          }
-        } catch {
-          // Non-blocking
-        }
+      // When transitioning to "agreed", reload the page so all sections refresh
+      if (isAgreeingBudget) {
+        window.location.reload();
+        return;
       }
     } catch (err) {
       console.error(err);
       alert("Failed to update budget status");
+      setUpdatingBudgetToAgreed(false);
     } finally {
       setSavingBudgetStatus(false);
     }
@@ -2613,6 +2608,19 @@ export default function SprintDetailContent(props: Props) {
             setStripeModalInvoice(updated);
           }}
         />
+      )}
+
+      {/* Full-screen overlay when agreeing budget */}
+      {updatingBudgetToAgreed && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4">
+            <svg className="animate-spin h-10 w-10 text-white" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <span className={`${getTypographyClassName("heading-sm")} text-white`}>Updating…</span>
+          </div>
+        </div>
       )}
     </main>
   );
