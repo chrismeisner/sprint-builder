@@ -81,7 +81,7 @@ export default function ProjectsClient() {
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [typeUpdating, setTypeUpdating] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('active');
-  const [sortKey, setSortKey] = useState<'name' | 'type' | 'status' | 'created' | 'members'>('created');
+  const [sortKey, setSortKey] = useState<'name' | 'type' | 'status' | 'created' | 'updated' | 'members'>('updated');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>(() => {
     if (typeof window === 'undefined') return 'grid';
@@ -411,6 +411,9 @@ export default function ProjectsClient() {
         case 'created':
           cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           break;
+        case 'updated':
+          cmp = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+          break;
         case 'members':
           cmp = (data?.projectMembers?.[a.id]?.length ?? 0) - (data?.projectMembers?.[b.id]?.length ?? 0);
           break;
@@ -634,14 +637,18 @@ export default function ProjectsClient() {
                   <select
                     value={`${sortKey}-${sortDir}`}
                     onChange={(e) => {
-                      const [k, d] = e.target.value.split('-') as [typeof sortKey, 'asc' | 'desc'];
+                      const val = e.target.value;
+                      const dir = val.endsWith('-asc') ? 'asc' : 'desc';
+                      const k = val.slice(0, val.lastIndexOf('-')) as typeof sortKey;
                       setSortKey(k);
-                      setSortDir(d);
+                      setSortDir(dir);
                     }}
                     className={`${bodySmClass} px-2 py-1.5 rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white cursor-pointer`}
                   >
-                    <option value="created-desc">Newest first</option>
-                    <option value="created-asc">Oldest first</option>
+                    <option value="updated-desc">Last modified (newest)</option>
+                    <option value="updated-asc">Last modified (oldest)</option>
+                    <option value="created-desc">Created (newest)</option>
+                    <option value="created-asc">Created (oldest)</option>
                     <option value="name-asc">Name A→Z</option>
                     <option value="name-desc">Name Z→A</option>
                     <option value="status-asc">Status</option>
@@ -788,10 +795,11 @@ export default function ProjectsClient() {
                   <th className="w-1 p-0" />
                   {(
                     [
-                      { key: 'name',    label: 'Project'  },
-                      { key: 'type',    label: 'Type'     },
-                      { key: 'status',  label: 'Status'   },
-                      { key: 'created', label: 'Created'  },
+                      { key: 'name',    label: 'Project'       },
+                      { key: 'type',    label: 'Type'          },
+                      { key: 'status',  label: 'Status'        },
+                      { key: 'created', label: 'Created'       },
+                      { key: 'updated', label: 'Last Modified' },
                     ] as { key: typeof sortKey; label: string }[]
                   ).map(({ key, label }) => (
                     <th key={key} className={`px-4 py-3 ${tableHeadingClass}`}>
@@ -872,6 +880,11 @@ export default function ProjectsClient() {
                     <td className="px-4 py-3">
                       <span className={helperTextClass}>
                         {new Date(project.createdAt).toLocaleDateString()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={helperTextClass}>
+                        {new Date(project.updatedAt).toLocaleDateString()}
                       </span>
                     </td>
                     <td className="px-4 py-3">
