@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
 import { randomUUID } from "crypto";
+import {
+  sendEmail,
+  generateInvoicePaidClientEmail,
+  generateInvoicePaidAdminEmail,
+} from "@/lib/email";
 
 /**
  * POST /api/webhooks/stripe
@@ -301,6 +306,95 @@ async function writeChangelogs(
     } catch (err) {
       // Non-blocking — don't fail the webhook if changelog write fails
       console.error("[StripeWebhook] Changelog write error:", err);
+    }
+  }
+
+  if (status === "paid") {
+    await sendInvoicePaidNotifications(pool, rows);
+  }
+}
+
+/**
+ * Sends a payment confirmation to the client and an internal notification to
+ * all admin accounts whenever a Stripe invoice is marked as paid.
+ */
+async function sendInvoicePaidNotifications(
+  pool: ReturnType<typeof getPool>,
+  rows: Array<{ id: string; sprint_id: string; label: string }>
+) {
+  for (const row of rows) {
+    try {
+      // Resolve invoice amount, sprint title, and client account in one query
+      const infoRes = await pool.query(
+        `SELECT
+           si.amount,
+           sd.title AS sprint_title,
+           a.email AS client_email,
+           a.first_name AS client_first_name,
+           a.last_name AS client_last_name
+         FROM sprint_invoices si
+         JOIN sprint_drafts sd ON sd.id = si.sprint_id
+         LEFT JOIN projects p ON p.id = sd.project_id
+         LEFT JOIN documents d ON d.id = sd.document_id
+         JOIN accounts a ON a.id = COALESCE(p.account_id, d.account_id)
+         WHERE si.id = $1`,
+        [row.id]
+      );
+
+      if ((infoRes.rowCount ?? 0) === 0) {
+        console.warn(
+          `[StripeWebhook] Could not resolve client for invoice ${row.id} — skipping paid notification`
+        );
+        continue;
+      }
+
+      const info = infoRes.rows[0] as {
+        amount: number | null;
+        sprint_title: string | null;
+        client_email: string;
+        client_first_name: string | null;
+        client_last_name: string | null;
+      };
+
+      const clientName =
+        [info.client_first_name, info.client_last_name].filter(Boolean).join(" ") || null;
+      const amount = info.amount ?? 0;
+
+      // — Client confirmation email —
+      const clientContent = generateInvoicePaidClientEmail({
+        invoiceLabel: row.label,
+        invoiceAmount: amount,
+        sprintTitle: info.sprint_title,
+        clientName,
+      });
+      await sendEmail({ to: info.client_email, ...clientContent });
+
+      // — Admin notification email (all admin accounts) —
+      const adminRes = await pool.query(
+        `SELECT email, first_name, last_name FROM accounts WHERE is_admin = true`
+      );
+      for (const admin of adminRes.rows as Array<{
+        email: string;
+        first_name: string | null;
+        last_name: string | null;
+      }>) {
+        const adminName = [admin.first_name, admin.last_name].filter(Boolean).join(" ") || null;
+        const adminContent = generateInvoicePaidAdminEmail({
+          invoiceLabel: row.label,
+          invoiceAmount: amount,
+          sprintTitle: info.sprint_title,
+          clientName,
+          clientEmail: info.client_email,
+          adminName,
+        });
+        await sendEmail({ to: admin.email, ...adminContent });
+      }
+    } catch (err) {
+      // Non-blocking — a notification failure must never cause Stripe retries
+      console.error(
+        `[StripeWebhook] Failed to send paid notifications for invoice ${row.id}:`,
+        err
+      );
     }
   }
 }

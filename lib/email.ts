@@ -324,6 +324,111 @@ ${muted("Meisner Design")}
 }
 
 /**
+ * Invoice paid — sent to the client as a payment confirmation
+ */
+export function generateInvoicePaidClientEmail(params: {
+  invoiceLabel: string;
+  invoiceAmount: number;
+  sprintTitle?: string | null;
+  clientName?: string | null;
+}): { subject: string; text: string; html: string } {
+  const { invoiceLabel, invoiceAmount, sprintTitle, clientName } = params;
+  const greeting = clientName ? `Hi ${clientName},` : "Hi there,";
+  const formattedAmount = `$${invoiceAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const context = sprintTitle ? ` for <strong>${sprintTitle}</strong>` : "";
+  const contextText = sprintTitle ? ` for ${sprintTitle}` : "";
+
+  const subject = `Payment confirmed — thank you!`;
+
+  const text = `${greeting}
+
+We've received your payment — thank you!
+
+Invoice: ${invoiceLabel}${contextText}
+Amount: ${formattedAmount}
+
+Your account is all up to date. Reply to this email if you have any questions.
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">We&rsquo;ve received your payment&nbsp;&mdash; thank you!</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">${invoiceLabel}${context}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formattedAmount}</p>
+    </td>
+  </tr>
+</table>
+<p style="margin:0 0 0;">Your account is all up to date. Reply to this email if you have any questions.</p>
+${divider()}
+${muted("Meisner Design")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
+ * Invoice paid — sent to all admin accounts as an internal notification
+ */
+export function generateInvoicePaidAdminEmail(params: {
+  invoiceLabel: string;
+  invoiceAmount: number;
+  sprintTitle?: string | null;
+  clientName?: string | null;
+  clientEmail: string;
+  adminName?: string | null;
+}): { subject: string; text: string; html: string } {
+  const { invoiceLabel, invoiceAmount, sprintTitle, clientName, clientEmail, adminName } = params;
+  const greeting = adminName ? `Hi ${adminName},` : "Hi there,";
+  const formattedAmount = `$${invoiceAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const context = sprintTitle ? ` for <strong>${sprintTitle}</strong>` : "";
+  const contextText = sprintTitle ? ` for ${sprintTitle}` : "";
+  const clientDisplay = clientName ? `${clientName} (${clientEmail})` : clientEmail;
+
+  const subject = `Invoice paid: ${invoiceLabel}${sprintTitle ? ` — ${sprintTitle}` : ""}`;
+
+  const text = `${greeting}
+
+${clientDisplay} has paid invoice "${invoiceLabel}"${contextText}.
+
+Amount: ${formattedAmount}
+
+No action needed — this is an automatic notification.
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;"><strong>${clientDisplay}</strong> has paid invoice &ldquo;${invoiceLabel}&rdquo;${context}.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">${invoiceLabel}${context}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formattedAmount}</p>
+    </td>
+  </tr>
+</table>
+${divider()}
+${muted("No action needed&nbsp;&mdash; this is an automatic notification.")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
  * Intake form confirmation
  */
 export function generateIntakeConfirmationEmail(): { subject: string; text: string; html: string } {

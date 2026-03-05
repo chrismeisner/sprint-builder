@@ -141,6 +141,15 @@ type SprintInvoice = {
   updated_at: string;
 };
 
+type ChangelogEntry = {
+  id: string;
+  action: string;
+  summary: string;
+  details: Record<string, unknown> | null;
+  created_at: string;
+  author_name: string | null;
+};
+
 type AgreementData = {
   agreement: string | null;
   generatedAt: string | null;
@@ -171,6 +180,37 @@ type Props = {
 // Helper function to format currency
 function formatCurrency(amount: number): string {
   return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// Stripe-related changelog actions we display on invoice cards
+const STRIPE_CHANGELOG_ACTIONS = new Set([
+  "stripe_link_generated",
+  "invoice_sent",
+  "invoice_paid",
+  "invoice_payment_failed",
+  "invoice_voided",
+  "invoice_refunded",
+]);
+
+const INVOICE_ACTIVITY_META: Record<string, { icon: string; label: string }> = {
+  stripe_link_generated: { icon: "🔗", label: "Link generated" },
+  invoice_sent:          { icon: "📤", label: "Sent" },
+  invoice_paid:          { icon: "✅", label: "Paid" },
+  invoice_payment_failed:{ icon: "❌", label: "Payment failed" },
+  invoice_voided:        { icon: "🚫", label: "Voided" },
+  invoice_refunded:      { icon: "↩️", label: "Refunded" },
+};
+
+function formatRelTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 export default function SprintDetailContent(props: Props) {
@@ -234,6 +274,8 @@ export default function SprintDetailContent(props: Props) {
   const [newInvoiceLabel, setNewInvoiceLabel] = useState("");
   const [newInvoiceAmount, setNewInvoiceAmount] = useState("");
   const [creatingCustomInvoice, setCreatingCustomInvoice] = useState(false);
+  // Stripe activity log for invoice cards (admin only)
+  const [invoiceChangelog, setInvoiceChangelog] = useState<ChangelogEntry[]>([]);
   
   // Budget status state
   const [budgetStatus, setBudgetStatus] = useState(row.budget_status || "draft");
@@ -314,6 +356,21 @@ export default function SprintDetailContent(props: Props) {
     dialog.addEventListener("cancel", handleCancel);
     return () => dialog.removeEventListener("cancel", handleCancel);
   }, [closeWeekEditor]);
+
+  // Fetch Stripe-related changelog entries for invoice cards (admin only)
+  useEffect(() => {
+    if (!isAdmin) return;
+    fetch(`/api/sprint-drafts/${row.id}/changelog`)
+      .then((r) => r.json())
+      .then((data: { entries?: ChangelogEntry[] }) => {
+        if (Array.isArray(data.entries)) {
+          setInvoiceChangelog(
+            data.entries.filter((e) => STRIPE_CHANGELOG_ACTIONS.has(e.action))
+          );
+        }
+      })
+      .catch(() => {});
+  }, [isAdmin, row.id]);
 
   const handleWeekBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
     const dialog = weekDialogRef.current;
@@ -2240,6 +2297,36 @@ export default function SprintDetailContent(props: Props) {
                     {!showAdminContent && !inv.invoice_url && !inv.invoice_pdf_url && (
                       <span className={`${t.bodySm} text-text-muted`}>Invoice not available yet.</span>
                     )}
+
+                    {/* Stripe activity log — admin only */}
+                    {showAdminContent && (() => {
+                      const entries = invoiceChangelog.filter(
+                        (e) => e.details?.invoice_id === inv.id
+                      );
+                      if (entries.length === 0) return null;
+                      return (
+                        <div className="border-t border-neutral-100 dark:border-neutral-800 pt-2 space-y-1.5">
+                          <p className="text-xs font-medium uppercase tracking-wide text-text-muted">Activity</p>
+                          <ul className="space-y-1">
+                            {entries.map((entry) => {
+                              const meta = INVOICE_ACTIVITY_META[entry.action] ?? { icon: "•", label: entry.action };
+                              return (
+                                <li key={entry.id} className="flex items-start gap-2 text-xs">
+                                  <span className="shrink-0 mt-0.5">{meta.icon}</span>
+                                  <span className="flex-1 text-text-muted leading-snug">{entry.summary}</span>
+                                  <span
+                                    className="shrink-0 text-text-muted opacity-60 whitespace-nowrap"
+                                    title={new Date(entry.created_at).toLocaleString()}
+                                  >
+                                    {formatRelTime(entry.created_at)}
+                                  </span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}

@@ -3,6 +3,28 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 
+// ---------------------------------------------------------------------------
+// Stripe activity log types
+// ---------------------------------------------------------------------------
+
+type ActivityEntry = {
+  id: string;
+  action: string;
+  summary: string;
+  details: Record<string, unknown> | null;
+  created_at: string;
+  sprint_id: string | null;
+  sprint_title: string | null;
+  author_name: string | null;
+};
+
+type ActivityResponse = {
+  entries: ActivityEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 type StripeKey = {
   hasSecretKey: boolean;
   hasPublishableKey: boolean;
@@ -327,6 +349,221 @@ function WebhooksSection() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Action metadata
+// ---------------------------------------------------------------------------
+
+const ACTION_META: Record<string, { icon: string; label: string; color: string }> = {
+  stripe_link_generated: {
+    icon: "🔗",
+    label: "Link generated",
+    color: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+  },
+  invoice_sent: {
+    icon: "📤",
+    label: "Invoice sent",
+    color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  },
+  invoice_paid: {
+    icon: "✅",
+    label: "Paid",
+    color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  },
+  invoice_payment_failed: {
+    icon: "❌",
+    label: "Payment failed",
+    color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  },
+  invoice_voided: {
+    icon: "🚫",
+    label: "Voided",
+    color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+  },
+  invoice_refunded: {
+    icon: "↩️",
+    label: "Refunded",
+    color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+  },
+};
+
+const ACTION_FILTERS = [
+  { value: "", label: "All events" },
+  { value: "invoice_paid", label: "Paid" },
+  { value: "invoice_sent", label: "Sent" },
+  { value: "stripe_link_generated", label: "Link generated" },
+  { value: "invoice_payment_failed", label: "Failed" },
+  { value: "invoice_voided", label: "Voided" },
+  { value: "invoice_refunded", label: "Refunded" },
+];
+
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function StripeActivitySection() {
+  const [data, setData] = useState<ActivityResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionFilter, setActionFilter] = useState("");
+  const PAGE_SIZE = 20;
+  const [offset, setOffset] = useState(0);
+
+  const fetchActivity = useCallback(async (action: string, off: number) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(off) });
+      if (action) params.set("action", action);
+      const res = await fetch(`/api/admin/stripe/activity?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json: ActivityResponse = await res.json();
+      setData(json);
+    } catch {
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    setOffset(0);
+    fetchActivity(actionFilter, 0);
+  }, [actionFilter, fetchActivity]);
+
+  const goToPage = (newOffset: number) => {
+    setOffset(newOffset);
+    fetchActivity(actionFilter, newOffset);
+  };
+
+  const total = data?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+
+  return (
+    <section className="rounded-xl border border-black/10 dark:border-white/15 bg-white dark:bg-black divide-y divide-black/10 dark:divide-white/10">
+      {/* Header */}
+      <div className="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="font-semibold text-sm uppercase tracking-wide opacity-60">Stripe Activity</h2>
+          {total > 0 && (
+            <p className="text-xs opacity-40 mt-0.5">{total.toLocaleString()} event{total !== 1 ? "s" : ""} total</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={actionFilter}
+            onChange={(e) => setActionFilter(e.target.value)}
+            className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20"
+          >
+            {ACTION_FILTERS.map((f) => (
+              <option key={f.value} value={f.value}>{f.label}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => fetchActivity(actionFilter, offset)}
+            disabled={loading}
+            className="text-xs opacity-50 hover:opacity-100 transition disabled:opacity-30"
+          >
+            {loading ? "Loading…" : "Refresh"}
+          </button>
+        </div>
+      </div>
+
+      {/* Entries */}
+      <div>
+        {loading && (!data || data.entries.length === 0) ? (
+          <p className="px-5 py-6 text-sm opacity-50 text-center">Loading…</p>
+        ) : !data ? (
+          <p className="px-5 py-6 text-sm text-red-500 text-center">Failed to load activity</p>
+        ) : data.entries.length === 0 ? (
+          <p className="px-5 py-6 text-sm opacity-50 text-center">No Stripe activity yet.</p>
+        ) : (
+          <ul className="divide-y divide-black/5 dark:divide-white/5">
+            {data.entries.map((entry) => {
+              const meta = ACTION_META[entry.action] ?? {
+                icon: "•",
+                label: entry.action,
+                color: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
+              };
+              const amount = typeof entry.details?.amount === "number"
+                ? `$${(entry.details.amount as number).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : null;
+
+              return (
+                <li key={entry.id} className="px-5 py-3.5 flex items-start gap-3 text-sm">
+                  <span className="text-base mt-0.5 shrink-0">{meta.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${meta.color}`}>
+                        {meta.label}
+                      </span>
+                      {amount && (
+                        <span className="text-xs font-semibold font-variant-numeric tabular-nums opacity-70">{amount}</span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm leading-snug">{entry.summary}</p>
+                    <div className="mt-1 flex items-center gap-2 flex-wrap text-xs opacity-50">
+                      {entry.sprint_id && entry.sprint_title && (
+                        <>
+                          <Link
+                            href={`/dashboard/sprint-drafts/${entry.sprint_id}`}
+                            className="underline underline-offset-2 hover:opacity-80 truncate max-w-[180px]"
+                          >
+                            {entry.sprint_title}
+                          </Link>
+                          <span>·</span>
+                        </>
+                      )}
+                      {entry.author_name && (
+                        <>
+                          <span>{entry.author_name}</span>
+                          <span>·</span>
+                        </>
+                      )}
+                      <time dateTime={entry.created_at} title={new Date(entry.created_at).toLocaleString()}>
+                        {formatRelativeTime(entry.created_at)}
+                      </time>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="px-5 py-3 flex items-center justify-between text-xs opacity-60">
+          <span>Page {currentPage} of {totalPages}</span>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={offset === 0}
+              onClick={() => goToPage(Math.max(0, offset - PAGE_SIZE))}
+              className="rounded border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 transition"
+            >
+              ← Prev
+            </button>
+            <button
+              disabled={offset + PAGE_SIZE >= total}
+              onClick={() => goToPage(offset + PAGE_SIZE)}
+              className="rounded border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 transition"
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function StripeConnectionClient() {
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -600,6 +837,9 @@ STRIPE_WEBHOOK_SECRET=whsec_...`}</pre>
 
           {/* Webhooks */}
           <WebhooksSection />
+
+          {/* Stripe activity log */}
+          <StripeActivitySection />
 
           {/* External links */}
           <div className="flex flex-wrap gap-3 text-sm">
