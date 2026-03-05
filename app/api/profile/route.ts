@@ -33,7 +33,7 @@ export async function GET() {
     // Projects the user owns or is a member of (by email)
     const projectsResult = await pool.query(
       `
-      SELECT DISTINCT
+      SELECT DISTINCT ON (p.id)
         p.id,
         p.name,
         p.status,
@@ -41,14 +41,15 @@ export async function GET() {
         p.created_at,
         p.updated_at,
         p.account_id,
-        (p.account_id = $1) AS is_owner
+        (p.account_id = $1) AS is_owner,
+        COALESCE(pm.role, 'member') AS member_role
       FROM projects p
       LEFT JOIN project_members pm
         ON pm.project_id = p.id
        AND lower(pm.email) = lower($2)
       WHERE p.account_id = $1
          OR pm.email IS NOT NULL
-      ORDER BY p.created_at DESC
+      ORDER BY p.id, p.created_at DESC
       `,
       [user.accountId, user.email]
     );
@@ -151,7 +152,8 @@ export async function GET() {
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         accountId: row.account_id,
-        isOwner: row.is_owner,
+        isOwner: row.is_owner as boolean,
+        memberRole: (row.member_role as string) ?? 'member',
       })),
       stats: {
         totalDocuments: documentsRowCount,

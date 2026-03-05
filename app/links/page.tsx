@@ -11,7 +11,7 @@ export default function LinksPage() {
             Sprint Builder
           </Link>
           <Link
-            href="/deferred-compensation"
+            href="/budget"
             className="underline underline-offset-4"
           >
             Compensation Calculator

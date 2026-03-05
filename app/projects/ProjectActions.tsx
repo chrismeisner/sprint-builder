@@ -6,7 +6,16 @@ import Typography from "@/components/ui/Typography";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 
-type Member = { email: string; role: string; addedByAccount: string | null; createdAt: string };
+type Member = {
+  email: string;
+  role: string;
+  isAdmin: boolean;
+  name: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  addedByAccount: string | null;
+  createdAt: string;
+};
 
 type Props = {
   projectId: string;
@@ -22,7 +31,6 @@ export default function ProjectActions({ projectId, projectName, isOwner }: Prop
   const [memberEmailInput, setMemberEmailInput] = useState("");
   const [memberSaving, setMemberSaving] = useState(false);
   const [memberRemovingEmail, setMemberRemovingEmail] = useState<string | null>(null);
-  const [roleUpdatingEmail, setRoleUpdatingEmail] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
@@ -106,27 +114,6 @@ export default function ProjectActions({ projectId, projectName, isOwner }: Prop
     }
   };
 
-  const updateRole = async (email: string, newRole: string) => {
-    try {
-      setRoleUpdatingEmail(email);
-      setError(null);
-      const res = await fetch("/api/project-members", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, email, role: newRole }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update role");
-      }
-      await fetchMembers();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update role");
-    } finally {
-      setRoleUpdatingEmail(null);
-    }
-  };
-
   const handleDeleteProject = async () => {
     if (!isOwner) return;
     try {
@@ -181,47 +168,52 @@ export default function ProjectActions({ projectId, projectName, isOwner }: Prop
           <p className={bodySmClass}>No members yet. Add the first email below.</p>
         ) : (
           <div className="divide-y divide-black/10 dark:divide-white/15 rounded-md border border-black/10 dark:border-white/15">
-            {members.map((m) => (
-              <div key={`${m.email}-${m.createdAt}`} className="flex items-center justify-between px-3 py-2 gap-2">
-                <div className="flex flex-col min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className={`${bodySmClass} truncate`}>{m.email}</span>
-                    {m.role === "lead" && (
-                      <span className={`${bodySmClass} shrink-0 inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 px-2 py-0.5 text-[11px] font-medium`}>
-                        Lead
-                      </span>
+            {members.map((m) => {
+              const displayName = m.firstName && m.lastName
+                ? `${m.firstName} ${m.lastName}`
+                : m.name || m.email;
+              const showName = displayName !== m.email;
+
+              return (
+                <div key={`${m.email}-${m.createdAt}`} className="flex items-center justify-between px-3 py-2 gap-2">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`${bodySmClass} truncate font-medium`}>{showName ? displayName : m.email}</span>
+                      {m.isAdmin ? (
+                        <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide leading-none bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400">
+                          Admin
+                        </span>
+                      ) : (
+                        <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide leading-none bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400">
+                          Member
+                        </span>
+                      )}
+                    </div>
+                    {showName && (
+                      <span className={`${bodySmClass} opacity-60 truncate`}>{m.email}</span>
+                    )}
+                    <span className={`${bodySmClass} opacity-50`}>
+                      Added {new Date(m.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isOwner && !m.isAdmin && (
+                      <button
+                        onClick={() => {
+                          setMemberToRemove(m.email);
+                          setShowRemoveMemberModal(true);
+                          setError(null);
+                        }}
+                        disabled={memberRemovingEmail === m.email}
+                        className={`${bodySmClass} px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+                      >
+                        Remove
+                      </button>
                     )}
                   </div>
-                  <span className={`${bodySmClass} opacity-70`}>
-                    Added {new Date(m.createdAt).toLocaleDateString()}
-                  </span>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {isOwner && (
-                    <select
-                      value={m.role || "member"}
-                      onChange={(e) => updateRole(m.email, e.target.value)}
-                      disabled={roleUpdatingEmail === m.email}
-                      className={`${bodySmClass} rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 transition cursor-pointer`}
-                    >
-                      <option value="member">Member</option>
-                      <option value="lead">Lead</option>
-                    </select>
-                  )}
-                  <button
-                    onClick={() => {
-                      setMemberToRemove(m.email);
-                      setShowRemoveMemberModal(true);
-                      setError(null);
-                    }}
-                    disabled={memberRemovingEmail === m.email || !isOwner}
-                    className={`${bodySmClass} px-3 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

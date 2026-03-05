@@ -3,6 +3,8 @@ export const POINT_PRICE_PER_POINT = 1750;
 export const HOURS_PER_POINT = 10;
 export const DEFAULT_HOURLY_RATE = POINT_PRICE_PER_POINT / HOURS_PER_POINT; // 175
 
+export const UPDATE_CYCLE_WEEKLY_RATE = 2000;
+
 /**
  * Derive the per-point price from an hourly rate.
  * Default: 175 $/hr × 10 hrs/pt = $1,750/pt

@@ -18,6 +18,7 @@ type Props = {
   className?: string;
   title?: string;
   baseRate?: number | null;
+  isUpdateCycle?: boolean;
 };
 
 export default function SprintTotals({
@@ -33,6 +34,7 @@ export default function SprintTotals({
   className = "",
   title = "Sprint Totals",
   baseRate,
+  isUpdateCycle = false,
 }: Props) {
   const effectiveRate = baseRate != null && Number.isFinite(baseRate) && baseRate > 0 ? baseRate : DEFAULT_HOURLY_RATE;
   const effectivePricePerPoint = pointPriceFromRate(effectiveRate);
@@ -87,11 +89,14 @@ export default function SprintTotals({
             <div>
               <div className={`${getTypographyClassName("subtitle-sm")} text-text-muted mb-1`}>Total Hours</div>
               <div className={`${getTypographyClassName("h3")} text-text-primary`}>
-                {(typeof totals.hours === "number" ? totals.hours : 0).toFixed(1)}h
+                {isUpdateCycle
+                  ? (totals.price / effectiveRate).toFixed(1)
+                  : (typeof totals.hours === "number" ? totals.hours : 0).toFixed(1)
+                }h
               </div>
               {showRate && (
                 <div className={`${getTypographyClassName("mono-sm")} text-text-muted mt-1`}>
-                  ({HOURS_PER_POINT}h/pt)
+                  {isUpdateCycle ? "(est. price ÷ rate)" : `(${HOURS_PER_POINT}h/pt)`}
                 </div>
               )}
             </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { getTypographyClassName } from "@/lib/design-system/typography-classnames";
 import { useToast } from "@/lib/toast-context";
 
@@ -16,8 +17,26 @@ type Profile = {
   profileImageUrl: string | null;
 };
 
+type Project = {
+  id: string;
+  name: string;
+  status: string;
+  projectType: string;
+  createdAt: string;
+  updatedAt: string;
+  isOwner: boolean;
+  memberRole: string;
+};
+
+type Sprint = {
+  id: string;
+  project_id: string | null;
+};
+
 type ProfileData = {
   profile: Profile;
+  projects: Project[];
+  sprints: Sprint[];
 };
 
 export default function ProfileClient() {
@@ -385,6 +404,68 @@ export default function ProfileClient() {
           </div>
           </div>
         </div>
+      </div>
+
+      {/* Projects */}
+      <div className="bg-white dark:bg-black rounded-lg border border-black/10 dark:border-white/15 p-6 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className={`${sectionTitleClass} text-text-primary`}>Projects</h2>
+            <p className={`${labelClass} mt-0.5`}>
+              {data.projects.length === 0
+                ? "You are not a member of any projects yet."
+                : `${data.projects.length} project${data.projects.length === 1 ? "" : "s"}`}
+            </p>
+          </div>
+          {data.profile.isAdmin && (
+            <Link
+              href="/projects"
+              className={`${getTypographyClassName("button-sm")} px-3 py-1.5 border border-black/10 dark:border-white/15 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition shrink-0`}
+            >
+              All projects
+            </Link>
+          )}
+        </div>
+
+        {data.projects.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {data.projects.map((project) => {
+              const isProjectAdmin = project.isOwner || data.profile.isAdmin;
+              const sprintCount = data.sprints.filter((s) => s.project_id === project.id).length;
+
+              const roleBadgeClass = isProjectAdmin
+                ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400"
+                : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400";
+
+              const roleLabel = isProjectAdmin ? "Admin" : "Member";
+
+              return (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="group flex flex-col gap-2 p-4 rounded-lg border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className={`${getTypographyClassName("body-sm")} font-semibold text-text-primary group-hover:underline underline-offset-2 line-clamp-2`}>
+                      {project.name}
+                    </p>
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide leading-none shrink-0 ${roleBadgeClass}`}>
+                      {roleLabel}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-auto">
+                    <p className={`${getTypographyClassName("body-sm")} text-text-muted`}>
+                      {sprintCount} sprint{sprintCount === 1 ? "" : "s"}
+                    </p>
+                    <p className={`${getTypographyClassName("body-sm")} text-text-muted`}>
+                      {new Date(project.updatedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

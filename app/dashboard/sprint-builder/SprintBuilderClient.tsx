@@ -650,7 +650,7 @@ export default function SprintBuilderClient({
   const resolvedSprintId = savedSprintId || sprintIdFromQuery || "";
   const canBudget = selectedDeliverables.length > 0 && totalPriceCents > 0 && Boolean(resolvedSprintId);
   const budgetHref = canBudget
-    ? `/deferred-compensation?amountCents=${totalPriceCents}&sprintId=${resolvedSprintId}`
+    ? `/budget?amountCents=${totalPriceCents}&sprintId=${resolvedSprintId}`
     : "#";
 
   function escapeCsv(val: unknown) {

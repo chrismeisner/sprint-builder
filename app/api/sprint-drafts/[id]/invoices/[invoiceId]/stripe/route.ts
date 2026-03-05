@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, getOrCreateStripeCustomer } from "@/lib/stripe";
-import { sendEmail, generateInvoiceDraftEmail } from "@/lib/email";
+import { sendEmail, generateInvoiceDraftEmail, generateInvoiceSentAdminEmail, generateInvoiceClientEmail } from "@/lib/email";
 import { randomUUID } from "crypto";
 
 type Params = { params: { id: string; invoiceId: string } };
@@ -56,8 +56,13 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const body = await request.json().catch(() => ({})) as { action?: string };
+    const body = await request.json().catch(() => ({})) as { action?: string; ccAdmin?: boolean; ccClient?: boolean };
     const action = body.action ?? "send";
+    const ccAdmin = body.ccAdmin === true;
+    const ccClient = body.ccClient === true;
+
+    const origin = new URL(request.url).origin;
+    const sprintUrl = `${origin}/sprints/${params.id}`;
 
     // Fetch the sprint invoice
     const invRes = await pool.query(
@@ -225,6 +230,90 @@ export async function POST(request: Request, { params }: Params) {
         }
       );
 
+      // Fetch shared context needed for studio emails (admin CC and/or client studio email)
+      let sharedSprintTitle: string | null = null;
+      let sharedClientEmail: string | null = null;
+      let sharedClientFirstName: string | null = null;
+      let sharedClientLastName: string | null = null;
+
+      if (ccAdmin || ccClient) {
+        try {
+          const contextRes = await pool.query(
+            `SELECT sd.title,
+                    COALESCE(a.email, d.email) AS client_email,
+                    a.first_name AS client_first_name,
+                    a.last_name  AS client_last_name
+             FROM sprint_drafts sd
+             LEFT JOIN projects p  ON p.id = sd.project_id
+             LEFT JOIN documents d ON d.id = p.intake_document_id
+             LEFT JOIN accounts a  ON a.id = COALESCE(p.account_id, d.account_id)
+             WHERE sd.id = $1`,
+            [params.id]
+          );
+          if ((contextRes.rowCount ?? 0) > 0) {
+            sharedSprintTitle     = contextRes.rows[0].title ?? null;
+            sharedClientEmail     = contextRes.rows[0].client_email ?? null;
+            sharedClientFirstName = contextRes.rows[0].client_first_name ?? null;
+            sharedClientLastName  = contextRes.rows[0].client_last_name ?? null;
+          }
+        } catch (err) {
+          console.error("[Send action] Failed to fetch email context:", err);
+        }
+      }
+
+      // CC the admin if requested
+      if (ccAdmin && user.email) {
+        try {
+          const adminName = user.name ?? user.email.split("@")[0] ?? null;
+
+          const emailContent = generateInvoiceSentAdminEmail({
+            invoiceLabel: inv.label,
+            invoiceAmount: inv.amount ?? 0,
+            hostedUrl: inv.invoice_url ?? "",
+            adminName,
+            clientEmail: sharedClientEmail,
+            sprintTitle: sharedSprintTitle,
+            sprintUrl,
+          });
+
+          await sendEmail({
+            to: user.email,
+            subject: emailContent.subject,
+            text: emailContent.text,
+            html: emailContent.html,
+          });
+        } catch (err) {
+          // Non-blocking — don't fail the send if CC email fails
+          console.error("[Send action] CC admin email error:", err);
+        }
+      }
+
+      // Send studio-branded invoice email to client if requested
+      if (ccClient && sharedClientEmail) {
+        try {
+          const clientName = [sharedClientFirstName, sharedClientLastName].filter(Boolean).join(" ") || null;
+
+          const emailContent = generateInvoiceClientEmail({
+            invoiceLabel: inv.label,
+            invoiceAmount: inv.amount ?? 0,
+            hostedUrl: inv.invoice_url ?? "",
+            clientName,
+            sprintTitle: sharedSprintTitle,
+            sprintUrl,
+          });
+
+          await sendEmail({
+            to: sharedClientEmail,
+            subject: emailContent.subject,
+            text: emailContent.text,
+            html: emailContent.html,
+          });
+        } catch (err) {
+          // Non-blocking — don't fail the send if studio client email fails
+          console.error("[Send action] Studio client email error:", err);
+        }
+      }
+
       const updatedRes = await pool.query(
         `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url,
                 amount, sort_order, stripe_invoice_id, created_at, updated_at
@@ -267,6 +356,7 @@ export async function POST(request: Request, { params }: Params) {
         hostedUrl: inv.invoice_url,
         adminName,
         sprintTitle,
+        sprintUrl,
       });
 
       const result = await sendEmail({

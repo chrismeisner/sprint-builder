@@ -193,16 +193,17 @@ function buildStandardPaymentSections(
 
   // Map payment timing values to human-readable labels
   const timingLabels: Record<string, string> = {
-    on_start: "due upon signing",
+    before_kickoff: "due before kickoff",
+    on_start: "due before kickoff",
     net7: "due within 7 days of kickoff",
     net14: "due within 14 days of kickoff",
     net30: "due within 30 days of kickoff",
   };
   const completionTimingLabels: Record<string, string> = {
-    on_delivery: "due upon delivery",
-    net7: "due within 7 days of delivery",
-    net15: "due within 15 days of delivery",
-    net30: "due within 30 days of delivery",
+    on_delivery: "due upon completion",
+    net7: "due within 7 days of completion",
+    net15: "due within 15 days of completion",
+    net30: "due within 30 days of completion",
   };
   const timingLabel = upfrontPaymentTiming && timingLabels[upfrontPaymentTiming] 
     ? timingLabels[upfrontPaymentTiming]
@@ -271,7 +272,8 @@ function buildDeferredPaymentSections(
 
   // Map payment timing values to human-readable labels
   const timingLabels: Record<string, string> = {
-    on_start: "due upon signing",
+    before_kickoff: "due before kickoff",
+    on_start: "due before kickoff",
     net7: "due within 7 days of kickoff",
     net14: "due within 14 days of kickoff",
     net30: "due within 30 days of kickoff",
@@ -279,7 +281,7 @@ function buildDeferredPaymentSections(
   const upfrontPaymentTiming = inputs.upfrontPaymentTiming;
   const timingLabel = upfrontPaymentTiming && timingLabels[upfrontPaymentTiming] 
     ? timingLabels[upfrontPaymentTiming]
-    : "due upon signing";
+    : "due before kickoff";
 
   // Edge case: deferred plan configured but no actual deferred/equity → simple kickoff
   if (!hasDeferred && !hasEquity) {
@@ -580,11 +582,11 @@ export async function POST(request: Request, { params }: Params) {
       // No saved budget plan, but the sprint has non-deferred settings
       template = STANDARD_AGREEMENT_TEMPLATE;
       const upfrontPct = Number(sprint.upfront_payment_percent) / 100;
-      paymentSections = buildStandardPaymentSections(upfrontPct, totalPrice, undefined, "on_start", "net30");
+      paymentSections = buildStandardPaymentSections(upfrontPct, totalPrice, undefined, "before_kickoff", "net30");
     } else {
       // Default: standard 50/50 split
       template = STANDARD_AGREEMENT_TEMPLATE;
-      paymentSections = buildStandardPaymentSections(0.5, totalPrice, undefined, "on_start", "net30");
+      paymentSections = buildStandardPaymentSections(0.5, totalPrice, undefined, "before_kickoff", "net30");
     }
 
     // Build client description

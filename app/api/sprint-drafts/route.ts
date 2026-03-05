@@ -338,7 +338,7 @@ export async function POST(request: Request) {
       isDeferred: false,
       totalProjectValue: totalPrice,
       upfrontPayment: 0.5,
-      upfrontPaymentTiming: "on_start",
+      upfrontPaymentTiming: "before_kickoff",
       equitySplit: 0,
       milestones: [],
       milestoneMissOutcome: "forgiven",

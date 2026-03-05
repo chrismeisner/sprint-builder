@@ -1,5 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      {
+        source: '/deferred-compensation',
+        destination: '/budget',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

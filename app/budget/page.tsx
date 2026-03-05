@@ -43,9 +43,11 @@ async function loadSprintOptions(accountId: string): Promise<SprintOption[]> {
 type SprintInfo = SprintOption & {
   hasDeferredComp: boolean;
   upfrontPaymentPercent: number | null;
+  type: string;
+  startDate: string | null;
+  dueDate: string | null;
 };
 
-// Fetch sprint info by ID (regardless of ownership - for URL params)
 async function loadSprintInfo(sprintId: string): Promise<SprintInfo | null> {
   const pool = getPool();
   const result = await pool.query(
@@ -54,7 +56,10 @@ async function loadSprintInfo(sprintId: string): Promise<SprintInfo | null> {
         id,
         COALESCE(NULLIF(title, ''), 'Sprint ' || LEFT(id, 8)) AS label,
         has_deferred_comp,
-        upfront_payment_percent
+        upfront_payment_percent,
+        COALESCE(type, 'sprint') AS type,
+        start_date,
+        due_date
       FROM sprint_drafts
       WHERE id = $1
     `,
@@ -63,11 +68,16 @@ async function loadSprintInfo(sprintId: string): Promise<SprintInfo | null> {
   
   if (result.rowCount === 0) return null;
   const row = result.rows[0];
+  const startRaw = row.start_date;
+  const dueRaw = row.due_date;
   return {
     id: row.id as string,
     label: row.label as string,
     hasDeferredComp: row.has_deferred_comp !== false,
     upfrontPaymentPercent: row.upfront_payment_percent != null ? Number(row.upfront_payment_percent) : null,
+    type: (row.type as string) ?? "sprint",
+    startDate: startRaw instanceof Date ? startRaw.toISOString().slice(0, 10) : (startRaw as string | null),
+    dueDate: dueRaw instanceof Date ? dueRaw.toISOString().slice(0, 10) : (dueRaw as string | null),
   };
 }
 

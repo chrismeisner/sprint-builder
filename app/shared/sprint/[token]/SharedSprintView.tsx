@@ -707,7 +707,7 @@ export default function SharedSprintView({
               {isAdmin && sprintId && (
                 <div className="px-6 py-3 border-t border-neutral-100 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 flex items-center justify-end">
                   <Link
-                    href={`/deferred-compensation?sprintId=${sprintId}&amountCents=${Math.round(totalFixedPrice * 100)}`}
+                    href={`/budget?sprintId=${sprintId}&amountCents=${Math.round(totalFixedPrice * 100)}`}
                     className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 transition-colors duration-150"
                   >
                     <svg className="size-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
@@ -726,7 +726,7 @@ export default function SharedSprintView({
                 </p>
                 {isAdmin && sprintId && (
                   <Link
-                    href={`/deferred-compensation?sprintId=${sprintId}&amountCents=${Math.round(totalFixedPrice * 100)}`}
+                    href={`/budget?sprintId=${sprintId}&amountCents=${Math.round(totalFixedPrice * 100)}`}
                     className="inline-flex items-center gap-2 h-8 px-3 text-sm font-medium rounded-md bg-neutral-900 dark:bg-neutral-100 text-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors duration-150"
                   >
                     Add Budget

@@ -20,25 +20,37 @@ type SavedPlanInputs = {
   milestoneMissOutcome?: string;
 };
 
-// Payment timing options
-const PAYMENT_TIMING_OPTIONS = [
-  { value: "on_start", label: "Due upon signing" },
-  { value: "net7", label: "Net 7 (due 7 days after kickoff)" },
-  { value: "net14", label: "Net 14 (due 14 days after kickoff)" },
-  { value: "net30", label: "Net 30 (due 30 days after kickoff)" },
-] as const;
-
 // Completion payment timing options (for non-deferred sprints)
 const COMPLETION_TIMING_OPTIONS = [
-  { value: "on_delivery", label: "Due upon delivery (0 days)" },
-  { value: "net7", label: "Net 7 (due 7 days after delivery)" },
-  { value: "net15", label: "Net 15 (due 15 days after delivery)" },
-  { value: "net30", label: "Net 30 (due 30 days after delivery)" },
+  { value: "on_delivery", label: "Due upon completion (0 days)" },
+  { value: "net7", label: "Net 7 (due 7 days after completion)" },
+  { value: "net15", label: "Net 15 (due 15 days after completion)" },
+  { value: "net30", label: "Net 30 (due 30 days after completion)" },
 ] as const;
+
+function formatShortDate(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00`);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function buildKickoffTimingOptions(startDate: string | null | undefined) {
+  const kickoffLabel = startDate
+    ? `Due before kickoff (${formatShortDate(startDate)})`
+    : "Due before kickoff";
+  return [
+    { value: "before_kickoff", label: kickoffLabel },
+    { value: "net7", label: "Net 7 (due 7 days after kickoff)" },
+    { value: "net14", label: "Net 14 (due 14 days after kickoff)" },
+    { value: "net30", label: "Net 30 (due 30 days after kickoff)" },
+  ];
+}
 
 type SprintInfo = SprintOption & {
   hasDeferredComp: boolean;
   upfrontPaymentPercent: number | null;
+  type: string;
+  startDate: string | null;
+  dueDate: string | null;
 };
 
 type DeferredCompensationProps = {
@@ -117,6 +129,8 @@ export default function DeferredCompensationClient({
     return DEFAULT_PROJECT_VALUE;
   }, [savedPlan, defaultAmount]);
 
+  const isUpdateCycle = sprintFromUrl?.type === "update_cycle";
+
   const initialUpfrontPayment = useMemo(() => {
     if (savedPlan?.upfrontPayment != null && Number.isFinite(savedPlan.upfrontPayment)) {
       return savedPlan.upfrontPayment;
@@ -150,17 +164,19 @@ export default function DeferredCompensationClient({
 
   const initialUpfrontPaymentTiming = useMemo(() => {
     if (savedPlan?.upfrontPaymentTiming && typeof savedPlan.upfrontPaymentTiming === "string") {
+      // Migrate legacy value
+      if (savedPlan.upfrontPaymentTiming === "on_start") return "before_kickoff";
       return savedPlan.upfrontPaymentTiming;
     }
-    return "on_start";
+    return "before_kickoff";
   }, [savedPlan]);
 
   const initialCompletionPaymentTiming = useMemo(() => {
     if (savedPlan?.completionPaymentTiming && typeof savedPlan.completionPaymentTiming === "string") {
       return savedPlan.completionPaymentTiming;
     }
-    return "net30";
-  }, [savedPlan]);
+    return isUpdateCycle ? "net30" : "net30";
+  }, [savedPlan, isUpdateCycle]);
 
   // Deferred toggle — priority: savedPlan > sprint setting > default false
   const initialIsDeferred = useMemo(() => {
@@ -185,6 +201,10 @@ export default function DeferredCompensationClient({
   >(initialMilestones);
   const [milestoneMissOutcome, setMilestoneMissOutcome] = useState(initialMilestoneMissOutcome);
   const [upfrontPaymentTiming, setUpfrontPaymentTiming] = useState(initialUpfrontPaymentTiming);
+  const paymentTimingOptions = useMemo(
+    () => buildKickoffTimingOptions(sprintFromUrl?.startDate),
+    [sprintFromUrl?.startDate]
+  );
   const [completionPaymentTiming, setCompletionPaymentTiming] = useState(initialCompletionPaymentTiming);
   const [selectedSprint, setSelectedSprint] = useState(defaultSprintId ?? "");
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
@@ -908,7 +928,7 @@ export default function DeferredCompensationClient({
               disabled={calculatorDisabled}
               className="px-3 py-1.5 rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black text-text-primary focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-60 cursor-pointer"
             >
-              {PAYMENT_TIMING_OPTIONS.map((option) => (
+              {paymentTimingOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

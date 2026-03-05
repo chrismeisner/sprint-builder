@@ -29,6 +29,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
             sd.signed_by_studio, sd.signed_by_client,
             sd.invoice_url, sd.invoice_status, sd.budget_status, sd.contract_pdf_url,
             sd.invoice_pdf_url, sd.base_rate,
+            sd.type, sd.parent_sprint_id,
             d.email, d.account_id, d.project_id AS document_project_id
      FROM sprint_drafts sd
      LEFT JOIN documents d ON sd.document_id = d.id
@@ -68,6 +69,8 @@ export default async function SprintDetailPage({ params }: PageProps) {
     contract_pdf_url: string | null;
     invoice_pdf_url: string | null;
     base_rate: number | null;
+    type: string | null;
+    parent_sprint_id: string | null;
   };
   
   // Check if current user owns this sprint or is a member of the linked project
@@ -338,6 +341,21 @@ export default async function SprintDetailPage({ params }: PageProps) {
     };
   })();
 
+  // Fetch parent sprint info for update cycles
+  let parentSprint: { id: string; title: string | null } | null = null;
+  if (row.parent_sprint_id) {
+    const parentRes = await pool.query(
+      `SELECT id, title FROM sprint_drafts WHERE id = $1`,
+      [row.parent_sprint_id]
+    );
+    if (parentRes.rowCount && parentRes.rowCount > 0) {
+      parentSprint = {
+        id: parentRes.rows[0].id as string,
+        title: parentRes.rows[0].title as string | null,
+      };
+    }
+  }
+
   // Convert dates to strings for client component
   const rowForClient = {
     id: row.id,
@@ -366,6 +384,8 @@ export default async function SprintDetailPage({ params }: PageProps) {
     contract_pdf_url: row.contract_pdf_url,
     invoice_pdf_url: row.invoice_pdf_url,
     base_rate: row.base_rate != null ? Number(row.base_rate) : null,
+    type: row.type ?? "sprint",
+    parent_sprint_id: row.parent_sprint_id,
   };
 
   const budgetPlanForClient = budgetPlan
@@ -501,6 +521,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
       invoices={invoices}
       dailyUpdates={dailyUpdates}
       currentUserEmail={currentUser.email}
+      parentSprint={parentSprint}
     />
   );
 }

@@ -23,12 +23,53 @@ type Props = {
   sprintTitle: string | null;
   clientEmail: string | null;
   adminEmail: string;
+  adminRole?: string;
   onClose: () => void;
   onUpdate: (invoice: SprintInvoice) => void;
 };
 
 function formatCurrency(amount: number): string {
   return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function RoleBadge({ role }: { role: string }) {
+  const styles: Record<string, string> = {
+    client:  "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400",
+    admin:   "bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400",
+    lead:    "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400",
+    member:  "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400",
+  };
+  const label: Record<string, string> = {
+    client: "Client",
+    admin:  "Admin",
+    lead:   "Lead",
+    member: "Member",
+  };
+  const cls = styles[role] ?? styles.member;
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide leading-none ${cls}`}>
+      {label[role] ?? role}
+    </span>
+  );
+}
+
+function Checkbox({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div
+      className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${
+        checked
+          ? "bg-indigo-600 border-indigo-600"
+          : "bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600"
+      }`}
+    >
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only" />
+      {checked && (
+        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+        </svg>
+      )}
+    </div>
+  );
 }
 
 type Step = "idle" | "generated" | "sent";
@@ -39,12 +80,83 @@ function deriveStep(inv: SprintInvoice): Step {
   return "idle";
 }
 
+function EmailPreview({
+  label,
+  amount,
+  sprintTitle,
+  clientEmail,
+}: {
+  label: string;
+  amount: number | null;
+  sprintTitle: string | null;
+  clientEmail: string | null;
+}) {
+  return (
+    <div className="rounded-md border border-neutral-200 dark:border-neutral-700 overflow-hidden text-left">
+      {/* Email meta bar */}
+      <div className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 px-3 py-2 space-y-0.5">
+        <p className="text-[11px] text-text-muted leading-tight">
+          <span className="font-medium text-text-secondary">From:</span> Stripe (on behalf of Meisner Design)
+        </p>
+        {clientEmail && (
+          <p className="text-[11px] text-text-muted leading-tight">
+            <span className="font-medium text-text-secondary">To:</span> {clientEmail}
+          </p>
+        )}
+        <p className="text-[11px] text-text-muted leading-tight">
+          <span className="font-medium text-text-secondary">Subject:</span>{" "}
+          {label}{sprintTitle ? ` — ${sprintTitle}` : ""}
+        </p>
+      </div>
+
+      {/* Email body */}
+      <div className="bg-white dark:bg-neutral-900 px-4 py-3 space-y-3">
+        <p className="text-xs text-text-primary">Hi there,</p>
+        <p className="text-xs text-text-secondary">
+          You have a new invoice ready for payment.
+        </p>
+
+        {/* Invoice detail table */}
+        <div className="rounded border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+          <div className="flex items-start justify-between bg-neutral-50 dark:bg-neutral-800 px-3 py-2 gap-2">
+            <div>
+              <p className="text-[10px] text-text-muted uppercase tracking-wide mb-0.5">Invoice</p>
+              <p className="text-xs font-semibold text-text-primary">{label}</p>
+              {sprintTitle && (
+                <p className="text-[10px] text-text-muted mt-0.5">{sprintTitle}</p>
+              )}
+            </div>
+            {amount != null && (
+              <div className="text-right shrink-0">
+                <p className="text-[10px] text-text-muted uppercase tracking-wide mb-0.5">Amount</p>
+                <p className="text-xs font-semibold tabular-nums text-text-primary">{formatCurrency(amount)}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* CTA button */}
+        <div>
+          <span className="inline-block bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-[11px] font-semibold px-4 py-1.5 rounded cursor-default">
+            Pay Invoice
+          </span>
+        </div>
+
+        <p className="text-[10px] text-text-muted">
+          Powered by Stripe
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function StripeInvoiceModal({
   invoice: initialInvoice,
   sprintId,
   sprintTitle,
   clientEmail,
   adminEmail,
+  adminRole = "admin",
   onClose,
   onUpdate,
 }: Props) {
@@ -55,6 +167,9 @@ export default function StripeInvoiceModal({
   const [sendingDraft, setSendingDraft] = useState(false);
   const [draftSentTo, setDraftSentTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [ccAdmin, setCcAdmin] = useState(true);
+  const [ccClient, setCcClient] = useState(false);
+  const [showEmailPreview, setShowEmailPreview] = useState(true);
 
   const updateInvoice = (updated: SprintInvoice) => {
     setInvoice(updated);
@@ -93,7 +208,7 @@ export default function StripeInvoiceModal({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "send" }),
+          body: JSON.stringify({ action: "send", ccAdmin, ccClient }),
         }
       );
       const data = await res.json() as { invoice?: SprintInvoice; error?: string };
@@ -135,11 +250,10 @@ export default function StripeInvoiceModal({
       <div className="absolute inset-0 bg-black/60 dark:bg-black/80" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full max-w-md mx-4 flex flex-col">
+      <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
+        <div className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            {/* Stripe-ish mark */}
             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40">
               <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
@@ -158,8 +272,10 @@ export default function StripeInvoiceModal({
           </button>
         </div>
 
-        {/* Invoice summary */}
-        <div className="p-4 space-y-3">
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1 p-4 space-y-3">
+
+          {/* Invoice summary */}
           <div className="rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 p-3">
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -174,14 +290,90 @@ export default function StripeInvoiceModal({
                 </span>
               )}
             </div>
-            {clientEmail && (
-              <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700 flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-text-muted shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+          </div>
+
+          {/* Recipients */}
+          <div className="rounded-md border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden">
+            <div className="px-3 py-2 bg-neutral-50 dark:bg-neutral-800/50">
+              <p className={`${getTypographyClassName("body-sm")} font-medium text-text-secondary`}>Recipients</p>
+            </div>
+
+            {/* Row: Stripe → client (always) */}
+            <div className="px-3 py-2.5 flex items-start gap-3">
+              <div className="pt-0.5 shrink-0">
+                <svg className="w-3.5 h-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                 </svg>
-                <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>
-                  Invoice will be sent to <span className="font-medium text-text-secondary">{clientEmail}</span>
-                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {clientEmail ? (
+                    <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>{clientEmail}</span>
+                  ) : (
+                    <span className={`${getTypographyClassName("body-sm")} text-text-muted italic`}>No client email on file</span>
+                  )}
+                  <RoleBadge role="client" />
+                </div>
+                <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>Stripe invoice email — always sent</p>
+              </div>
+            </div>
+
+            {/* Row: Admin CC checkbox */}
+            <label className="px-3 py-2.5 flex items-start gap-3 cursor-pointer hover:bg-black/[0.015] dark:hover:bg-white/[0.015] transition-colors">
+              <div className="pt-0.5 shrink-0">
+                <Checkbox checked={ccAdmin} onChange={setCcAdmin} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>{adminEmail || "you"}</span>
+                  <RoleBadge role={adminRole} />
+                </div>
+                <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>Studio notification — send me a copy</p>
+              </div>
+            </label>
+
+            {/* Row: Studio email to client checkbox */}
+            <label className="px-3 py-2.5 flex items-start gap-3 cursor-pointer hover:bg-black/[0.015] dark:hover:bg-white/[0.015] transition-colors">
+              <div className="pt-0.5 shrink-0">
+                <Checkbox checked={ccClient} onChange={setCcClient} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {clientEmail ? (
+                    <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>{clientEmail}</span>
+                  ) : (
+                    <span className={`${getTypographyClassName("body-sm")} text-text-muted italic`}>No client email on file</span>
+                  )}
+                  <RoleBadge role="client" />
+                </div>
+                <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>Studio-branded email with sprint context — in addition to Stripe&apos;s</p>
+              </div>
+            </label>
+          </div>
+
+          {/* Email preview toggle */}
+          <div>
+            <button
+              onClick={() => setShowEmailPreview((v) => !v)}
+              className={`${getTypographyClassName("body-sm")} flex items-center gap-1.5 text-text-muted hover:text-text-secondary transition-colors w-full text-left`}
+            >
+              <svg
+                className={`w-3.5 h-3.5 transition-transform ${showEmailPreview ? "rotate-90" : ""}`}
+                fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+              {showEmailPreview ? "Hide" : "Preview"} email
+            </button>
+
+            {showEmailPreview && (
+              <div className="mt-2">
+                <EmailPreview
+                  label={invoice.label}
+                  amount={invoice.amount}
+                  sprintTitle={sprintTitle}
+                  clientEmail={clientEmail}
+                />
               </div>
             )}
           </div>
@@ -364,7 +556,7 @@ export default function StripeInvoiceModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] rounded-b-lg">
+        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] rounded-b-lg shrink-0">
           <button
             onClick={onClose}
             className={`${getTypographyClassName("button-sm")} px-4 py-2 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}

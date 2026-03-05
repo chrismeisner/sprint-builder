@@ -115,6 +115,10 @@ function muted(text: string): string {
   return `<p style="color:#71717a;font-size:13px;margin:0;">${text}</p>`;
 }
 
+function secondaryLink(href: string, label: string): string {
+  return `<p style="margin:12px 0 0;"><a href="${href}" style="color:#71717a;font-size:13px;text-decoration:underline;">${label}</a></p>`;
+}
+
 function divider(): string {
   return `<hr style="border:none;border-top:1px solid #e4e4e7;margin:24px 0;">`;
 }
@@ -200,9 +204,9 @@ ${muted("Meisner Design")}
 }
 
 /**
- * Lead notification — new member added
+ * Admin notification — new member added
  */
-export function generateLeadNotificationEmail(params: {
+export function generateAdminNotificationEmail(params: {
   projectName: string;
   newMemberEmail: string;
   addedByName?: string;
@@ -227,14 +231,14 @@ View the project: ${projectUrl}
 <p style="margin:0 0 16px;">${who} added <strong>${newMemberEmail}</strong> to <strong>${projectName}</strong>.</p>
 ${linkButton(projectUrl, "View project")}
 ${divider()}
-${muted("You're receiving this because you're a lead on this project.")}
+${muted("You're receiving this because you're an admin on this project.")}
 `);
 
   return { subject, text, html };
 }
 
 /**
- * Lead notification — member removed
+ * Admin notification — member removed
  */
 export function generateMemberRemovedNotificationEmail(params: {
   projectName: string;
@@ -261,7 +265,7 @@ View the project: ${projectUrl}
 <p style="margin:0 0 16px;">${who} removed <strong>${removedMemberEmail}</strong> from <strong>${projectName}</strong>.</p>
 ${linkButton(projectUrl, "View project")}
 ${divider()}
-${muted("You're receiving this because you're a lead on this project.")}
+${muted("You're receiving this because you're an admin on this project.")}
 `);
 
   return { subject, text, html };
@@ -276,8 +280,9 @@ export function generateInvoiceDraftEmail(params: {
   hostedUrl: string;
   adminName: string | null;
   sprintTitle?: string | null;
+  sprintUrl?: string | null;
 }): { subject: string; text: string; html: string } {
-  const { invoiceLabel, invoiceAmount, hostedUrl, adminName, sprintTitle } = params;
+  const { invoiceLabel, invoiceAmount, hostedUrl, adminName, sprintTitle, sprintUrl } = params;
   const greeting = adminName ? `Hi ${adminName},` : "Hi there,";
   const formattedAmount = `$${invoiceAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const context = sprintTitle ? ` for <strong>${sprintTitle}</strong>` : "";
@@ -293,7 +298,7 @@ Invoice: ${invoiceLabel}${contextText}
 Amount: ${formattedAmount}
 
 Review it here: ${hostedUrl}
-
+${sprintUrl ? `\nView sprint page: ${sprintUrl}\n` : ""}
 This is a draft preview — the client has not been notified yet. Once you're ready, return to the sprint page and click "Send Invoice to Client".
 
 — Meisner Design
@@ -315,7 +320,125 @@ This is a draft preview — the client has not been notified yet. Once you're re
   </tr>
 </table>
 ${linkButton(hostedUrl, "Preview Invoice")}
+${sprintUrl ? secondaryLink(sprintUrl, "View sprint page →") : ""}
 <p style="margin:16px 0 0;font-size:13px;color:#71717a;">This is a draft preview&nbsp;&mdash; the client has <strong>not</strong> been notified yet. Once you&rsquo;re ready, return to the sprint page and click &ldquo;Send Invoice to Client&rdquo;.</p>
+${divider()}
+${muted("Meisner Design")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
+ * Invoice sent notification — CC'd to admin when the invoice is sent to the client
+ */
+export function generateInvoiceSentAdminEmail(params: {
+  invoiceLabel: string;
+  invoiceAmount: number;
+  hostedUrl: string;
+  adminName: string | null;
+  clientEmail: string | null;
+  sprintTitle?: string | null;
+  sprintUrl?: string | null;
+}): { subject: string; text: string; html: string } {
+  const { invoiceLabel, invoiceAmount, hostedUrl, adminName, clientEmail, sprintTitle, sprintUrl } = params;
+  const greeting = adminName ? `Hi ${adminName},` : "Hi there,";
+  const formattedAmount = `$${invoiceAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const context = sprintTitle ? ` for <strong>${sprintTitle}</strong>` : "";
+  const contextText = sprintTitle ? ` for ${sprintTitle}` : "";
+  const clientNote = clientEmail ? ` It was sent to <strong>${clientEmail}</strong>.` : "";
+  const clientNoteText = clientEmail ? ` It was sent to ${clientEmail}.` : "";
+
+  const subject = `Invoice sent: ${invoiceLabel}${sprintTitle ? ` — ${sprintTitle}` : ""}`;
+
+  const text = `${greeting}
+
+Just a heads up — the following invoice has been sent to the client.${clientNoteText}
+
+Invoice: ${invoiceLabel}${contextText}
+Amount: ${formattedAmount}
+
+View invoice: ${hostedUrl}
+${sprintUrl ? `View sprint page: ${sprintUrl}\n` : ""}
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">Just a heads up&nbsp;&mdash; the following invoice has been sent to the client.${clientNote}</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">${invoiceLabel}${context}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formattedAmount}</p>
+    </td>
+  </tr>
+</table>
+${linkButton(hostedUrl, "View Invoice")}
+${sprintUrl ? secondaryLink(sprintUrl, "View sprint page →") : ""}
+${divider()}
+${muted("Meisner Design")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
+ * Studio-branded invoice email sent directly to the client — provides sprint context
+ * and a link back to the sprint page alongside the Stripe payment link.
+ */
+export function generateInvoiceClientEmail(params: {
+  invoiceLabel: string;
+  invoiceAmount: number;
+  hostedUrl: string;
+  clientName: string | null;
+  sprintTitle?: string | null;
+  sprintUrl?: string | null;
+}): { subject: string; text: string; html: string } {
+  const { invoiceLabel, invoiceAmount, hostedUrl, clientName, sprintTitle, sprintUrl } = params;
+  const greeting = clientName ? `Hi ${clientName},` : "Hi there,";
+  const formattedAmount = `$${invoiceAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const context = sprintTitle ? ` for <strong>${sprintTitle}</strong>` : "";
+  const contextText = sprintTitle ? ` for ${sprintTitle}` : "";
+
+  const subject = `Invoice ready${sprintTitle ? ` — ${sprintTitle}` : ""}: ${invoiceLabel}`;
+
+  const text = `${greeting}
+
+Your invoice is ready for payment.
+
+Invoice: ${invoiceLabel}${contextText}
+Amount: ${formattedAmount}
+
+Pay now: ${hostedUrl}
+${sprintUrl ? `\nView your sprint: ${sprintUrl}\n` : ""}
+Questions? Just reply to this email.
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">Your invoice is ready for payment.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">${invoiceLabel}${context}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formattedAmount}</p>
+    </td>
+  </tr>
+</table>
+${linkButton(hostedUrl, "Pay Invoice")}
+${sprintUrl ? secondaryLink(sprintUrl, "View your sprint →") : ""}
+<p style="margin:16px 0 0;font-size:13px;color:#71717a;">Questions? Just reply to this email.</p>
 ${divider()}
 ${muted("Meisner Design")}
 `);

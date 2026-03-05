@@ -876,6 +876,17 @@ export async function ensureSchema(): Promise<void> {
     DROP COLUMN IF EXISTS workshop_generated_at,
     DROP COLUMN IF EXISTS workshop_ai_response_id
   `);
+
+  // Update Cycles: discriminator column + parent sprint reference
+  await pool.query(`
+    ALTER TABLE sprint_drafts
+    ADD COLUMN IF NOT EXISTS type text NOT NULL DEFAULT 'sprint',
+    ADD COLUMN IF NOT EXISTS parent_sprint_id text REFERENCES sprint_drafts(id) ON DELETE SET NULL
+  `).catch(() => {});
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_sprint_drafts_type ON sprint_drafts(type);
+    CREATE INDEX IF NOT EXISTS idx_sprint_drafts_parent ON sprint_drafts(parent_sprint_id) WHERE parent_sprint_id IS NOT NULL;
+  `).catch(() => {});
   
   // App Links (formerly Sandboxes): Links to app versions - either folder-based or direct URLs
   await pool.query(`

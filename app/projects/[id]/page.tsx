@@ -60,7 +60,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   }
 
   const sprintsResult = await pool.query(
-    `SELECT id, title, status, total_estimate_points, total_fixed_hours, total_fixed_price, deliverable_count, created_at, share_token
+    `SELECT id, title, status, total_estimate_points, total_fixed_hours, total_fixed_price, deliverable_count, created_at, share_token, type, parent_sprint_id
      FROM sprint_drafts
      WHERE project_id = $1
      ORDER BY created_at DESC`,
@@ -77,7 +77,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     deliverable_count: number | null;
     created_at: string | Date;
     share_token: string | null;
+    type: string | null;
+    parent_sprint_id: string | null;
   }>;
+
+  const hasAnySprints = sprints.some((s) => (s.type ?? "sprint") === "sprint");
 
   // Fetch app links for this project
   const appLinksResult = await pool.query(
@@ -104,20 +108,26 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     `SELECT 
       pm.email,
       pm.title,
+      pm.role,
       pm.created_at,
       a.name,
       a.first_name,
-      a.last_name
+      a.last_name,
+      COALESCE(a.is_admin, false) AS is_admin
     FROM project_members pm
     LEFT JOIN accounts a ON lower(pm.email) = lower(a.email)
     WHERE pm.project_id = $1
-    ORDER BY pm.created_at ASC`,
+    ORDER BY
+      CASE WHEN COALESCE(a.is_admin, false) = true THEN 0 ELSE 1 END,
+      pm.created_at ASC`,
     [project.id]
   );
 
   const members = membersResult.rows as Array<{
     email: string;
     title: string | null;
+    role: string;
+    is_admin: boolean;
     created_at: string | Date;
     name: string | null;
     first_name: string | null;
@@ -192,12 +202,22 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             </Typography>
           </div>
           {isAdmin && (
-            <Link
-              href={`/dashboard/sprint-builder?projectId=${project.id}`}
-              className="inline-flex items-center rounded-md bg-black text-white px-3 py-1.5 text-sm hover:bg-black/80 transition"
-            >
-              New sprint
-            </Link>
+            <div className="flex gap-2">
+              <Link
+                href={`/dashboard/sprint-builder?projectId=${project.id}`}
+                className="inline-flex items-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity duration-150"
+              >
+                New sprint
+              </Link>
+              {hasAnySprints && (
+                <Link
+                  href={`/dashboard/update-cycle-builder?projectId=${project.id}`}
+                  className="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1.5 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150"
+                >
+                  New update cycle
+                </Link>
+              )}
+            </div>
           )}
         </div>
 
@@ -211,8 +231,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
                 <tr>
                   <th className="text-left px-4 py-2 font-semibold">Title</th>
+                  <th className="text-left px-4 py-2 font-semibold w-28">Type</th>
                   <th className="text-left px-4 py-2 font-semibold w-32">Status</th>
-                  <th className="text-left px-4 py-2 font-semibold w-24">Deliverables</th>
                   <th className="text-left px-4 py-2 font-semibold w-32">Price</th>
                   <th className="text-left px-4 py-2 font-semibold w-32">Created</th>
                   <th className="text-left px-4 py-2 font-semibold">Actions</th>
@@ -220,37 +240,48 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
-                {sprints.map((s) => (
-                  <tr key={s.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150">
-                    <td className="px-4 py-2">
-                      <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                        {s.title || "Untitled sprint"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2">
-                      <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs">
-                        {s.status || "draft"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 tabular-nums text-neutral-600 dark:text-neutral-400">
-                      {s.deliverable_count != null ? s.deliverable_count : 0}
-                    </td>
-                    <td className="px-4 py-2 tabular-nums text-neutral-600 dark:text-neutral-400">
-                      {s.total_fixed_price != null ? `$${Number(s.total_fixed_price).toLocaleString()}` : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-neutral-600 dark:text-neutral-400">
-                      {new Date(s.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-2">
-                      <SprintShareLink sprintId={s.id} shareToken={s.share_token} status={s.status} isAdmin={isAdmin} />
-                    </td>
-                    {isAdmin && (
+                {sprints.map((s) => {
+                  const isUpdateCycle = (s.type ?? "sprint") === "update_cycle";
+                  return (
+                    <tr key={s.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150">
                       <td className="px-4 py-2">
-                        <DeleteSprintButton sprintId={s.id} />
+                        <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                          {s.title || (isUpdateCycle ? "Untitled update cycle" : "Untitled sprint")}
+                        </span>
                       </td>
-                    )}
-                  </tr>
-                ))}
+                      <td className="px-4 py-2">
+                        {isUpdateCycle ? (
+                          <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-2 py-0.5 text-xs font-medium">
+                            Update
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                            Sprint
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs">
+                          {s.status || "draft"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 tabular-nums text-neutral-600 dark:text-neutral-400">
+                        {s.total_fixed_price != null ? `$${Number(s.total_fixed_price).toLocaleString()}` : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-neutral-600 dark:text-neutral-400">
+                        {new Date(s.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-2">
+                        <SprintShareLink sprintId={s.id} shareToken={s.share_token} status={s.status} isAdmin={isAdmin} />
+                      </td>
+                      {isAdmin && (
+                        <td className="px-4 py-2">
+                          <DeleteSprintButton sprintId={s.id} />
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

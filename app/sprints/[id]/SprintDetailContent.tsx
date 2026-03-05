@@ -125,6 +125,8 @@ type SprintRow = {
   contract_pdf_url: string | null;
   invoice_pdf_url: string | null;
   base_rate: number | null;
+  type: string;
+  parent_sprint_id: string | null;
 };
 
 type SprintInvoice = {
@@ -175,6 +177,7 @@ type Props = {
   invoices?: SprintInvoice[];
   dailyUpdates?: DailyUpdate[];
   currentUserEmail?: string;
+  parentSprint?: { id: string; title: string | null } | null;
 };
 
 // Helper function to format currency
@@ -227,7 +230,9 @@ export default function SprintDetailContent(props: Props) {
     invoices: initialInvoices,
     dailyUpdates: initialDailyUpdates,
     currentUserEmail,
+    parentSprint,
   } = props;
+  const isUpdateCycle = row.type === "update_cycle";
   const [viewAsAdmin, setViewAsAdmin] = useState(true);
   const [deliverables, setDeliverables] = useState(initialDeliverables);
   
@@ -992,14 +997,31 @@ export default function SprintDetailContent(props: Props) {
         </section>
       )}
 
+      {row.project_id && (
+        <Link
+          href={`/projects/${row.project_id}`}
+          className={`${getTypographyClassName("body-sm")} inline-flex items-center gap-1.5 text-text-muted hover:text-text-secondary transition-colors -mt-2`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Back to project
+        </Link>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex-1">
+          {isUpdateCycle && (
+            <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-2 py-0.5 text-xs font-medium mb-2">
+              Update Cycle
+            </span>
+          )}
           <h1 className={t.pageTitle} data-typography-id="h2">
-            {sprintTitle || plan.sprintTitle?.trim() || "Sprint draft"}
+            {sprintTitle || plan.sprintTitle?.trim() || (isUpdateCycle ? "Update cycle draft" : "Sprint draft")}
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          {(isOwner || showAdminContent) && (row.status ?? "draft") === "draft" && (
+          {!isUpdateCycle && (isOwner || showAdminContent) && (row.status ?? "draft") === "draft" && (
             <Link
               href={`/dashboard/sprint-builder?sprintId=${row.id}`}
               className={`inline-flex items-center rounded-md bg-black text-white dark:bg-white dark:text-black px-3 py-1.5 hover:opacity-90 transition ${getTypographyClassName("button-sm")}`}
@@ -1204,6 +1226,7 @@ export default function SprintDetailContent(props: Props) {
                   variant="inline"
                   hideHeading
                   baseRate={row.base_rate}
+                  isUpdateCycle={isUpdateCycle}
                 />
               </div>
             )}
@@ -1212,10 +1235,32 @@ export default function SprintDetailContent(props: Props) {
       )}
 
       {/* ============================================ */}
+      {/* UPDATE CYCLES: Parent Sprint Reference */}
+      {/* ============================================ */}
+      {isUpdateCycle && parentSprint && (
+        <section className={`space-y-6 ${t.bodySm}`}>
+          <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 p-4 space-y-2">
+            <span className="text-xs font-medium uppercase tracking-wide leading-none text-blue-700 dark:text-blue-400">
+              Update Cycle
+            </span>
+            <p className="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400">
+              Iterating on work from a previous sprint:
+            </p>
+            <Link
+              href={`/sprints/${parentSprint.id}`}
+              className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {parentSprint.title || "Untitled sprint"} &rarr;
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* ============================================ */}
       {/* EVERYONE SEES: Deliverables Table */}
       {/* ============================================ */}
       <section className={`space-y-6 ${t.bodySm}`}>
-        {deliverables.length > 0 && (
+        {!isUpdateCycle && deliverables.length > 0 && (
           <div className="rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className={t.cardHeading}>Deliverables</h2>
@@ -1678,7 +1723,7 @@ export default function SprintDetailContent(props: Props) {
                   Last saved: {new Date(budgetPlan.created_at).toLocaleString()}
                 </div>
                 <Link
-                  href={`/deferred-compensation?sprintId=${row.id}&amountCents=${Math.round(
+                  href={`/budget?sprintId=${row.id}&amountCents=${Math.round(
                     Number(row.total_fixed_price ?? 0) * 100
                   )}`}
                   className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
@@ -1693,7 +1738,7 @@ export default function SprintDetailContent(props: Props) {
             <span className={`${t.bodySm} text-text-muted`}>No budget attached to this sprint.</span>
             {showAdminContent && (
               <Link
-                href={`/deferred-compensation?sprintId=${row.id}&amountCents=${Math.round(
+                href={`/budget?sprintId=${row.id}&amountCents=${Math.round(
                   Number(row.total_fixed_price ?? 0) * 100
                 )}`}
                 className={`inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition ${getTypographyClassName("button-sm")}`}
@@ -2561,6 +2606,7 @@ export default function SprintDetailContent(props: Props) {
           sprintTitle={row.title}
           clientEmail={row.email}
           adminEmail={currentUserEmail ?? ""}
+          adminRole="admin"
           onClose={() => setStripeModalInvoice(null)}
           onUpdate={(updated) => {
             setInvoices((prev) => prev.map((inv) => inv.id === updated.id ? updated : inv));

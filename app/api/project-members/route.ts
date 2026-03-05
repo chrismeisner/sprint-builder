@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { sendEmail, generateMemberWelcomeEmail, generateLeadNotificationEmail, generateMemberRemovedNotificationEmail } from "@/lib/email";
+import { sendEmail, generateMemberWelcomeEmail, generateAdminNotificationEmail, generateMemberRemovedNotificationEmail } from "@/lib/email";
 import crypto from "crypto";
 
 function normalizeEmail(email: unknown): string | null {
@@ -67,11 +67,14 @@ export async function GET(request: NextRequest) {
         a.name,
         a.first_name,
         a.last_name,
-        a.profile_image_url
+        a.profile_image_url,
+        COALESCE(a.is_admin, false) AS is_admin
       FROM project_members pm
       LEFT JOIN accounts a ON lower(pm.email) = lower(a.email)
       WHERE pm.project_id = $1
-      ORDER BY pm.created_at ASC
+      ORDER BY
+        CASE WHEN COALESCE(a.is_admin, false) = true THEN 0 ELSE 1 END,
+        pm.created_at ASC
       `,
       [projectId]
     );
@@ -81,6 +84,7 @@ export async function GET(request: NextRequest) {
         email: row.email as string,
         title: row.title as string | null,
         role: (row.role as string) || "member",
+        isAdmin: row.is_admin as boolean,
         name: row.name as string | null,
         firstName: row.first_name as string | null,
         lastName: row.last_name as string | null,
@@ -167,16 +171,19 @@ export async function POST(request: NextRequest) {
         console.error("[ProjectMembersAPI] Failed to send welcome email", { email, error: emailErr });
       }
 
-      // 2) Email all leads on the project about the new member
+      // 2) Email all admins on the project about the new member
       try {
-        const leadsRes = await pool.query(
-          `SELECT pm.email FROM project_members pm WHERE pm.project_id = $1 AND pm.role = 'lead' AND lower(pm.email) != lower($2)`,
+        const adminsRes = await pool.query(
+          `SELECT pm.email
+           FROM project_members pm
+           JOIN accounts a ON lower(pm.email) = lower(a.email)
+           WHERE pm.project_id = $1 AND a.is_admin = true AND lower(pm.email) != lower($2)`,
           [projectId, email]
         );
-        const leadEmails = leadsRes.rows.map((r) => (r as { email: string }).email);
+        const adminEmails = adminsRes.rows.map((r) => (r as { email: string }).email);
 
-        if (leadEmails.length > 0) {
-          const leadNotification = generateLeadNotificationEmail({
+        if (adminEmails.length > 0) {
+          const adminNotification = generateAdminNotificationEmail({
             projectName,
             newMemberEmail: email,
             addedByName,
@@ -184,19 +191,19 @@ export async function POST(request: NextRequest) {
           });
 
           await Promise.allSettled(
-            leadEmails.map((leadEmail) =>
+            adminEmails.map((adminEmail) =>
               sendEmail({
-                to: leadEmail,
-                subject: leadNotification.subject,
-                text: leadNotification.text,
-                html: leadNotification.html,
+                to: adminEmail,
+                subject: adminNotification.subject,
+                text: adminNotification.text,
+                html: adminNotification.html,
               })
             )
           );
-          console.log("[ProjectMembersAPI] Lead notification emails sent", { leads: leadEmails });
+          console.log("[ProjectMembersAPI] Admin notification emails sent", { admins: adminEmails });
         }
       } catch (emailErr) {
-        console.error("[ProjectMembersAPI] Failed to send lead notification emails", { error: emailErr });
+        console.error("[ProjectMembersAPI] Failed to send admin notification emails", { error: emailErr });
       }
     }
 
@@ -223,7 +230,7 @@ export async function PATCH(request: NextRequest) {
     const projectId = typeof body.projectId === "string" ? body.projectId : null;
     const email = normalizeEmail(body.email);
     const title = typeof body.title === "string" ? body.title.trim() : null;
-    const VALID_ROLES = ["member", "lead"];
+    const VALID_ROLES = ["member"];
     const role = typeof body.role === "string" && VALID_ROLES.includes(body.role) ? body.role : null;
 
     if (!projectId) {
@@ -338,15 +345,18 @@ export async function DELETE(request: NextRequest) {
       const origin = process.env.BASE_URL?.replace(/\/$/, "") || `${reqUrl.protocol}//${reqUrl.host}`;
       const projectUrl = `${origin}/projects/${projectId}`;
 
-      // Email all leads on the project about the removed member
+      // Email all admins on the project about the removed member
       try {
-        const leadsRes = await pool.query(
-          `SELECT pm.email FROM project_members pm WHERE pm.project_id = $1 AND pm.role = 'lead' AND lower(pm.email) != lower($2)`,
+        const adminsRes = await pool.query(
+          `SELECT pm.email
+           FROM project_members pm
+           JOIN accounts a ON lower(pm.email) = lower(a.email)
+           WHERE pm.project_id = $1 AND a.is_admin = true AND lower(pm.email) != lower($2)`,
           [projectId, email]
         );
-        const leadEmails = leadsRes.rows.map((r) => (r as { email: string }).email);
+        const adminEmails = adminsRes.rows.map((r) => (r as { email: string }).email);
 
-        if (leadEmails.length > 0) {
+        if (adminEmails.length > 0) {
           const removalNotification = generateMemberRemovedNotificationEmail({
             projectName,
             removedMemberEmail: email,
@@ -355,16 +365,16 @@ export async function DELETE(request: NextRequest) {
           });
 
           await Promise.allSettled(
-            leadEmails.map((leadEmail) =>
+            adminEmails.map((adminEmail) =>
               sendEmail({
-                to: leadEmail,
+                to: adminEmail,
                 subject: removalNotification.subject,
                 text: removalNotification.text,
                 html: removalNotification.html,
               })
             )
           );
-          console.log("[ProjectMembersAPI] Member removal notification emails sent to leads", { leads: leadEmails });
+          console.log("[ProjectMembersAPI] Member removal notification emails sent to admins", { admins: adminEmails });
         }
       } catch (emailErr) {
         console.error("[ProjectMembersAPI] Failed to send member removal notification emails", { error: emailErr });

@@ -3,14 +3,34 @@
 import { useState } from "react";
 import Typography from "@/components/ui/Typography";
 
+function RoleBadge({ role }: { role: "admin" | "member" }) {
+  const styles = {
+    admin:  "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400",
+    member: "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400",
+  };
+  const labels = { admin: "Admin", member: "Member" };
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide leading-none ${styles[role]}`}>
+      {labels[role]}
+    </span>
+  );
+}
+
 type Member = {
   email: string;
   title: string | null;
+  role: string;
+  is_admin: boolean;
   created_at: string | Date;
   name: string | null;
   first_name: string | null;
   last_name: string | null;
 };
+
+function effectiveRole(member: Member): "admin" | "member" {
+  if (member.is_admin) return "admin";
+  return "member";
+}
 
 type Props = {
   member: Member;
@@ -50,16 +70,23 @@ export default function MemberCard({ member }: Props) {
         className="flex items-center gap-3 p-3 rounded-lg border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/5 dark:hover:bg-white/5 transition text-left"
       >
         {/* Avatar with initials */}
-        <div className="w-10 h-10 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center text-sm font-medium">
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
+          effectiveRole(member) === "admin"
+            ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300"
+            : "bg-black/10 dark:bg-white/10"
+        }`}>
           {getInitials(member)}
         </div>
-        {/* Name and title */}
+        {/* Name, title, and role */}
         <div className="min-w-0">
-          <Typography as="div" scale="body-sm" className="font-medium truncate">
-            {getDisplayName(member)}
-          </Typography>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Typography as="div" scale="body-sm" className="font-medium truncate">
+              {getDisplayName(member)}
+            </Typography>
+            <RoleBadge role={effectiveRole(member)} />
+          </div>
           {member.title && (
-            <Typography as="div" scale="body-xs" className="opacity-60 truncate">
+            <Typography as="div" scale="body-xs" className="opacity-60 truncate mt-0.5">
               {member.title}
             </Typography>
           )}
@@ -96,15 +123,22 @@ export default function MemberCard({ member }: Props) {
             <div className="p-4 space-y-4">
               {/* Avatar and name */}
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center text-xl font-medium">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-medium ${
+                  effectiveRole(member) === "admin"
+                    ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300"
+                    : "bg-black/10 dark:bg-white/10"
+                }`}>
                   {getInitials(member)}
                 </div>
                 <div>
-                  <Typography as="div" scale="h4" className="font-semibold">
-                    {getDisplayName(member)}
-                  </Typography>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Typography as="div" scale="h4" className="font-semibold">
+                      {getDisplayName(member)}
+                    </Typography>
+                    <RoleBadge role={effectiveRole(member)} />
+                  </div>
                   {member.title && (
-                    <Typography as="div" scale="body-sm" className="opacity-70">
+                    <Typography as="div" scale="body-sm" className="opacity-70 mt-0.5">
                       {member.title}
                     </Typography>
                   )}
@@ -113,6 +147,13 @@ export default function MemberCard({ member }: Props) {
 
               {/* Details */}
               <div className="space-y-3 pt-2 border-t border-black/10 dark:border-white/10">
+                <div>
+                  <Typography as="div" scale="body-xs" className="opacity-50 uppercase tracking-wide mb-1">
+                    Role
+                  </Typography>
+                  <RoleBadge role={effectiveRole(member)} />
+                </div>
+
                 <div>
                   <Typography as="div" scale="body-xs" className="opacity-50 uppercase tracking-wide mb-1">
                     Email
