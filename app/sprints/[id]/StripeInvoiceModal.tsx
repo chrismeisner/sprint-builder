@@ -167,7 +167,9 @@ export default function StripeInvoiceModal({
   const [invoice, setInvoice] = useState<SprintInvoice>(initialInvoice);
   const [step, setStep] = useState<Step>(deriveStep(initialInvoice));
   const [generating, setGenerating] = useState(false);
+  const [voiding, setVoiding] = useState(false);
   const [sending, setSending] = useState(false);
+  const [confirmSend, setConfirmSend] = useState(false);
   const [sendingDraft, setSendingDraft] = useState(false);
   const [draftSentTo, setDraftSentTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -194,6 +196,13 @@ export default function StripeInvoiceModal({
       : [];
   const defaultStripeEmail = clientEmail ?? stripeEmailOptions[0]?.email ?? null;
   const [selectedStripeEmail, setSelectedStripeEmail] = useState<string | null>(defaultStripeEmail);
+
+  // Due date — defaults to 14 days from today
+  const [dueDate, setDueDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    return d.toISOString().split("T")[0];
+  });
 
   const [checkedMembers, setCheckedMembers] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
@@ -225,7 +234,7 @@ export default function StripeInvoiceModal({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "generate", recipientEmail: selectedStripeEmail }),
+          body: JSON.stringify({ action: "generate", recipientEmail: selectedStripeEmail, dueDate }),
         }
       );
       const data = await res.json() as { invoice?: SprintInvoice; error?: string };
@@ -236,6 +245,30 @@ export default function StripeInvoiceModal({
       setError(err instanceof Error ? err.message : "Failed to generate Stripe link");
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleVoid = async () => {
+    setError(null);
+    setVoiding(true);
+    try {
+      const res = await fetch(
+        `/api/sprint-drafts/${sprintId}/invoices/${invoice.id}/stripe`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "void" }),
+        }
+      );
+      const data = await res.json() as { invoice?: SprintInvoice; error?: string };
+      if (!res.ok) throw new Error(data.error || "Failed to void Stripe invoice");
+      updateInvoice(data.invoice!);
+      setStep("idle");
+      setConfirmSend(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to void Stripe invoice");
+    } finally {
+      setVoiding(false);
     }
   };
 
@@ -458,6 +491,34 @@ export default function StripeInvoiceModal({
             )}
           </div>
 
+          {/* Due date */}
+          <div className="rounded-md border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden">
+            <div className="px-3 py-2 bg-neutral-50 dark:bg-neutral-800/50 flex items-center gap-2">
+              <svg className="w-3.5 h-3.5 text-text-muted shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              </svg>
+              <p className={`${getTypographyClassName("body-sm")} font-medium text-text-secondary`}>Due date</p>
+            </div>
+            <div className="px-3 py-2.5">
+              {step === "idle" ? (
+                <input
+                  type="date"
+                  value={dueDate}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className={`${getTypographyClassName("body-sm")} text-text-primary bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500`}
+                />
+              ) : (
+                <p className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>
+                  {new Date(dueDate + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                </p>
+              )}
+              <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>
+                Client will see this due date on their Stripe invoice
+              </p>
+            </div>
+          </div>
+
           {/* Error */}
           {error && (
             <div className="rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-3 py-2">
@@ -507,19 +568,43 @@ export default function StripeInvoiceModal({
               </button>
             ) : (
               invoice.invoice_url && (
-                <div className="flex items-center gap-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20 px-3 py-2">
-                  <svg className="w-3.5 h-3.5 text-green-600 dark:text-green-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                  <a
-                    href={invoice.invoice_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`${getTypographyClassName("body-sm")} text-green-700 dark:text-green-400 hover:underline truncate`}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20 px-3 py-2">
+                    <svg className="w-3.5 h-3.5 text-green-600 dark:text-green-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    <a
+                      href={invoice.invoice_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`${getTypographyClassName("body-sm")} text-green-700 dark:text-green-400 hover:underline truncate`}
+                    >
+                      {invoice.invoice_url}
+                    </a>
+                    <span className="opacity-40 text-xs shrink-0">↗</span>
+                  </div>
+                  <button
+                    onClick={handleVoid}
+                    disabled={voiding}
+                    className={`${getTypographyClassName("body-sm")} flex items-center gap-1 text-text-muted hover:text-red-600 dark:hover:text-red-400 transition-colors disabled:opacity-50`}
                   >
-                    {invoice.invoice_url}
-                  </a>
-                  <span className="opacity-40 text-xs shrink-0">↗</span>
+                    {voiding ? (
+                      <>
+                        <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Voiding…
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
+                        Void &amp; regenerate
+                      </>
+                    )}
+                  </button>
                 </div>
               )
             )}
@@ -551,32 +636,99 @@ export default function StripeInvoiceModal({
                   Invoice sent to {selectedStripeEmail ?? "client"}
                 </p>
               </div>
+            ) : confirmSend ? (
+              /* Confirmation panel — shown before the irreversible sendInvoice call */
+              <div className="rounded-md border border-amber-200 dark:border-amber-700 overflow-hidden">
+                <div className="bg-amber-50 dark:bg-amber-900/20 px-3 py-2 border-b border-amber-200 dark:border-amber-700 flex items-center gap-2">
+                  <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                  <p className={`${getTypographyClassName("body-sm")} font-semibold text-amber-800 dark:text-amber-300`}>
+                    Confirm before sending — this can&apos;t be undone
+                  </p>
+                </div>
+
+                {/* Summary rows */}
+                <div className="divide-y divide-neutral-100 dark:divide-neutral-800 bg-white dark:bg-neutral-900">
+                  {/* Invoice */}
+                  <div className="px-3 py-2 flex items-start justify-between gap-2">
+                    <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>Invoice</span>
+                    <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary text-right`}>
+                      {invoice.label}{invoice.amount != null ? ` — ${formatCurrency(invoice.amount)}` : ""}
+                    </span>
+                  </div>
+                  {/* Stripe recipient */}
+                  <div className="px-3 py-2 flex items-start justify-between gap-2">
+                    <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>Stripe to</span>
+                    <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary text-right`}>
+                      {selectedStripeEmail ?? "—"}
+                    </span>
+                  </div>
+                  {/* Due date */}
+                  <div className="px-3 py-2 flex items-start justify-between gap-2">
+                    <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>Due</span>
+                    <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary text-right`}>
+                      {new Date(dueDate + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                    </span>
+                  </div>
+                  {/* CC admin */}
+                  {ccAdmin && (
+                    <div className="px-3 py-2 flex items-start justify-between gap-2">
+                      <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>CC</span>
+                      <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary text-right`}>{adminEmail}</span>
+                    </div>
+                  )}
+                  {/* Studio-branded CC recipients */}
+                  {ccClientEmails.length > 0 && (
+                    <div className="px-3 py-2 flex items-start justify-between gap-2">
+                      <span className={`${getTypographyClassName("body-sm")} text-text-muted shrink-0`}>Studio email</span>
+                      <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary text-right`}>
+                        {ccClientEmails.join(", ")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="px-3 py-2.5 bg-neutral-50 dark:bg-neutral-800/50 flex items-center gap-2">
+                  <button
+                    onClick={() => setConfirmSend(false)}
+                    disabled={sending}
+                    className={`${getTypographyClassName("button-sm")} flex-1 h-8 rounded border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-50 transition-colors`}
+                  >
+                    Go back
+                  </button>
+                  <button
+                    onClick={handleSend}
+                    disabled={sending}
+                    className={`${getTypographyClassName("button-sm")} flex-1 h-8 rounded bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5`}
+                  >
+                    {sending ? (
+                      <>
+                        <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Sending...
+                      </>
+                    ) : "Confirm & Send"}
+                  </button>
+                </div>
+              </div>
             ) : (
               <button
-                onClick={handleSend}
-                disabled={step !== "generated" || sending}
+                onClick={() => step === "generated" && setConfirmSend(true)}
+                disabled={step !== "generated"}
                 className={`${getTypographyClassName("button-sm")} w-full h-9 rounded-md transition-colors flex items-center justify-center gap-1.5 ${
                   step === "generated"
-                    ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 disabled:opacity-50"
+                    ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90"
                     : "bg-neutral-100 dark:bg-neutral-800 text-text-muted cursor-not-allowed opacity-50"
                 }`}
               >
-                {sending ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                    </svg>
-                    Send Invoice to Client
-                  </>
-                )}
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
+                Send Invoice to Client
               </button>
             )}
           </div>

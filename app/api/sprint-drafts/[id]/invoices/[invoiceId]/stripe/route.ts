@@ -56,11 +56,12 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const body = await request.json().catch(() => ({})) as { action?: string; ccAdmin?: boolean; ccClientEmails?: string[]; recipientEmail?: string };
+    const body = await request.json().catch(() => ({})) as { action?: string; ccAdmin?: boolean; ccClientEmails?: string[]; recipientEmail?: string; dueDate?: string };
     const action = body.action ?? "send";
     const ccAdmin = body.ccAdmin === true;
     const ccClientEmails: string[] = Array.isArray(body.ccClientEmails) ? body.ccClientEmails : [];
     const recipientEmail: string | undefined = typeof body.recipientEmail === "string" && body.recipientEmail ? body.recipientEmail : undefined;
+    const dueDate: string | undefined = typeof body.dueDate === "string" && body.dueDate ? body.dueDate : undefined;
 
     const origin = new URL(request.url).origin;
     const sprintUrl = `${origin}/sprints/${params.id}`;
@@ -150,11 +151,22 @@ export async function POST(request: Request, { params }: Params) {
       const amountCents = Math.round(inv.amount * 100);
       const description = [sprint.title, inv.label].filter(Boolean).join(" — ");
 
+      // Resolve the due date: use the admin-selected date if valid, otherwise 14 days out
+      let dueDateUnix: number;
+      if (dueDate) {
+        // Parse as noon UTC to avoid timezone-edge issues with date-only strings
+        const parsed = new Date(`${dueDate}T12:00:00Z`).getTime();
+        dueDateUnix = isNaN(parsed) ? Date.now() + 14 * 86400 * 1000 : parsed;
+      } else {
+        dueDateUnix = Date.now() + 14 * 86400 * 1000;
+      }
+      const dueDateSec = Math.floor(dueDateUnix / 1000);
+
       // Create the draft invoice first so the line item is scoped to it
       const stripeInvoice = await stripe.invoices.create({
         customer: stripeCustomerId,
         collection_method: "send_invoice",
-        days_until_due: 14,
+        due_date: dueDateSec,
         metadata: {
           sprint_id: params.id,
           invoice_id: params.invoiceId,
@@ -398,7 +410,57 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ success: true, sentTo: user.email }, { status: 200 });
     }
 
-    return NextResponse.json({ error: "Invalid action. Use generate, send, or send_draft." }, { status: 400 });
+    // -------------------------------------------------------------------------
+    // ACTION: void
+    // -------------------------------------------------------------------------
+    if (action === "void") {
+      if (!inv.stripe_invoice_id) {
+        return NextResponse.json(
+          { error: "No Stripe invoice to void" },
+          { status: 400 }
+        );
+      }
+      if (inv.invoice_status === "sent" || inv.invoice_status === "paid") {
+        return NextResponse.json(
+          { error: "Cannot void an invoice that has already been sent or paid" },
+          { status: 409 }
+        );
+      }
+
+      const stripe = getStripe();
+      await stripe.invoices.voidInvoice(inv.stripe_invoice_id);
+
+      await pool.query(
+        `UPDATE sprint_invoices
+         SET stripe_invoice_id = NULL,
+             invoice_url       = NULL,
+             invoice_pdf_url   = NULL,
+             invoice_status    = 'draft',
+             updated_at        = now()
+         WHERE id = $1`,
+        [params.invoiceId]
+      );
+
+      await writeChangelog(
+        pool,
+        params.id,
+        user.accountId ?? null,
+        "stripe_invoice_voided",
+        `Stripe invoice voided for "${inv.label}" — ready to regenerate`,
+        { invoice_id: inv.id, label: inv.label, voided_stripe_id: inv.stripe_invoice_id }
+      );
+
+      const updatedRes = await pool.query(
+        `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url,
+                amount, sort_order, stripe_invoice_id, created_at, updated_at
+         FROM sprint_invoices WHERE id = $1`,
+        [params.invoiceId]
+      );
+
+      return NextResponse.json({ invoice: updatedRes.rows[0] }, { status: 200 });
+    }
+
+    return NextResponse.json({ error: "Invalid action. Use generate, send, send_draft, or void." }, { status: 400 });
   } catch (err) {
     console.error("[Stripe Invoice POST]", err);
     const message = err instanceof Error ? err.message : "Failed to process Stripe invoice";
