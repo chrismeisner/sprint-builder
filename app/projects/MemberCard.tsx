@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Typography from "@/components/ui/Typography";
 
 function RoleBadge({ role }: { role: "admin" | "member" }) {
@@ -25,6 +26,7 @@ type Member = {
   name: string | null;
   first_name: string | null;
   last_name: string | null;
+  profile_image_url: string | null;
 };
 
 function effectiveRole(member: Member): "admin" | "member" {
@@ -69,13 +71,25 @@ export default function MemberCard({ member }: Props) {
         onClick={() => setShowModal(true)}
         className="flex items-center gap-3 p-3 rounded-lg border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/5 dark:hover:bg-white/5 transition text-left"
       >
-        {/* Avatar with initials */}
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
-          effectiveRole(member) === "admin"
-            ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300"
-            : "bg-black/10 dark:bg-white/10"
+        {/* Avatar */}
+        <div className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-medium shrink-0 ${
+          member.profile_image_url
+            ? ""
+            : effectiveRole(member) === "admin"
+              ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300"
+              : "bg-black/10 dark:bg-white/10"
         }`}>
-          {getInitials(member)}
+          {member.profile_image_url ? (
+            <Image
+              src={member.profile_image_url}
+              alt={getDisplayName(member)}
+              width={40}
+              height={40}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            getInitials(member)
+          )}
         </div>
         {/* Name, title, and role */}
         <div className="min-w-0">
@@ -123,12 +137,24 @@ export default function MemberCard({ member }: Props) {
             <div className="p-4 space-y-4">
               {/* Avatar and name */}
               <div className="flex items-center gap-4">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-medium ${
-                  effectiveRole(member) === "admin"
-                    ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300"
-                    : "bg-black/10 dark:bg-white/10"
+                <div className={`w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-xl font-medium shrink-0 ${
+                  member.profile_image_url
+                    ? ""
+                    : effectiveRole(member) === "admin"
+                      ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300"
+                      : "bg-black/10 dark:bg-white/10"
                 }`}>
-                  {getInitials(member)}
+                  {member.profile_image_url ? (
+                    <Image
+                      src={member.profile_image_url}
+                      alt={getDisplayName(member)}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    getInitials(member)
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">

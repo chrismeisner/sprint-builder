@@ -113,7 +113,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       a.name,
       a.first_name,
       a.last_name,
-      COALESCE(a.is_admin, false) AS is_admin
+      COALESCE(a.is_admin, false) AS is_admin,
+      a.profile_image_url
     FROM project_members pm
     LEFT JOIN accounts a ON lower(pm.email) = lower(a.email)
     WHERE pm.project_id = $1
@@ -132,6 +133,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     name: string | null;
     first_name: string | null;
     last_name: string | null;
+    profile_image_url: string | null;
   }>;
 
   // Calculate last activity date from all related entities
