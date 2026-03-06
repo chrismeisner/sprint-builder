@@ -28,6 +28,7 @@ export async function POST(request: Request) {
       startDate,
       weeks: weeksRaw,
       priceOverride: priceOverrideRaw,
+      overview: overviewRaw,
     } = body as {
       title?: unknown;
       projectId?: unknown;
@@ -35,7 +36,9 @@ export async function POST(request: Request) {
       startDate?: unknown;
       weeks?: unknown;
       priceOverride?: unknown;
+      overview?: unknown;
     };
+    const overview = typeof overviewRaw === "string" && overviewRaw.trim() ? overviewRaw.trim() : undefined;
 
     if (typeof title !== "string" || !title.trim()) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -75,7 +78,7 @@ export async function POST(request: Request) {
       const start = new Date(`${startDateValue}T00:00:00`);
       if (!Number.isNaN(start.getTime())) {
         const due = new Date(start);
-        due.setDate(due.getDate() + weeks * 7 - 1);
+        due.setDate(due.getDate() + weeks * 7 - 3);
         const tzOffset = due.getTimezoneOffset();
         const adjusted = new Date(due.getTime() - tzOffset * 60_000);
         dueDateValue = adjusted.toISOString().slice(0, 10);
@@ -93,6 +96,7 @@ export async function POST(request: Request) {
     const draftContent = {
       sprintTitle: title.trim(),
       source: "update_cycle",
+      ...(overview ? { overview } : {}),
     };
 
     await pool.query(

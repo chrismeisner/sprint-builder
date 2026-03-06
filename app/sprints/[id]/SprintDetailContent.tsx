@@ -53,6 +53,7 @@ type TimelineItem = {
 
 type DraftPlan = {
   sprintTitle?: string;
+  overview?: string;
   goals?: string[];
   approach?: string;
   week1?: WeekPlan;
@@ -1234,22 +1235,33 @@ export default function SprintDetailContent(props: Props) {
       {/* ============================================ */}
       {/* UPDATE CYCLES: Parent Sprint Reference */}
       {/* ============================================ */}
-      {isUpdateCycle && parentSprint && (
-        <section className={`space-y-6 ${t.bodySm}`}>
-          <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 p-4 space-y-2">
-            <span className="text-xs font-medium uppercase tracking-wide leading-none text-blue-700 dark:text-blue-400">
-              Update Cycle
-            </span>
-            <p className="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400">
-              Iterating on work from a previous sprint:
-            </p>
-            <Link
-              href={`/sprints/${parentSprint.id}`}
-              className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              {parentSprint.title || "Untitled sprint"} &rarr;
-            </Link>
-          </div>
+      {isUpdateCycle && (
+        <section className={`space-y-4 ${t.bodySm}`}>
+          {parentSprint && (
+            <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 p-4 space-y-2">
+              <span className="text-xs font-medium uppercase tracking-wide leading-none text-blue-700 dark:text-blue-400">
+                Update Cycle
+              </span>
+              <p className="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400">
+                Iterating on work from a previous sprint:
+              </p>
+              <Link
+                href={`/sprints/${parentSprint.id}`}
+                className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {parentSprint.title || "Untitled sprint"} &rarr;
+              </Link>
+            </div>
+          )}
+
+          {plan.overview && (
+            <div className="rounded-lg border border-black/10 dark:border-white/15 p-4 space-y-2">
+              <h2 className={`${t.cardHeading}`}>Overview</h2>
+              <p className="text-sm font-normal leading-relaxed text-neutral-700 dark:text-neutral-300 whitespace-pre-wrap">
+                {plan.overview}
+              </p>
+            </div>
+          )}
         </section>
       )}
 

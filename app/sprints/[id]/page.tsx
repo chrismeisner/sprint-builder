@@ -263,6 +263,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
   };
   type DraftPlan = {
     sprintTitle?: string;
+    overview?: string;
     goals?: string[];
     deliverables?: PlanDeliverable[];
     week1?: WeekPlan;
@@ -306,6 +307,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
     
     return {
       sprintTitle: typeof d.sprintTitle === "string" ? d.sprintTitle : undefined,
+      overview: typeof d.overview === "string" ? d.overview : undefined,
       goals: asStringArray(d.goals),
       approach: typeof d.approach === "string" ? d.approach : undefined,
       week1: week1Plan,
@@ -517,6 +519,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
   // Filter plan for client (only serializable data)
   const planForClient = {
     sprintTitle: plan.sprintTitle,
+    overview: plan.overview,
     goals: plan.goals,
     approach: plan.approach,
     week1: plan.week1,

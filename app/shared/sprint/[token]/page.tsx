@@ -192,6 +192,7 @@ export default async function SharedSprintPage({ params }: Props) {
     totalHours,
     totalPrice,
     approach: typeof draft.approach === "string" ? draft.approach : null,
+    overview: typeof draft.overview === "string" ? draft.overview : null,
     weekNotes: allWeekNotes,
   };
 

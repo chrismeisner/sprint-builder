@@ -23,6 +23,7 @@ type SprintData = {
   totalHours: number;
   totalPrice: number;
   approach: string | null;
+  overview: string | null;
   weekNotes: Record<string, WeekNotes>;
 };
 
@@ -370,6 +371,18 @@ export default function SharedSprintView({
                 </p>
               </div>
             )}
+          </section>
+        )}
+
+        {/* ── Overview (update cycles) ───────────────── */}
+        {sprint.overview && (
+          <section className="rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-6">
+            <h2 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-2">
+              Overview
+            </h2>
+            <p className="text-base font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400 whitespace-pre-line">
+              {sprint.overview}
+            </p>
           </section>
         )}
 

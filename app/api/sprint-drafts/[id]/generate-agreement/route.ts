@@ -180,13 +180,81 @@ const MILESTONE_MISS_OUTCOMES: Record<string, string> = {
 };
 
 
+// ── UPDATE CYCLE header template (replaces TEMPLATE_HEADER for update_cycle type) ──
+const UPDATE_CYCLE_TEMPLATE_HEADER = `# {sprintTitle} Agreement
+
+This Agreement is entered into as of the Effective Date below between:
+
+**Chris Meisner LLC** ("Designer"), a limited liability company providing design services, and
+
+**{clientCompany}** ("Client"){clientDescription}.
+
+---
+
+## 1. Overview of Engagement
+
+Chris Meisner LLC will deliver a structured update cycle — a focused, time-boxed week of design and development work scoped collaboratively with the Client. Rather than a fixed deliverables list, this cycle operates on a priority-first model: the highest-impact items identified during the kickoff workshop are worked on in order until the time budget for the cycle is exhausted.
+
+**Cycle Start Date:** {startDate}
+**Cycle End Date:** {dueDate}
+
+---
+
+## 2. Scope & Process
+
+{overviewSection}
+
+### How the Cycle Works
+
+Scope is defined and agreed upon at the start of the week during a kickoff session. Designer works through the prioritized items and delivers completed work by end of week.
+
+---
+
+{paymentSections}
+
+---
+
+## 4. Intellectual Property (IP) & Licensing
+
+All deliverables produced during this cycle are custom-created and, upon full payment, the Client will receive full ownership and rights to use, modify, and distribute them as they see fit.
+
+Until full payment is received:
+- The Client is granted a limited, non-exclusive license to use the deliverables internally or for exploration purposes for up to 30 days after delivery.
+- Ownership remains with Chris Meisner LLC during this period.
+- If payment is not made within the 30-day window, the license is revoked and further use constitutes infringement.
+
+---
+
+## 5. Scope Changes
+
+This Agreement covers only the work completed within the time budget for this cycle. Items not reached during the cycle are not billable and do not carry an obligation to complete. Any additional cycles will be scoped and billed separately under a new agreement.
+
+Client agrees to provide timely feedback, access, and approvals necessary to keep the cycle on schedule. Delays caused by lack of Client responsiveness may result in adjusted timelines.
+
+---`;
+
+const UPDATE_CYCLE_AGREEMENT_TEMPLATE = UPDATE_CYCLE_TEMPLATE_HEADER + `
+
+## 6. Termination
+
+Either party may terminate this agreement at any time with written notice. Termination is effective immediately upon receipt of notice.
+
+**Upon termination:**
+- The Kickoff Payment is non-refundable.
+- Client pays for all services satisfactorily performed and expenses incurred to date, calculated as a prorated percentage of the total cycle time budget consumed.
+- Designer delivers completed work product in its then-current state within 5 business days of receiving final payment.
+- Client receives a limited license to use completed, paid-for work only. Incomplete work remains Designer's property.
+- Confidentiality and indemnification obligations survive termination.
+` + TEMPLATE_FOOTER;
+
 // ── Builder: STANDARD payment sections (non-deferred: kickoff + completion) ──
 function buildStandardPaymentSections(
   upfrontPct: number,
   totalPrice: number,
   outputs?: BudgetOutputs,
   upfrontPaymentTiming?: string,
-  completionPaymentTiming?: string
+  completionPaymentTiming?: string,
+  entityLabel: "Sprint" | "Cycle" = "Sprint"
 ): string {
   const upfrontAmount = outputs?.upfrontAmount ?? (totalPrice * upfrontPct);
   const remainingAmount = outputs?.remainingOnCompletion ?? (totalPrice * (1 - upfrontPct));
@@ -212,13 +280,19 @@ function buildStandardPaymentSections(
     ? completionTimingLabels[completionPaymentTiming]
     : "due within 15 calendar days of delivery";
 
+  const feeLabel = entityLabel === "Cycle" ? "Cycle Fee" : "Sprint Fee";
+  const startDateLabel = `${entityLabel} Start Date`;
+  const deliveryLabel = entityLabel === "Cycle"
+    ? "the Designer making completed cycle work available to the Client"
+    : "the Designer making the final sprint deliverables available to the Client in their completed form";
+
   // Edge case: 100% upfront — no split needed
   if (upfrontPct >= 0.99) {
     return `## 3. Payment Terms
 
-**Total Sprint Fee:** ${formatCurrency(totalPrice)}
+**Total ${feeLabel}:** ${formatCurrency(totalPrice)}
 
-The full sprint fee is ${timingLabel} of this Agreement and must be received prior to the Sprint Start Date. Work will not begin until payment has been received.
+The full ${feeLabel.toLowerCase()} is ${timingLabel} of this Agreement and must be received prior to the ${startDateLabel}. Work will not begin until payment has been received.
 
 All payments are to be made in USD via bank transfer, ACH, or other mutually agreed method.`;
   }
@@ -228,7 +302,7 @@ All payments are to be made in USD via bank transfer, ACH, or other mutually agr
 
   return `## 3. Payment Terms
 
-**Total Sprint Fee:** ${formatCurrency(totalPrice)}
+**Total ${feeLabel}:** ${formatCurrency(totalPrice)}
 
 Payment will be made in two installments as outlined in Section 3a below. Work will not begin until the Kickoff Payment has been received.
 
@@ -247,9 +321,9 @@ This engagement follows a ${kickoffPercent} upfront / ${completionPercent} compl
 | Kickoff Payment | ${kickoffPercent} | ${formatCurrency(upfrontAmount)} |
 | Completion Payment | ${completionPercent} | ${formatCurrency(remainingAmount)} |
 
-**Kickoff Payment** of ${formatCurrency(upfrontAmount)} is ${timingLabel} of this Agreement and must be received prior to the Sprint Start Date.
+**Kickoff Payment** of ${formatCurrency(upfrontAmount)} is ${timingLabel} of this Agreement and must be received prior to the ${startDateLabel}.
 
-**Completion Payment** of ${formatCurrency(remainingAmount)} is ${completionTimingLabel}. Delivery is defined as the Designer making the final sprint deliverables available to the Client in their completed form.
+**Completion Payment** of ${formatCurrency(remainingAmount)} is ${completionTimingLabel}. Delivery is defined as ${deliveryLabel}.
 
 Delivery of final assets may be withheld until all outstanding balances are paid in full.`;
 }
@@ -411,7 +485,7 @@ export async function POST(request: Request, { params }: Params) {
       `SELECT 
         sd.id, sd.title, sd.start_date, sd.due_date, sd.weeks,
         sd.total_estimate_points, sd.total_fixed_price, sd.total_fixed_hours,
-        sd.project_id, sd.draft,
+        sd.project_id, sd.draft, sd.type,
         sd.has_deferred_comp, sd.upfront_payment_percent, sd.base_rate,
         p.name as project_name,
         p.account_id as project_account_id
@@ -436,6 +510,7 @@ export async function POST(request: Request, { params }: Params) {
       total_fixed_hours: number | null;
       project_id: string | null;
       draft: unknown;
+      type: string | null;
       project_name: string | null;
       project_account_id: string | null;
       has_deferred_comp: boolean | null;
@@ -516,24 +591,23 @@ export async function POST(request: Request, { params }: Params) {
       }
     }
 
-    // Extract title from draft if not set
+    // Extract title and overview from draft if not set
     const draftObj = sprint.draft as Record<string, unknown> | null;
     const sprintTitle = sprint.title || 
                        (draftObj && typeof draftObj.sprintTitle === "string" ? draftObj.sprintTitle : null) ||
                        "Design Sprint";
+    const cycleOverview = draftObj && typeof draftObj.overview === "string" ? draftObj.overview.trim() : null;
 
-    // Build deliverables table
-    // Combine scope and notes - prefer notes if they exist, fall back to scope
+    const isUpdateCycle = sprint.type === "update_cycle";
+
+    // Build deliverables table (standard sprints only)
     const tableHeader = "| Deliverable | PTS | Scope |\n| --- | ---: | --- |";
     const tableRows = deliverables.map((d) => {
-      // Use notes if available (these are the detailed bullet points), 
-      // otherwise use scope, otherwise show dash
       let scopeText = (d.notes && d.notes.trim()) 
         ? d.notes.trim() 
         : (d.scope && d.scope.trim()) 
           ? d.scope.trim() 
           : "—";
-      // Replace newlines with <br> for markdown table compatibility
       scopeText = scopeText.replace(/\n/g, " <br> ");
       return `| ${d.name} | ${d.points.toFixed(1)} | ${scopeText} |`;
     }).join("\n");
@@ -568,7 +642,14 @@ export async function POST(request: Request, { params }: Params) {
       hasBudgetPlan = true;
       const isDeferred = budgetRow.inputs.isDeferred !== false;
 
-      if (isDeferred) {
+      if (isUpdateCycle) {
+        template = UPDATE_CYCLE_AGREEMENT_TEMPLATE;
+        // Update cycles always use standard (non-deferred) payment structure
+        const upfrontPct = budgetRow.inputs.upfrontPayment ?? 0.5;
+        const timing = budgetRow.inputs.upfrontPaymentTiming;
+        const completionTiming = budgetRow.inputs.completionPaymentTiming;
+        paymentSections = buildStandardPaymentSections(upfrontPct, totalPrice, budgetRow.outputs, timing, completionTiming, "Cycle");
+      } else if (isDeferred) {
         template = DEFERRED_AGREEMENT_TEMPLATE;
         paymentSections = buildDeferredPaymentSections(budgetRow.inputs, budgetRow.outputs);
       } else {
@@ -578,6 +659,10 @@ export async function POST(request: Request, { params }: Params) {
         const completionTiming = budgetRow.inputs.completionPaymentTiming;
         paymentSections = buildStandardPaymentSections(upfrontPct, totalPrice, budgetRow.outputs, timing, completionTiming);
       }
+    } else if (isUpdateCycle) {
+      template = UPDATE_CYCLE_AGREEMENT_TEMPLATE;
+      const upfrontPct = sprint.upfront_payment_percent != null ? Number(sprint.upfront_payment_percent) / 100 : 0.5;
+      paymentSections = buildStandardPaymentSections(upfrontPct, totalPrice, undefined, "before_kickoff", "net30", "Cycle");
     } else if (sprint.has_deferred_comp === false && sprint.upfront_payment_percent != null) {
       // No saved budget plan, but the sprint has non-deferred settings
       template = STANDARD_AGREEMENT_TEMPLATE;
@@ -598,6 +683,11 @@ export async function POST(request: Request, { params }: Params) {
     const sprintHourlyRate = sprint.base_rate != null ? Number(sprint.base_rate) : DEFAULT_HOURLY_RATE;
     const sprintPerPointRate = pointPriceFromRate(sprintHourlyRate);
 
+    // Build the overview section for update cycles
+    const overviewSection = cycleOverview
+      ? `### Focus Area\n\n${cycleOverview}`
+      : "The specific focus for this cycle will be defined collaboratively during the kickoff workshop.";
+
     // Generate the agreement by filling in the template
     const agreement = template
       .replace(/{sprintTitle}/g, `${clientCompany} ${sprintTitle}`)
@@ -610,7 +700,8 @@ export async function POST(request: Request, { params }: Params) {
       .replace(/{perPointRate}/g, formatCurrency(sprintPerPointRate))
       .replace(/{hourlyRate}/g, formatCurrency(sprintHourlyRate))
       .replace(/{totalPriceFormatted}/g, formatCurrency(totalPrice))
-      .replace(/{paymentSections}/g, paymentSections);
+      .replace(/{paymentSections}/g, paymentSections)
+      .replace(/{overviewSection}/g, overviewSection);
 
     // Store the generated agreement in the database
     // First, add the column if it doesn't exist

@@ -70,6 +70,7 @@ export default function UpdateCycleBuilderClient({ projects, sprintsByProject }:
   const [parentSprintId, setParentSprintId] = useState("");
   const [weeks, setWeeks] = useState(1);
   const [title, setTitle] = useState("");
+  const [overview, setOverview] = useState("");
   const [useCustomPrice, setUseCustomPrice] = useState(false);
   const [customPriceInput, setCustomPriceInput] = useState("");
   const [saving, setSaving] = useState(false);
@@ -115,6 +116,7 @@ export default function UpdateCycleBuilderClient({ projects, sprintsByProject }:
           parentSprintId,
           startDate,
           weeks,
+          overview: overview.trim() || undefined,
           ...(customPriceValid ? { priceOverride: parsedCustomPrice } : {}),
         }),
       });
@@ -226,6 +228,24 @@ export default function UpdateCycleBuilderClient({ projects, sprintsByProject }:
           />
           <p className="text-xs font-normal leading-normal text-neutral-500">
             Leave blank to auto-generate from the parent sprint.
+          </p>
+        </div>
+
+        {/* Overview */}
+        <div className="flex flex-col gap-2">
+          <label htmlFor="uc-overview" className={labelClasses}>
+            Overview
+          </label>
+          <textarea
+            id="uc-overview"
+            value={overview}
+            onChange={(e) => setOverview(e.target.value)}
+            placeholder="Briefly describe the focus of this update cycle — what areas or systems are we iterating on, and what kinds of updates are in scope?"
+            rows={4}
+            className="px-3 py-2 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-y"
+          />
+          <p className="text-xs font-normal leading-normal text-neutral-500">
+            Used in the generated agreement to describe the scope of this cycle.
           </p>
         </div>
 
