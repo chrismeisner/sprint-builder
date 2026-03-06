@@ -184,6 +184,17 @@ export default function StripeInvoiceModal({
       ? [{ email: clientEmail, name: null }]
       : [];
 
+  // The email that will receive the Stripe invoice directly. Defaults to
+  // clientEmail (the sprint's primary contact), but can be overridden via
+  // dropdown when multiple project members are available.
+  const stripeEmailOptions: ProjectMember[] = hasProjectMembers
+    ? projectMembers!
+    : clientEmail
+      ? [{ email: clientEmail, name: null }]
+      : [];
+  const defaultStripeEmail = clientEmail ?? stripeEmailOptions[0]?.email ?? null;
+  const [selectedStripeEmail, setSelectedStripeEmail] = useState<string | null>(defaultStripeEmail);
+
   const [checkedMembers, setCheckedMembers] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     for (const m of studioEmailMembers) {
@@ -214,7 +225,7 @@ export default function StripeInvoiceModal({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "generate" }),
+          body: JSON.stringify({ action: "generate", recipientEmail: selectedStripeEmail }),
         }
       );
       const data = await res.json() as { invoice?: SprintInvoice; error?: string };
@@ -335,14 +346,31 @@ export default function StripeInvoiceModal({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {clientEmail ? (
-                    <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>{clientEmail}</span>
-                  ) : (
-                    <span className={`${getTypographyClassName("body-sm")} text-text-muted italic`}>No client email on file</span>
-                  )}
-                  <RoleBadge role="client" />
-                </div>
+                {stripeEmailOptions.length > 1 && step === "idle" ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <select
+                      value={selectedStripeEmail ?? ""}
+                      onChange={(e) => setSelectedStripeEmail(e.target.value || null)}
+                      className={`${getTypographyClassName("body-sm")} font-medium text-text-primary bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded px-2 py-0.5 pr-6 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 truncate max-w-full`}
+                    >
+                      {stripeEmailOptions.map((m) => (
+                        <option key={m.email} value={m.email}>
+                          {m.name ? `${m.name} (${m.email})` : m.email}
+                        </option>
+                      ))}
+                    </select>
+                    <RoleBadge role="client" />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {selectedStripeEmail ? (
+                      <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>{selectedStripeEmail}</span>
+                    ) : (
+                      <span className={`${getTypographyClassName("body-sm")} text-text-muted italic`}>No client email on file</span>
+                    )}
+                    <RoleBadge role="client" />
+                  </div>
+                )}
                 <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>Stripe invoice email — always sent</p>
               </div>
             </div>
@@ -424,7 +452,7 @@ export default function StripeInvoiceModal({
                   label={invoice.label}
                   amount={invoice.amount}
                   sprintTitle={sprintTitle}
-                  clientEmail={clientEmail}
+                  clientEmail={selectedStripeEmail}
                 />
               </div>
             )}
@@ -520,7 +548,7 @@ export default function StripeInvoiceModal({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
                 <p className={`${getTypographyClassName("body-sm")} text-green-700 dark:text-green-400`}>
-                  Invoice sent to {clientEmail ?? "client"}
+                  Invoice sent to {selectedStripeEmail ?? "client"}
                 </p>
               </div>
             ) : (

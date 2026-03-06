@@ -56,10 +56,11 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const body = await request.json().catch(() => ({})) as { action?: string; ccAdmin?: boolean; ccClientEmails?: string[] };
+    const body = await request.json().catch(() => ({})) as { action?: string; ccAdmin?: boolean; ccClientEmails?: string[]; recipientEmail?: string };
     const action = body.action ?? "send";
     const ccAdmin = body.ccAdmin === true;
     const ccClientEmails: string[] = Array.isArray(body.ccClientEmails) ? body.ccClientEmails : [];
+    const recipientEmail: string | undefined = typeof body.recipientEmail === "string" && body.recipientEmail ? body.recipientEmail : undefined;
 
     const origin = new URL(request.url).origin;
     const sprintUrl = `${origin}/sprints/${params.id}`;
@@ -123,14 +124,27 @@ export async function POST(request: Request, { params }: Params) {
         client_account_id: string | null;
       };
 
-      if (!sprint.client_account_id) {
+      // If a specific recipient email was selected in the modal, look up that
+      // account and bill them. Otherwise fall back to the sprint's linked client.
+      let billingAccountId: string | null = sprint.client_account_id;
+      if (recipientEmail) {
+        const emailRes = await pool.query(
+          `SELECT id FROM accounts WHERE lower(email) = lower($1) LIMIT 1`,
+          [recipientEmail]
+        );
+        if ((emailRes.rowCount ?? 0) > 0) {
+          billingAccountId = (emailRes.rows[0] as { id: string }).id;
+        }
+      }
+
+      if (!billingAccountId) {
         return NextResponse.json(
           { error: "No client account is linked to this sprint — cannot create Stripe invoice" },
           { status: 400 }
         );
       }
 
-      const stripeCustomerId = await getOrCreateStripeCustomer(pool, sprint.client_account_id);
+      const stripeCustomerId = await getOrCreateStripeCustomer(pool, billingAccountId);
       const stripe = getStripe();
 
       const amountCents = Math.round(inv.amount * 100);
