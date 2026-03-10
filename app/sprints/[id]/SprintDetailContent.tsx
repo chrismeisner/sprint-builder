@@ -16,6 +16,7 @@ import AgreementModal from "./AgreementModal";
 import SprintLinks from "./SprintLinks";
 import SprintDailyUpdates, { type DailyUpdate } from "./SprintDailyUpdates";
 import StripeInvoiceModal from "./StripeInvoiceModal";
+import NewCustomInvoiceModal from "./NewCustomInvoiceModal";
 
 type SprintDeliverable = {
   sprintDeliverableId: string;
@@ -278,10 +279,7 @@ export default function SprintDetailContent(props: Props) {
   const [uploadingInvoicePdfId, setUploadingInvoicePdfId] = useState<string | null>(null);
   const [creatingInvoices, setCreatingInvoices] = useState(false);
   const [stripeModalInvoice, setStripeModalInvoice] = useState<SprintInvoice | null>(null);
-  const [showNewInvoiceForm, setShowNewInvoiceForm] = useState(false);
-  const [newInvoiceLabel, setNewInvoiceLabel] = useState("");
-  const [newInvoiceAmount, setNewInvoiceAmount] = useState("");
-  const [creatingCustomInvoice, setCreatingCustomInvoice] = useState(false);
+  const [showNewInvoiceModal, setShowNewInvoiceModal] = useState(false);
   const [deletingInvoiceId, setDeletingInvoiceId] = useState<string | null>(null);
   // Stripe activity log for invoice cards (admin only)
   const [invoiceChangelog, setInvoiceChangelog] = useState<ChangelogEntry[]>([]);
@@ -792,34 +790,6 @@ export default function SprintDetailContent(props: Props) {
     setStripeModalInvoice(inv);
   };
 
-  const handleCreateCustomInvoice = async () => {
-    const label = newInvoiceLabel.trim();
-    const amount = parseFloat(newInvoiceAmount);
-    if (!label) { alert("Enter a label for the invoice"); return; }
-    if (!amount || amount <= 0) { alert("Enter a valid amount"); return; }
-    try {
-      setCreatingCustomInvoice(true);
-      const res = await fetch(`/api/sprint-drafts/${row.id}/invoices/custom`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label, amount }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error((data as { error?: string }).error || "Failed to create invoice");
-      }
-      const data = await res.json() as { invoice: SprintInvoice };
-      setInvoices((prev) => [...prev, data.invoice]);
-      setNewInvoiceLabel("");
-      setNewInvoiceAmount("");
-      setShowNewInvoiceForm(false);
-    } catch (err) {
-      console.error(err);
-      alert(err instanceof Error ? err.message : "Failed to create invoice");
-    } finally {
-      setCreatingCustomInvoice(false);
-    }
-  };
 
   const handleDeleteInvoice = async (invoiceId: string) => {
     if (!confirm("Delete this invoice? This cannot be undone.")) return;
@@ -2093,10 +2063,10 @@ export default function SprintDetailContent(props: Props) {
             {showAdminContent && (
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setShowNewInvoiceForm((v) => !v)}
+                  onClick={() => setShowNewInvoiceModal(true)}
                   className={`${getTypographyClassName("button-sm")} h-8 px-3 rounded-md border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors`}
                 >
-                  {showNewInvoiceForm ? "Cancel" : "+ New invoice"}
+                  + New invoice
                 </button>
                 <button
                   onClick={handleCreateInvoices}
@@ -2109,39 +2079,6 @@ export default function SprintDetailContent(props: Props) {
             )}
           </div>
 
-          {showAdminContent && showNewInvoiceForm && (
-            <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3 space-y-2">
-              <p className={`${getTypographyClassName("body-sm")} font-medium`}>New custom invoice</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={newInvoiceLabel}
-                  onChange={(e) => setNewInvoiceLabel(e.target.value)}
-                  placeholder="Label (e.g. Additional Design Work)"
-                  className="flex-1 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-text-muted">$</span>
-                  <input
-                    type="number"
-                    value={newInvoiceAmount}
-                    onChange={(e) => setNewInvoiceAmount(e.target.value)}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    className="w-28 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 pl-6 pr-2 py-1 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <button
-                  onClick={handleCreateCustomInvoice}
-                  disabled={creatingCustomInvoice}
-                  className={`${getTypographyClassName("button-sm")} h-8 px-3 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 disabled:opacity-50 transition-opacity`}
-                >
-                  {creatingCustomInvoice ? "Creating..." : "Add"}
-                </button>
-              </div>
-            </div>
-          )}
 
           {invoices.length === 0 ? (
             <p className={`${t.bodySm} text-text-muted`}>
@@ -2642,6 +2579,15 @@ export default function SprintDetailContent(props: Props) {
         </div>
       )}
 
+      {/* New Custom Invoice Modal */}
+      {showNewInvoiceModal && (
+        <NewCustomInvoiceModal
+          sprintId={row.id}
+          onClose={() => setShowNewInvoiceModal(false)}
+          onCreated={(invoice) => setInvoices((prev) => [...prev, invoice])}
+        />
+      )}
+
       {/* Stripe Invoice Modal */}
       {stripeModalInvoice && (
         <StripeInvoiceModal
@@ -2656,6 +2602,10 @@ export default function SprintDetailContent(props: Props) {
           onUpdate={(updated) => {
             setInvoices((prev) => prev.map((inv) => inv.id === updated.id ? updated : inv));
             setStripeModalInvoice(updated);
+          }}
+          onDeleted={(deletedId) => {
+            setInvoices((prev) => prev.filter((inv) => inv.id !== deletedId));
+            setStripeModalInvoice(null);
           }}
         />
       )}

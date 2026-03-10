@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, getOrCreateStripeCustomer } from "@/lib/stripe";
-import { sendEmail, generateInvoiceDraftEmail, generateInvoiceSentAdminEmail, generateInvoiceClientEmail } from "@/lib/email";
+import {
+  sendEmail,
+  generateInvoiceDraftEmail,
+  generateInvoiceSentAdminEmail,
+  generateInvoiceClientEmail,
+  generateInvoiceCancelledClientEmail,
+  generateInvoiceCancelledAdminEmail,
+} from "@/lib/email";
 import { randomUUID } from "crypto";
 
 type Params = { params: { id: string; invoiceId: string } };
@@ -56,12 +63,14 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const body = await request.json().catch(() => ({})) as { action?: string; ccAdmin?: boolean; ccClientEmails?: string[]; recipientEmail?: string; dueDate?: string };
+    const body = await request.json().catch(() => ({})) as { action?: string; ccAdmin?: boolean; ccClientEmails?: string[]; recipientEmail?: string; dueDate?: string; achOnly?: boolean; notifyClient?: boolean; cancelMessage?: string | null };
     const action = body.action ?? "send";
     const ccAdmin = body.ccAdmin === true;
     const ccClientEmails: string[] = Array.isArray(body.ccClientEmails) ? body.ccClientEmails : [];
     const recipientEmail: string | undefined = typeof body.recipientEmail === "string" && body.recipientEmail ? body.recipientEmail : undefined;
     const dueDate: string | undefined = typeof body.dueDate === "string" && body.dueDate ? body.dueDate : undefined;
+    // achOnly defaults to true — omitting card avoids the 2.9% card fee
+    const achOnly: boolean = body.achOnly !== false;
 
     const origin = new URL(request.url).origin;
     const sprintUrl = `${origin}/sprints/${params.id}`;
@@ -162,11 +171,16 @@ export async function POST(request: Request, { params }: Params) {
       }
       const dueDateSec = Math.floor(dueDateUnix / 1000);
 
-      // Create the draft invoice first so the line item is scoped to it
+      // Create the draft invoice first so the line item is scoped to it.
+      // achOnly=true (default) restricts to ACH bank transfer (0.8%, capped $5).
+      // achOnly=false also allows card (2.9% + 30¢) as a fallback option.
       const stripeInvoice = await stripe.invoices.create({
         customer: stripeCustomerId,
         collection_method: "send_invoice",
         due_date: dueDateSec,
+        payment_settings: {
+          payment_method_types: achOnly ? ["us_bank_account"] : ["us_bank_account", "card"],
+        },
         metadata: {
           sprint_id: params.id,
           invoice_id: params.invoiceId,
@@ -460,7 +474,137 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ invoice: updatedRes.rows[0] }, { status: 200 });
     }
 
-    return NextResponse.json({ error: "Invalid action. Use generate, send, send_draft, or void." }, { status: 400 });
+    // -------------------------------------------------------------------------
+    // ACTION: cancel
+    // Voids the Stripe invoice (if present), optionally emails the client a
+    // cancellation notice, emails the admin, then deletes the DB record.
+    // Blocked for paid/refunded invoices.
+    // -------------------------------------------------------------------------
+    if (action === "cancel") {
+      if (inv.invoice_status === "paid" || inv.invoice_status === "refunded") {
+        return NextResponse.json(
+          { error: "Cannot cancel an invoice that has already been paid or refunded" },
+          { status: 409 }
+        );
+      }
+
+      // Void on Stripe if we have a Stripe invoice that isn't already voided
+      if (inv.stripe_invoice_id && inv.invoice_status !== "voided") {
+        try {
+          const stripe = getStripe();
+          await stripe.invoices.voidInvoice(inv.stripe_invoice_id);
+        } catch (err) {
+          // Log but don't block — the Stripe invoice may already be voided
+          console.warn("[Cancel action] Stripe void failed (may already be voided):", err);
+        }
+      }
+
+      // Resolve sprint + client info for notification emails
+      const sprintRes = await pool.query(
+        `SELECT sd.title, sd.project_id,
+                COALESCE(p.account_id, d.account_id) AS client_account_id
+         FROM sprint_drafts sd
+         LEFT JOIN projects p ON sd.project_id = p.id
+         LEFT JOIN documents d ON sd.document_id = d.id
+         WHERE sd.id = $1`,
+        [params.id]
+      );
+      const sprint = (sprintRes.rowCount ?? 0) > 0
+        ? (sprintRes.rows[0] as { title: string | null; project_id: string | null; client_account_id: string | null })
+        : null;
+
+      const wasSent = inv.invoice_status === "sent";
+      const notifyClient = body.notifyClient === true;
+      const cancelMessage = typeof body.cancelMessage === "string" && body.cancelMessage.trim() ? body.cancelMessage.trim() : null;
+
+      // Gather client recipients (project members, or account owner fallback)
+      type MemberRow = { email: string; name: string | null };
+      let clientRecipients: MemberRow[] = [];
+      if (sprint?.project_id) {
+        const membersRes = await pool.query(
+          `SELECT pm.email,
+                  COALESCE(NULLIF(TRIM(CONCAT(a.first_name, ' ', a.last_name)), ''), a.name) AS name
+           FROM project_members pm
+           LEFT JOIN accounts a ON lower(pm.email) = lower(a.email)
+           WHERE pm.project_id = $1 AND COALESCE(a.is_admin, false) = false
+           ORDER BY pm.created_at ASC`,
+          [sprint.project_id]
+        );
+        clientRecipients = membersRes.rows as MemberRow[];
+      }
+      if (clientRecipients.length === 0 && sprint?.client_account_id) {
+        const fallbackRes = await pool.query(
+          `SELECT email,
+                  COALESCE(NULLIF(TRIM(CONCAT(first_name, ' ', last_name)), ''), name) AS name
+           FROM accounts WHERE id = $1 AND is_admin = false`,
+          [sprint.client_account_id]
+        );
+        clientRecipients = fallbackRes.rows as MemberRow[];
+      }
+
+      const clientEmailSummary = clientRecipients.map((r) => r.email).join(", ") || null;
+
+      // Send client cancellation emails if invoice was previously sent and notifyClient=true
+      if (wasSent && notifyClient && clientRecipients.length > 0) {
+        for (const recipient of clientRecipients) {
+          try {
+            const content = generateInvoiceCancelledClientEmail({
+              invoiceLabel: inv.label,
+              invoiceAmount: inv.amount ?? 0,
+              clientName: recipient.name,
+              sprintTitle: sprint?.title ?? null,
+              sprintUrl,
+              customMessage: cancelMessage,
+            });
+            await sendEmail({ to: recipient.email, ...content });
+          } catch (err) {
+            console.error(`[Cancel action] Client cancellation email failed for ${recipient.email}:`, err);
+          }
+        }
+      }
+
+      // Always notify the admin
+      try {
+        const adminName = user.name ?? user.email.split("@")[0] ?? null;
+        const content = generateInvoiceCancelledAdminEmail({
+          invoiceLabel: inv.label,
+          invoiceAmount: inv.amount ?? 0,
+          adminName,
+          clientEmail: clientEmailSummary,
+          sprintTitle: sprint?.title ?? null,
+          sprintUrl,
+          notifiedClient: wasSent && notifyClient && clientRecipients.length > 0,
+        });
+        await sendEmail({ to: user.email, ...content });
+      } catch (err) {
+        console.error("[Cancel action] Admin cancellation email failed:", err);
+      }
+
+      await writeChangelog(
+        pool,
+        params.id,
+        user.accountId ?? null,
+        "invoice_cancelled",
+        `Invoice "${inv.label}" cancelled and deleted`,
+        {
+          invoice_id: inv.id,
+          label: inv.label,
+          amount: inv.amount,
+          stripe_invoice_id: inv.stripe_invoice_id,
+          notified_client: wasSent && notifyClient,
+        }
+      );
+
+      // Delete the DB record
+      await pool.query(
+        `DELETE FROM sprint_invoices WHERE id = $1`,
+        [params.invoiceId]
+      );
+
+      return NextResponse.json({ success: true, deletedId: params.invoiceId }, { status: 200 });
+    }
+
+    return NextResponse.json({ error: "Invalid action. Use generate, send, send_draft, void, or cancel." }, { status: 400 });
   } catch (err) {
     console.error("[Stripe Invoice POST]", err);
     const message = err instanceof Error ? err.message : "Failed to process Stripe invoice";

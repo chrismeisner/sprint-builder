@@ -559,6 +559,124 @@ ${muted("No action needed&nbsp;&mdash; this is an automatic notification.")}
 }
 
 /**
+ * Invoice cancelled — sent to client when a previously-sent invoice is voided
+ */
+export function generateInvoiceCancelledClientEmail(params: {
+  invoiceLabel: string;
+  invoiceAmount: number;
+  clientName?: string | null;
+  sprintTitle?: string | null;
+  sprintUrl?: string | null;
+  customMessage?: string | null;
+}): { subject: string; text: string; html: string } {
+  const { invoiceLabel, invoiceAmount, clientName, sprintTitle, sprintUrl, customMessage } = params;
+  const greeting = clientName ? `Hi ${clientName},` : "Hi there,";
+  const formattedAmount = `$${invoiceAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const context = sprintTitle ? ` for <strong>${sprintTitle}</strong>` : "";
+  const contextText = sprintTitle ? ` for ${sprintTitle}` : "";
+
+  const subject = `Invoice cancelled: ${invoiceLabel}${sprintTitle ? ` — ${sprintTitle}` : ""}`;
+
+  const customMessageBlock = customMessage ? `\n${customMessage}\n` : "";
+  const customMessageHtml = customMessage
+    ? `<p style="margin:16px 0 0;white-space:pre-wrap;">${customMessage}</p>`
+    : "";
+
+  const text = `${greeting}
+
+The following invoice has been cancelled — no payment is due.
+
+Invoice: ${invoiceLabel}${contextText}
+Amount: ${formattedAmount}
+${customMessageBlock}${sprintUrl ? `\nView your project: ${sprintUrl}\n` : ""}
+If you have any questions, just reply to this email.
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">The following invoice has been cancelled&nbsp;&mdash; no payment is due.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">${invoiceLabel}${context}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formattedAmount}</p>
+    </td>
+  </tr>
+</table>
+${customMessageHtml}
+${sprintUrl ? secondaryLink(sprintUrl, "View your project →") : ""}
+<p style="margin:16px 0 0;font-size:13px;color:#71717a;">Questions? Just reply to this email.</p>
+${divider()}
+${muted("Meisner Design")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
+ * Invoice cancelled — internal admin notification
+ */
+export function generateInvoiceCancelledAdminEmail(params: {
+  invoiceLabel: string;
+  invoiceAmount: number;
+  adminName?: string | null;
+  clientEmail?: string | null;
+  sprintTitle?: string | null;
+  sprintUrl?: string | null;
+  notifiedClient: boolean;
+}): { subject: string; text: string; html: string } {
+  const { invoiceLabel, invoiceAmount, adminName, clientEmail, sprintTitle, sprintUrl, notifiedClient } = params;
+  const greeting = adminName ? `Hi ${adminName},` : "Hi there,";
+  const formattedAmount = `$${invoiceAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const context = sprintTitle ? ` for <strong>${sprintTitle}</strong>` : "";
+  const contextText = sprintTitle ? ` for ${sprintTitle}` : "";
+  const clientNote = clientEmail
+    ? notifiedClient
+      ? ` A cancellation notice was sent to <strong>${clientEmail}</strong>.`
+      : ` The client (<strong>${clientEmail}</strong>) was <strong>not</strong> notified.`
+    : "";
+
+  const subject = `Invoice cancelled: ${invoiceLabel}${sprintTitle ? ` — ${sprintTitle}` : ""}`;
+
+  const text = `${greeting}
+
+Invoice "${invoiceLabel}"${contextText} has been cancelled and removed.${clientEmail ? ` Client: ${clientEmail}. Notified: ${notifiedClient ? "yes" : "no"}.` : ""}
+
+Amount: ${formattedAmount}
+${sprintUrl ? `\nView sprint: ${sprintUrl}\n` : ""}
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">Invoice &ldquo;${invoiceLabel}&rdquo;${context} has been cancelled and removed.${clientNote}</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">${invoiceLabel}${context}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formattedAmount}</p>
+    </td>
+  </tr>
+</table>
+${sprintUrl ? secondaryLink(sprintUrl, "View sprint →") : ""}
+${divider()}
+${muted("Meisner Design")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
  * Intake form confirmation
  */
 export function generateIntakeConfirmationEmail(): { subject: string; text: string; html: string } {

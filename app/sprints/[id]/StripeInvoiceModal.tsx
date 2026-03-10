@@ -29,6 +29,7 @@ type Props = {
   projectMembers?: ProjectMember[];
   onClose: () => void;
   onUpdate: (invoice: SprintInvoice) => void;
+  onDeleted?: (invoiceId: string) => void;
 };
 
 function formatCurrency(amount: number): string {
@@ -163,16 +164,22 @@ export default function StripeInvoiceModal({
   projectMembers,
   onClose,
   onUpdate,
+  onDeleted,
 }: Props) {
   const [invoice, setInvoice] = useState<SprintInvoice>(initialInvoice);
   const [step, setStep] = useState<Step>(deriveStep(initialInvoice));
   const [generating, setGenerating] = useState(false);
   const [voiding, setVoiding] = useState(false);
   const [sending, setSending] = useState(false);
+  const [achOnly, setAchOnly] = useState(true);
   const [confirmSend, setConfirmSend] = useState(false);
   const [sendingDraft, setSendingDraft] = useState(false);
   const [draftSentTo, setDraftSentTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [notifyClientOnCancel, setNotifyClientOnCancel] = useState(true);
+  const [cancelMessage, setCancelMessage] = useState("");
+  const [cancelling, setCancelling] = useState(false);
   const [ccAdmin, setCcAdmin] = useState(true);
   const [showEmailPreview, setShowEmailPreview] = useState(true);
 
@@ -234,7 +241,7 @@ export default function StripeInvoiceModal({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "generate", recipientEmail: selectedStripeEmail, dueDate }),
+          body: JSON.stringify({ action: "generate", recipientEmail: selectedStripeEmail, dueDate, achOnly }),
         }
       );
       const data = await res.json() as { invoice?: SprintInvoice; error?: string };
@@ -316,6 +323,33 @@ export default function StripeInvoiceModal({
       setSendingDraft(false);
     }
   };
+
+  const handleCancel = async () => {
+    setError(null);
+    setCancelling(true);
+    try {
+      const res = await fetch(
+        `/api/sprint-drafts/${sprintId}/invoices/${invoice.id}/stripe`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "cancel", notifyClient: notifyClientOnCancel, cancelMessage: cancelMessage.trim() || null }),
+        }
+      );
+      const data = await res.json() as { success?: boolean; deletedId?: string; error?: string };
+      if (!res.ok) throw new Error(data.error || "Failed to cancel invoice");
+      onDeleted?.(invoice.id);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to cancel invoice");
+      setCancelling(false);
+      setShowCancelConfirm(false);
+    }
+  };
+
+  const isPaidOrRefunded = invoice.invoice_status === "paid" || invoice.invoice_status === "refunded";
+  const cancelLabel = invoice.stripe_invoice_id ? "Cancel & delete invoice" : "Delete invoice";
+  const hasClientToNotify = (selectedStripeEmail ?? clientEmail) !== null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -518,6 +552,36 @@ export default function StripeInvoiceModal({
               </p>
             </div>
           </div>
+
+          {/* Payment method */}
+          {step === "idle" && (
+            <div className="rounded-md border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden">
+              <div className="px-3 py-2 bg-neutral-50 dark:bg-neutral-800/50 flex items-center gap-2">
+                <svg className="w-3.5 h-3.5 text-text-muted shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                </svg>
+                <p className={`${getTypographyClassName("body-sm")} font-medium text-text-secondary`}>Payment method</p>
+              </div>
+              <label className="px-3 py-2.5 flex items-start gap-3 cursor-pointer hover:bg-black/[0.015] dark:hover:bg-white/[0.015] transition-colors">
+                <div className="pt-0.5 shrink-0">
+                  <Checkbox checked={achOnly} onChange={setAchOnly} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>ACH bank transfer only</span>
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide leading-none bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400">
+                      0.8% fee, max $5
+                    </span>
+                  </div>
+                  <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>
+                    {achOnly
+                      ? "Card payments disabled — client pays via bank account only"
+                      : "Card payments enabled — 2.9% + 30¢ fee applies if client chooses card"}
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
 
           {/* Error */}
           {error && (
@@ -785,6 +849,128 @@ export default function StripeInvoiceModal({
               </div>
             </div>
           )}
+          {/* Danger zone — cancel / delete invoice */}
+          <div className="pt-2">
+            <div className="relative flex items-center">
+              <div className="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
+              <span className={`${getTypographyClassName("body-sm")} text-text-muted px-2 bg-white dark:bg-gray-900`}>danger zone</span>
+              <div className="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
+            </div>
+
+            <div className="mt-2">
+              {isPaidOrRefunded ? (
+                <p className={`${getTypographyClassName("body-sm")} text-text-muted text-center py-1`}>
+                  Cannot cancel a {invoice.invoice_status} invoice.
+                </p>
+              ) : showCancelConfirm ? (
+                <div className="rounded-md border border-red-200 dark:border-red-800 overflow-hidden">
+                  <div className="bg-red-50 dark:bg-red-950/20 px-3 py-2 border-b border-red-200 dark:border-red-800 flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5 text-red-600 dark:text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                    <p className={`${getTypographyClassName("body-sm")} font-semibold text-red-800 dark:text-red-300`}>
+                      Confirm — this cannot be undone
+                    </p>
+                  </div>
+
+                  <div className="divide-y divide-neutral-100 dark:divide-neutral-800 bg-white dark:bg-neutral-900">
+                    {/* What will happen */}
+                    <div className="px-3 py-2 space-y-1">
+                      {invoice.stripe_invoice_id && invoice.invoice_status !== "voided" && (
+                        <div className="flex items-center gap-2">
+                          <svg className="w-3 h-3 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          <span className={`${getTypographyClassName("body-sm")} text-text-secondary`}>Void Stripe invoice</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <svg className="w-3 h-3 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <span className={`${getTypographyClassName("body-sm")} text-text-secondary`}>Delete invoice record</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <svg className="w-3 h-3 text-text-muted shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>Admin cancellation email sent to you</span>
+                      </div>
+                    </div>
+
+                    {/* Notify client toggle — only relevant if invoice was sent */}
+                    {step === "sent" && hasClientToNotify && (
+                      <label className="px-3 py-2.5 flex items-start gap-3 cursor-pointer hover:bg-black/[0.015] dark:hover:bg-white/[0.015] transition-colors">
+                        <div className="pt-0.5 shrink-0">
+                          <Checkbox checked={notifyClientOnCancel} onChange={setNotifyClientOnCancel} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>Notify client</span>
+                          <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>
+                            Send a cancellation email to {selectedStripeEmail ?? clientEmail}
+                          </p>
+                        </div>
+                      </label>
+                    )}
+
+                    {/* Custom message — shown whenever client notification is on */}
+                    {(step === "sent" ? notifyClientOnCancel : false) && (
+                      <div className="px-3 py-2.5 space-y-1.5">
+                        <p className={`${getTypographyClassName("body-sm")} font-medium text-text-secondary`}>
+                          Custom message <span className="font-normal text-text-muted">(optional)</span>
+                        </p>
+                        <textarea
+                          value={cancelMessage}
+                          onChange={(e) => setCancelMessage(e.target.value)}
+                          placeholder="e.g. We've updated the scope — a revised invoice will follow shortly."
+                          rows={3}
+                          className={`${getTypographyClassName("body-sm")} w-full rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-2.5 py-2 text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500`}
+                        />
+                        <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px]`}>
+                          Included in the cancellation email to the client
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="px-3 py-2.5 bg-neutral-50 dark:bg-neutral-800/50 flex items-center gap-2">
+                    <button
+                      onClick={() => setShowCancelConfirm(false)}
+                      disabled={cancelling}
+                      className={`${getTypographyClassName("button-sm")} flex-1 h-8 rounded border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-50 transition-colors`}
+                    >
+                      Go back
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      disabled={cancelling}
+                      className={`${getTypographyClassName("button-sm")} flex-1 h-8 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5`}
+                    >
+                      {cancelling ? (
+                        <>
+                          <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Cancelling...
+                        </>
+                      ) : "Confirm"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  className={`${getTypographyClassName("button-sm")} w-full h-9 rounded-md border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center justify-center gap-1.5`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                  </svg>
+                  {cancelLabel}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Footer */}

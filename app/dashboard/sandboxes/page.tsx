@@ -17,6 +17,7 @@ type SandboxFolder = {
   versionsUrl: string | null;
   buildDir: string | null; // "route", "root", "out", "dist", "build", or null
   fileCount: number;
+  createdAt: Date | null;
   registeredProjectName: string | null;
 };
 
@@ -31,6 +32,13 @@ function scanFolders(): Omit<SandboxFolder, "registeredProjectName">[] {
       const folderPath = path.join(SANDBOXES_DIR, folderName);
       const files = fs.readdirSync(folderPath);
       const fileCount = files.length;
+
+      let createdAt: Date | null = null;
+      try {
+        createdAt = fs.statSync(folderPath).birthtime;
+      } catch {
+        createdAt = null;
+      }
 
       const displayName = folderName
         .split("-")
@@ -53,6 +61,7 @@ function scanFolders(): Omit<SandboxFolder, "registeredProjectName">[] {
           versionsUrl,
           buildDir: "route",
           fileCount,
+          createdAt,
         };
       }
 
@@ -77,6 +86,7 @@ function scanFolders(): Omit<SandboxFolder, "registeredProjectName">[] {
         versionsUrl,
         buildDir,
         fileCount,
+        createdAt,
       };
     });
 }
@@ -153,6 +163,7 @@ export default async function SandboxIndexPage() {
               <th className="px-4 py-3 font-semibold">Folder</th>
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 font-semibold">Built from</th>
+              <th className="px-4 py-3 font-semibold">Created</th>
               <th className="px-4 py-3 font-semibold">Project</th>
               <th className="px-4 py-3 font-semibold text-right">Actions</th>
             </tr>
@@ -203,6 +214,19 @@ export default async function SandboxIndexPage() {
                     <span className="font-mono text-xs text-black/60 dark:text-white/50">
                       /{s.buildDir}/
                     </span>
+                  )}
+                </td>
+
+                {/* Created */}
+                <td className="px-4 py-3 tabular-nums">
+                  {s.createdAt ? (
+                    <div>
+                      <div className="text-xs text-black/60 dark:text-white/60">
+                        {s.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-black/30 dark:text-white/30">—</span>
                   )}
                 </td>
 
