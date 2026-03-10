@@ -39,7 +39,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
     // Update invoice_status
     if (body.invoice_status !== undefined) {
-      const validStatuses = ["not_sent", "sent", "paid", "overdue", "failed", "voided", "refunded"];
+      const validStatuses = ["not_sent", "sent", "processing", "paid", "overdue", "failed", "voided", "refunded"];
       const statusValue = validStatuses.includes(body.invoice_status) ? body.invoice_status : "not_sent";
       updates.push(`invoice_status = $${paramIndex++}`);
       values.push(statusValue);

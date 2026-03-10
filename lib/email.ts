@@ -17,7 +17,11 @@ export async function sendEmail(params: SendEmailParams): Promise<{
   try {
     const mailgunApiKey = process.env.MAILGUN_API_KEY;
     const mailgunDomain = process.env.MAILGUN_DOMAIN;
-    const mailgunFrom = process.env.MAILGUN_FROM_EMAIL || `no-reply@${mailgunDomain || "example.com"}`;
+    const mailgunFromEmail = process.env.MAILGUN_FROM_EMAIL || `no-reply@${mailgunDomain || "example.com"}`;
+    const mailgunFromName = process.env.MAILGUN_FROM_NAME;
+    const mailgunFrom = mailgunFromName
+      ? `${mailgunFromName} <${mailgunFromEmail}>`
+      : mailgunFromEmail;
 
     if (!mailgunApiKey || !mailgunDomain) {
       console.warn("[Email] Mailgun not configured. Email not sent.", { to: params.to });
@@ -553,6 +557,117 @@ No action needed — this is an automatic notification.
 </table>
 ${divider()}
 ${muted("No action needed&nbsp;&mdash; this is an automatic notification.")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
+ * ACH payment processing — sent to admin when payment is initiated but not yet settled
+ */
+export function generateInvoiceProcessingAdminEmail(params: {
+  invoiceLabel: string;
+  invoiceAmount: number;
+  adminName?: string | null;
+  clientEmail?: string | null;
+  sprintTitle?: string | null;
+  sprintUrl?: string | null;
+}): { subject: string; text: string; html: string } {
+  const { invoiceLabel, invoiceAmount, adminName, clientEmail, sprintTitle, sprintUrl } = params;
+  const greeting = adminName ? `Hi ${adminName},` : "Hi there,";
+  const formattedAmount = `$${invoiceAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const context = sprintTitle ? ` for <strong>${sprintTitle}</strong>` : "";
+  const contextText = sprintTitle ? ` for ${sprintTitle}` : "";
+  const clientNote = clientEmail ? ` from <strong>${clientEmail}</strong>` : "";
+  const clientNoteText = clientEmail ? ` from ${clientEmail}` : "";
+
+  const subject = `ACH payment processing: ${invoiceLabel}${sprintTitle ? ` — ${sprintTitle}` : ""}`;
+
+  const text = `${greeting}
+
+An ACH bank transfer has been initiated${clientNoteText} for invoice "${invoiceLabel}"${contextText}.
+
+Amount: ${formattedAmount}
+
+ACH transfers typically settle within 1–3 business days. You'll receive another notification once payment clears.
+${sprintUrl ? `\nView sprint: ${sprintUrl}\n` : ""}
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">An ACH bank transfer has been initiated${clientNote} for invoice &ldquo;${invoiceLabel}&rdquo;${context}.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">${invoiceLabel}${context}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formattedAmount}</p>
+    </td>
+  </tr>
+</table>
+${sprintUrl ? secondaryLink(sprintUrl, "View sprint →") : ""}
+${divider()}
+${muted("ACH transfers typically settle within 1&ndash;3 business days. You&rsquo;ll receive another notification once payment clears.")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
+ * ACH payment processing — sent to client confirming their bank transfer is in progress
+ */
+export function generateInvoiceProcessingClientEmail(params: {
+  invoiceLabel: string;
+  invoiceAmount: number;
+  clientName?: string | null;
+  sprintTitle?: string | null;
+  sprintUrl?: string | null;
+}): { subject: string; text: string; html: string } {
+  const { invoiceLabel, invoiceAmount, clientName, sprintTitle, sprintUrl } = params;
+  const greeting = clientName ? `Hi ${clientName},` : "Hi there,";
+  const formattedAmount = `$${invoiceAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const context = sprintTitle ? ` for <strong>${sprintTitle}</strong>` : "";
+  const contextText = sprintTitle ? ` for ${sprintTitle}` : "";
+
+  const subject = `Payment received — processing now`;
+
+  const text = `${greeting}
+
+We've received your ACH bank transfer for invoice "${invoiceLabel}"${contextText}.
+
+Amount: ${formattedAmount}
+
+Bank transfers typically clear within 1–3 business days. No further action is needed on your end.
+${sprintUrl ? `\nView your project: ${sprintUrl}\n` : ""}
+Questions? Just reply to this email.
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">We&rsquo;ve received your ACH bank transfer for invoice &ldquo;${invoiceLabel}&rdquo;${context}.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">${invoiceLabel}${context}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formattedAmount}</p>
+    </td>
+  </tr>
+</table>
+<p style="margin:0;">Bank transfers typically clear within 1&ndash;3 business days. No further action is needed on your end.</p>
+${sprintUrl ? secondaryLink(sprintUrl, "View your project →") : ""}
+<p style="margin:16px 0 0;font-size:13px;color:#71717a;">Questions? Just reply to this email.</p>
+${divider()}
+${muted("Meisner Design")}
 `);
 
   return { subject, text, html };

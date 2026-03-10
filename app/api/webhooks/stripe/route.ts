@@ -6,6 +6,8 @@ import {
   sendEmail,
   generateInvoicePaidClientEmail,
   generateInvoicePaidAdminEmail,
+  generateInvoiceProcessingAdminEmail,
+  generateInvoiceProcessingClientEmail,
 } from "@/lib/email";
 
 /**
@@ -20,6 +22,7 @@ import {
  *   URL: https://<your-domain>/api/webhooks/stripe
  *
  * Events handled:
+ *   payment_intent.processing       → mark matching invoice as "processing" + notify (ACH)
  *   payment_intent.succeeded        → mark matching invoice as "paid"
  *   payment_intent.payment_failed   → mark matching invoice as "failed"
  *   checkout.session.completed      → mark matching invoice as "paid"
@@ -79,6 +82,13 @@ export async function POST(request: Request) {
 
 async function handleEvent(event: import("stripe").Stripe.Event, origin: string) {
   switch (event.type) {
+    case "payment_intent.processing":
+      await onPaymentIntentProcessing(
+        event.data.object as import("stripe").Stripe.PaymentIntent,
+        origin
+      );
+      break;
+
     case "payment_intent.succeeded":
       await onPaymentIntentSucceeded(
         event.data.object as import("stripe").Stripe.PaymentIntent,
@@ -136,6 +146,14 @@ async function handleEvent(event: import("stripe").Stripe.Event, origin: string)
 // ---------------------------------------------------------------------------
 // Individual event handlers
 // ---------------------------------------------------------------------------
+
+async function onPaymentIntentProcessing(
+  pi: import("stripe").Stripe.PaymentIntent,
+  origin: string
+) {
+  console.log(`[StripeWebhook] PaymentIntent processing (ACH initiated): ${pi.id}`);
+  await updateInvoiceStatus(pi.id, "processing", origin, pi.metadata);
+}
 
 async function onPaymentIntentSucceeded(
   pi: import("stripe").Stripe.PaymentIntent,
@@ -210,7 +228,7 @@ async function onChargeRefunded(charge: import("stripe").Stripe.Charge, origin: 
  */
 async function updateInvoiceStatus(
   stripeId: string,
-  status: "paid" | "failed" | "voided" | "refunded",
+  status: "processing" | "paid" | "failed" | "voided" | "refunded",
   origin: string,
   metadata?: Record<string, string>
 ) {
@@ -286,17 +304,19 @@ function logUpdated(
 async function writeChangelogs(
   pool: ReturnType<typeof getPool>,
   rows: Array<{ id: string; sprint_id: string; label: string; invoice_status: string }>,
-  status: "paid" | "failed" | "voided" | "refunded",
+  status: "processing" | "paid" | "failed" | "voided" | "refunded",
   stripeId: string,
   origin: string
 ) {
   const summaryMap: Record<string, string> = {
+    processing: "ACH bank transfer initiated — payment processing",
     paid: "Invoice payment received via Stripe",
     failed: "Stripe invoice payment failed",
     voided: "Stripe invoice voided",
     refunded: "Stripe charge refunded",
   };
   const actionMap: Record<string, string> = {
+    processing: "invoice_processing",
     paid: "invoice_paid",
     failed: "invoice_payment_failed",
     voided: "invoice_voided",
@@ -323,8 +343,113 @@ async function writeChangelogs(
     }
   }
 
+  if (status === "processing") {
+    await sendInvoiceProcessingNotifications(pool, rows, origin);
+  }
   if (status === "paid") {
     await sendInvoicePaidNotifications(pool, rows, origin);
+  }
+}
+
+/**
+ * Fires when an ACH bank transfer is initiated (payment_intent.processing).
+ * Notifies the studio immediately and confirms receipt to the client.
+ * The actual settlement notification comes later via sendInvoicePaidNotifications.
+ */
+async function sendInvoiceProcessingNotifications(
+  pool: ReturnType<typeof getPool>,
+  rows: Array<{ id: string; sprint_id: string; label: string }>,
+  origin: string
+) {
+  for (const row of rows) {
+    try {
+      const infoRes = await pool.query(
+        `SELECT si.amount, sd.title AS sprint_title, sd.project_id
+         FROM sprint_invoices si
+         JOIN sprint_drafts sd ON sd.id = si.sprint_id
+         WHERE si.id = $1`,
+        [row.id]
+      );
+      if ((infoRes.rowCount ?? 0) === 0) continue;
+
+      const info = infoRes.rows[0] as {
+        amount: number | null;
+        sprint_title: string | null;
+        project_id: string | null;
+      };
+
+      const amount = info.amount ?? 0;
+      const sprintUrl = `${origin}/sprints/${row.sprint_id}`;
+
+      // Resolve client recipients
+      type MemberRow = { email: string; name: string | null };
+      let clientRecipients: MemberRow[] = [];
+      if (info.project_id) {
+        const membersRes = await pool.query(
+          `SELECT pm.email,
+                  COALESCE(NULLIF(TRIM(CONCAT(a.first_name, ' ', a.last_name)), ''), a.name) AS name
+           FROM project_members pm
+           LEFT JOIN accounts a ON lower(pm.email) = lower(a.email)
+           WHERE pm.project_id = $1 AND COALESCE(a.is_admin, false) = false
+           ORDER BY pm.created_at ASC`,
+          [info.project_id]
+        );
+        clientRecipients = membersRes.rows as MemberRow[];
+      }
+      if (clientRecipients.length === 0) {
+        const fallbackRes = await pool.query(
+          `SELECT a.email,
+                  COALESCE(NULLIF(TRIM(CONCAT(a.first_name, ' ', a.last_name)), ''), a.name) AS name
+           FROM sprint_drafts sd
+           LEFT JOIN projects p ON p.id = sd.project_id
+           LEFT JOIN documents d ON d.id = sd.document_id
+           LEFT JOIN accounts a ON a.id = COALESCE(p.account_id, d.account_id)
+           WHERE sd.id = $1 AND a.is_admin = false AND a.email IS NOT NULL`,
+          [row.sprint_id]
+        );
+        clientRecipients = fallbackRes.rows as MemberRow[];
+      }
+
+      // Client confirmation emails
+      for (const recipient of clientRecipients) {
+        try {
+          const content = generateInvoiceProcessingClientEmail({
+            invoiceLabel: row.label,
+            invoiceAmount: amount,
+            sprintTitle: info.sprint_title,
+            clientName: recipient.name,
+            sprintUrl,
+          });
+          await sendEmail({ to: recipient.email, ...content });
+        } catch (err) {
+          console.error(`[StripeWebhook] Processing client email failed for ${recipient.email}:`, err);
+        }
+      }
+
+      // Admin notification
+      const clientEmailSummary = clientRecipients.map((r) => r.email).join(", ") || null;
+      const adminRes = await pool.query(
+        `SELECT email, first_name, last_name FROM accounts WHERE is_admin = true`
+      );
+      for (const admin of adminRes.rows as Array<{ email: string; first_name: string | null; last_name: string | null }>) {
+        try {
+          const adminName = [admin.first_name, admin.last_name].filter(Boolean).join(" ") || null;
+          const content = generateInvoiceProcessingAdminEmail({
+            invoiceLabel: row.label,
+            invoiceAmount: amount,
+            adminName,
+            clientEmail: clientEmailSummary,
+            sprintTitle: info.sprint_title,
+            sprintUrl,
+          });
+          await sendEmail({ to: admin.email, ...content });
+        } catch (err) {
+          console.error(`[StripeWebhook] Processing admin email failed for ${admin.email}:`, err);
+        }
+      }
+    } catch (err) {
+      console.error(`[StripeWebhook] Processing notifications failed for invoice ${row.id}:`, err);
+    }
   }
 }
 

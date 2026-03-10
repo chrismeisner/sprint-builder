@@ -192,19 +192,23 @@ function formatCurrency(amount: number): string {
 const STRIPE_CHANGELOG_ACTIONS = new Set([
   "stripe_link_generated",
   "invoice_sent",
+  "invoice_processing",
   "invoice_paid",
   "invoice_payment_failed",
   "invoice_voided",
   "invoice_refunded",
+  "invoice_cancelled",
 ]);
 
 const INVOICE_ACTIVITY_META: Record<string, { icon: string; label: string }> = {
   stripe_link_generated: { icon: "🔗", label: "Link generated" },
   invoice_sent:          { icon: "📤", label: "Sent" },
+  invoice_processing:    { icon: "⏳", label: "Processing" },
   invoice_paid:          { icon: "✅", label: "Paid" },
   invoice_payment_failed:{ icon: "❌", label: "Payment failed" },
   invoice_voided:        { icon: "🚫", label: "Voided" },
   invoice_refunded:      { icon: "↩️", label: "Refunded" },
+  invoice_cancelled:     { icon: "🗑️", label: "Cancelled" },
 };
 
 function formatRelTime(iso: string): string {

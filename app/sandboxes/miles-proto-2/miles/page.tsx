@@ -905,9 +905,9 @@ function AgentContent() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col bg-white">
+    <main className="flex h-[100dvh] flex-col bg-white pb-14">
       {/* Header */}
-      <div className="border-b border-neutral-100 px-5 pb-4 pt-14">
+      <div className="shrink-0 border-b border-neutral-100 px-5 pb-4 pt-14">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-full bg-green-100">
             <svg
@@ -931,8 +931,8 @@ function AgentContent() {
         </div>
       </div>
 
-      {/* Content area */}
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-5 pb-36">
+      {/* Content area — scrolls between header and input bar */}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5">
         {/* Greeting */}
         <AgentBubble text={config.greeting} />
 
@@ -978,11 +978,8 @@ function AgentContent() {
         )}
       </div>
 
-      {/* Input bar — sticky above bottom nav, constrained to device frame */}
-      <div
-        className="fixed bottom-14 left-1/2 z-20 w-full -translate-x-1/2 border-t border-neutral-100 bg-white px-5 py-3"
-        style={{ maxWidth: "var(--frame-width, 100%)" }}
-      >
+      {/* Input bar — pinned above bottom nav */}
+      <div className="shrink-0 border-t border-neutral-100 bg-white px-5 py-3">
         <div className="mx-auto flex max-w-lg items-center gap-2">
           <input
             type="text"
