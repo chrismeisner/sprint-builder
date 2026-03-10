@@ -168,7 +168,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
 
   // Fetch invoices for this sprint
   const invoicesRes = await pool.query(
-    `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url, amount, sort_order, stripe_invoice_id, created_at, updated_at
+    `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url, amount, sort_order, stripe_invoice_id, stripe_recipient_email, created_at, updated_at
      FROM sprint_invoices
      WHERE sprint_id = $1
      ORDER BY sort_order, created_at`,
@@ -184,6 +184,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
     amount: r.amount != null ? Number(r.amount) : null,
     sort_order: Number(r.sort_order ?? 0),
     stripe_invoice_id: (r.stripe_invoice_id as string | null) ?? null,
+    stripe_recipient_email: (r.stripe_recipient_email as string | null) ?? null,
     created_at: r.created_at instanceof Date ? r.created_at.toISOString() : (r.created_at as string),
     updated_at: r.updated_at instanceof Date ? r.updated_at.toISOString() : (r.updated_at as string),
   }));
