@@ -630,9 +630,9 @@ export async function POST(request: Request, { params }: Params) {
       }
 
       const stripe = getStripe();
-      const stripeInvoice = await stripe.invoices.retrieve(inv.stripe_invoice_id, {
+      const stripeInvoice = (await stripe.invoices.retrieve(inv.stripe_invoice_id, {
         expand: ["payment_intent"],
-      });
+      })) as import("stripe").Stripe.Invoice;
 
       // Map Stripe invoice + payment intent status → our local status
       let newStatus = inv.invoice_status;
@@ -645,7 +645,11 @@ export async function POST(request: Request, { params }: Params) {
         newStatus = "failed";
       } else if (stripeInvoice.status === "open") {
         // Drill into the payment intent for ACH processing state
-        const pi = stripeInvoice.payment_intent as import("stripe").Stripe.PaymentIntent | null;
+        const pi =
+          stripeInvoice.payment_intent &&
+          typeof stripeInvoice.payment_intent !== "string"
+            ? (stripeInvoice.payment_intent as import("stripe").Stripe.PaymentIntent)
+            : null;
         if (pi?.status === "processing") {
           newStatus = "processing";
         } else if (pi?.status === "succeeded") {
