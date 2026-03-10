@@ -7,7 +7,6 @@
 
 import type {
   ActionOption,
-  AgentCard,
   ChatMessage,
   ContextConfig,
   PendingItem,
