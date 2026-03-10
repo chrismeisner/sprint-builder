@@ -42,7 +42,7 @@ export default function TripsPage() {
     return acc;
   }, {});
 
-  const dateOrder = [...new Set(TRIPS.map((t) => t.date))];
+  const dateOrder = Array.from(new Set(TRIPS.map((t) => t.date)));
 
   return (
     <main className="flex min-h-dvh flex-col bg-neutral-50 pb-24">
