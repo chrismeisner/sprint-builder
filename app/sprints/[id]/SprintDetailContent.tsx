@@ -702,6 +702,7 @@ export default function SprintDetailContent(props: Props) {
   const invoiceStatusOptions = [
     { value: "not_sent", label: "Not sent", color: "text-text-muted", bgColor: "bg-neutral-100 dark:bg-neutral-800" },
     { value: "sent", label: "Sent", color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-950" },
+    { value: "processing", label: "Pending", color: "text-amber-700 dark:text-amber-300", bgColor: "bg-amber-50 dark:bg-amber-950" },
     { value: "paid", label: "Paid", color: "text-green-700 dark:text-green-300", bgColor: "bg-green-50 dark:bg-green-950" },
     { value: "overdue", label: "Overdue", color: "text-red-600 dark:text-red-400", bgColor: "bg-red-50 dark:bg-red-950" },
     { value: "failed", label: "Failed", color: "text-red-700 dark:text-red-300", bgColor: "bg-red-100 dark:bg-red-950" },

@@ -12,6 +12,10 @@ const NAV_HIDDEN_ON = new Set([
   "/whos-driving"].flatMap((r) => [p(r), p(r) + "/"])),
 ]);
 
+// Full-screen flex pages that manage their own bottom spacing —
+// these must not receive the nav-clearance padding-bottom.
+const NO_NAV_PADDING_ON = new Set([p("/miles"), p("/miles/")]);
+
 function FadeIn({ children, className }: { children: ReactNode; className?: string }) {
   const [visible, setVisible] = useState(false);
 
@@ -38,9 +42,10 @@ function FadeIn({ children, className }: { children: ReactNode; className?: stri
 export function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const showNav = !NAV_HIDDEN_ON.has(pathname);
+  const noNavPad = NO_NAV_PADDING_ON.has(pathname);
 
   return (
-    <FadeIn key={pathname} className={`flex-1 ${showNav ? "pb-20" : ""}`}>
+    <FadeIn key={pathname} className={`flex-1 flex flex-col min-h-0 ${showNav && !noNavPad ? "pb-20" : ""}`}>
       {children}
     </FadeIn>
   );

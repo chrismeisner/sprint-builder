@@ -39,6 +39,7 @@ const scenarios: Scenario[] = [
     trigger: "Trip ends, fuel level below user's threshold or default",
     category: "Coaching",
     constraint: "Never show map, gas stations, or route suggestions — explicitly banned anti-pattern",
+    href: "/miles?context=fuel",
   },
   {
     id: 2,
@@ -71,6 +72,7 @@ const scenarios: Scenario[] = [
     tier: "Active / Passive",
     trigger: "Mileage or time-based oil change threshold approaching; no badgering once snoozed",
     category: "Maintenance",
+    href: "/miles?context=oil",
   },
   {
     id: 6,
@@ -119,6 +121,7 @@ const scenarios: Scenario[] = [
     tier: "Passive (Badge)",
     trigger: "Registration expiration approaching (30 days, then 14 days)",
     category: "Documents",
+    href: "/miles?context=registration",
   },
   {
     id: 12,
@@ -127,6 +130,7 @@ const scenarios: Scenario[] = [
     tier: "Passive (In-context)",
     trigger: "User opens agent while viewing a completed trip; agent is context-aware",
     category: "Trips",
+    href: "/miles?context=trip-detail",
   },
   {
     id: 13,

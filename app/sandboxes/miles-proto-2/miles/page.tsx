@@ -80,7 +80,7 @@ function AgentContent() {
   }
 
   return (
-    <main className="flex h-[100dvh] flex-col bg-white pb-14">
+    <main className="flex flex-1 min-h-0 flex-col bg-white">
       {/* Header */}
       <div className="shrink-0 border-b border-neutral-100 px-5 pb-4 pt-14">
         <div className="flex items-center gap-3">
