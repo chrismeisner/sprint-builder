@@ -645,10 +645,14 @@ export async function POST(request: Request, { params }: Params) {
         newStatus = "failed";
       } else if (stripeInvoice.status === "open") {
         // Drill into the payment intent for ACH processing state
+        const rawPaymentIntent = (
+          stripeInvoice as unknown as {
+            payment_intent?: string | import("stripe").Stripe.PaymentIntent | null;
+          }
+        ).payment_intent;
         const pi =
-          stripeInvoice.payment_intent &&
-          typeof stripeInvoice.payment_intent !== "string"
-            ? (stripeInvoice.payment_intent as import("stripe").Stripe.PaymentIntent)
+          rawPaymentIntent && typeof rawPaymentIntent !== "string"
+            ? rawPaymentIntent
             : null;
         if (pi?.status === "processing") {
           newStatus = "processing";
