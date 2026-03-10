@@ -163,6 +163,16 @@ export async function POST(request: Request, { params }: Params) {
         );
       }
 
+      // Resolve the actual account email — this is what Stripe will use for all
+      // system emails (payment link, receipt, reminders). We store it permanently
+      // on the invoice so it never drifts if the account email changes later.
+      const billingEmailRes = await pool.query(
+        `SELECT email FROM accounts WHERE id = $1`,
+        [billingAccountId]
+      );
+      const resolvedRecipientEmail: string | null =
+        (billingEmailRes.rows[0] as { email: string } | undefined)?.email ?? null;
+
       const stripeCustomerId = await getOrCreateStripeCustomer(pool, billingAccountId);
       const stripe = getStripe();
 
@@ -211,11 +221,12 @@ export async function POST(request: Request, { params }: Params) {
 
       await pool.query(
         `UPDATE sprint_invoices
-         SET stripe_invoice_id = $1,
-             invoice_url       = $2,
-             updated_at        = now()
-         WHERE id = $3`,
-        [finalizedInvoice.id, finalizedInvoice.hosted_invoice_url, params.invoiceId]
+         SET stripe_invoice_id        = $1,
+             invoice_url              = $2,
+             stripe_recipient_email   = $3,
+             updated_at               = now()
+         WHERE id = $4`,
+        [finalizedInvoice.id, finalizedInvoice.hosted_invoice_url, resolvedRecipientEmail, params.invoiceId]
       );
 
       await writeChangelog(
@@ -235,7 +246,7 @@ export async function POST(request: Request, { params }: Params) {
 
       const updatedRes = await pool.query(
         `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url,
-                amount, sort_order, stripe_invoice_id, created_at, updated_at
+                amount, sort_order, stripe_invoice_id, stripe_recipient_email, created_at, updated_at
          FROM sprint_invoices WHERE id = $1`,
         [params.invoiceId]
       );
@@ -246,6 +257,7 @@ export async function POST(request: Request, { params }: Params) {
     // -------------------------------------------------------------------------
     // ACTION: send
     // -------------------------------------------------------------------------
+
     if (action === "send") {
       if (!inv.stripe_invoice_id) {
         return NextResponse.json(
@@ -373,7 +385,7 @@ export async function POST(request: Request, { params }: Params) {
 
       const updatedRes = await pool.query(
         `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url,
-                amount, sort_order, stripe_invoice_id, created_at, updated_at
+                amount, sort_order, stripe_invoice_id, stripe_recipient_email, created_at, updated_at
          FROM sprint_invoices WHERE id = $1`,
         [params.invoiceId]
       );
@@ -475,7 +487,7 @@ export async function POST(request: Request, { params }: Params) {
 
       const updatedRes = await pool.query(
         `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url,
-                amount, sort_order, stripe_invoice_id, created_at, updated_at
+                amount, sort_order, stripe_invoice_id, stripe_recipient_email, created_at, updated_at
          FROM sprint_invoices WHERE id = $1`,
         [params.invoiceId]
       );
@@ -607,7 +619,77 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ success: true, deletedId: params.invoiceId }, { status: 200 });
     }
 
-    return NextResponse.json({ error: "Invalid action. Use generate, send, send_draft, void, or cancel." }, { status: 400 });
+    // -------------------------------------------------------------------------
+    // ACTION: refresh
+    // Fetches the live Stripe invoice + payment intent, maps status to our
+    // local values, and updates the DB if anything has changed.
+    // -------------------------------------------------------------------------
+    if (action === "refresh") {
+      if (!inv.stripe_invoice_id) {
+        return NextResponse.json({ error: "No Stripe invoice linked — nothing to refresh" }, { status: 400 });
+      }
+
+      const stripe = getStripe();
+      const stripeInvoice = await stripe.invoices.retrieve(inv.stripe_invoice_id, {
+        expand: ["payment_intent"],
+      });
+
+      // Map Stripe invoice + payment intent status → our local status
+      let newStatus = inv.invoice_status;
+
+      if (stripeInvoice.status === "paid") {
+        newStatus = "paid";
+      } else if (stripeInvoice.status === "void") {
+        newStatus = "voided";
+      } else if (stripeInvoice.status === "uncollectible") {
+        newStatus = "failed";
+      } else if (stripeInvoice.status === "open") {
+        // Drill into the payment intent for ACH processing state
+        const pi = stripeInvoice.payment_intent as import("stripe").Stripe.PaymentIntent | null;
+        if (pi?.status === "processing") {
+          newStatus = "processing";
+        } else if (pi?.status === "succeeded") {
+          newStatus = "paid";
+        } else if (pi?.status === "canceled") {
+          newStatus = "failed";
+        } else {
+          newStatus = "sent";
+        }
+      }
+
+      const statusChanged = newStatus !== inv.invoice_status;
+
+      if (statusChanged) {
+        await pool.query(
+          `UPDATE sprint_invoices SET invoice_status = $1, updated_at = now() WHERE id = $2`,
+          [newStatus, params.invoiceId]
+        );
+
+        await writeChangelog(
+          pool,
+          params.id,
+          user.accountId ?? null,
+          "invoice_status_refreshed",
+          `Invoice "${inv.label}" status updated to "${newStatus}" via manual refresh`,
+          { invoice_id: inv.id, label: inv.label, old_status: inv.invoice_status, new_status: newStatus }
+        );
+      }
+
+      const updatedRes = await pool.query(
+        `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url,
+                amount, sort_order, stripe_invoice_id, stripe_recipient_email, created_at, updated_at
+         FROM sprint_invoices WHERE id = $1`,
+        [params.invoiceId]
+      );
+
+      return NextResponse.json({
+        invoice: updatedRes.rows[0],
+        statusChanged,
+        stripeStatus: stripeInvoice.status,
+      }, { status: 200 });
+    }
+
+    return NextResponse.json({ error: "Invalid action. Use generate, send, send_draft, void, cancel, or refresh." }, { status: 400 });
   } catch (err) {
     console.error("[Stripe Invoice POST]", err);
     const message = err instanceof Error ? err.message : "Failed to process Stripe invoice";

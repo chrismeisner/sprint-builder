@@ -141,6 +141,7 @@ type SprintInvoice = {
   amount: number | null;
   sort_order: number;
   stripe_invoice_id: string | null;
+  stripe_recipient_email: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -198,17 +199,19 @@ const STRIPE_CHANGELOG_ACTIONS = new Set([
   "invoice_voided",
   "invoice_refunded",
   "invoice_cancelled",
+  "invoice_status_refreshed",
 ]);
 
 const INVOICE_ACTIVITY_META: Record<string, { icon: string; label: string }> = {
-  stripe_link_generated: { icon: "🔗", label: "Link generated" },
-  invoice_sent:          { icon: "📤", label: "Sent" },
-  invoice_processing:    { icon: "⏳", label: "Processing" },
-  invoice_paid:          { icon: "✅", label: "Paid" },
-  invoice_payment_failed:{ icon: "❌", label: "Payment failed" },
-  invoice_voided:        { icon: "🚫", label: "Voided" },
-  invoice_refunded:      { icon: "↩️", label: "Refunded" },
-  invoice_cancelled:     { icon: "🗑️", label: "Cancelled" },
+  stripe_link_generated:    { icon: "🔗", label: "Link generated" },
+  invoice_sent:             { icon: "📤", label: "Sent" },
+  invoice_processing:       { icon: "⏳", label: "Processing" },
+  invoice_paid:             { icon: "✅", label: "Paid" },
+  invoice_payment_failed:   { icon: "❌", label: "Payment failed" },
+  invoice_voided:           { icon: "🚫", label: "Voided" },
+  invoice_refunded:         { icon: "↩️", label: "Refunded" },
+  invoice_cancelled:        { icon: "🗑️", label: "Cancelled" },
+  invoice_status_refreshed: { icon: "🔄", label: "Status refreshed" },
 };
 
 function formatRelTime(iso: string): string {

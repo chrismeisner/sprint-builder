@@ -37,15 +37,24 @@ export async function getOrCreateStripeCustomer(
     stripe_customer_id: string | null;
   };
 
-  if (acct.stripe_customer_id) {
-    return acct.stripe_customer_id;
-  }
-
   const stripe = getStripe();
   const displayName =
     [acct.first_name, acct.last_name].filter(Boolean).join(" ") ||
     acct.name ||
     acct.email;
+
+  if (acct.stripe_customer_id) {
+    // Keep the Stripe Customer in sync with the current account email/name so
+    // Stripe system emails (receipts, reminders) always reach the right inbox.
+    await stripe.customers.update(acct.stripe_customer_id, {
+      email: acct.email,
+      name: displayName,
+    }).catch((err) => {
+      // Non-blocking — a stale sync shouldn't break invoice generation
+      console.warn("[getOrCreateStripeCustomer] Failed to sync customer:", err?.message);
+    });
+    return acct.stripe_customer_id;
+  }
 
   const customer = await stripe.customers.create({
     email: acct.email,

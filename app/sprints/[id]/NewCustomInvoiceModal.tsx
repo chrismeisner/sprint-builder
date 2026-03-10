@@ -13,6 +13,7 @@ type SprintInvoice = {
   amount: number | null;
   sort_order: number;
   stripe_invoice_id: string | null;
+  stripe_recipient_email: string | null;
   created_at: string;
   updated_at: string;
 };

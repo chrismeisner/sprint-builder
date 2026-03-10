@@ -72,7 +72,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
     // Return the updated invoice
     const updatedRes = await pool.query(
-      `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url, amount, sort_order, stripe_invoice_id, created_at, updated_at
+      `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url, amount, sort_order, stripe_invoice_id, stripe_recipient_email, created_at, updated_at
        FROM sprint_invoices WHERE id = $1`,
       [params.invoiceId]
     );

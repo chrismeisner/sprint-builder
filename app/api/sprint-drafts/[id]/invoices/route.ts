@@ -37,7 +37,7 @@ export async function GET(request: Request, { params }: Params) {
     if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
 
     const res = await pool.query(
-      `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url, amount, sort_order, stripe_invoice_id, created_at, updated_at
+      `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url, amount, sort_order, stripe_invoice_id, stripe_recipient_email, created_at, updated_at
        FROM sprint_invoices
        WHERE sprint_id = $1
        ORDER BY sort_order, created_at`,
@@ -94,7 +94,7 @@ export async function POST(request: Request, { params }: Params) {
     if (existingCount > 0) {
       // Invoices already exist, return them
       const invoicesRes = await pool.query(
-        `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url, amount, sort_order, stripe_invoice_id, created_at, updated_at
+        `SELECT id, sprint_id, label, invoice_url, invoice_status, invoice_pdf_url, amount, sort_order, stripe_invoice_id, stripe_recipient_email, created_at, updated_at
          FROM sprint_invoices WHERE sprint_id = $1 ORDER BY sort_order, created_at`,
         [params.id]
       );

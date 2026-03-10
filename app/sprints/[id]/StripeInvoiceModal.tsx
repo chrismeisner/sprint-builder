@@ -13,6 +13,7 @@ type SprintInvoice = {
   amount: number | null;
   sort_order: number;
   stripe_invoice_id: string | null;
+  stripe_recipient_email: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -79,7 +80,7 @@ function Checkbox({ checked, onChange }: { checked: boolean; onChange: (v: boole
 type Step = "idle" | "generated" | "sent";
 
 function deriveStep(inv: SprintInvoice): Step {
-  if (inv.invoice_status === "sent" || inv.invoice_status === "paid") return "sent";
+  if (["sent", "paid", "processing"].includes(inv.invoice_status)) return "sent";
   if (inv.stripe_invoice_id) return "generated";
   return "idle";
 }
@@ -181,6 +182,8 @@ export default function StripeInvoiceModal({
   const [cancelling, setCancelling] = useState(false);
   const [ccAdmin, setCcAdmin] = useState(true);
   const [showEmailPreview, setShowEmailPreview] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshResult, setRefreshResult] = useState<"changed" | "current" | null>(null);
 
   // Determine which people to show as studio-branded email checkboxes.
   // If project members exist, use those (pre-checked). Otherwise fall back to the
@@ -359,6 +362,36 @@ export default function StripeInvoiceModal({
     }
   };
 
+  const handleRefresh = async () => {
+    setError(null);
+    setRefreshResult(null);
+    setRefreshing(true);
+    try {
+      const res = await fetch(
+        `/api/sprint-drafts/${sprintId}/invoices/${invoice.id}/stripe`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "refresh" }),
+        }
+      );
+      const data = await res.json() as { invoice?: SprintInvoice; statusChanged?: boolean; error?: string };
+      if (!res.ok) throw new Error(data.error || "Failed to refresh status");
+      if (data.invoice) {
+        setInvoice(data.invoice);
+        setStep(deriveStep(data.invoice));
+        onUpdate(data.invoice);
+      }
+      setRefreshResult(data.statusChanged ? "changed" : "current");
+      // Auto-clear the result after 4 s
+      setTimeout(() => setRefreshResult(null), 4000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to refresh status");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const isPaidOrRefunded = invoice.invoice_status === "paid" || invoice.invoice_status === "refunded";
   const cancelLabel = invoice.stripe_invoice_id ? "Cancel & delete invoice" : "Delete invoice";
   const cancelClientEmails = studioEmailMembers.filter((m) => cancelCheckedMembers[m.email]).map((m) => m.email);
@@ -381,15 +414,38 @@ export default function StripeInvoiceModal({
             </span>
             <h2 className={getTypographyClassName("h3")}>Send via Stripe</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition"
-            aria-label="Close"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-1">
+            {/* Refresh status button — only relevant once a Stripe invoice exists */}
+            {invoice.stripe_invoice_id && (
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                title="Refresh Stripe status"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md text-text-secondary hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition"
+              >
+                <svg
+                  className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                {refreshing ? "Checking…" : refreshResult === "changed" ? "✓ Updated" : refreshResult === "current" ? "✓ Up to date" : "Refresh status"}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition"
+              aria-label="Close"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Scrollable content */}
@@ -710,7 +766,7 @@ export default function StripeInvoiceModal({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
                 <p className={`${getTypographyClassName("body-sm")} text-green-700 dark:text-green-400`}>
-                  Invoice sent to {selectedStripeEmail ?? "client"}
+                  Invoice sent to {invoice.stripe_recipient_email ?? selectedStripeEmail ?? "client"}
                 </p>
               </div>
             ) : confirmSend ? (
@@ -738,7 +794,7 @@ export default function StripeInvoiceModal({
                   <div className="px-3 py-2 flex items-start justify-between gap-2">
                     <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>Stripe to</span>
                     <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary text-right`}>
-                      {selectedStripeEmail ?? "—"}
+                      {invoice.stripe_recipient_email ?? selectedStripeEmail ?? "—"}
                     </span>
                   </div>
                   {/* Due date */}
