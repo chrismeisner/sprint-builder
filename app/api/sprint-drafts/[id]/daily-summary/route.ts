@@ -64,7 +64,7 @@ export async function POST(_req: Request, { params }: Params) {
 
   // ── 3. Fetch ALL daily updates (sorted chronologically) ──
   const updatesRes = await pool.query(
-    `SELECT sdu.sprint_day, sdu.total_days, sdu.frame, sdu.body, sdu.created_at,
+    `SELECT sdu.sprint_day, sdu.total_days, sdu.frame, sdu.body, sdu.links, sdu.created_at,
             COALESCE(
               NULLIF(TRIM(CONCAT(a.first_name, ' ', a.last_name)), ''),
               a.name,
@@ -81,6 +81,7 @@ export async function POST(_req: Request, { params }: Params) {
     totalDays: Number(r.total_days),
     frame: r.frame as string | null,
     body: r.body as string,
+    links: (r.links ?? []) as Array<{ url: string; label: string }>,
     createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : (r.created_at as string),
     authorName: r.author_name as string,
   }));
@@ -205,7 +206,10 @@ DELIVERABLES (${deliverables.length} total):
 ${deliverables.map((d) => `- ${d.name}${d.category ? ` (${d.category})` : ""}${d.delivered ? " [DELIVERED]" : ""}`).join("\n") || "None"}
 
 ALL DAILY UPDATES:
-${allUpdates.map((u) => `--- Day ${u.sprintDay}/${u.totalDays}${u.frame ? ` · Frame: ${u.frame}` : ""} (${new Date(u.createdAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}) by ${u.authorName} ---\n${u.body}`).join("\n\n")}
+${allUpdates.map((u) => {
+    const linkLines = u.links.filter((l) => l.url).map((l) => `  - ${l.label ? `${l.label}: ` : ""}${l.url}`).join("\n");
+    return `--- Day ${u.sprintDay}/${u.totalDays}${u.frame ? ` · Frame: ${u.frame}` : ""} (${new Date(u.createdAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}) by ${u.authorName} ---\n${u.body}${linkLines ? `\nLinks:\n${linkLines}` : ""}`;
+  }).join("\n\n")}
 ${fileContexts.length > 0 ? `\nSUPPLEMENTAL PROJECT FILES:\n${fileContexts.map((f) => `--- ${f.name} (${f.fileName}) ---\n${f.content}`).join("\n\n")}` : ""}
 `.trim();
 
@@ -221,6 +225,8 @@ ${fileContexts.length > 0 ? `\nSUPPLEMENTAL PROJECT FILES:\n${fileContexts.map((
   const systemPrompt = `You are the AI Studio Assistant for Meisner Design, a design/branding sprint studio. You send daily project update emails on behalf of the studio team.
 
 You may be given supplemental project files (briefs, notes, CSVs, etc.) as additional context. If present, use them to enrich the summary — reference relevant details from those files where appropriate, but keep them as background context rather than quoting them directly.
+
+Daily updates may include links (Figma files, Google Docs, GitHub repos, etc.). When links are present, weave a natural reference to them inline in the body (e.g. "you can review the latest designs in Figma" or "the brief is available in the linked doc"). Do NOT reproduce the raw URLs in the body text — those will be appended automatically as a formatted section below the body.
 
 The email should:
 - Be warm, professional, and concise (aim for 150-300 words in the body)
@@ -305,6 +311,18 @@ Return ONLY a JSON object with these exact keys:
   }
 
   // ── 8. Build HTML email ──
+  // Collect all links from all daily updates (deduplicated by URL)
+  const allUpdateLinks: Array<{ url: string; label: string; day: number }> = [];
+  const seenUrls = new Set<string>();
+  for (const u of allUpdates) {
+    for (const l of u.links) {
+      if (l.url && !seenUrls.has(l.url)) {
+        seenUrls.add(l.url);
+        allUpdateLinks.push({ url: l.url, label: l.label || l.url, day: u.sprintDay });
+      }
+    }
+  }
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000";
@@ -355,6 +373,16 @@ ${progressBar}
 <hr style="border:none;border-top:1px solid #e4e4e7;margin:16px 0;">
 
 ${bodyHtml}
+
+${allUpdateLinks.length > 0 ? `
+<hr style="border:none;border-top:1px solid #e4e4e7;margin:24px 0;">
+<p style="margin:0 0 10px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;">Links</p>
+<table cellpadding="0" cellspacing="0" style="width:100%;">
+${allUpdateLinks.map((l) => `<tr><td style="padding:4px 0;">
+  <a href="${l.url}" style="color:#18181b;font-size:14px;text-decoration:none;font-weight:500;">${l.label}</a>
+  <span style="font-size:12px;color:#71717a;margin-left:6px;">${l.url}</span>
+</td></tr>`).join("\n")}
+</table>` : ""}
 
 <hr style="border:none;border-top:1px solid #e4e4e7;margin:24px 0;">
 <a href="${sprintUrl}" style="display:inline-block;background-color:#18181b;color:#ffffff!important;text-decoration:none;padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;">View Sprint</a>

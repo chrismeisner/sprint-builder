@@ -295,14 +295,18 @@ export default function SprintDetailContent(props: Props) {
   const [regeneratingAgreement, setRegeneratingAgreement] = useState(false);
   const [showAgreementModal, setShowAgreementModal] = useState(false);
   
-  // Overview state (title and dates)
+  // Overview state (title, dates, description, goals)
   const [sprintTitle, setSprintTitle] = useState(row.title || "");
   const [startDate, setStartDate] = useState(row.start_date ? new Date(row.start_date).toISOString().split('T')[0] : "");
   const [endDate, setEndDate] = useState(row.due_date ? new Date(row.due_date).toISOString().split('T')[0] : "");
+  const [planOverview, setPlanOverview] = useState(plan.overview || "");
+  const [planGoals, setPlanGoals] = useState<string[]>(plan.goals || []);
   const [editingOverview, setEditingOverview] = useState(false);
   const [editingTitle, setEditingTitle] = useState(sprintTitle);
   const [editingStartDate, setEditingStartDate] = useState(startDate);
   const [editingEndDate, setEditingEndDate] = useState(endDate);
+  const [editingPlanOverview, setEditingPlanOverview] = useState(planOverview);
+  const [editingPlanGoals, setEditingPlanGoals] = useState<string[]>(planGoals);
   const [savingOverview, setSavingOverview] = useState(false);
   
   // Sprint Outline state
@@ -927,6 +931,8 @@ export default function SprintDetailContent(props: Props) {
             title: editingTitle.trim() || null,
             start_date: editingStartDate || null,
             due_date: editingEndDate || null,
+            overview: editingPlanOverview.trim() || null,
+            goals: editingPlanGoals.map((g) => g.trim()).filter(Boolean),
           },
         }),
       });
@@ -936,6 +942,8 @@ export default function SprintDetailContent(props: Props) {
       setSprintTitle(editingTitle.trim());
       setStartDate(editingStartDate);
       setEndDate(editingEndDate);
+      setPlanOverview(editingPlanOverview.trim());
+      setPlanGoals(editingPlanGoals.map((g) => g.trim()).filter(Boolean));
       setEditingOverview(false);
     } catch (err) {
       console.error(err);
@@ -1018,22 +1026,38 @@ export default function SprintDetailContent(props: Props) {
       </div>
 
       {/* ============================================ */}
-      {/* Book a Feedback Session */}
+      {/* Book a Feedback Session / Friday Handoff */}
       {/* ============================================ */}
-      <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white/40 dark:bg-black/40 flex items-center justify-between gap-4">
-        <div className="space-y-0.5">
-          <p className={`${getTypographyClassName("subtitle-sm")} text-text-muted uppercase tracking-wide`}>Got questions?</p>
-          <p className={`${getTypographyClassName("body-base")} text-black dark:text-white`}>Book a feedback session to talk through this sprint.</p>
-        </div>
-        <a
-          href="https://cal.com/chrismeisner/feedback-sync"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`shrink-0 inline-flex items-center rounded-md border border-black/20 dark:border-white/20 bg-white dark:bg-black px-3 py-1.5 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition ${getTypographyClassName("button-sm")}`}
-        >
-          Book a session →
-        </a>
-      </section>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white/40 dark:bg-black/40 flex items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <p className={`${getTypographyClassName("subtitle-sm")} text-text-muted uppercase tracking-wide`}>Got questions?</p>
+            <p className={`${getTypographyClassName("body-base")} text-black dark:text-white`}>Book a feedback session to talk through this sprint.</p>
+          </div>
+          <a
+            href="https://cal.com/chrismeisner/feedback-sync"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`shrink-0 inline-flex items-center rounded-md border border-black/20 dark:border-white/20 bg-white dark:bg-black px-3 py-1.5 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition ${getTypographyClassName("button-sm")}`}
+          >
+            Book a session →
+          </a>
+        </section>
+        <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white/40 dark:bg-black/40 flex items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <p className={`${getTypographyClassName("subtitle-sm")} text-text-muted uppercase tracking-wide`}>Wrapping up?</p>
+            <p className={`${getTypographyClassName("body-base")} text-black dark:text-white`}>Book a Friday handoff to review deliverables and next steps.</p>
+          </div>
+          <a
+            href="https://cal.com/chrismeisner/sprint-final-walkthrough"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`shrink-0 inline-flex items-center rounded-md border border-black/20 dark:border-white/20 bg-white dark:bg-black px-3 py-1.5 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition ${getTypographyClassName("button-sm")}`}
+          >
+            Book handoff →
+          </a>
+        </section>
+      </div>
 
       {/* ============================================ */}
       {/* EVERYONE SEES: Sprint Overview */}
@@ -1098,6 +1122,70 @@ export default function SprintDetailContent(props: Props) {
                 />
               </div>
             </div>
+            {/* Description */}
+            <div className="space-y-1">
+              <label className={`${getTypographyClassName("subtitle-sm")} text-text-muted block`}>
+                Description
+              </label>
+              <textarea
+                rows={4}
+                value={editingPlanOverview}
+                onChange={(e) => setEditingPlanOverview(e.target.value)}
+                placeholder="Brief overview of this sprint..."
+                className="w-full rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white resize-y"
+                disabled={savingOverview}
+              />
+            </div>
+
+            {/* Goals */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className={`${getTypographyClassName("subtitle-sm")} text-text-muted`}>
+                  Goals
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setEditingPlanGoals((prev) => [...prev, ""])}
+                  disabled={savingOverview}
+                  className={`${getTypographyClassName("button-sm")} h-7 px-2 rounded border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
+                >
+                  + Add Goal
+                </button>
+              </div>
+              {editingPlanGoals.map((goal, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={goal}
+                    onChange={(e) =>
+                      setEditingPlanGoals((prev) =>
+                        prev.map((g, i) => (i === idx ? e.target.value : g))
+                      )
+                    }
+                    placeholder={`Goal ${idx + 1}...`}
+                    className="flex-1 rounded-md border border-black/15 dark:border-white/15 bg-white dark:bg-black px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                    disabled={savingOverview}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditingPlanGoals((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                    disabled={savingOverview}
+                    className="size-8 flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400 disabled:opacity-50 transition"
+                    aria-label="Remove goal"
+                  >
+                    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              {editingPlanGoals.length === 0 && (
+                <p className={`${getTypographyClassName("body-sm")} text-text-muted`}>No goals yet.</p>
+              )}
+            </div>
+
             <div className="flex items-center gap-2">
               <button
                 onClick={handleSaveOverview}
@@ -1112,6 +1200,8 @@ export default function SprintDetailContent(props: Props) {
                   setEditingTitle(sprintTitle);
                   setEditingStartDate(startDate);
                   setEditingEndDate(endDate);
+                  setEditingPlanOverview(planOverview);
+                  setEditingPlanGoals(planGoals);
                 }}
                 disabled={savingOverview}
                 className={`${getTypographyClassName("button-sm")} px-3 py-1.5 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition`}
@@ -1122,39 +1212,58 @@ export default function SprintDetailContent(props: Props) {
           </div>
         ) : (
           // View mode
-          <div className="flex items-start justify-between gap-4">
-            <div className={`grid gap-2 sm:grid-cols-2 flex-1 ${t.bodySm}`}>
-              <div>
-                <span className={t.monoLabel}>duration:</span> {displayWeeks} week{displayWeeks !== 1 ? 's' : ''}
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-4">
+              <div className={`grid gap-2 sm:grid-cols-2 flex-1 ${t.bodySm}`}>
+                <div>
+                  <span className={t.monoLabel}>duration:</span> {displayWeeks} week{displayWeeks !== 1 ? 's' : ''}
+                </div>
+                {startDate && (
+                  <div>
+                    <span className={t.monoLabel}>starts:</span> {new Date(startDate + 'T00:00:00').toLocaleDateString()}
+                  </div>
+                )}
+                {endDate && (
+                  <div>
+                    <span className={t.monoLabel}>ends:</span> {new Date(endDate + 'T00:00:00').toLocaleDateString()}
+                  </div>
+                )}
+                {row.deliverable_count != null && row.deliverable_count > 0 && (
+                  <div>
+                    <span className={t.monoLabel}>deliverables:</span> {row.deliverable_count}
+                  </div>
+                )}
               </div>
-              {startDate && (
-                <div>
-                  <span className={t.monoLabel}>starts:</span> {new Date(startDate + 'T00:00:00').toLocaleDateString()}
-                </div>
-              )}
-              {endDate && (
-                <div>
-                  <span className={t.monoLabel}>ends:</span> {new Date(endDate + 'T00:00:00').toLocaleDateString()}
-                </div>
-              )}
-              {row.deliverable_count != null && row.deliverable_count > 0 && (
-                <div>
-                  <span className={t.monoLabel}>deliverables:</span> {row.deliverable_count}
-                </div>
+              {showAdminContent && (
+                <button
+                  onClick={() => {
+                    setEditingTitle(sprintTitle);
+                    setEditingStartDate(startDate);
+                    setEditingEndDate(endDate);
+                    setEditingPlanOverview(planOverview);
+                    setEditingPlanGoals(planGoals.length > 0 ? [...planGoals] : [""]);
+                    setEditingOverview(true);
+                  }}
+                  className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
+                >
+                  Edit
+                </button>
               )}
             </div>
-            {showAdminContent && (
-              <button
-                onClick={() => {
-                  setEditingTitle(sprintTitle);
-                  setEditingStartDate(startDate);
-                  setEditingEndDate(endDate);
-                  setEditingOverview(true);
-                }}
-                className={`${getTypographyClassName("button-sm")} px-2 py-1 rounded-md border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition`}
-              >
-                Edit
-              </button>
+            {planOverview && (
+              <p className={`${t.bodySm} whitespace-pre-line border-t border-black/5 dark:border-white/10 pt-3`}>
+                {planOverview}
+              </p>
+            )}
+            {planGoals.length > 0 && (
+              <div className="border-t border-black/5 dark:border-white/10 pt-3 space-y-1">
+                <p className={t.monoLabel}>Goals</p>
+                <ul className={`list-disc pl-5 space-y-0.5 ${t.bodySm}`}>
+                  {planGoals.map((g, i) => (
+                    <li key={i}>{g}</li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
         )}

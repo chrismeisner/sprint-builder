@@ -441,27 +441,54 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json({ success: true });
     }
 
-    // Overview update (title and dates) - admin only
+    // Overview update (title, dates, overview text, goals) - admin only
     if (body.overview_update !== undefined) {
       if (!user.isAdmin) {
         return NextResponse.json({ error: "Admin access required" }, { status: 403 });
       }
-      const { title, start_date, due_date } = body.overview_update as { 
+      const { title, start_date, due_date, overview, goals } = body.overview_update as { 
         title?: string | null; 
         start_date?: string | null; 
         due_date?: string | null;
+        overview?: string | null;
+        goals?: string[] | null;
       };
       const titleValue = typeof title === "string" && title.trim() ? title.trim() : null;
       const startValue = typeof start_date === "string" && start_date.trim() ? start_date.trim() : null;
       const dueValue = typeof due_date === "string" && due_date.trim() ? due_date.trim() : null;
-      await pool.query(
-        `UPDATE sprint_drafts SET title = $1, start_date = $2, due_date = $3, updated_at = now() WHERE id = $4`,
-        [titleValue, startValue, dueValue, params.id]
-      );
+
+      // Merge overview and goals into the draft JSONB
+      const hasOverviewOrGoals = overview !== undefined || goals !== undefined;
+      if (hasOverviewOrGoals) {
+        const draftRes = await pool.query(`SELECT draft FROM sprint_drafts WHERE id = $1`, [params.id]);
+        const existingDraft =
+          draftRes.rows[0]?.draft && typeof draftRes.rows[0].draft === "object"
+            ? (draftRes.rows[0].draft as Record<string, unknown>)
+            : {};
+        const updatedDraft = {
+          ...existingDraft,
+          ...(overview !== undefined ? { overview: overview?.trim() ?? "" } : {}),
+          ...(goals !== undefined
+            ? { goals: Array.isArray(goals) ? goals.map((g) => g.trim()).filter(Boolean) : [] }
+            : {}),
+        };
+        await pool.query(
+          `UPDATE sprint_drafts SET title = $1, start_date = $2, due_date = $3, draft = $4::jsonb, updated_at = now() WHERE id = $5`,
+          [titleValue, startValue, dueValue, JSON.stringify(updatedDraft), params.id]
+        );
+      } else {
+        await pool.query(
+          `UPDATE sprint_drafts SET title = $1, start_date = $2, due_date = $3, updated_at = now() WHERE id = $4`,
+          [titleValue, startValue, dueValue, params.id]
+        );
+      }
+
       const changes: string[] = [];
       if (titleValue) changes.push(`title: "${titleValue}"`);
       if (startValue) changes.push(`start: ${startValue}`);
       if (dueValue) changes.push(`due: ${dueValue}`);
+      if (overview !== undefined) changes.push("overview text");
+      if (goals !== undefined) changes.push(`goals (${Array.isArray(goals) ? goals.length : 0})`);
       await logChangelog(pool, params.id, user.accountId, "overview", `Updated overview (${changes.join(", ") || "cleared fields"})`, { title: titleValue, start_date: startValue, due_date: dueValue });
       return NextResponse.json({ success: true });
     }
