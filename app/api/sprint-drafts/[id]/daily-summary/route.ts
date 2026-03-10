@@ -76,12 +76,21 @@ export async function POST(_req: Request, { params }: Params) {
      ORDER BY sdu.sprint_day ASC, sdu.created_at ASC`,
     [sprintId]
   );
+  const parseLinks = (raw: unknown): Array<{ url: string; label: string }> => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw as Array<{ url: string; label: string }>;
+    if (typeof raw === "string") {
+      try { return JSON.parse(raw) as Array<{ url: string; label: string }>; } catch { return []; }
+    }
+    return [];
+  };
+
   const allUpdates = updatesRes.rows.map((r) => ({
     sprintDay: Number(r.sprint_day),
     totalDays: Number(r.total_days),
     frame: r.frame as string | null,
     body: r.body as string,
-    links: (r.links ?? []) as Array<{ url: string; label: string }>,
+    links: parseLinks(r.links),
     createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : (r.created_at as string),
     authorName: r.author_name as string,
   }));
@@ -415,6 +424,7 @@ ${allUpdateLinks.map((l) => `<tr><td style="padding:4px 0;">
       sprintDay: latestDay,
       totalDays,
       fileContexts: fileContexts.map((f) => ({ name: f.name, fileName: f.fileName })),
+      updateLinks: allUpdateLinks.map(({ url, label, day }) => ({ url, label, day })),
     });
   }
 

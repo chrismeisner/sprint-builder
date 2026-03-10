@@ -63,7 +63,7 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const body = await request.json().catch(() => ({})) as { action?: string; ccAdmin?: boolean; ccClientEmails?: string[]; recipientEmail?: string; dueDate?: string; achOnly?: boolean; notifyClient?: boolean; cancelMessage?: string | null };
+    const body = await request.json().catch(() => ({})) as { action?: string; ccAdmin?: boolean; ccClientEmails?: string[]; recipientEmail?: string; dueDate?: string; achOnly?: boolean; notifyClient?: boolean; cancelClientEmails?: string[]; cancelMessage?: string | null };
     const action = body.action ?? "send";
     const ccAdmin = body.ccAdmin === true;
     const ccClientEmails: string[] = Array.isArray(body.ccClientEmails) ? body.ccClientEmails : [];
@@ -514,51 +514,44 @@ export async function POST(request: Request, { params }: Params) {
         : null;
 
       const wasSent = inv.invoice_status === "sent";
-      const notifyClient = body.notifyClient === true;
+      const cancelClientEmails: string[] = Array.isArray(body.cancelClientEmails) ? body.cancelClientEmails : [];
       const cancelMessage = typeof body.cancelMessage === "string" && body.cancelMessage.trim() ? body.cancelMessage.trim() : null;
 
-      // Gather client recipients (project members, or account owner fallback)
-      type MemberRow = { email: string; name: string | null };
-      let clientRecipients: MemberRow[] = [];
-      if (sprint?.project_id) {
-        const membersRes = await pool.query(
-          `SELECT pm.email,
-                  COALESCE(NULLIF(TRIM(CONCAT(a.first_name, ' ', a.last_name)), ''), a.name) AS name
-           FROM project_members pm
-           LEFT JOIN accounts a ON lower(pm.email) = lower(a.email)
-           WHERE pm.project_id = $1 AND COALESCE(a.is_admin, false) = false
-           ORDER BY pm.created_at ASC`,
-          [sprint.project_id]
-        );
-        clientRecipients = membersRes.rows as MemberRow[];
-      }
-      if (clientRecipients.length === 0 && sprint?.client_account_id) {
-        const fallbackRes = await pool.query(
-          `SELECT email,
-                  COALESCE(NULLIF(TRIM(CONCAT(first_name, ' ', last_name)), ''), name) AS name
-           FROM accounts WHERE id = $1 AND is_admin = false`,
-          [sprint.client_account_id]
-        );
-        clientRecipients = fallbackRes.rows as MemberRow[];
-      }
+      const clientEmailSummary = cancelClientEmails.join(", ") || null;
 
-      const clientEmailSummary = clientRecipients.map((r) => r.email).join(", ") || null;
+      // Send client cancellation emails to each explicitly-selected recipient
+      if (wasSent && cancelClientEmails.length > 0) {
+        // Look up names for the selected recipients
+        type AccountRow = { email: string; first_name: string | null; last_name: string | null; name: string | null };
+        let namesByEmail: Map<string, AccountRow> = new Map();
+        try {
+          const namesRes = await pool.query(
+            `SELECT lower(email) AS email, first_name, last_name, name
+             FROM accounts WHERE lower(email) = ANY($1::text[])`,
+            [cancelClientEmails.map((e) => e.toLowerCase())]
+          );
+          namesByEmail = new Map((namesRes.rows as AccountRow[]).map((r) => [r.email.toLowerCase(), r]));
+        } catch (err) {
+          console.error("[Cancel action] Failed to fetch recipient names:", err);
+        }
 
-      // Send client cancellation emails if invoice was previously sent and notifyClient=true
-      if (wasSent && notifyClient && clientRecipients.length > 0) {
-        for (const recipient of clientRecipients) {
+        for (const recipientEmail of cancelClientEmails) {
           try {
+            const accountData = namesByEmail.get(recipientEmail.toLowerCase());
+            const clientName = accountData
+              ? ([accountData.first_name, accountData.last_name].filter(Boolean).join(" ") || accountData.name || null)
+              : null;
             const content = generateInvoiceCancelledClientEmail({
               invoiceLabel: inv.label,
               invoiceAmount: inv.amount ?? 0,
-              clientName: recipient.name,
+              clientName,
               sprintTitle: sprint?.title ?? null,
               sprintUrl,
               customMessage: cancelMessage,
             });
-            await sendEmail({ to: recipient.email, ...content });
+            await sendEmail({ to: recipientEmail, ...content });
           } catch (err) {
-            console.error(`[Cancel action] Client cancellation email failed for ${recipient.email}:`, err);
+            console.error(`[Cancel action] Client cancellation email failed for ${recipientEmail}:`, err);
           }
         }
       }
@@ -573,7 +566,7 @@ export async function POST(request: Request, { params }: Params) {
           clientEmail: clientEmailSummary,
           sprintTitle: sprint?.title ?? null,
           sprintUrl,
-          notifiedClient: wasSent && notifyClient && clientRecipients.length > 0,
+          notifiedClient: wasSent && cancelClientEmails.length > 0,
         });
         await sendEmail({ to: user.email, ...content });
       } catch (err) {
@@ -591,7 +584,8 @@ export async function POST(request: Request, { params }: Params) {
           label: inv.label,
           amount: inv.amount,
           stripe_invoice_id: inv.stripe_invoice_id,
-          notified_client: wasSent && notifyClient,
+          notified_client: wasSent && cancelClientEmails.length > 0,
+          notified_emails: cancelClientEmails,
         }
       );
 

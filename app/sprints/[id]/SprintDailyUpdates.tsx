@@ -140,6 +140,7 @@ export default function SprintDailyUpdates({
     sprintDay: number;
     totalDays: number;
     fileContexts: Array<{ name: string; fileName: string }>;
+    updateLinks: Array<{ url: string; label: string; day: number }>;
   } | null>(null);
   const [summarySending, setSummarySending] = useState(false);
   const [summarySent, setSummarySent] = useState(false);
@@ -340,6 +341,7 @@ export default function SprintDailyUpdates({
         sprintDay: number;
         totalDays: number;
         fileContexts: Array<{ name: string; fileName: string }>;
+        updateLinks: Array<{ url: string; label: string; day: number }>;
       };
       setSummaryPreview(data);
     } catch (err) {
@@ -893,6 +895,37 @@ export default function SprintDailyUpdates({
                   </p>
                 </div>
               </div>
+
+              {/* Links from daily updates */}
+              {summaryPreview.updateLinks?.length > 0 && (
+                <div className="space-y-2">
+                  <span className={`${getTypographyClassName("mono-sm")} text-text-muted`}>
+                    Links ({summaryPreview.updateLinks.length})
+                  </span>
+                  <div className="rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 divide-y divide-neutral-200 dark:divide-neutral-700">
+                    {summaryPreview.updateLinks.map((link, idx) => (
+                      <div key={idx} className="flex items-center gap-3 px-4 py-2.5">
+                        <div className="flex-1 min-w-0">
+                          <p className={`${getTypographyClassName("body-sm")} text-text-primary font-medium truncate`}>
+                            {link.label !== link.url ? link.label : ""}
+                          </p>
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${getTypographyClassName("body-sm")} text-blue-600 dark:text-blue-400 hover:underline truncate block`}
+                          >
+                            {link.url}
+                          </a>
+                        </div>
+                        <span className={`${getTypographyClassName("mono-sm")} text-text-muted shrink-0`}>
+                          Day {link.day}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Error */}
               {summaryError && (

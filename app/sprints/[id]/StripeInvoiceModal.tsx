@@ -177,7 +177,13 @@ export default function StripeInvoiceModal({
   const [draftSentTo, setDraftSentTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [notifyClientOnCancel, setNotifyClientOnCancel] = useState(true);
+  const [cancelCheckedMembers, setCancelCheckedMembers] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const m of studioEmailMembers) {
+      init[m.email] = hasProjectMembers;
+    }
+    return init;
+  });
   const [cancelMessage, setCancelMessage] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [ccAdmin, setCcAdmin] = useState(true);
@@ -333,7 +339,11 @@ export default function StripeInvoiceModal({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "cancel", notifyClient: notifyClientOnCancel, cancelMessage: cancelMessage.trim() || null }),
+          body: JSON.stringify({
+            action: "cancel",
+            cancelClientEmails: studioEmailMembers.filter((m) => cancelCheckedMembers[m.email]).map((m) => m.email),
+            cancelMessage: cancelMessage.trim() || null,
+          }),
         }
       );
       const data = await res.json() as { success?: boolean; deletedId?: string; error?: string };
@@ -349,7 +359,8 @@ export default function StripeInvoiceModal({
 
   const isPaidOrRefunded = invoice.invoice_status === "paid" || invoice.invoice_status === "refunded";
   const cancelLabel = invoice.stripe_invoice_id ? "Cancel & delete invoice" : "Delete invoice";
-  const hasClientToNotify = (selectedStripeEmail ?? clientEmail) !== null;
+  const cancelClientEmails = studioEmailMembers.filter((m) => cancelCheckedMembers[m.email]).map((m) => m.email);
+  const anyCancelRecipientChecked = cancelClientEmails.length > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -898,24 +909,66 @@ export default function StripeInvoiceModal({
                       </div>
                     </div>
 
-                    {/* Notify client toggle — only relevant if invoice was sent */}
-                    {step === "sent" && hasClientToNotify && (
-                      <label className="px-3 py-2.5 flex items-start gap-3 cursor-pointer hover:bg-black/[0.015] dark:hover:bg-white/[0.015] transition-colors">
-                        <div className="pt-0.5 shrink-0">
-                          <Checkbox checked={notifyClientOnCancel} onChange={setNotifyClientOnCancel} />
+                    {/* Recipients — per-member checkboxes + admin row */}
+                    <div>
+                      <div className="px-3 py-2 bg-neutral-50 dark:bg-neutral-800/50">
+                        <p className={`${getTypographyClassName("body-sm")} font-medium text-text-secondary`}>Recipients</p>
+                      </div>
+
+                      {/* Admin — always notified, no checkbox */}
+                      <div className="px-3 py-2.5 flex items-start gap-3 border-t border-neutral-100 dark:border-neutral-800">
+                        <div className="pt-0.5 shrink-0 w-4 flex items-center justify-center">
+                          <svg className="w-3 h-3 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>Notify client</span>
-                          <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>
-                            Send a cancellation email to {selectedStripeEmail ?? clientEmail}
-                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>{adminEmail || "you"}</span>
+                            <RoleBadge role={adminRole} />
+                          </div>
+                          <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>Admin cancellation notice — always sent</p>
                         </div>
-                      </label>
-                    )}
+                      </div>
 
-                    {/* Custom message — shown whenever client notification is on */}
-                    {(step === "sent" ? notifyClientOnCancel : false) && (
-                      <div className="px-3 py-2.5 space-y-1.5">
+                      {/* Per-member rows — only shown when invoice was sent */}
+                      {step === "sent" && studioEmailMembers.length > 0 ? (
+                        studioEmailMembers.map((member) => (
+                          <label
+                            key={member.email}
+                            className="px-3 py-2.5 flex items-start gap-3 border-t border-neutral-100 dark:border-neutral-800 cursor-pointer hover:bg-black/[0.015] dark:hover:bg-white/[0.015] transition-colors"
+                          >
+                            <div className="pt-0.5 shrink-0">
+                              <Checkbox
+                                checked={cancelCheckedMembers[member.email] ?? false}
+                                onChange={(v) => setCancelCheckedMembers((prev) => ({ ...prev, [member.email]: v }))}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className={`${getTypographyClassName("body-sm")} font-medium text-text-primary`}>
+                                  {member.name ?? member.email}
+                                </span>
+                                {member.name && (
+                                  <span className={`${getTypographyClassName("body-sm")} text-text-muted`}>{member.email}</span>
+                                )}
+                                <RoleBadge role="client" />
+                              </div>
+                              <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>Studio cancellation email</p>
+                            </div>
+                          </label>
+                        ))
+                      ) : step === "sent" ? (
+                        <div className="px-3 py-2.5 border-t border-neutral-100 dark:border-neutral-800 flex items-start gap-3">
+                          <div className="pt-0.5 shrink-0 w-4" />
+                          <span className={`${getTypographyClassName("body-sm")} text-text-muted italic`}>No client email on file</span>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Custom message — shown when at least one client is checked */}
+                    {step === "sent" && anyCancelRecipientChecked && (
+                      <div className="px-3 py-2.5 space-y-1.5 border-t border-neutral-100 dark:border-neutral-800">
                         <p className={`${getTypographyClassName("body-sm")} font-medium text-text-secondary`}>
                           Custom message <span className="font-normal text-text-muted">(optional)</span>
                         </p>
