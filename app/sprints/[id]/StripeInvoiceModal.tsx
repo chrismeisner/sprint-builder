@@ -177,13 +177,6 @@ export default function StripeInvoiceModal({
   const [draftSentTo, setDraftSentTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [cancelCheckedMembers, setCancelCheckedMembers] = useState<Record<string, boolean>>(() => {
-    const init: Record<string, boolean> = {};
-    for (const m of studioEmailMembers) {
-      init[m.email] = hasProjectMembers;
-    }
-    return init;
-  });
   const [cancelMessage, setCancelMessage] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [ccAdmin, setCcAdmin] = useState(true);
@@ -198,6 +191,15 @@ export default function StripeInvoiceModal({
     : clientEmail
       ? [{ email: clientEmail, name: null }]
       : [];
+
+  // Must be declared after studioEmailMembers/hasProjectMembers to avoid TDZ error
+  const [cancelCheckedMembers, setCancelCheckedMembers] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const m of studioEmailMembers) {
+      init[m.email] = hasProjectMembers;
+    }
+    return init;
+  });
 
   // The email that will receive the Stripe invoice directly. Defaults to
   // clientEmail (the sprint's primary contact), but can be overridden via

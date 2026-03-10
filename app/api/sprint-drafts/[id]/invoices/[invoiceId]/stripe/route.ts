@@ -37,17 +37,26 @@ async function writeChangelog(
 /**
  * POST /api/sprint-drafts/[id]/invoices/[invoiceId]/stripe
  *
- * Supports three actions via `{ action }` in the request body:
+ * Supports five actions via `{ action }` in the request body:
  *
  * - "generate": Creates a Stripe Invoice draft + line item, finalizes it to
  *   obtain the hosted URL, but does NOT email the client. Saves the Stripe
- *   Invoice ID and URL back to the DB.
+ *   Invoice ID and URL back to the DB. Supports achOnly flag (default true)
+ *   to restrict payment methods to ACH (0.8% fee) and exclude card (2.9%).
  *
  * - "send": Calls stripe.invoices.sendInvoice() to email the client and
- *   marks the local record as "sent".
+ *   marks the local record as "sent". Optionally CCs admin and sends
+ *   studio-branded emails to project members via Mailgun.
  *
  * - "send_draft": Emails the hosted Stripe invoice URL to the logged-in admin
  *   via Mailgun so they can preview before sending to the client.
+ *
+ * - "void": Voids the Stripe invoice and clears the local stripe_invoice_id
+ *   so the admin can regenerate. Only allowed before the invoice is sent.
+ *
+ * - "cancel": Voids the Stripe invoice (if present), optionally sends
+ *   cancellation emails to selected client recipients, always notifies the
+ *   admin, then permanently deletes the DB record. Blocked for paid/refunded.
  *
  * Admin only for all actions.
  */

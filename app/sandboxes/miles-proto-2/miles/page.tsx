@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
 /* ------------------------------------------------------------------ */
-/*  Context definitions                                                */
+/*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
 type AgentContext =
@@ -17,58 +17,140 @@ type AgentContext =
   | "driver-score"
   | "coaching-braking";
 
+interface ActionOption {
+  id: string;
+  label: string;
+  detail?: string;
+  style: "primary" | "secondary" | "dismiss";
+  response: { text: string; subtext?: string };
+}
+
+interface ActionCardData {
+  intro: string;
+  title: string;
+  subtitle?: string;
+  status?: { label: string; level: "good" | "warn" | "info" };
+  rows: { label: string; value: string; highlight?: boolean }[];
+  whyItMatters?: string;
+  actions: ActionOption[];
+}
+
+interface InfoCardData {
+  title: string;
+  subtitle?: string;
+  rows: { label: string; value: string }[];
+}
+
 interface ContextConfig {
   greeting: string;
-  card?: ChatCard;
+  actionCard?: ActionCardData;
+  infoCard?: InfoCardData;
   prompts: string[];
 }
 
-interface ChatCard {
-  type: "trip" | "vehicle" | "score" | "reminder";
-  title: string;
-  rows: { label: string; value: string }[];
-  actions?: { label: string; style: "primary" | "secondary" }[];
-}
-
-interface ReminderOption {
-  label: string;
-  icon: string;
-  response: string;
-}
-
-interface PendingItem {
-  id: string;
-  message: string;
-  reminderOptions: ReminderOption[];
-}
-
 /* ------------------------------------------------------------------ */
-/*  Demo data                                                          */
+/*  Demo data — pending items (cold context)                           */
 /* ------------------------------------------------------------------ */
 
-const PENDING_ITEMS: PendingItem[] = [
+const PENDING_ITEMS: { id: string; actionCard: ActionCardData }[] = [
   {
     id: "fuel",
-    message: "Your fuel was at 38% after your last trip. Want a reminder to fill up?",
-    reminderOptions: [
-      { label: "Tomorrow morning", icon: "☀️", response: "I'll remind you tomorrow morning before you leave." },
-      { label: "This weekend", icon: "📅", response: "Reminder set for Saturday morning." },
-      { label: "Already filled up", icon: "✅", response: "Great — I've cleared this one." },
-      { label: "Don't remind me", icon: "🚫", response: "Got it — I won't bring up fuel reminders." },
-    ],
+    actionCard: {
+      intro:
+        "Your fuel was at 38% after your last trip. Here's where things stand:",
+      title: "Fuel Level",
+      subtitle: "2019 Honda Civic Sport",
+      status: { label: "Low", level: "warn" },
+      rows: [
+        { label: "Current level", value: "38%", highlight: true },
+        { label: "Estimated range", value: "~95 mi" },
+        { label: "Last fill-up", value: "6 days ago" },
+      ],
+      whyItMatters:
+        "Running below 25% increases risk of fuel pump wear and can leave you stranded. Filling up regularly also helps you track fuel economy trends.",
+      actions: [
+        {
+          id: "tomorrow",
+          label: "Remind me tomorrow morning",
+          detail: "7 AM",
+          style: "primary",
+          response: {
+            text: "Got it — reminder set for tomorrow at 7 AM.",
+            subtext: "Added to your Miles to-do list.",
+          },
+        },
+        {
+          id: "weekend",
+          label: "Remind me this weekend",
+          detail: "Sat",
+          style: "secondary",
+          response: {
+            text: "Reminder set for Saturday morning.",
+            subtext: "Added to your Miles to-do list.",
+          },
+        },
+        {
+          id: "handled",
+          label: "Already filled up",
+          style: "dismiss",
+          response: {
+            text: "Great — I've cleared this one.",
+            subtext: "Check fuel data anytime in Vehicle Health.",
+          },
+        },
+      ],
+    },
   },
   {
     id: "oil",
-    message: "Your oil change is coming up in about 800 miles. How would you like to handle it?",
-    reminderOptions: [
-      { label: "Remind me in a week", icon: "📅", response: "I'll check back in a week." },
-      { label: "At 500 miles remaining", icon: "🛣️", response: "I'll remind you when you're at 500 miles remaining." },
-      { label: "Add to my to-do list", icon: "📝", response: "Added to your to-do list. You can find it there anytime." },
-      { label: "Already scheduled", icon: "✅", response: "Nice — I'll mark this as handled." },
-      { label: "Don't remind me", icon: "🚫", response: "Understood. I won't bring this up again." },
-    ],
+    actionCard: {
+      intro: "Your oil change is coming up. Here's what I know:",
+      title: "Oil Change",
+      subtitle: "Next service interval",
+      status: { label: "Due Soon", level: "warn" },
+      rows: [
+        { label: "Remaining", value: "~800 mi", highlight: true },
+        { label: "Last changed", value: "Nov 12, 2025" },
+        { label: "Interval", value: "Every 5,000 mi" },
+      ],
+      whyItMatters:
+        "Delaying oil changes can lead to increased engine wear, reduced fuel efficiency, and potentially costly repairs. Staying on schedule keeps your engine running smoothly.",
+      actions: [
+        {
+          id: "week",
+          label: "Remind me in a week",
+          style: "primary",
+          response: {
+            text: "I'll check back in a week.",
+            subtext: "Added to your Miles to-do list.",
+          },
+        },
+        {
+          id: "500mi",
+          label: "At 500 miles remaining",
+          style: "secondary",
+          response: {
+            text: "I'll remind you at 500 miles remaining.",
+            subtext: "Tracking your mileage automatically.",
+          },
+        },
+        {
+          id: "scheduled",
+          label: "Already scheduled",
+          style: "dismiss",
+          response: {
+            text: "Nice — I'll mark this as handled.",
+            subtext: "Check maintenance anytime in Vehicle Health.",
+          },
+        },
+      ],
+    },
   },
 ];
+
+/* ------------------------------------------------------------------ */
+/*  Demo data — context configs                                        */
+/* ------------------------------------------------------------------ */
 
 const CONTEXT_CONFIGS: Record<AgentContext, ContextConfig> = {
   cold: {
@@ -83,13 +165,50 @@ const CONTEXT_CONFIGS: Record<AgentContext, ContextConfig> = {
   },
   fuel: {
     greeting: "Let's talk about your fuel situation.",
-    card: {
-      type: "vehicle",
-      title: "2019 Honda Civic Sport",
+    actionCard: {
+      intro:
+        "Your fuel was at 38% after your last trip. Here's where things stand:",
+      title: "Fuel Level",
+      subtitle: "2019 Honda Civic Sport",
+      status: { label: "Low", level: "warn" },
       rows: [
-        { label: "Fuel level", value: "38%" },
+        { label: "Current level", value: "38%", highlight: true },
         { label: "Estimated range", value: "~95 mi" },
         { label: "Last fill-up", value: "6 days ago" },
+        { label: "Avg consumption", value: "28 mpg" },
+      ],
+      whyItMatters:
+        "Running below 25% increases risk of fuel pump wear and can leave you stranded. Filling up regularly also helps you track fuel economy trends.",
+      actions: [
+        {
+          id: "tomorrow",
+          label: "Remind me tomorrow morning",
+          detail: "7 AM",
+          style: "primary",
+          response: {
+            text: "Got it — reminder set for tomorrow at 7 AM.",
+            subtext: "Added to your Miles to-do list.",
+          },
+        },
+        {
+          id: "weekend",
+          label: "Remind me this weekend",
+          detail: "Sat",
+          style: "secondary",
+          response: {
+            text: "Reminder set for Saturday morning.",
+            subtext: "Added to your Miles to-do list.",
+          },
+        },
+        {
+          id: "handled",
+          label: "Already filled up",
+          style: "dismiss",
+          response: {
+            text: "Great — I've cleared this one.",
+            subtext: "Check fuel data anytime in Vehicle Health.",
+          },
+        },
       ],
     },
     prompts: [
@@ -100,13 +219,47 @@ const CONTEXT_CONFIGS: Record<AgentContext, ContextConfig> = {
   },
   oil: {
     greeting: "Here's what I know about your upcoming oil change.",
-    card: {
-      type: "reminder",
-      title: "Oil Change Due",
+    actionCard: {
+      intro: "Your oil change is coming up. Here's the details:",
+      title: "Oil Change",
+      subtitle: "Next service interval",
+      status: { label: "Due Soon", level: "warn" },
       rows: [
-        { label: "Remaining", value: "~800 mi" },
+        { label: "Remaining", value: "~800 mi", highlight: true },
         { label: "Last changed", value: "Nov 12, 2025" },
         { label: "Interval", value: "Every 5,000 mi" },
+        { label: "Oil type", value: "0W-20 Synthetic" },
+      ],
+      whyItMatters:
+        "Delaying oil changes can lead to increased engine wear, reduced fuel efficiency, and potentially costly repairs. Staying on schedule keeps your engine running smoothly.",
+      actions: [
+        {
+          id: "week",
+          label: "Remind me in a week",
+          style: "primary",
+          response: {
+            text: "I'll check back in a week.",
+            subtext: "Added to your Miles to-do list.",
+          },
+        },
+        {
+          id: "500mi",
+          label: "At 500 miles remaining",
+          style: "secondary",
+          response: {
+            text: "I'll remind you at 500 miles remaining.",
+            subtext: "Tracking your mileage automatically.",
+          },
+        },
+        {
+          id: "scheduled",
+          label: "Already scheduled",
+          style: "dismiss",
+          response: {
+            text: "Nice — I'll mark this as handled.",
+            subtext: "Check maintenance anytime in Vehicle Health.",
+          },
+        },
       ],
     },
     prompts: [
@@ -117,9 +270,9 @@ const CONTEXT_CONFIGS: Record<AgentContext, ContextConfig> = {
   },
   registration: {
     greeting: "Your registration is coming up for renewal.",
-    card: {
-      type: "reminder",
+    infoCard: {
       title: "Registration Renewal",
+      subtitle: "Apr 15, 2026",
       rows: [
         { label: "Expires", value: "Apr 15, 2026" },
         { label: "Vehicle", value: "2019 Honda Civic" },
@@ -133,10 +286,11 @@ const CONTEXT_CONFIGS: Record<AgentContext, ContextConfig> = {
     ],
   },
   "trip-detail": {
-    greeting: "I see you're looking at your last trip. What would you like to know?",
-    card: {
-      type: "trip",
+    greeting:
+      "I see you're looking at your last trip. What would you like to know?",
+    infoCard: {
       title: "Home → Target",
+      subtitle: "Today, 3:42 PM",
       rows: [
         { label: "Score", value: "88" },
         { label: "Distance", value: "4.2 mi" },
@@ -153,8 +307,7 @@ const CONTEXT_CONFIGS: Record<AgentContext, ContextConfig> = {
   },
   "vehicle-health": {
     greeting: "Here's a summary of your Civic's health.",
-    card: {
-      type: "vehicle",
+    infoCard: {
       title: "2019 Honda Civic Sport",
       rows: [
         { label: "Engine", value: "Good" },
@@ -172,9 +325,9 @@ const CONTEXT_CONFIGS: Record<AgentContext, ContextConfig> = {
   },
   "driver-score": {
     greeting: "Let's dig into your driving score.",
-    card: {
-      type: "score",
+    infoCard: {
       title: "Driver Score",
+      subtitle: "Updated today",
       rows: [
         { label: "Current", value: "82" },
         { label: "Lowest category", value: "Cornering (76)" },
@@ -190,15 +343,40 @@ const CONTEXT_CONFIGS: Record<AgentContext, ContextConfig> = {
     ],
   },
   "coaching-braking": {
-    greeting: "You had a hard braking event on your last trip. Here's what I saw.",
-    card: {
-      type: "trip",
-      title: "Hard Braking — Preston Rd",
+    greeting: "I noticed something on your last trip.",
+    actionCard: {
+      intro:
+        "You had a hard braking event on Preston Rd. Here's what happened:",
+      title: "Hard Braking Event",
+      subtitle: "Preston Rd · Today, 3:48 PM",
+      status: { label: "-3 pts", level: "info" },
       rows: [
-        { label: "Deceleration", value: "-0.45g" },
+        { label: "Deceleration", value: "-0.45g", highlight: true },
         { label: "Speed before", value: "38 mph" },
         { label: "Speed after", value: "12 mph" },
         { label: "Score impact", value: "-3 pts" },
+      ],
+      whyItMatters:
+        "Hard braking events affect your driver score and can indicate risky following distance. Smoother braking is safer for you and easier on your brake pads.",
+      actions: [
+        {
+          id: "tips",
+          label: "Show me braking tips",
+          style: "primary",
+          response: {
+            text: "Try leaving 3–4 seconds of following distance at speed. Look further ahead to anticipate stops — smooth deceleration keeps your score high.",
+            subtext: "Your braking score is currently 78.",
+          },
+        },
+        {
+          id: "dismiss",
+          label: "Got it, thanks",
+          style: "dismiss",
+          response: {
+            text: "No problem — keep it smooth out there!",
+            subtext: "Check your driving breakdown anytime in Driver Score.",
+          },
+        },
       ],
     },
     prompts: [
@@ -216,69 +394,280 @@ const CONTEXT_CONFIGS: Record<AgentContext, ContextConfig> = {
 
 type ChatMessage =
   | { role: "user"; text: string }
-  | { role: "agent"; text: string }
-  | { role: "agent-card"; card: ChatCard }
-  | { role: "agent-reminder"; item: PendingItem };
+  | { role: "agent"; text: string; subtext?: string }
+  | { role: "agent-info-card"; card: InfoCardData };
 
 /* ------------------------------------------------------------------ */
 /*  Sub-components                                                     */
 /* ------------------------------------------------------------------ */
 
-function InlineCard({ card }: { card: ChatCard }) {
-  const borderColor = {
-    trip: "border-blue-200 bg-blue-50/50",
-    vehicle: "border-neutral-200 bg-neutral-50",
-    score: "border-green-200 bg-green-50/50",
-    reminder: "border-amber-200 bg-amber-50/50",
-  }[card.type];
-
+function StatusBadge({
+  label,
+  level,
+}: {
+  label: string;
+  level: "good" | "warn" | "info";
+}) {
+  const styles = {
+    good: "text-green-700 bg-green-100",
+    warn: "text-amber-700 bg-amber-100",
+    info: "text-blue-700 bg-blue-100",
+  };
   return (
-    <div className={`rounded-xl border p-3.5 ${borderColor}`}>
-      <span className="text-xs font-semibold text-neutral-500">{card.title}</span>
-      <div className="mt-2 flex flex-col gap-1.5">
-        {card.rows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between">
-            <span className="text-xs text-neutral-500">{row.label}</span>
-            <span className="text-xs font-semibold text-neutral-800">{row.value}</span>
-          </div>
-        ))}
+    <span
+      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${styles[level]}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function WhyItMatters({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-t border-neutral-100">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between px-4 py-2.5 text-xs font-medium text-neutral-400 transition-colors hover:text-neutral-600"
+      >
+        <span className="flex items-center gap-1.5">
+          <svg
+            className="size-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+            <path d="M12 17h.01" />
+          </svg>
+          Why this matters
+        </span>
+        <svg
+          className={`size-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      <div
+        className="overflow-hidden transition-all duration-300 ease-out"
+        style={{ maxHeight: open ? "200px" : "0px" }}
+      >
+        <p className="px-4 pb-3 text-xs leading-relaxed text-neutral-500">
+          {text}
+        </p>
       </div>
     </div>
   );
 }
 
-function ReminderCard({
-  item,
-  onSelect,
+function ActionButton({
+  action,
+  onClick,
 }: {
-  item: PendingItem;
-  onSelect: (option: ReminderOption) => void;
+  action: ActionOption;
+  onClick: () => void;
+}) {
+  if (action.style === "primary") {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-center gap-2.5 rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-2.5 text-left text-sm font-medium text-blue-700 transition-all hover:bg-blue-100 active:scale-[0.99]"
+      >
+        <svg
+          className="size-4 shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 6v6l4 2" />
+        </svg>
+        {action.label}
+        {action.detail && (
+          <span className="ml-auto text-[11px] text-blue-400">
+            {action.detail}
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  if (action.style === "secondary") {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-center gap-2.5 rounded-lg border border-neutral-200 bg-white px-3.5 py-2.5 text-left text-sm font-medium text-neutral-700 transition-all hover:bg-neutral-50 active:scale-[0.99]"
+      >
+        <svg
+          className="size-4 shrink-0 text-neutral-400"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+        >
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        {action.label}
+        {action.detail && (
+          <span className="ml-auto text-[11px] text-neutral-400">
+            {action.detail}
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-sm font-medium text-neutral-400 transition-all hover:bg-neutral-50 active:scale-[0.99]"
+    >
+      <svg
+        className="size-4 shrink-0 text-neutral-300"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+      >
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+      {action.label}
+    </button>
+  );
+}
+
+function AgentActionCard({
+  card,
+  onAction,
+}: {
+  card: ActionCardData;
+  onAction: (action: ActionOption) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-green-200 bg-green-50/50 p-4">
-      <p className="text-sm leading-relaxed text-green-800">{item.message}</p>
-      <div className="flex flex-col gap-1.5 pt-1">
-        {item.reminderOptions.map((opt) => (
-          <button
-            key={opt.label}
-            type="button"
-            onClick={() => onSelect(opt)}
-            className="flex items-center gap-2.5 rounded-lg border border-green-200 bg-white px-3.5 py-2.5 text-left text-sm font-medium text-green-800 transition-colors hover:bg-green-50"
-          >
-            <span className="text-base leading-none">{opt.icon}</span>
-            {opt.label}
-          </button>
-        ))}
+    <div className="flex flex-col gap-2.5">
+      <div className="flex justify-start">
+        <div className="max-w-[85%] rounded-2xl bg-neutral-100 px-4 py-3 text-sm leading-relaxed text-neutral-700">
+          {card.intro}
+        </div>
+      </div>
+
+      <div className="max-w-[90%] overflow-hidden rounded-xl border border-neutral-200 bg-white">
+        {/* Context block */}
+        <div className="p-4 pb-3">
+          <div className="mb-3 flex items-start justify-between">
+            <div>
+              <div className="text-sm font-semibold text-neutral-900">
+                {card.title}
+              </div>
+              {card.subtitle && (
+                <div className="mt-0.5 text-xs text-neutral-500">
+                  {card.subtitle}
+                </div>
+              )}
+            </div>
+            {card.status && <StatusBadge {...card.status} />}
+          </div>
+          <div className="flex flex-col gap-2">
+            {card.rows.map((row) => (
+              <div
+                key={row.label}
+                className="flex items-center justify-between"
+              >
+                <span className="text-xs text-neutral-500">{row.label}</span>
+                <span
+                  className={`text-xs font-semibold ${
+                    row.highlight ? "text-amber-600" : "text-neutral-800"
+                  }`}
+                >
+                  {row.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {card.whyItMatters && <WhyItMatters text={card.whyItMatters} />}
+
+        {/* Actions */}
+        <div className="flex flex-col gap-2 border-t border-neutral-100 p-3">
+          <span className="px-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-300">
+            What would you like to do?
+          </span>
+          {card.actions.map((action) => (
+            <ActionButton
+              key={action.id}
+              action={action}
+              onClick={() => onAction(action)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function AgentBubble({ text }: { text: string }) {
+function InfoCard({ card }: { card: InfoCardData }) {
   return (
     <div className="flex justify-start">
-      <div className="max-w-[85%] rounded-2xl bg-neutral-100 px-4 py-3 text-sm leading-relaxed text-neutral-800">
-        {text}
+      <div className="max-w-[85%] rounded-xl border border-neutral-200 bg-white p-3.5">
+        <div className="mb-2 flex items-start justify-between">
+          <span className="text-xs font-semibold text-neutral-900">
+            {card.title}
+          </span>
+          {card.subtitle && (
+            <span className="text-[11px] text-neutral-400">
+              {card.subtitle}
+            </span>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {card.rows.map((row) => (
+            <div key={row.label} className="flex items-center justify-between">
+              <span className="text-xs text-neutral-500">{row.label}</span>
+              <span className="text-xs font-semibold text-neutral-800">
+                {row.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AgentBubble({
+  text,
+  subtext,
+}: {
+  text: string;
+  subtext?: string;
+}) {
+  return (
+    <div className="flex justify-start">
+      <div className="max-w-[85%] rounded-2xl bg-neutral-100 px-4 py-3">
+        <p className="text-sm leading-relaxed text-neutral-800">{text}</p>
+        {subtext && (
+          <p className="mt-1 text-xs text-neutral-500">{subtext}</p>
+        )}
       </div>
     </div>
   );
@@ -347,7 +736,10 @@ function ContextBadge({ context }: { context: AgentContext }) {
 /*  Simulated agent responses                                          */
 /* ------------------------------------------------------------------ */
 
-function getAgentResponse(text: string, context: AgentContext): ChatMessage[] {
+function getAgentResponse(
+  text: string,
+  context: AgentContext
+): ChatMessage[] {
   const q = text.toLowerCase();
 
   if (q.includes("score") && q.includes("calculat")) {
@@ -357,9 +749,8 @@ function getAgentResponse(text: string, context: AgentContext): ChatMessage[] {
         text: "Your score is based on four categories — braking, speed, acceleration, and cornering. Each trip is scored, and your daily score is a weighted average. Smoother driving in all four areas pushes your score up.",
       },
       {
-        role: "agent-card",
+        role: "agent-info-card",
         card: {
-          type: "score",
           title: "Your Breakdown",
           rows: [
             { label: "Braking", value: "78" },
@@ -415,9 +806,8 @@ function getAgentResponse(text: string, context: AgentContext): ChatMessage[] {
         text: "Here's your week at a glance:",
       },
       {
-        role: "agent-card",
+        role: "agent-info-card",
         card: {
-          type: "trip",
           title: "Last 7 Days",
           rows: [
             { label: "Total trips", value: "7" },
@@ -460,27 +850,49 @@ function AgentContent() {
   const [input, setInput] = useState("");
   const [pendingIndex, setPendingIndex] = useState(0);
   const [promptsUsed, setPromptsUsed] = useState(false);
+  const [cardResolved, setCardResolved] = useState(false);
 
   const pending =
     contextParam === "cold" && pendingIndex < PENDING_ITEMS.length
       ? PENDING_ITEMS[pendingIndex]
       : null;
 
-  const showPrompts = !promptsUsed && messages.length === 0 && !pending;
+  const showContextActionCard =
+    contextParam !== "cold" && config.actionCard && !cardResolved;
+
+  const showInfoCard = config.infoCard && messages.length === 0;
+
+  const noPendingCards =
+    contextParam === "cold" && pendingIndex >= PENDING_ITEMS.length;
+  const showPrompts =
+    !promptsUsed &&
+    messages.length === 0 &&
+    !pending &&
+    !showContextActionCard &&
+    (noPendingCards || contextParam !== "cold");
 
   useEffect(() => {
     setMessages([]);
     setPendingIndex(0);
     setPromptsUsed(false);
+    setCardResolved(false);
   }, [contextParam]);
 
-  function handleReminderSelect(option: ReminderOption) {
+  function handleActionSelect(action: ActionOption) {
     setMessages((prev) => [
       ...prev,
-      { role: "user", text: option.label },
-      { role: "agent", text: option.response },
+      { role: "user", text: action.label },
+      {
+        role: "agent",
+        text: action.response.text,
+        subtext: action.response.subtext,
+      },
     ]);
-    setPendingIndex((i) => i + 1);
+    if (contextParam === "cold") {
+      setPendingIndex((i) => i + 1);
+    } else {
+      setCardResolved(true);
+    }
   }
 
   function handleSend(text: string) {
@@ -498,8 +910,18 @@ function AgentContent() {
       <div className="border-b border-neutral-100 px-5 pb-4 pt-14">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-full bg-green-100">
-            <svg className="size-5 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
+            <svg
+              className="size-5 text-green-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z"
+              />
             </svg>
           </div>
           <div className="flex flex-1 flex-col gap-1">
@@ -514,18 +936,35 @@ function AgentContent() {
         {/* Greeting */}
         <AgentBubble text={config.greeting} />
 
-        {/* Context card (shown once on entry) */}
-        {config.card && messages.length === 0 && (
-          <div className="flex justify-start">
-            <div className="max-w-[85%]">
-              <InlineCard card={config.card} />
-            </div>
-          </div>
+        {/* Info card (non-action contexts, shown before any interaction) */}
+        {showInfoCard && <InfoCard card={config.infoCard!} />}
+
+        {/* Chat history */}
+        {messages.map((msg, i) => {
+          if (msg.role === "user") return <UserBubble key={i} text={msg.text} />;
+          if (msg.role === "agent")
+            return (
+              <AgentBubble key={i} text={msg.text} subtext={msg.subtext} />
+            );
+          if (msg.role === "agent-info-card")
+            return <InfoCard key={i} card={msg.card} />;
+          return null;
+        })}
+
+        {/* Action card for non-cold contexts */}
+        {showContextActionCard && (
+          <AgentActionCard
+            card={config.actionCard!}
+            onAction={handleActionSelect}
+          />
         )}
 
-        {/* Pending reminder item (cold context only, one at a time) */}
+        {/* Pending action card for cold context */}
         {pending && (
-          <ReminderCard item={pending} onSelect={handleReminderSelect} />
+          <AgentActionCard
+            card={pending.actionCard}
+            onAction={handleActionSelect}
+          />
         )}
 
         {/* Suggested prompts */}
@@ -533,39 +972,17 @@ function AgentContent() {
           <SuggestedPrompts prompts={config.prompts} onSelect={handleSend} />
         )}
 
-        {/* Chat history */}
-        {messages.map((msg, i) => {
-          if (msg.role === "user") return <UserBubble key={i} text={msg.text} />;
-          if (msg.role === "agent") return <AgentBubble key={i} text={msg.text} />;
-          if (msg.role === "agent-card") {
-            return (
-              <div key={i} className="flex justify-start">
-                <div className="max-w-[85%]">
-                  <InlineCard card={msg.card} />
-                </div>
-              </div>
-            );
-          }
-          if (msg.role === "agent-reminder") {
-            return (
-              <ReminderCard
-                key={i}
-                item={msg.item}
-                onSelect={handleReminderSelect}
-              />
-            );
-          }
-          return null;
-        })}
-
-        {/* Post-message suggested prompts */}
+        {/* Post-interaction suggested prompts */}
         {messages.length > 0 && (
           <SuggestedPrompts prompts={config.prompts} onSelect={handleSend} />
         )}
       </div>
 
-      {/* Input bar */}
-      <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+56px)] left-0 right-0 border-t border-neutral-100 bg-white px-5 py-3">
+      {/* Input bar — sticky above bottom nav, constrained to device frame */}
+      <div
+        className="fixed bottom-14 left-1/2 z-20 w-full -translate-x-1/2 border-t border-neutral-100 bg-white px-5 py-3"
+        style={{ maxWidth: "var(--frame-width, 100%)" }}
+      >
         <div className="mx-auto flex max-w-lg items-center gap-2">
           <input
             type="text"
@@ -581,8 +998,18 @@ function AgentContent() {
             disabled={!input.trim()}
             className="flex size-10 shrink-0 items-center justify-center rounded-full bg-green-600 text-white transition-colors hover:bg-green-700 disabled:opacity-40"
           >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+            <svg
+              className="size-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
+              />
             </svg>
           </button>
         </div>
