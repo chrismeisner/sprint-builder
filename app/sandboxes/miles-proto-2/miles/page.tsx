@@ -2,7 +2,6 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "@/app/sandboxes/miles-proto-2/_components/link";
 
 /* ------------------------------------------------------------------ */
 /*  Context definitions                                                */

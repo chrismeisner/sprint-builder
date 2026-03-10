@@ -406,7 +406,11 @@ export default function IndexPage() {
   function toggleTier(t: TierLevel) {
     setTierFilter((prev) => {
       const next = new Set(prev);
-      next.has(t) ? next.delete(t) : next.add(t);
+      if (next.has(t)) {
+        next.delete(t);
+      } else {
+        next.add(t);
+      }
       return next;
     });
   }
@@ -414,7 +418,11 @@ export default function IndexPage() {
   function toggleCategory(c: string) {
     setCategoryFilter((prev) => {
       const next = new Set(prev);
-      next.has(c) ? next.delete(c) : next.add(c);
+      if (next.has(c)) {
+        next.delete(c);
+      } else {
+        next.add(c);
+      }
       return next;
     });
   }
