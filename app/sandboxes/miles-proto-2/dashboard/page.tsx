@@ -186,58 +186,6 @@ const RECENT_TRIPS: RecentTrip[] = [
 ];
 
 /* ------------------------------------------------------------------ */
-/*  Sub-components                                                     */
-/* ------------------------------------------------------------------ */
-
-function _FleetSwitcher({
-  vehicles,
-  selected,
-  onSelect,
-  showFleet,
-}: {
-  vehicles: Vehicle[];
-  selected: string;
-  onSelect: (id: string) => void;
-  showFleet: boolean;
-}) {
-  const hide = vehicles.length === 1 && !showFleet;
-
-  if (hide) return null;
-
-  return (
-    <div className="flex gap-2 overflow-x-auto px-5 pb-1 pt-4 scrollbar-none">
-      {vehicles.map((v) => (
-        <button
-          key={v.id}
-          type="button"
-          onClick={() => onSelect(v.id)}
-          className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium leading-none transition-colors ${
-            selected === v.id && !showFleet
-              ? "bg-neutral-900 text-white"
-              : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-          }`}
-        >
-          {v.year} {v.name}
-        </button>
-      ))}
-      {vehicles.length > 1 && (
-        <button
-          type="button"
-          onClick={() => onSelect("fleet")}
-          className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium leading-none transition-colors ${
-            showFleet
-              ? "bg-neutral-900 text-white"
-              : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-          }`}
-        >
-          Fleet View
-        </button>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /*  Shared vehicle content (no map) — used by both list and card view  */
 /* ------------------------------------------------------------------ */
 
@@ -487,32 +435,6 @@ function FleetView({ vehicles }: { vehicles: Vehicle[] }) {
         </div>
       )}
     </div>
-  );
-}
-
-
-
-function _MilesScoreCard({ vehicle }: { vehicle: Vehicle }) {
-  return (
-    <Link
-      href="/driver-score"
-      className="mx-5 flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3.5 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-    >
-      <div className="flex flex-col gap-0.5">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-400">
-          Miles Score
-        </span>
-        <span className="text-2xl font-bold leading-none tabular-nums text-neutral-900">
-          {vehicle.driverScore}
-        </span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-neutral-400">{vehicle.scoreUpdated}</span>
-        <svg className="size-4 text-neutral-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-        </svg>
-      </div>
-    </Link>
   );
 }
 
@@ -833,7 +755,6 @@ function TripDriverCard({ driver }: { driver: string }) {
 }
 
 function TripInProgress({
-  vehicle: _vehicle,
   driver,
   vehicleLabel,
 }: {
@@ -1029,52 +950,6 @@ function TripComplete({
       >
         Back to dashboard
       </button>
-    </div>
-  );
-}
-
-function _FleetMapView({
-  vehicles,
-  onSelectVehicle,
-}: {
-  vehicles: Vehicle[];
-  onSelectVehicle: (id: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-4 px-5 pt-2">
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl">
-        <MapView
-          markers={vehicles.map((v) => ({
-            lat: v.parkedAt.lat,
-            lng: v.parkedAt.lng,
-            type: "end" as const,
-          }))}
-          interactive={false}
-        />
-      </div>
-      <div className="flex flex-col divide-y divide-neutral-100 rounded-xl border border-neutral-200 bg-white">
-        {vehicles.map((v) => (
-          <button
-            key={v.id}
-            type="button"
-            onClick={() => onSelectVehicle(v.id)}
-            className="flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50"
-          >
-            <span className="size-2 shrink-0 rounded-full bg-blue-500" />
-            <div className="flex flex-1 flex-col gap-0.5">
-              <span className="text-sm font-medium leading-none text-neutral-900">
-                {v.year} {v.make} {v.name}
-              </span>
-              <span className="text-xs text-neutral-500">
-                {v.locationLabel} · Parked
-              </span>
-            </div>
-            <svg className="size-4 shrink-0 text-neutral-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </svg>
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

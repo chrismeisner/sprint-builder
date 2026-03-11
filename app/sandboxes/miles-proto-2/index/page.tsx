@@ -302,16 +302,6 @@ function priorityBadgeClass(p: Priority) {
   return map[p];
 }
 
-function _priorityLabel(p: Priority) {
-  const map: Record<Priority, string> = {
-    p0: "P0 Critical",
-    p1: "P1 High",
-    p2: "P2 Medium",
-    p3: "P3 Low",
-  };
-  return map[p];
-}
-
 function InlineSelect<T extends string>({
   value,
   options,
