@@ -328,9 +328,8 @@ Return ONLY a JSON object with these exact keys:
     }
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
   const sprintUrl = `${appUrl}/sprints/${sprintId}`;
 
   const bodyHtml = emailBody
@@ -456,13 +455,20 @@ ${allUpdateLinks.map((l) => `<tr><td style="padding:4px 0;">
     );
   }
 
+  const adminEmail = user.email ?? undefined;
+
   const results: Array<{ email: string; success: boolean; error?: string }> = [];
   for (const email of recipientEmails) {
+    // CC the admin on every outbound email (so they get a copy of each send).
+    // Only set CC if admin isn't already the direct recipient on this iteration.
+    const ccAdmin = adminEmail && adminEmail !== email ? adminEmail : undefined;
     const result = await sendEmail({
       to: email,
       subject: emailSubject,
       text: emailBody,
       html,
+      replyTo: adminEmail,
+      cc: ccAdmin,
     });
     results.push({ email, success: result.success, error: result.error });
   }

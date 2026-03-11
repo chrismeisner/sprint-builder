@@ -7,6 +7,8 @@ export interface SendEmailParams {
   subject: string;
   text: string;
   html?: string;
+  replyTo?: string;
+  cc?: string;
 }
 
 export async function sendEmail(params: SendEmailParams): Promise<{
@@ -42,6 +44,12 @@ export async function sendEmail(params: SendEmailParams): Promise<{
 
     if (params.html) {
       requestParams.html = params.html;
+    }
+    if (params.replyTo) {
+      requestParams["h:Reply-To"] = params.replyTo;
+    }
+    if (params.cc) {
+      requestParams.cc = params.cc;
     }
 
     const mailgunRes = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
