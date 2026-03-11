@@ -144,6 +144,8 @@ export default function SprintDailyUpdates({
   } | null>(null);
   const [summarySending, setSummarySending] = useState(false);
   const [summarySent, setSummarySent] = useState(false);
+  const [summarySendingDraft, setSummarySendingDraft] = useState(false);
+  const [summarySentDraft, setSummarySentDraft] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
   const totalDays = weeks * 5;
@@ -372,9 +374,32 @@ export default function SprintDailyUpdates({
     }
   };
 
+  const handleSendDraftSummary = async () => {
+    setSummarySendingDraft(true);
+    setSummaryError(null);
+    try {
+      const res = await fetch(`/api/sprint-drafts/${sprintId}/daily-summary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "draft" }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error || `Failed to send draft (${res.status})`);
+      }
+      const data = await res.json() as { adminEmail?: string };
+      setSummarySentDraft(data.adminEmail ?? "you");
+    } catch (err) {
+      setSummaryError(err instanceof Error ? err.message : "Failed to send draft");
+    } finally {
+      setSummarySendingDraft(false);
+    }
+  };
+
   const closeSummaryModal = () => {
     setSummaryPreview(null);
     setSummarySent(false);
+    setSummarySentDraft(null);
     setSummaryError(null);
   };
 
@@ -934,7 +959,16 @@ export default function SprintDailyUpdates({
                 </div>
               )}
 
-              {/* Success */}
+              {/* Success — draft */}
+              {summarySentDraft && (
+                <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 p-3">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Draft sent to {summarySentDraft}. Check your inbox to preview the email.
+                  </p>
+                </div>
+              )}
+
+              {/* Success — full send */}
               {summarySent && (
                 <div className="rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 p-3">
                   <p className="text-sm text-green-700 dark:text-green-300">
@@ -945,49 +979,87 @@ export default function SprintDailyUpdates({
             </div>
 
             {/* Modal footer */}
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 dark:border-neutral-700">
-              {!summarySent ? (
-                <>
+            <div className="flex items-center justify-between gap-2 px-6 py-4 border-t border-neutral-200 dark:border-neutral-700">
+              {/* Left: Send Draft to Me */}
+              {!summarySent && (
+                <button
+                  type="button"
+                  onClick={handleSendDraftSummary}
+                  disabled={summarySendingDraft || summarySending}
+                  title="Send a test copy of this email to yourself"
+                  className="h-10 px-4 text-sm rounded-md border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 transition-colors duration-150 ease-out flex items-center gap-1.5"
+                >
+                  {summarySendingDraft ? (
+                    <>
+                      <svg className="animate-spin size-3.5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Sending Draft...
+                    </>
+                  ) : summarySentDraft ? (
+                    <>
+                      <svg className="size-3.5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Draft Sent
+                    </>
+                  ) : (
+                    <>
+                      <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Send Draft to Me
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Right: Cancel + Send to all */}
+              <div className="flex items-center gap-2 ml-auto">
+                {!summarySent ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={closeSummaryModal}
+                      className="h-10 px-4 text-sm rounded-md border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-150 ease-out"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendSummary}
+                      disabled={summarySending || summarySendingDraft || summaryPreview.recipients.length === 0}
+                      className="h-10 px-4 text-sm rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 disabled:opacity-50 transition-opacity duration-150 ease-out flex items-center gap-1.5"
+                    >
+                      {summarySending ? (
+                        <>
+                          <svg className="animate-spin size-3.5" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </svg>
+                          Send to {summaryPreview.recipients.length} Recipient{summaryPreview.recipients.length !== 1 ? "s" : ""}
+                        </>
+                      )}
+                    </button>
+                  </>
+                ) : (
                   <button
                     type="button"
                     onClick={closeSummaryModal}
-                    className="h-10 px-4 text-sm rounded-md border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-150 ease-out"
+                    className="h-10 px-4 text-sm rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 transition-opacity duration-150 ease-out"
                   >
-                    Cancel
+                    Done
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleSendSummary}
-                    disabled={summarySending || summaryPreview.recipients.length === 0}
-                    className="h-10 px-4 text-sm rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 disabled:opacity-50 transition-opacity duration-150 ease-out flex items-center gap-1.5"
-                  >
-                    {summarySending ? (
-                      <>
-                        <svg className="animate-spin size-3.5" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
-                        Send to {summaryPreview.recipients.length} Recipient{summaryPreview.recipients.length !== 1 ? "s" : ""}
-                      </>
-                    )}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={closeSummaryModal}
-                  className="h-10 px-4 text-sm rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 transition-opacity duration-150 ease-out"
-                >
-                  Done
-                </button>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>

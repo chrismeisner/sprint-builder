@@ -18,7 +18,7 @@ export async function sendEmail(params: SendEmailParams): Promise<{
     const mailgunApiKey = process.env.MAILGUN_API_KEY;
     const mailgunDomain = process.env.MAILGUN_DOMAIN;
     const mailgunFromEmail = process.env.MAILGUN_FROM_EMAIL || `no-reply@${mailgunDomain || "example.com"}`;
-    const mailgunFromName = process.env.MAILGUN_FROM_NAME;
+    const mailgunFromName = process.env.MAILGUN_FROM_NAME || "Meisner Design";
     const mailgunFrom = mailgunFromName
       ? `${mailgunFromName} <${mailgunFromEmail}>`
       : mailgunFromEmail;

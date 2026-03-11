@@ -320,10 +320,10 @@ Return ONLY a JSON object with these exact keys:
   }
 
   // ── 8. Build HTML email ──
-  // Collect all links from all daily updates (deduplicated by URL)
+  // Collect links only from the latest day's updates (deduplicated by URL)
   const allUpdateLinks: Array<{ url: string; label: string; day: number }> = [];
   const seenUrls = new Set<string>();
-  for (const u of allUpdates) {
+  for (const u of allUpdates.filter((u) => u.sprintDay === latestDay)) {
     for (const l of u.links) {
       if (l.url && !seenUrls.has(l.url)) {
         seenUrls.add(l.url);
@@ -406,11 +406,12 @@ ${allUpdateLinks.map((l) => `<tr><td style="padding:4px 0;">
 </body>
 </html>`;
 
-  // ── 8. Parse request body to decide: preview or send ──
-  let mode: "preview" | "send" = "preview";
+  // ── 8. Parse request body to decide: preview, draft, or send ──
+  let mode: "preview" | "draft" | "send" = "preview";
   try {
     const body = await _req.json();
     if (body?.mode === "send") mode = "send";
+    else if (body?.mode === "draft") mode = "draft";
   } catch {
     // default to preview
   }
@@ -428,7 +429,30 @@ ${allUpdateLinks.map((l) => `<tr><td style="padding:4px 0;">
     });
   }
 
-  // ── 9. Send emails ──
+  // ── 9a. Draft mode — send only to admin ──
+  if (mode === "draft") {
+    const adminEmail = user.email;
+    if (!adminEmail) {
+      return NextResponse.json({ error: "Admin email not found" }, { status: 400 });
+    }
+    const draftSubject = `[DRAFT] ${emailSubject}`;
+    const result = await sendEmail({
+      to: adminEmail,
+      subject: draftSubject,
+      text: emailBody,
+      html,
+    });
+    return NextResponse.json({
+      sent: true,
+      draft: true,
+      adminEmail,
+      subject: draftSubject,
+      success: result.success,
+      error: result.error,
+    });
+  }
+
+  // ── 9b. Send emails to all recipients ──
   if (recipientEmails.length === 0) {
     return NextResponse.json(
       { error: "No recipients found. Add project members first." },
