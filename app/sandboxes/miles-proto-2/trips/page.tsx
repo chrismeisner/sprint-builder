@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 import Link from "@/app/sandboxes/miles-proto-2/_components/link";
+import { MapView } from "@/app/sandboxes/miles-proto-2/_components/map-view";
+
+const LIVE_ROUTE: [number, number][] = [
+  [33.0152, -96.7108], [33.0168, -96.7088], [33.0183, -96.7065],
+  [33.0185, -96.7038], [33.0185, -96.7010], [33.0185, -96.6982],
+  [33.0198, -96.6960], [33.0218, -96.6945], [33.0240, -96.6932],
+];
 
 interface Trip {
   id: string;
@@ -71,6 +78,38 @@ export default function TripsPage() {
 
       {/* Trip list grouped by date */}
       <div className="flex flex-col gap-5 px-5">
+
+        {/* Live trip — always first */}
+        <Link
+          href="/dashboard?mode=trip&driver=Jack&vehicleLabel=Subaru+Outback"
+          className="group flex items-center gap-3 overflow-hidden rounded-xl border border-green-200 bg-green-50 px-4 py-3.5 transition-colors hover:bg-green-100"
+        >
+          <div className="flex flex-1 flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium leading-none text-green-900">Home → ...</span>
+              <span className="flex items-center gap-1 rounded-full bg-green-200 px-2 py-0.5 text-[10px] font-semibold text-green-800">
+                <span className="relative flex size-1.5">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-600 opacity-75" />
+                  <span className="relative inline-flex size-1.5 rounded-full bg-green-700" />
+                </span>
+                Live
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-green-700">
+              <span>In progress</span>
+              <span className="text-green-400">&middot;</span>
+              <span>4.2 mi</span>
+              <span className="text-green-400">&middot;</span>
+              <span>Jack</span>
+              <span className="text-green-400">&middot;</span>
+              <span>RAV4</span>
+            </div>
+          </div>
+          <svg className="size-4 shrink-0 text-green-500 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+          </svg>
+        </Link>
+
         {dateOrder.map((date) => {
           const trips = grouped[date];
           if (!trips || trips.length === 0) return null;
@@ -107,11 +146,9 @@ export default function TripsPage() {
                         <span>{trip.driver}</span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-0.5">
-                      <span className="text-sm font-semibold tabular-nums text-neutral-700">
-                        {trip.score}
-                      </span>
-                    </div>
+                    <svg className="size-4 shrink-0 text-neutral-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
                   </Link>
                 ))}
               </div>

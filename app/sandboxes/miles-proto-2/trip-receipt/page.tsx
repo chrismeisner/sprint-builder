@@ -11,42 +11,24 @@ const DEMO_ROUTE: [number, number][] = [
 
 export default function TripReceiptPage() {
   return (
-    <main className="flex min-h-dvh flex-col px-6 py-16">
+    <main className="flex min-h-dvh flex-col px-6 pb-16">
       <div className="mx-auto flex w-full max-w-sm flex-col gap-8">
 
-        {/* Back */}
-        <Link
-          href="/trips"
-          className="flex items-center gap-1 text-sm font-medium leading-none text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
-        >
-          <svg className="size-4" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-          </svg>
-          Trips
-        </Link>
-
-        {/* Success header */}
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="flex size-16 items-center justify-center rounded-full bg-green-50 dark:bg-green-950">
-            <svg
-              className="size-8 text-green-600 dark:text-green-400"
-              aria-hidden="true"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        {/* Modal header */}
+        <div className="flex items-center justify-between pt-4">
+          <div className="flex flex-col gap-0.5">
+            <h1 className="text-base font-semibold leading-snug text-neutral-900">Trip recorded</h1>
+            <p className="text-xs text-neutral-400">Here&rsquo;s your quick summary.</p>
+          </div>
+          <Link
+            href="/trips"
+            className="inline-flex size-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 transition-colors hover:bg-neutral-200"
+            aria-label="Close"
+          >
+            <svg className="size-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
-          </div>
-          <div className="flex flex-col gap-2">
-            <h1 className="text-4xl font-semibold leading-tight text-balance text-neutral-900 dark:text-neutral-100">
-              Trip recorded
-            </h1>
-            <p className="text-base font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400">
-              Here&rsquo;s your quick summary.
-            </p>
-          </div>
+          </Link>
         </div>
 
         {/* Route map */}
@@ -107,22 +89,38 @@ export default function TripReceiptPage() {
               12 min
             </span>
           </div>
-          <div className="flex flex-col gap-1 rounded-md border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-800">
-            <span className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500">
-              Driver
-            </span>
-            <span className="text-xl font-semibold leading-snug text-balance text-neutral-900 dark:text-neutral-100">
+          <Link
+            href="/drivers"
+            className="flex flex-col gap-1 rounded-md border border-neutral-200 bg-neutral-50 p-4 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500">
+                Driver
+              </span>
+              <svg className="size-3.5 text-neutral-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+              </svg>
+            </div>
+            <span className="text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100">
               Chris
             </span>
-          </div>
-          <div className="flex flex-col gap-1 rounded-md border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-800">
-            <span className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500">
-              Vehicle
-            </span>
-            <span className="text-xl font-semibold leading-snug text-balance text-neutral-900 dark:text-neutral-100">
+          </Link>
+          <Link
+            href="/vehicle?from=trips"
+            className="flex flex-col gap-1 rounded-md border border-neutral-200 bg-neutral-50 p-4 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-500">
+                Vehicle
+              </span>
+              <svg className="size-3.5 text-neutral-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+              </svg>
+            </div>
+            <span className="text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100">
               CR-V
             </span>
-          </div>
+          </Link>
         </div>
 
         {/* CTA */}

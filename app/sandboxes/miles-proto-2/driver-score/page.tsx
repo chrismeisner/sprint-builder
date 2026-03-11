@@ -137,7 +137,7 @@ export default function DriverScorePage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
         </Link>
-        <h1 className="text-lg font-semibold text-neutral-900">Driver Score</h1>
+        <h1 className="text-lg font-semibold text-neutral-900">Miles Score</h1>
       </div>
 
       <div className="flex flex-col gap-6 px-5 pt-4">

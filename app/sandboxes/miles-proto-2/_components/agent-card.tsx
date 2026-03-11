@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type {
   ActionIcon,
   ActionOption,
@@ -8,6 +9,7 @@ import type {
   StatusLevel,
   TireMap,
 } from "@/app/sandboxes/miles-proto-2/_lib/agent-types";
+import { p } from "@/app/sandboxes/miles-proto-2/_lib/nav";
 
 /* ------------------------------------------------------------------ */
 /*  Primitives                                                         */
@@ -262,14 +264,22 @@ export function ActionButton({
   action: ActionOption;
   onClick: () => void;
 }) {
+  const router = useRouter();
   const icon = action.icon ?? DEFAULT_ICON_FOR_STYLE[action.style] ?? "none";
   const detailColor =
     action.style === "primary" ? "text-blue-400" : "text-neutral-400";
 
+  function handleClick() {
+    onClick();
+    if (action.href) {
+      router.push(p(action.href));
+    }
+  }
+
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={handleClick}
       className={`flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-sm font-medium transition-all active:scale-[0.99] ${ACTION_STYLES[action.style]}`}
     >
       <span className={ICON_COLOR[action.style]}>

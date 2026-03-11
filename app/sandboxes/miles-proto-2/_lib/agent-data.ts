@@ -93,6 +93,20 @@ const OIL_ACTIONS: ActionOption[] = [
 /* ------------------------------------------------------------------ */
 
 export const CONTEXTS: Record<string, ContextConfig> = {
+  home: {
+    greeting: "Hey Chris 👋 I'm Miles — your personal driving assistant. I keep an eye on your vehicles, trips, and drivers so you don't have to. What can I help with today?",
+    prompts: [
+      "How's my Miles Score looking?",
+      "Any issues with my vehicles?",
+      "Who drove the most this week?",
+      "When is my oil change due?",
+      "Show me yesterday's trips",
+      "How can I improve my braking?",
+      "Is my insurance up to date?",
+      "What's Jack been up to on the road?",
+    ],
+  },
+
   cold: {
     greeting: "Hey Chris — anything I can help with?",
     prompts: [
@@ -218,9 +232,9 @@ export const CONTEXTS: Record<string, ContextConfig> = {
 
   "driver-score": {
     greeting: "Let's dig into your driving score.",
-    badgeLabel: "Driver Score",
+    badgeLabel: "Miles Score",
     card: {
-      title: "Driver Score",
+      title: "Miles Score",
       subtitle: "Updated today",
       rows: [
         { label: "Current", value: "82" },
@@ -366,7 +380,8 @@ export const CONTEXTS: Record<string, ContextConfig> = {
           id: "full-live",
           label: "Open full live view",
           style: "primary",
-          icon: "calendar",
+          icon: "none",
+          href: "/dashboard?mode=trip&driver=Jack&vehicleLabel=Subaru+Outback",
           response: {
             text: "Opening the full live view. You'll see higher-frequency GPS updates and turn-by-turn trail as Jack drives.",
           },
@@ -571,7 +586,7 @@ export const CONTEXTS: Record<string, ContextConfig> = {
           icon: "check",
           response: {
             text: "No problem — keep it smooth out there!",
-            subtext: "Check your driving breakdown anytime in Driver Score.",
+            subtext: "Check your driving breakdown anytime in Miles Score.",
           },
         },
         {

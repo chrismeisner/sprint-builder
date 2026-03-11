@@ -1,12 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { BASE } from "@/app/sandboxes/miles-proto-2/_lib/nav";
+
+type PageStatus = "draft" | "in review" | "ready";
+type Priority = "p0" | "p1" | "p2" | "p3";
 
 interface PageEntry {
   href: string;
   label: string;
   note?: string;
+  status?: PageStatus;
+  priority?: Priority;
 }
 
 interface Section {
@@ -18,6 +23,8 @@ type Tab = "screens" | "scenarios";
 
 type TierLevel = 1 | 2 | 3;
 
+type ScenarioStatus = "draft" | "in review" | "ready";
+
 interface Scenario {
   id: number;
   name: string;
@@ -25,185 +32,41 @@ interface Scenario {
   tier: string;
   overview: string;
   category: string;
+  status: ScenarioStatus;
+  priority: Priority;
   constraint?: string;
   isNotAgent?: boolean;
   href?: string;
 }
 
+interface ScreenOverride { status?: PageStatus; priority?: Priority; }
+interface ScenarioOverride { status?: ScenarioStatus; priority?: Priority; }
+
+const SCREEN_STORAGE_KEY = "miles-proto-2-screen-overrides";
+const SCENARIO_STORAGE_KEY = "miles-proto-2-scenario-overrides";
+
 const scenarios: Scenario[] = [
-  {
-    id: 1,
-    name: "Kid Starts Driving / Trip in Progress",
-    tierLevel: 2,
-    tier: "Active (Alert → Chat)",
-    overview: "Prove that both parents receive, view, and trust a live trip as it happens and after it ends.",
-    category: "Family",
-    href: "/notification?context=kid-trip",
-  },
-  {
-    id: 2,
-    name: "Kid Speeding",
-    href: "/notification?context=kid-speeding",
-    tierLevel: 2,
-    tier: "Active (Alert → Chat)",
-    overview: "Show the agent interrupting an active trip thread with a driving behavior alert and parent response options.",
-    category: "Family",
-  },
-  {
-    id: 3,
-    name: "Hard Braking (Real-Time Alert)",
-    href: "/notification?context=coaching-braking",
-    tierLevel: 2,
-    tier: "Active (Alert → Chat)",
-    overview: "Same as speeding but for a deceleration event, proving the mid-trip alert pattern repeats cleanly.",
-    category: "Coaching",
-  },
-  {
-    id: 4,
-    name: "Fuel Low After a Trip",
-    tierLevel: 2,
-    tier: "Active (Alert → Chat)",
-    overview: "Establish the baseline reminder pattern: agent surfaces a low-stakes issue, user picks how to handle it, done.",
-    category: "Coaching",
-    constraint: "Never show map, gas stations, or route suggestions — explicitly banned anti-pattern",
-    href: "/notification?context=fuel",
-  },
-  {
-    id: 5,
-    name: "Low Tire Pressure",
-    href: "/notification?context=tire-pressure",
-    tierLevel: 2,
-    tier: "Active (Alert → Chat)",
-    overview: "Prove the full card anatomy works end-to-end: data visualization, coaching layer, action set, and resolution.",
-    category: "Maintenance",
-  },
-  {
-    id: 6,
-    name: "Oil Change Due",
-    tierLevel: 2,
-    tier: "Active / Passive",
-    overview: "Show the reminder pattern with more action variety (time-based, mileage-based, already done) and the \"don't badger\" behavior.",
-    category: "Maintenance",
-    href: "/notification?context=oil",
-  },
-  {
-    id: 7,
-    name: "Severe Crash — Emergency",
-    tierLevel: 3,
-    tier: "Emergency (Full-screen)",
-    overview: "Define the boundary where the agent pattern stops and a full-screen, red-button emergency UI takes over.",
-    category: "Emergency",
-    isNotAgent: true,
-  },
-  {
-    id: 8,
-    name: "Less Severe Crash / Vehicle Breakdown",
-    tierLevel: 3,
-    tier: "Emergency (Simplified)",
-    overview: "Show the second tier of crash response where the user is conscious and choosing between tow or ambulance.",
-    category: "Emergency",
-    isNotAgent: true,
-  },
-  {
-    id: 9,
-    name: "Maintenance Intake / Source of Truth Setup",
-    tierLevel: 2,
-    tier: "Active (Onboarding → Passive)",
-    overview: "Walk through the onboarding moment where the agent builds the vehicle's maintenance baseline item by item.",
-    category: "Onboarding",
-  },
-  {
-    id: 10,
-    name: "Check Engine Light",
-    tierLevel: 2,
-    tier: "Active (Alert → Chat)",
-    overview: "Test the alert → chat flow with a higher-anxiety vehicle issue that needs calm explanation.",
-    category: "Vehicle Health",
-    href: "/notification?context=check-engine",
-  },
-  {
-    id: 11,
-    name: "Trip Summary — Contextual Q&A",
-    tierLevel: 1,
-    tier: "Passive (In-context)",
-    overview: "Prove the agent can be user-initiated from a screen, not just alert-driven, with suggested prompts scoped to a completed trip.",
-    category: "Trips",
-    href: "/miles?context=trip-detail",
-  },
-  {
-    id: 12,
-    name: "Hard Braking (Post-Trip Review)",
-    href: "/miles?context=coaching-braking",
-    tierLevel: 2,
-    tier: "Active (Alert → Chat)",
-    overview: "Show braking events as markers on a completed trip route inside the trip summary view.",
-    category: "Coaching",
-  },
-  {
-    id: 13,
-    name: "Insurance Photo Intake",
-    tierLevel: 1,
-    tier: "Passive (Badge)",
-    overview: "Demonstrate the agent asking the user to contribute a document and following up months later with insight from it.",
-    category: "Documents",
-  },
-  {
-    id: 14,
-    name: "Registration Expiring",
-    tierLevel: 1,
-    tier: "Passive (Badge)",
-    overview: "Show the passive badge entry point for a time-based reminder that's handled in seconds and backgrounded.",
-    category: "Documents",
-    href: "/notification?context=registration",
-  },
-  {
-    id: 15,
-    name: "Post-Incident Follow-Up",
-    tierLevel: 1,
-    tier: "Passive (Badge)",
-    overview: "Prove the agent can re-open a closed loop days after an emergency with a human-touch check-in.",
-    category: "Emergency",
-  },
-  {
-    id: 16,
-    name: "Service Receipt Photo",
-    tierLevel: 2,
-    tier: "Active / Passive",
-    overview: "Show the agent prompting for a photo after a maintenance item is marked done to keep the log accurate.",
-    category: "Maintenance",
-  },
-  {
-    id: 17,
-    name: "Major Maintenance Early Warning",
-    tierLevel: 1,
-    tier: "Passive (Badge)",
-    overview: "Surface a future maintenance milestone from the vehicle's schedule before it becomes urgent.",
-    category: "Maintenance",
-  },
-  {
-    id: 18,
-    name: "Model-Specific Known Issue",
-    tierLevel: 1,
-    tier: "Passive (Badge)",
-    overview: "Proactively flag a common problem for this make/model/mileage that the user may not know about.",
-    category: "Maintenance",
-  },
-  {
-    id: 19,
-    name: "Pre-Service Appointment Briefing",
-    tierLevel: 2,
-    tier: "Active (Alert → Chat)",
-    overview: "Arm the user with what their car actually needs before they walk into the shop.",
-    category: "Maintenance",
-  },
-  {
-    id: 20,
-    name: "Trip Detail — Save Destination",
-    tierLevel: 1,
-    tier: "Passive (In-context)",
-    overview: "Show the agent offering to name a location based on where the user is in the app, replacing a settings screen.",
-    category: "Trips",
-  },
+  { id: 1,  name: "Kid Starts Driving / Trip in Progress",    tierLevel: 2, tier: "Active (Alert → Chat)",         overview: "Prove that both parents receive, view, and trust a live trip as it happens and after it ends.",                                                                                                                                           category: "Family",         status: "ready",     priority: "p1", href: "/notification?context=kid-trip" },
+  { id: 2,  name: "Kid Speeding",                             tierLevel: 2, tier: "Active (Alert → Chat)",         overview: "Show the agent interrupting an active trip thread with a driving behavior alert and parent response options.",                                                                                                                         category: "Family",         status: "ready",     priority: "p1", href: "/notification?context=kid-speeding" },
+  { id: 3,  name: "Hard Braking (Real-Time Alert)",           tierLevel: 2, tier: "Active (Alert → Chat)",         overview: "Same as speeding but for a deceleration event, proving the mid-trip alert pattern repeats cleanly.",                                                                                                                                 category: "Coaching",       status: "ready",     priority: "p2", href: "/notification?context=coaching-braking" },
+  { id: 4,  name: "Fuel Low After a Trip",                    tierLevel: 2, tier: "Active (Alert → Chat)",         overview: "Establish the baseline reminder pattern: agent surfaces a low-stakes issue, user picks how to handle it, done.",                                                                                                                     category: "Coaching",       status: "in review", priority: "p2", href: "/notification?context=fuel" },
+  { id: 5,  name: "Low Tire Pressure",                        tierLevel: 2, tier: "Active (Alert → Chat)",         overview: "Prove the full card anatomy works end-to-end: data visualization, coaching layer, action set, and resolution.",                                                                                                                     category: "Maintenance",    status: "ready",     priority: "p1", href: "/notification?context=tire-pressure" },
+  { id: 6,  name: "Oil Change Due",                           tierLevel: 2, tier: "Active / Passive",              overview: "Show the reminder pattern with more action variety (time-based, mileage-based, already done) and the \"don't badger\" behavior.",                                                                                                   category: "Maintenance",    status: "in review", priority: "p2", href: "/notification?context=oil" },
+  { id: 7,  name: "Severe Crash — Emergency",                 tierLevel: 3, tier: "Emergency (Full-screen)",       overview: "Define the boundary where the agent pattern stops and a full-screen, red-button emergency UI takes over. Send push alert to trusted contact with details of incident; tell primary driver we've dispatched first responder; monitoring center calls them.",                                                                                                                           category: "Emergency",      status: "draft",     priority: "p0", isNotAgent: true },
+  { id: 8,  name: "Less Severe Crash / Vehicle Breakdown",    tierLevel: 3, tier: "Emergency (Simplified)",        overview: "Show the second tier of crash response where the user is conscious and choosing between tow or ambulance. Push notification to trusted contact; ask primary user if they need help. Two buttons: roadside, emergency services.",                                                                                                                          category: "Emergency",      status: "draft",     priority: "p0", isNotAgent: true },
+  { id: 9,  name: "Maintenance Intake / Source of Truth Setup", tierLevel: 2, tier: "Active (Onboarding → Passive)", overview: "Walk through the onboarding moment where the agent builds the vehicle's maintenance baseline item by item.",                                                                                                                      category: "Onboarding",     status: "draft",     priority: "p2" },
+  { id: 10, name: "Check Engine Light",                       tierLevel: 2, tier: "Active (Alert → Chat)",         overview: "Test the alert → chat flow with a higher-anxiety vehicle issue that needs calm explanation. Surface context on the issue, severity, and cost range. CTAs: get reminder in 2–3 days; send email/documentation to mechanic.",                                                                                                                                       category: "Vehicle Health", status: "ready",     priority: "p1", href: "/notification?context=check-engine" },
+  { id: 11, name: "Trip Summary — Contextual Q&A",            tierLevel: 1, tier: "Passive (In-context)",          overview: "Prove the agent can be user-initiated from a screen, not just alert-driven, with suggested prompts scoped to a completed trip.",                                                                                                    category: "Trips",          status: "in review", priority: "p2", href: "/miles?context=trip-detail" },
+  { id: 12, name: "Hard Braking (Post-Trip Review)",          tierLevel: 2, tier: "Active (Alert → Chat)",         overview: "Show braking events as markers on a completed trip route inside the trip summary view.",                                                                                                                                            category: "Coaching",       status: "ready",     priority: "p2", href: "/miles?context=coaching-braking" },
+  { id: 13, name: "Insurance Photo Intake",                   tierLevel: 1, tier: "Passive (Badge)",               overview: "Demonstrate the agent asking the user to contribute a document and following up months later with insight from it. Future: share insights on their rates vs others or market trends; prompt to get a quote from our partner when rates look high or near renewal.",                                                                                                                 category: "Documents",      status: "draft",     priority: "p3" },
+  { id: 14, name: "Registration Expiring",                    tierLevel: 1, tier: "Passive (Badge)",               overview: "Show the passive badge entry point for a time-based reminder that's handled in seconds and backgrounded.",                                                                                                                          category: "Documents",      status: "ready",     priority: "p2", href: "/notification?context=registration" },
+  { id: 15, name: "Post-Incident Follow-Up",                  tierLevel: 1, tier: "Passive (Badge)",               overview: "Prove the agent can re-open a closed loop days after an emergency with a human-touch check-in.",                                                                                                                                    category: "Emergency",      status: "draft",     priority: "p3" },
+  { id: 16, name: "Service Receipt Photo",                    tierLevel: 2, tier: "Active / Passive",              overview: "Show the agent prompting for a photo after a maintenance item is marked done to keep the log accurate. Store image in \"digital glovebox\" for reference; parse info to show in records; set behind-the-scenes reminders for future service milestones. (Glovebox concept could extend to insurance, service records, todo list, etc.)",                                                                                                                            category: "Maintenance",    status: "draft",     priority: "p3" },
+  { id: 17, name: "Major Maintenance Early Warning",          tierLevel: 1, tier: "Passive (Badge)",               overview: "Surface a future maintenance milestone from the vehicle's schedule before it becomes urgent. In future, we'll pull in info about the recommended service: anticipated cost range, how long service takes, etc. Also can ask to book an appointment.", category: "Maintenance", status: "draft", priority: "p3" },
+  { id: 18, name: "Model-Specific Known Issue",               tierLevel: 1, tier: "Passive (Badge)",               overview: "Proactively flag a common problem for this make/model/mileage that the user may not know about.",                                                                                                                                   category: "Maintenance",    status: "draft",     priority: "p3" },
+  { id: 19, name: "Pre-Service Appointment Briefing",         tierLevel: 2, tier: "Active (Alert → Chat)",         overview: "Arm the user with what their car actually needs before they walk into the shop. Prepare people before they go in based on recommended services for their mileage, what's coming up in future, and cost ranges.",                                                                                  category: "Maintenance",    status: "in review", priority: "p2" },
+  { id: 20, name: "Trip Detail — Save Destination",           tierLevel: 1, tier: "Passive (In-context)",          overview: "Show the agent offering to name a location based on where the user is in the app, replacing a settings screen.",                                                                                                                    category: "Trips",          status: "draft",     priority: "p3" },
+  { id: 21, name: "Inspection Due",                           tierLevel: 1, tier: "Passive (Badge)",               overview: "Same pattern as registration expiring: passive badge for a time-based reminder (state/safety inspection due), handled in seconds and backgrounded.",                                                                                 category: "Documents",      status: "draft",     priority: "p3" },
 ];
 
 const sections: Section[] = [
@@ -217,15 +80,15 @@ const sections: Section[] = [
   {
     title: "Notification Entry Points",
     pages: [
-      { href: "/notification?context=kid-speeding", label: "Speed Alert — Jack", note: "notification → agent" },
-      { href: "/notification?context=tire-pressure", label: "Low Tire Pressure", note: "notification → agent" },
-      { href: "/notification?context=kid-trip", label: "Kid Started a Trip", note: "notification → agent" },
-      { href: "/notification?context=coaching-braking", label: "Hard Braking Detected", note: "notification → agent" },
-      { href: "/notification?context=fuel", label: "Fuel Getting Low", note: "notification → agent" },
-      { href: "/notification?context=check-engine", label: "Check Engine Light", note: "notification → agent" },
-      { href: "/notification?context=oil", label: "Maintenance Reminder", note: "notification → agent" },
-      { href: "/notification?context=registration", label: "Registration Expiring", note: "notification → agent" },
-      { href: "/notification?context=trip-detail", label: "Trip Complete", note: "notification → agent" },
+      { href: "/notification?context=kid-speeding", label: "Speed Alert — Jack", note: "notification → agent", status: "ready" },
+      { href: "/notification?context=tire-pressure", label: "Low Tire Pressure", note: "notification → agent", status: "ready" },
+      { href: "/notification?context=kid-trip", label: "Kid Started a Trip", note: "notification → agent", status: "in review" },
+      { href: "/notification?context=coaching-braking", label: "Hard Braking Detected", note: "notification → agent", status: "ready" },
+      { href: "/notification?context=fuel", label: "Fuel Getting Low", note: "notification → agent", status: "in review" },
+      { href: "/notification?context=check-engine", label: "Check Engine Light", note: "notification → agent", status: "ready" },
+      { href: "/notification?context=oil", label: "Maintenance Reminder", note: "notification → agent", status: "draft" },
+      { href: "/notification?context=registration", label: "Registration Expiring", note: "notification → agent", status: "ready" },
+      { href: "/notification?context=trip-detail", label: "Trip Complete", note: "notification → agent", status: "draft" },
     ],
   },
   {
@@ -347,7 +210,7 @@ const sections: Section[] = [
   {
     title: "Detail Screens",
     pages: [
-      { href: "/driver-score", label: "Driver Score", note: "trend · categories · comparison" },
+      { href: "/driver-score", label: "Miles Score", note: "trend · categories · comparison" },
       { href: "/todos", label: "To-Do List", note: "full list · completable" },
       { href: "/device-health", label: "Device Health" },
       { href: "/insights", label: "Insights", note: "from proto-1" },
@@ -420,7 +283,78 @@ function categoryColor(category: string) {
   return map[category] ?? "bg-neutral-100 text-neutral-600";
 }
 
-type SortKey = "id" | "name" | "tierLevel" | "category";
+function statusBadgeClass(status: PageStatus | ScenarioStatus) {
+  const map: Record<string, string> = {
+    draft: "bg-neutral-100 text-neutral-600 border-neutral-200",
+    "in review": "bg-amber-50 text-amber-700 border-amber-200",
+    ready: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  };
+  return map[status] ?? "bg-neutral-100 text-neutral-600";
+}
+
+function priorityBadgeClass(p: Priority) {
+  const map: Record<Priority, string> = {
+    p0: "bg-red-50 text-red-700 border-red-200",
+    p1: "bg-orange-50 text-orange-700 border-orange-200",
+    p2: "bg-blue-50 text-blue-700 border-blue-200",
+    p3: "bg-neutral-100 text-neutral-500 border-neutral-200",
+  };
+  return map[p];
+}
+
+function priorityLabel(p: Priority) {
+  const map: Record<Priority, string> = {
+    p0: "P0 Critical",
+    p1: "P1 High",
+    p2: "P2 Medium",
+    p3: "P3 Low",
+  };
+  return map[p];
+}
+
+function InlineSelect<T extends string>({
+  value,
+  options,
+  onChange,
+  badgeClass,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  badgeClass: string;
+}) {
+  return (
+    <div className="relative inline-flex items-center">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+        className={`cursor-pointer appearance-none rounded border py-0.5 pl-1.5 pr-5 text-[10px] font-medium leading-none transition-opacity hover:opacity-80 ${badgeClass}`}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+      <svg className="pointer-events-none absolute right-1 size-2.5 opacity-50" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+      </svg>
+    </div>
+  );
+}
+
+const STATUS_OPTIONS: { value: PageStatus; label: string }[] = [
+  { value: "draft", label: "draft" },
+  { value: "in review", label: "in review" },
+  { value: "ready", label: "ready" },
+];
+
+const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
+  { value: "p0", label: "P0 Critical" },
+  { value: "p1", label: "P1 High" },
+  { value: "p2", label: "P2 Medium" },
+  { value: "p3", label: "P3 Low" },
+];
+
+type SortKey = "id" | "name" | "tierLevel" | "category" | "status" | "priority";
 type SortDir = "asc" | "desc";
 
 const allTiers: TierLevel[] = [1, 2, 3];
@@ -441,12 +375,42 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
 export default function IndexPage() {
   const [query, setQuery] = useState("");
   const [copiedHref, setCopiedHref] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("screens");
+  const [tab, setTab] = useState<Tab>("scenarios");
 
   const [tierFilter, setTierFilter] = useState<Set<TierLevel>>(new Set());
   const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>("id");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const [screenOverrides, setScreenOverrides] = useState<Record<string, ScreenOverride>>({});
+  const [scenarioOverrides, setScenarioOverrides] = useState<Record<string, ScenarioOverride>>({});
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SCREEN_STORAGE_KEY);
+      if (raw) setScreenOverrides(JSON.parse(raw));
+    } catch {}
+    try {
+      const raw = localStorage.getItem(SCENARIO_STORAGE_KEY);
+      if (raw) setScenarioOverrides(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  function updateScreenOverride(href: string, patch: Partial<ScreenOverride>) {
+    setScreenOverrides((prev) => {
+      const next = { ...prev, [href]: { ...prev[href], ...patch } };
+      try { localStorage.setItem(SCREEN_STORAGE_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
+  function updateScenarioOverride(id: number, patch: Partial<ScenarioOverride>) {
+    setScenarioOverrides((prev) => {
+      const next = { ...prev, [id]: { ...prev[id], ...patch } };
+      try { localStorage.setItem(SCENARIO_STORAGE_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
 
   function toggleTier(t: TierLevel) {
     setTierFilter((prev) => {
@@ -536,6 +500,18 @@ export default function IndexPage() {
         case "category":
           cmp = a.category.localeCompare(b.category);
           break;
+        case "status": {
+          const order = { draft: 0, "in review": 1, ready: 2 };
+          cmp = order[a.status] - order[b.status];
+          break;
+        }
+        case "priority": {
+          const order: Record<Priority, number> = { p0: 0, p1: 1, p2: 2, p3: 3 };
+          const ap = scenarioOverrides[a.id]?.priority ?? a.priority;
+          const bp = scenarioOverrides[b.id]?.priority ?? b.priority;
+          cmp = order[ap] - order[bp];
+          break;
+        }
       }
       return sortDir === "desc" ? -cmp : cmp;
     });
@@ -559,7 +535,7 @@ export default function IndexPage() {
     <div className="min-h-dvh bg-white">
       {/* Sticky header */}
       <div className="sticky top-0 z-10 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-3">
+        <div className="mx-auto flex max-w-none items-center gap-4 px-6 py-3">
           <a
             href="/dashboard/sandboxes"
             className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-900"
@@ -617,23 +593,8 @@ export default function IndexPage() {
         </div>
 
         {/* Tabs */}
-        <div className="mx-auto max-w-5xl px-6">
+        <div className="mx-auto max-w-none px-6">
           <div className="flex gap-0">
-            <button
-              type="button"
-              onClick={() => { setTab("screens"); setQuery(""); setTierFilter(new Set()); setCategoryFilter(new Set()); setSortKey("id"); setSortDir("asc"); }}
-              className={`relative px-4 py-2 text-sm font-medium transition-colors ${
-                tab === "screens"
-                  ? "text-neutral-900"
-                  : "text-neutral-400 hover:text-neutral-600"
-              }`}
-            >
-              Screens
-              <span className="ml-1.5 text-xs text-neutral-400">{totalPages}</span>
-              {tab === "screens" && (
-                <span className="absolute inset-x-0 -bottom-px h-0.5 bg-neutral-900" />
-              )}
-            </button>
             <button
               type="button"
               onClick={() => { setTab("scenarios"); setQuery(""); }}
@@ -649,12 +610,27 @@ export default function IndexPage() {
                 <span className="absolute inset-x-0 -bottom-px h-0.5 bg-neutral-900" />
               )}
             </button>
+            <button
+              type="button"
+              onClick={() => { setTab("screens"); setQuery(""); setTierFilter(new Set()); setCategoryFilter(new Set()); setSortKey("id"); setSortDir("asc"); }}
+              className={`relative px-4 py-2 text-sm font-medium transition-colors ${
+                tab === "screens"
+                  ? "text-neutral-900"
+                  : "text-neutral-400 hover:text-neutral-600"
+              }`}
+            >
+              Screens
+              <span className="ml-1.5 text-xs text-neutral-400">{totalPages}</span>
+              {tab === "screens" && (
+                <span className="absolute inset-x-0 -bottom-px h-0.5 bg-neutral-900" />
+              )}
+            </button>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="mx-auto max-w-5xl px-6 py-6">
+      <div className="mx-auto max-w-none px-6 py-6">
         {tab === "screens" ? (
           /* ── Screens table ── */
           filtered.length === 0 ? (
@@ -676,6 +652,7 @@ export default function IndexPage() {
                   <th className="pb-2 pr-4 text-left text-xs font-medium text-neutral-400">Screen</th>
                   <th className="pb-2 pr-4 text-left text-xs font-medium text-neutral-400">Path</th>
                   <th className="pb-2 pr-4 text-left text-xs font-medium text-neutral-400">State</th>
+                  <th className="w-24 pb-2 pr-4 text-left text-xs font-medium text-neutral-400">Status</th>
                   <th className="w-16 pb-2 text-right text-xs font-medium text-neutral-400">Open</th>
                 </tr>
               </thead>
@@ -683,7 +660,7 @@ export default function IndexPage() {
                 {filtered.map((section) => (
                   <>
                     <tr key={`section-${section.title}`} className="border-b border-neutral-100">
-                      <td colSpan={5} className="bg-neutral-50 px-0 py-2 pt-5 first:pt-2">
+                      <td colSpan={6} className="bg-neutral-50 px-0 py-2 pt-5 first:pt-2">
                         <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
                           {section.title}
                         </span>
@@ -729,6 +706,19 @@ export default function IndexPage() {
                                 {page.note}
                               </span>
                             )}
+                          </td>
+                          <td className="py-2.5 pr-4">
+                            {(() => {
+                              const st = screenOverrides[page.href]?.status ?? page.status ?? "draft";
+                              return (
+                                <InlineSelect
+                                  value={st}
+                                  options={STATUS_OPTIONS}
+                                  onChange={(v) => updateScreenOverride(page.href, { status: v })}
+                                  badgeClass={statusBadgeClass(st)}
+                                />
+                              );
+                            })()}
                           </td>
                           <td className="py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -866,6 +856,18 @@ export default function IndexPage() {
                       <SortIcon active={sortKey === "category"} dir={sortDir} />
                     </button>
                   </th>
+                  <th className="w-28 pb-2 pr-4 text-left">
+                    <button type="button" onClick={() => handleSort("priority")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
+                      Priority
+                      <SortIcon active={sortKey === "priority"} dir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="w-24 pb-2 pr-4 text-left">
+                    <button type="button" onClick={() => handleSort("status")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
+                      Status
+                      <SortIcon active={sortKey === "status"} dir={sortDir} />
+                    </button>
+                  </th>
                   <th className="w-28 pb-2 text-left text-xs font-medium text-neutral-400">Prototype</th>
                 </tr>
               </thead>
@@ -912,6 +914,32 @@ export default function IndexPage() {
                       <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${categoryColor(scenario.category)}`}>
                         {scenario.category}
                       </span>
+                    </td>
+                    <td className="py-3 pr-4 align-top">
+                      {(() => {
+                        const prio = scenarioOverrides[scenario.id]?.priority ?? scenario.priority;
+                        return (
+                          <InlineSelect
+                            value={prio}
+                            options={PRIORITY_OPTIONS}
+                            onChange={(v) => updateScenarioOverride(scenario.id, { priority: v })}
+                            badgeClass={priorityBadgeClass(prio)}
+                          />
+                        );
+                      })()}
+                    </td>
+                    <td className="py-3 pr-4 align-top">
+                      {(() => {
+                        const st = scenarioOverrides[scenario.id]?.status ?? scenario.status;
+                        return (
+                          <InlineSelect
+                            value={st}
+                            options={STATUS_OPTIONS}
+                            onChange={(v) => updateScenarioOverride(scenario.id, { status: v })}
+                            badgeClass={statusBadgeClass(st)}
+                          />
+                        );
+                      })()}
                     </td>
                     <td className="py-3 align-top">
                       {scenario.href ? (

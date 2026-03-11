@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "@/app/sandboxes/miles-proto-2/_components/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { BASE, p } from "@/app/sandboxes/miles-proto-2/_lib/nav";
+import { Suspense } from "react";
 
 const HIDDEN_ON = new Set([
   BASE, BASE + "/",
@@ -82,6 +83,31 @@ function MilesIcon({ active }: { active: boolean }) {
   );
 }
 
+function DriversIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      className={`size-6 transition-colors ${active ? "text-blue-600" : "text-neutral-400"}`}
+      aria-hidden="true"
+      fill={active ? "currentColor" : "none"}
+      viewBox="0 0 24 24"
+      strokeWidth={active ? 0 : 1.5}
+      stroke="currentColor"
+    >
+      {active ? (
+        <path
+          fillRule="evenodd"
+          d="M8.25 6.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM15.75 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM2.25 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM6.31 15.117A6.745 6.745 0 0 1 12 12a6.745 6.745 0 0 1 6.709 7.498.75.75 0 0 1-.372.568A12.696 12.696 0 0 1 12 21.75c-2.305 0-4.47-.612-6.337-1.684a.75.75 0 0 1-.372-.568 6.787 6.787 0 0 1 1.019-4.38Z"
+          clipRule="evenodd"
+        />
+      ) : (
+        <>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 function AccountIcon({ active }: { active: boolean }) {
   return (
     <svg
@@ -145,19 +171,39 @@ const TABS: TabDef[] = [
     badge: true,
   },
   {
-    href: "/account",
-    label: "Account",
+    href: "/drivers",
+    label: "Drivers",
+    icon: DriversIcon,
+    match: (pn) => pn.startsWith(`${BASE}/drivers`),
+  },
+  {
+    href: "/profile",
+    label: "Profile",
     icon: AccountIcon,
     match: (pn) =>
-      pn.startsWith(`${BASE}/account`) ||
-      pn.startsWith(`${BASE}/profile`),
+      pn === `${BASE}/profile` ||
+      pn === `${BASE}/profile/` ||
+      pn.startsWith(`${BASE}/profile?`),
   },
 ];
 
-export function BottomNav() {
+function BottomNavInner() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   if (HIDDEN_ON.has(pathname)) return null;
+
+  // When viewing a family member's live trip from the dashboard,
+  // treat it as belonging to the Trips tab.
+  const isFamilyLiveTrip =
+    (pathname === `${BASE}/dashboard` || pathname === `${BASE}/dashboard/`) &&
+    !!searchParams.get("vehicleLabel");
+
+  // When on /vehicle or /device-health, retain the tab the user came from.
+  const isVehicleModal =
+    pathname === `${BASE}/vehicle` || pathname === `${BASE}/vehicle/` ||
+    pathname === `${BASE}/device-health` || pathname === `${BASE}/device-health/`;
+  const fromTab = isVehicleModal ? (searchParams.get("from") ?? "dashboard") : null;
 
   return (
     <nav
@@ -166,16 +212,29 @@ export function BottomNav() {
     >
       <div className="mx-auto flex items-center justify-around px-2 py-2">
         {TABS.map((tab) => {
-          const active = tab.match(pathname);
+          const active = isVehicleModal
+            ? tab.href === `/${fromTab}`
+            : isFamilyLiveTrip
+            ? tab.label === "Trips"
+            : tab.match(pathname);
           const Icon = tab.icon;
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className="relative flex min-w-0 flex-1 flex-col items-center gap-1 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-lg"
-            >
-              <span className="relative">
-                <Icon active={active} />
+          const isMiles = tab.label === "Miles";
+          const linkContent = (
+            <>
+              <span className="relative flex items-center justify-center">
+                {isMiles ? (
+                  <span
+                    className={`flex items-center justify-center rounded-2xl px-4 py-2 transition-all ${
+                      active
+                        ? "bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/25 [&_svg]:stroke-white [&_svg]:!text-white"
+                        : "bg-gradient-to-br from-green-100 to-emerald-100 text-green-700"
+                    }`}
+                  >
+                    <Icon active={active} />
+                  </span>
+                ) : (
+                  <Icon active={active} />
+                )}
                 {tab.badge && !active && (
                   <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-green-500 ring-2 ring-white" />
                 )}
@@ -191,10 +250,27 @@ export function BottomNav() {
               >
                 {tab.label}
               </span>
+            </>
+          );
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className="relative flex min-w-0 flex-1 flex-col items-center gap-1 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-lg"
+            >
+              {linkContent}
             </Link>
           );
         })}
       </div>
     </nav>
+  );
+}
+
+export function BottomNav() {
+  return (
+    <Suspense>
+      <BottomNavInner />
+    </Suspense>
   );
 }

@@ -13,7 +13,10 @@ export interface MapMarker {
   lng: number;
   /** "start" = hollow ring, "end" = filled dot, "event" = red pulse */
   type?: "start" | "end" | "event";
+  /** Optional badge label rendered above the dot */
   label?: string;
+  /** Override dot fill color (hex/css) */
+  color?: string;
 }
 
 export interface MapViewProps {
@@ -35,32 +38,32 @@ export interface MapViewProps {
   className?: string;
 }
 
-function markerIcon(Leaf: typeof L, type: MapMarker["type"] = "end"): L.DivIcon {
-  const shared = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:9999px;";
+function markerIcon(Leaf: typeof L, type: MapMarker["type"] = "end", color?: string, label?: string): L.DivIcon {
+  const dotColor = color ?? (type === "start" ? "white" : type === "event" ? "#ef4444" : "#2563eb");
+  const borderColor = type === "start" ? (color ?? "#3b82f6") : "white";
+  const dotSize = type === "event" ? 16 : 14;
+  const dotHtml = `<div style="width:${dotSize}px;height:${dotSize}px;background:${dotColor};border-radius:9999px;border:2.5px solid ${borderColor};box-shadow:0 1px 4px rgba(0,0,0,.25);flex-shrink:0;"></div>`;
 
-  if (type === "start") {
+  if (label) {
+    // Badge floats above the dot, both centered in a column
+    const html = `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div style="background:${dotColor};color:white;border-radius:9999px;padding:3px 8px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.2);font-family:system-ui,-apple-system,sans-serif;line-height:1.4;">${label}</div>
+      ${dotHtml}
+    </div>`;
+    // Container is wide enough for the badge; anchor at dot center (bottom of container minus half dot)
     return Leaf.divIcon({
       className: "",
-      iconSize: [14, 14],
-      iconAnchor: [7, 7],
-      html: `<span style="${shared}width:14px;height:14px;background:white;border:2.5px solid #3b82f6;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>`,
-    });
-  }
-
-  if (type === "event") {
-    return Leaf.divIcon({
-      className: "",
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
-      html: `<span style="${shared}width:16px;height:16px;background:#ef4444;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.25);"></span>`,
+      iconSize: [110, 38],
+      iconAnchor: [55, 31],
+      html,
     });
   }
 
   return Leaf.divIcon({
     className: "",
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-    html: `<span style="${shared}width:14px;height:14px;background:#2563eb;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>`,
+    iconSize: [dotSize, dotSize],
+    iconAnchor: [dotSize / 2, dotSize / 2],
+    html: dotHtml,
   });
 }
 
@@ -132,7 +135,7 @@ export function MapView({
       if (markers && markers.length > 0) {
         const bounds = Leaf.latLngBounds([]);
         for (const m of markers) {
-          Leaf.marker([m.lat, m.lng], { icon: markerIcon(Leaf, m.type), interactive: false }).addTo(map);
+          Leaf.marker([m.lat, m.lng], { icon: markerIcon(Leaf, m.type, m.color, m.label), interactive: false }).addTo(map);
           bounds.extend([m.lat, m.lng]);
         }
         if (!route && !center && !zoom) {

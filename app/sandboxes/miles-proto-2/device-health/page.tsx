@@ -89,13 +89,13 @@ export default function DeviceHealthPage() {
       <div className="mx-auto flex w-full max-w-sm flex-col gap-8">
         {/* Back */}
         <Link
-          href="/dashboard"
+          href="/vehicle?from=dashboard"
           className="flex items-center gap-1 text-sm font-medium leading-none text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
         >
           <svg className="size-4" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
-          Home
+          Subaru Outback
         </Link>
 
         {/* Header */}
@@ -245,10 +245,10 @@ export default function DeviceHealthPage() {
 
         {/* CTA */}
         <Link
-          href="/dashboard"
+          href="/vehicle?from=dashboard"
           className="flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
         >
-          Back to Home
+          Back to Subaru Outback
         </Link>
 
         {/* Demo cheat link */}

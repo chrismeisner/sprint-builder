@@ -8,12 +8,9 @@ import { BASE } from "@/app/sandboxes/miles-proto-2/_lib/nav";
 /*  Notification definitions — one per context key                    */
 /* ------------------------------------------------------------------ */
 
-type IconVariant = "miles" | "miles-alert" | "miles-trip";
-
 interface NotifDef {
   title: string;
   body: string;
-  icon: IconVariant;
   /** Where this notification taps through to */
   href: string;
 }
@@ -21,68 +18,57 @@ interface NotifDef {
 const NOTIFS: Record<string, NotifDef> = {
   "kid-speeding": {
     title: "Speed Alert — Jack",
-    body: "Jack is going 72 in a 55. Tap to respond.",
-    icon: "miles-alert",
+    body: "Jack's going 72 in a 55. Tap to tell Miles how you'd like to handle it.",
     href: "/miles?context=kid-speeding",
   },
   "tire-pressure": {
     title: "Low Tire Pressure",
-    body: "Your front left tire is reading 24 psi — below the safe range of 32 psi.",
-    icon: "miles-alert",
+    body: "Your front left tire is reading 24 psi — below safe range. Ask Miles what to do next.",
     href: "/miles?context=tire-pressure",
   },
   "kid-trip": {
     title: "Jack Started a Trip",
-    body: "Jack is driving the 2019 Subaru Outback. Tap to see the live view.",
-    icon: "miles-trip",
+    body: "Jack's driving the Subaru Outback. Tap to talk to Miles about this trip.",
     href: "/miles?context=kid-trip",
   },
   fuel: {
     title: "Fuel Getting Low",
-    body: "Your Civic is at 38% (~95 mi range). Want a reminder to fill up?",
-    icon: "miles",
+    body: "Your Civic is at 38% (~95 mi range). Ask Miles to set a reminder or plan around it.",
     href: "/miles?context=fuel",
   },
   oil: {
     title: "Maintenance Reminder",
-    body: "Your oil change is coming up in ~800 miles. Tap to set a reminder or schedule service.",
-    icon: "miles",
+    body: "Your oil change is due in ~800 miles. Talk to Miles and decide how to handle it.",
     href: "/miles?context=oil",
   },
   registration: {
     title: "Registration Expiring",
-    body: "Your 2019 Honda Civic registration expires Apr 15. Want help planning ahead?",
-    icon: "miles",
+    body: "Your Civic registration expires Apr 15. Ask Miles to help you get ahead of it.",
     href: "/miles?context=registration",
   },
   "coaching-braking": {
     title: "Hard Braking Detected",
-    body: "A hard braking event on Preston Rd cost you 3 points. Tap to review and get tips.",
-    icon: "miles-alert",
+    body: "A hard braking event on Preston Rd cost you 3 points. Ask Miles for tips.",
     href: "/miles?context=coaching-braking",
   },
   "check-engine": {
     title: "Check Engine Light",
-    body: "Diagnostic code P0420 detected on your 2019 Civic. Tap to see what it means.",
-    icon: "miles-alert",
+    body: "Diagnostic code P0420 detected on your Civic. Ask Miles what it means and what to do.",
     href: "/miles?context=check-engine",
   },
   "trip-detail": {
     title: "Trip Complete",
-    body: "Home → Target, 4.2 mi · Score: 88. Tap to review your trip and ask Miles anything.",
-    icon: "miles-trip",
+    body: "Home → Target, 4.2 mi · Score 88. Tap to ask Miles about this trip.",
     href: "/miles?context=trip-detail",
   },
   "vehicle-health": {
     title: "Vehicle Health Update",
-    body: "New data is available for your 2019 Civic Sport. Tap to view.",
-    icon: "miles",
+    body: "New data came in for your Civic. Ask Miles what it means.",
     href: "/miles?context=vehicle-health",
   },
   "driver-score": {
     title: "Score Updated",
-    body: "Your driving score is now 82 — up 3 points from last week. See what changed.",
-    icon: "miles",
+    body: "Your score is now 82 — up 3 points. Ask Miles what made the difference.",
     href: "/miles?context=driver-score",
   },
 };
@@ -90,7 +76,6 @@ const NOTIFS: Record<string, NotifDef> = {
 const DEFAULT_NOTIF: NotifDef = {
   title: "Miles Has a Suggestion",
   body: "I noticed a few things from your recent trips. Tap to chat when you have a moment.",
-  icon: "miles",
   href: "/miles",
 };
 
@@ -98,31 +83,14 @@ const DEFAULT_NOTIF: NotifDef = {
 /*  Icon                                                               */
 /* ------------------------------------------------------------------ */
 
-function AppIcon({ variant }: { variant: IconVariant }) {
-  const bg =
-    variant === "miles-alert"
-      ? "bg-amber-500"
-      : variant === "miles-trip"
-        ? "bg-blue-500"
-        : "bg-green-600";
-
+function AppIcon() {
   return (
-    <div className={`flex size-11 shrink-0 items-center justify-center rounded-[14px] ${bg} shadow-md`}>
-      {variant === "miles-alert" ? (
-        <svg className="size-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-        </svg>
-      ) : variant === "miles-trip" ? (
-        <svg className="size-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-        </svg>
-      ) : (
-        <svg className="size-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
-        </svg>
-      )}
-    </div>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/miles-proto-2/miles-icon.svg"
+      alt="Miles"
+      className="size-11 shrink-0 rounded-[14px] shadow-md"
+    />
   );
 }
 
@@ -164,15 +132,17 @@ function NotificationContent() {
   }
 
   return (
-    <div className="relative flex h-dvh flex-col bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white overflow-hidden select-none">
-      {/* Wallpaper gradient */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-30"
-        style={{
-          backgroundImage:
-            "radial-gradient(ellipse at 30% 20%, rgba(56,189,248,0.25), transparent 60%), radial-gradient(ellipse at 70% 70%, rgba(168,85,247,0.2), transparent 60%)",
-        }}
+    <div className="relative flex h-dvh flex-col text-white overflow-hidden select-none">
+      {/* Wallpaper */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/miles-proto-2/images/bg.jpg"
+        alt=""
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        aria-hidden="true"
       />
+      {/* Scrim so text stays legible */}
+      <div className="pointer-events-none absolute inset-0 bg-black/30" />
 
       {/* Status bar */}
       <div className="relative z-10 flex items-center justify-between px-6 pt-3 pb-1 shrink-0">
@@ -229,7 +199,7 @@ function NotificationContent() {
           } ${tapped ? "scale-[0.97] opacity-70" : "active:scale-[0.98]"}`}
         >
           <div className="flex gap-3 rounded-2xl bg-white/15 backdrop-blur-xl p-3 pr-4 border border-white/10 shadow-xl">
-            <AppIcon variant={notif.icon} />
+            <AppIcon />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5 pt-0.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[13px] font-semibold leading-tight text-white/50 uppercase tracking-wide">

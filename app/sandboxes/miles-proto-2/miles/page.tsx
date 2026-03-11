@@ -8,7 +8,6 @@ import { CONTEXTS, PENDING_ITEMS, getAgentResponse } from "@/app/sandboxes/miles
 import {
   AgentBubble,
   AgentCardView,
-  ContextBadge,
   SuggestedPrompts,
   UserBubble,
 } from "@/app/sandboxes/miles-proto-2/_components/agent-card";
@@ -19,8 +18,8 @@ import {
 
 function AgentContent() {
   const searchParams = useSearchParams();
-  const contextKey = searchParams.get("context") || "cold";
-  const config = CONTEXTS[contextKey] ?? CONTEXTS.cold;
+  const contextKey = searchParams.get("context") || "home";
+  const config = CONTEXTS[contextKey] ?? CONTEXTS.home;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -29,23 +28,27 @@ function AgentContent() {
   const [cardResolved, setCardResolved] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const isHomeCtx = contextKey === "home";
+  const isColdCtx = contextKey === "cold";
+  const isDefaultCtx = isColdCtx || isHomeCtx;
+
+  // Pending proactive cards only in "cold" context, not the clean "home" welcome
   const pending =
-    contextKey === "cold" && pendingIndex < PENDING_ITEMS.length
+    isColdCtx && pendingIndex < PENDING_ITEMS.length
       ? PENDING_ITEMS[pendingIndex]
       : null;
 
   const hasActions = config.card?.actions && config.card.actions.length > 0;
   const showContextCard =
-    contextKey !== "cold" && config.card && (!hasActions || !cardResolved);
+    !isDefaultCtx && config.card && (!hasActions || !cardResolved);
 
-  const noPendingCards =
-    contextKey === "cold" && pendingIndex >= PENDING_ITEMS.length;
+  const noPendingCards = !isColdCtx || pendingIndex >= PENDING_ITEMS.length;
   const showPrompts =
     !promptsUsed &&
     messages.length === 0 &&
     !pending &&
-    !(contextKey !== "cold" && hasActions && !cardResolved) &&
-    (noPendingCards || contextKey !== "cold");
+    !(!isDefaultCtx && hasActions && !cardResolved) &&
+    (noPendingCards || !isDefaultCtx);
 
   useEffect(() => {
     setMessages([]);
@@ -74,7 +77,7 @@ function AgentContent() {
         ? [{ role: "agent-card" as const, card: action.response.card }]
         : []),
     ]);
-    if (contextKey === "cold") {
+    if (isDefaultCtx) {
       setPendingIndex((i) => i + 1);
     } else {
       setCardResolved(true);
@@ -118,9 +121,8 @@ function AgentContent() {
               />
             </svg>
           </div>
-          <div className="flex flex-1 flex-col gap-1">
+          <div className="flex flex-1 flex-col">
             <h1 className="text-lg font-semibold text-neutral-900">Miles</h1>
-            <ContextBadge label={config.badgeLabel} />
           </div>
         </div>
       </div>

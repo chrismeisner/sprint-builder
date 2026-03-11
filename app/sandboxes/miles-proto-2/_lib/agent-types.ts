@@ -24,6 +24,11 @@ export interface ActionOption {
   style: ActionStyle;
   icon?: ActionIcon;
   /**
+   * If set, navigates to this sandbox-relative route when the action is tapped
+   * (in addition to posting the chat response).
+   */
+  href?: string;
+  /**
    * text + subtext appear as an agent bubble.
    * card (if present) is appended as an interactive follow-up card.
    * followUpMessages (if present) are injected after followUpDelay ms — used for async events like trip completion.
