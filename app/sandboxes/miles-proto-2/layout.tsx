@@ -57,7 +57,7 @@ export default function MilesLayout({
       <ForceLightMode />
       <KeyboardShortcuts />
       <DeviceSwitcher>
-        <div className="flex min-h-dvh flex-col">
+        <div className="flex h-dvh flex-col overflow-hidden">
           <PageTransition>{children}</PageTransition>
           <BottomNav />
         </div>

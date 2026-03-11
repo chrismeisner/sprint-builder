@@ -237,6 +237,305 @@ export const CONTEXTS: Record<string, ContextConfig> = {
     ],
   },
 
+  "kid-speeding": {
+    greeting: "Jack is going 72 in a 55.",
+    badgeLabel: "Speed Alert",
+    card: {
+      title: "Jack — Speed Alert",
+      subtitle: "2019 Subaru Outback",
+      status: { label: "Over limit", level: "warn" },
+      mapPreview: "live",
+      speedAlert: {
+        current: 72,
+        limit: 55,
+        timestamp: "9:47 AM",
+      },
+      actions: [
+        {
+          id: "nudge",
+          label: "Send him a nudge",
+          style: "primary",
+          icon: "none",
+          response: {
+            text: "Nudge sent.",
+            subtext: "Jack will get a notification on his phone.",
+          },
+        },
+        {
+          id: "remind-after",
+          label: "Remind him after his drive",
+          style: "secondary",
+          icon: "clock",
+          response: {
+            text: "I'll remind him when the trip ends.",
+            subtext: "This will appear in his post-trip summary.",
+          },
+        },
+        {
+          id: "nothing",
+          label: "Do nothing",
+          style: "dismiss",
+          icon: "check",
+          response: {
+            text: "Got it.",
+          },
+        },
+      ],
+    },
+    prompts: [
+      "Has he done this before?",
+      "What's his speed history?",
+      "Set a speed threshold for alerts",
+    ],
+  },
+
+  "tire-pressure": {
+    greeting: "Your front left tire is reading below safe range. Here's where things stand:",
+    badgeLabel: "Tire Pressure",
+    card: {
+      title: "Tire Pressure",
+      subtitle: "2019 Honda Civic Sport",
+      status: { label: "⚠ Low", level: "warn" },
+      tireMap: {
+        frontLeft: 24,
+        frontRight: 34,
+        rearLeft: 32,
+        rearRight: 33,
+        recommended: 32,
+      },
+      whyItMatters:
+        "Low pressure means less grip, especially in wet conditions. It also wears tires faster and can reduce gas mileage by up to 3%.",
+      actions: [
+        {
+          id: "remind-tomorrow",
+          label: "Remind me tomorrow morning",
+          detail: "7 AM",
+          style: "primary",
+          icon: "clock",
+          response: {
+            text: "Got it — reminder set for tomorrow at 7 AM.",
+            subtext: "You'll find this in your Miles to-do list anytime.",
+          },
+        },
+        {
+          id: "remind-weekend",
+          label: "Remind me this weekend",
+          detail: "Sat",
+          style: "secondary",
+          icon: "calendar",
+          response: {
+            text: "Reminder set for Saturday morning.",
+            subtext: "You'll find this in your Miles to-do list anytime.",
+          },
+        },
+        {
+          id: "handle-it",
+          label: "I'll handle it",
+          style: "dismiss",
+          icon: "check",
+          response: {
+            text: "Noted — I won't bring this up again.",
+            subtext: "You can always check tire status in Vehicle Health.",
+          },
+        },
+      ],
+    },
+    prompts: [
+      "What's the fastest way to add air?",
+      "Is it safe to drive right now?",
+      "Which gas stations have free air?",
+      "Could this be a slow leak?",
+    ],
+  },
+
+  "kid-trip": {
+    greeting: "Jack just started a trip in the 2019 Subaru Outback. Here's the live view:",
+    badgeLabel: "Trip in progress",
+    card: {
+      title: "Jack — Live Trip",
+      subtitle: "2019 Subaru Outback",
+      status: { label: "Live", level: "info" },
+      mapPreview: "live",
+      rows: [
+        { label: "Duration", value: "12 min" },
+        { label: "Car status", value: "OK ✓" },
+        { label: "Device", value: "OK ✓" },
+      ],
+      actions: [
+        {
+          id: "full-live",
+          label: "Open full live view",
+          style: "primary",
+          icon: "calendar",
+          response: {
+            text: "Opening the full live view. You'll see higher-frequency GPS updates and turn-by-turn trail as Jack drives.",
+          },
+        },
+        {
+          id: "mute",
+          label: "Mute this trip",
+          style: "dismiss",
+          icon: "check",
+          response: {
+            text: "Got it — I'll stay quiet for this one. I'll let you know when the trip ends.",
+            followUpDelay: 3000,
+            followUpMessages: [
+              {
+                role: "agent",
+                text: "Jack's trip just ended. 23 minutes, 8.4 miles. Everything looked good.",
+              },
+              {
+                role: "agent-card",
+                card: {
+                  title: "Jack — Trip Complete",
+                  subtitle: "2019 Subaru Outback",
+                  status: { label: "Ended", level: "good" },
+                  mapPreview: "completed",
+                  rows: [
+                    { label: "Duration", value: "23 min" },
+                    { label: "Distance", value: "8.4 mi" },
+                    { label: "Score", value: "84", highlight: true },
+                    { label: "Car status", value: "OK ✓" },
+                  ],
+                  actions: [
+                    {
+                      id: "trip-detail",
+                      label: "View trip detail",
+                      style: "primary",
+                      icon: "calendar",
+                      response: {
+                        text: "Here's the full breakdown of Jack's trip. You can see his route, speed profile, and any events.",
+                        subtext: "Opening trip detail.",
+                      },
+                    },
+                    {
+                      id: "score-question",
+                      label: "How did this affect his score?",
+                      style: "secondary",
+                      icon: "none",
+                      response: {
+                        text: "This trip scored 84 — right around Jack's recent average of 83. No hard braking or speeding events, clean acceleration. It's a solid baseline trip and won't move his score much in either direction.",
+                        subtext: "Jack's rolling 30-day score is 83.",
+                      },
+                    },
+                    {
+                      id: "done",
+                      label: "Got it",
+                      style: "dismiss",
+                      icon: "check",
+                      response: {
+                        text: "Nice — nothing to worry about on this one.",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        {
+          id: "adjust-alerts",
+          label: "Adjust trip alerts",
+          style: "dismiss",
+          icon: "none",
+          response: {
+            text: "How should I handle trip notifications for this vehicle?",
+            card: {
+              title: "Trip Alert Settings",
+              actions: [
+                {
+                  id: "every-trip",
+                  label: "Notify me every trip",
+                  style: "secondary",
+                  icon: "clock",
+                  response: {
+                    text: "Got it — I'll ping you at the start of every trip in the Outback.",
+                    subtext: "You can change this anytime in Notification Settings.",
+                  },
+                },
+                {
+                  id: "late-night",
+                  label: "Late night trips only",
+                  detail: "After 10 PM",
+                  style: "secondary",
+                  icon: "calendar",
+                  response: {
+                    text: "Set. I'll only notify you for trips that start after 10 PM.",
+                    subtext: "You can change this anytime in Notification Settings.",
+                  },
+                },
+                {
+                  id: "off",
+                  label: "Turn off trip alerts",
+                  style: "dismiss",
+                  icon: "check",
+                  response: {
+                    text: "Trip start alerts are off for this vehicle. You'll still see trip history in the app.",
+                    subtext: "Re-enable anytime in Notification Settings.",
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    },
+    prompts: [
+      "Where is Jack right now?",
+      "How fast is he going?",
+      "Has he driven this route before?",
+      "What's his driving score?",
+    ],
+  },
+
+  "check-engine": {
+    greeting: "I picked up a diagnostic code on your Civic.",
+    badgeLabel: "Check Engine",
+    card: {
+      intro:
+        "Your check engine light came on after your last trip. Here's what I found:",
+      title: "Engine Code",
+      subtitle: "2019 Honda Civic Sport",
+      status: { label: "Attention", level: "warn" },
+      rows: [
+        { label: "Code", value: "P0420", highlight: true },
+        { label: "Description", value: "Catalyst efficiency low" },
+        { label: "Severity", value: "Moderate" },
+        { label: "Odometer", value: "62,340 mi" },
+      ],
+      whyItMatters:
+        "P0420 usually means your catalytic converter isn't working at full efficiency. It won't leave you stranded but can worsen fuel economy and emissions. A shop can confirm with a simple diagnostic.",
+      actions: [
+        {
+          id: "find-shop",
+          label: "Help me find a shop",
+          style: "primary",
+          icon: "calendar",
+          response: {
+            text: "I'd recommend calling your usual shop or a Honda dealer. This is a common code — most diagnostics run $100–$150 and they can usually give you a quote on the spot.",
+            subtext: "Saved to your Miles to-do list.",
+          },
+        },
+        {
+          id: "dismiss",
+          label: "I'll handle it myself",
+          style: "dismiss",
+          icon: "check",
+          response: {
+            text: "Got it — I'll keep tracking this. If new codes show up or your fuel economy changes, I'll let you know.",
+            subtext: "Saved to your diagnostic history.",
+          },
+        },
+      ],
+    },
+    prompts: [
+      "What does P0420 mean?",
+      "Is it safe to drive with this code?",
+      "How much does it cost to fix?",
+      "Can I clear the code myself?",
+    ],
+  },
+
   "coaching-braking": {
     greeting: "I noticed something on your last trip.",
     badgeLabel: "Hard braking event",
@@ -273,6 +572,52 @@ export const CONTEXTS: Record<string, ContextConfig> = {
           response: {
             text: "No problem — keep it smooth out there!",
             subtext: "Check your driving breakdown anytime in Driver Score.",
+          },
+        },
+        {
+          id: "notify-adjust",
+          label: "Adjust braking alerts",
+          style: "dismiss",
+          icon: "none",
+          response: {
+            text: "How often should I notify you about braking events?",
+            card: {
+              title: "Braking Alert Frequency",
+              actions: [
+                {
+                  id: "weekly-digest",
+                  label: "Weekly summary only",
+                  detail: "Digest",
+                  style: "secondary",
+                  icon: "calendar",
+                  response: {
+                    text: "Done — I'll bundle braking events into your weekly digest instead of notifying you after each trip.",
+                    subtext: "You can change this anytime in Notification Settings.",
+                  },
+                },
+                {
+                  id: "threshold",
+                  label: "Only for big score drops",
+                  detail: "5+ pts",
+                  style: "secondary",
+                  icon: "clock",
+                  response: {
+                    text: "Set. I'll only alert you when a braking event costs 5 or more points — small ones stay in your trip details.",
+                    subtext: "You can change this anytime in Notification Settings.",
+                  },
+                },
+                {
+                  id: "off",
+                  label: "Turn off braking alerts",
+                  style: "dismiss",
+                  icon: "check",
+                  response: {
+                    text: "Braking alerts are off. Your score still tracks every event — I just won't interrupt you.",
+                    subtext: "Re-enable anytime in Notification Settings.",
+                  },
+                },
+              ],
+            },
           },
         },
       ],

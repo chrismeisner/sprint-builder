@@ -221,6 +221,14 @@
     text-wrap: balance;
   }
 
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   .text-huge {
     font-size: clamp(3.5rem, 12vw, 10rem);
     line-height: 0.9;

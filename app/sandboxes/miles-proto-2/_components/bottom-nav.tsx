@@ -12,7 +12,7 @@ const HIDDEN_ON = new Set([
   "/help-port/vehicle/result", "/help-port/vin", "/help-port/vin/result",
   "/device-detected",
   "/whos-driving", "/add-drivers", "/trip-indicator", "/settings",
-  "/index", "/home-screen"].flatMap((r) => [p(r), p(r) + "/"])),
+  "/index", "/home-screen", "/notification"].flatMap((r) => [p(r), p(r) + "/"])),
 ]);
 
 function DashboardIcon({ active }: { active: boolean }) {
@@ -161,7 +161,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="sticky bottom-0 z-30 border-t border-neutral-200/80 bg-white/95 backdrop-blur-xl"
+      className="shrink-0 z-30 border-t border-neutral-200/80 bg-white/95 backdrop-blur-xl"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="mx-auto flex items-center justify-around px-2 py-2">

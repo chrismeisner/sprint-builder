@@ -23,7 +23,18 @@ export interface ActionOption {
   detail?: string;
   style: ActionStyle;
   icon?: ActionIcon;
-  response: { text: string; subtext?: string };
+  /**
+   * text + subtext appear as an agent bubble.
+   * card (if present) is appended as an interactive follow-up card.
+   * followUpMessages (if present) are injected after followUpDelay ms — used for async events like trip completion.
+   */
+  response: {
+    text: string;
+    subtext?: string;
+    card?: AgentCard;
+    followUpMessages?: ChatMessage[];
+    followUpDelay?: number;
+  };
 }
 
 /**
@@ -38,11 +49,26 @@ export interface ActionOption {
  * An "info card" is just an AgentCard without actions.
  * An "action card" is an AgentCard with actions.
  */
+/** Four-corner tire pressure snapshot. Values are in PSI. */
+export interface TireMap {
+  frontLeft: number;
+  frontRight: number;
+  rearLeft: number;
+  rearRight: number;
+  recommended: number;
+}
+
 export interface AgentCard {
   intro?: string;
   title: string;
   subtitle?: string;
   status?: { label: string; level: StatusLevel };
+  /** Renders a faux GPS map above the data rows. "live" shows a pulsing current-position dot. */
+  mapPreview?: "live" | "completed";
+  /** Renders a four-corner tire pressure visualization instead of rows. */
+  tireMap?: TireMap;
+  /** Renders a prominent speed-vs-limit display instead of rows. */
+  speedAlert?: { current: number; limit: number; timestamp?: string };
   rows?: CardRow[];
   whyItMatters?: string;
   actions?: ActionOption[];

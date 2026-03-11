@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 
 import type { ActionOption, ChatMessage } from "@/app/sandboxes/miles-proto-2/_lib/agent-types";
@@ -27,6 +27,7 @@ function AgentContent() {
   const [pendingIndex, setPendingIndex] = useState(0);
   const [promptsUsed, setPromptsUsed] = useState(false);
   const [cardResolved, setCardResolved] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const pending =
     contextKey === "cold" && pendingIndex < PENDING_ITEMS.length
@@ -53,6 +54,13 @@ function AgentContent() {
     setCardResolved(false);
   }, [contextKey]);
 
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   function handleActionSelect(action: ActionOption) {
     setMessages((prev) => [
       ...prev,
@@ -62,11 +70,22 @@ function AgentContent() {
         text: action.response.text,
         subtext: action.response.subtext,
       },
+      ...(action.response.card
+        ? [{ role: "agent-card" as const, card: action.response.card }]
+        : []),
     ]);
     if (contextKey === "cold") {
       setPendingIndex((i) => i + 1);
     } else {
       setCardResolved(true);
+    }
+    // Async follow-up messages (e.g. trip completion arriving after a delay)
+    if (action.response.followUpMessages?.length) {
+      const delay = action.response.followUpDelay ?? 1500;
+      const msgs = action.response.followUpMessages;
+      setTimeout(() => {
+        setMessages((prev) => [...prev, ...msgs]);
+      }, delay);
     }
   }
 
@@ -107,7 +126,7 @@ function AgentContent() {
       </div>
 
       {/* Scrollable content */}
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5">
+      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5">
         <AgentBubble text={config.greeting} />
 
         {/* Info-only card (no actions) — shown before any interaction */}
@@ -123,7 +142,7 @@ function AgentContent() {
               <AgentBubble key={i} text={msg.text} subtext={msg.subtext} />
             );
           if (msg.role === "agent-card")
-            return <AgentCardView key={i} card={msg.card} />;
+            return <AgentCardView key={i} card={msg.card} onAction={handleActionSelect} />;
           return null;
         })}
 

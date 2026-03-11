@@ -2,21 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
-import { BASE, p } from "@/app/sandboxes/miles-proto-2/_lib/nav";
 
-const NAV_HIDDEN_ON = new Set([
-  BASE, BASE + "/",
-  ...(["/signup", "/signup-name", "/scan-device", "/permissions",
-  "/billing", "/install", "/find-port", "/plug-in-device",
-  "/pair-device", "/getting-online", "/help-port", "/device-detected",
-  "/whos-driving"].flatMap((r) => [p(r), p(r) + "/"])),
-]);
-
-// Full-screen flex pages that manage their own bottom spacing —
-// these must not receive the nav-clearance padding-bottom.
-const NO_NAV_PADDING_ON = new Set([p("/miles"), p("/miles/")]);
-
-function FadeIn({ children, className }: { children: ReactNode; className?: string }) {
+function FadeIn({ children }: { children: ReactNode }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -30,9 +17,9 @@ function FadeIn({ children, className }: { children: ReactNode; className?: stri
 
   return (
     <div
-      className={`motion-safe:transition-[opacity,transform] motion-safe:duration-1000 motion-safe:ease-out ${
+      className={`motion-safe:transition-[opacity,transform] motion-safe:duration-300 motion-safe:ease-out ${
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"
-      } ${className ?? ""}`}
+      }`}
     >
       {children}
     </div>
@@ -41,12 +28,12 @@ function FadeIn({ children, className }: { children: ReactNode; className?: stri
 
 export function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const showNav = !NAV_HIDDEN_ON.has(pathname);
-  const noNavPad = NO_NAV_PADDING_ON.has(pathname);
 
   return (
-    <FadeIn key={pathname} className={`flex-1 flex flex-col min-h-0 ${showNav && !noNavPad ? "pb-20" : ""}`}>
-      {children}
-    </FadeIn>
+    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-clip">
+      <FadeIn key={pathname}>
+        {children}
+      </FadeIn>
+    </div>
   );
 }

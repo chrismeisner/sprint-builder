@@ -6,6 +6,7 @@ import type {
   ActionOption,
   AgentCard,
   StatusLevel,
+  TireMap,
 } from "@/app/sandboxes/miles-proto-2/_lib/agent-types";
 
 /* ------------------------------------------------------------------ */
@@ -132,6 +133,110 @@ export function WhyItMatters({ text }: { text: string }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Tire Pressure Visualization                                        */
+/* ------------------------------------------------------------------ */
+
+const TIRE_POSITIONS = [
+  { key: "frontLeft" as const,  label: "FL", x: 8,   y: 14,  cx: 30.5, cy: 29  },
+  { key: "frontRight" as const, label: "FR", x: 207, y: 14,  cx: 229.5, cy: 29 },
+  { key: "rearLeft" as const,   label: "RL", x: 8,   y: 106, cx: 30.5, cy: 121 },
+  { key: "rearRight" as const,  label: "RR", x: 207, y: 106, cx: 229.5, cy: 121 },
+];
+
+export function TirePressureView({ tireMap }: { tireMap: TireMap }) {
+  return (
+    <div className="-mx-4 -mb-1 border-t border-neutral-100 bg-neutral-50 px-2 pb-2 pt-2">
+      <svg
+        viewBox="0 0 260 148"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full"
+        aria-label="Tire pressure overview"
+      >
+        {/* Car body */}
+        <rect x="65" y="15" width="130" height="120" rx="14" fill="#f3f4f6" stroke="#e5e7eb" strokeWidth="1.5" />
+        {/* Windshield */}
+        <rect x="78" y="22" width="104" height="34" rx="5" fill="#bfdbfe" opacity="0.55" />
+        {/* Rear window */}
+        <rect x="78" y="94" width="104" height="30" rx="5" fill="#bfdbfe" opacity="0.38" />
+        {/* Center console divider */}
+        <line x1="130" y1="58" x2="130" y2="92" stroke="#e5e7eb" strokeWidth="1" />
+
+        {TIRE_POSITIONS.map(({ key, x, y, cx, cy }) => {
+          const psi = tireMap[key];
+          const isLow = psi < tireMap.recommended;
+          return (
+            <g key={key}>
+              {isLow && (
+                <circle cx={cx} cy={cy} r="20" fill="none" stroke="#f59e0b" strokeWidth="1.5" opacity="0.35">
+                  <animate attributeName="r" values="17;25;17" dur="2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
+                </circle>
+              )}
+              <rect
+                x={x} y={y} width="45" height="30" rx="6"
+                fill={isLow ? "#fffbeb" : "#f0fdf4"}
+                stroke={isLow ? "#fcd34d" : "#86efac"}
+                strokeWidth="1.5"
+              />
+              <text x={cx} y={y + 13} textAnchor="middle" fill={isLow ? "#d97706" : "#16a34a"} fontSize="11.5" fontWeight="bold">
+                {psi} psi
+              </text>
+              <text x={cx} y={y + 25} textAnchor="middle" fill={isLow ? "#d97706" : "#16a34a"} fontSize="8.5">
+                {isLow ? "LOW ⚠" : "OK ✓"}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Recommended reference */}
+        <text x="130" y="145" textAnchor="middle" fill="#9ca3af" fontSize="9">
+          Recommended: {tireMap.recommended} psi
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Speed Alert Display                                               */
+/* ------------------------------------------------------------------ */
+
+export function SpeedAlertView({
+  speedAlert,
+}: {
+  speedAlert: NonNullable<AgentCard["speedAlert"]>;
+}) {
+  return (
+    <div className="-mx-4 -mb-1 border-t border-neutral-100 bg-neutral-50 px-4 pb-3 pt-3">
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[46px] font-black leading-none tabular-nums text-amber-500">
+              {speedAlert.current}
+            </span>
+            <span className="mb-1 self-end text-sm font-medium text-neutral-400">
+              mph
+            </span>
+          </div>
+          <div className="mt-0.5 text-sm text-neutral-500">
+            in a{" "}
+            <span className="font-semibold text-neutral-700">
+              {speedAlert.limit}
+            </span>{" "}
+            zone
+          </div>
+        </div>
+        {speedAlert.timestamp && (
+          <span className="mt-0.5 text-[11px] text-neutral-400">
+            {speedAlert.timestamp}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Action Button                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -215,6 +320,52 @@ export function AgentCardView({
           hasActions ? "max-w-[90%]" : "max-w-[85%]"
         }`}
       >
+        {/* Faux map preview */}
+        {card.mapPreview && (
+          <div className="relative h-28 w-full overflow-hidden bg-[#e8eaed]">
+            <svg
+              viewBox="0 0 300 112"
+              xmlns="http://www.w3.org/2000/svg"
+              className="absolute inset-0 h-full w-full"
+              aria-hidden="true"
+            >
+              {/* Road grid */}
+              <line x1="0" y1="56" x2="300" y2="56" stroke="white" strokeWidth="10" />
+              <line x1="0" y1="28" x2="300" y2="28" stroke="white" strokeWidth="6" />
+              <line x1="0" y1="84" x2="300" y2="84" stroke="white" strokeWidth="6" />
+              <line x1="80" y1="0" x2="80" y2="112" stroke="white" strokeWidth="6" />
+              <line x1="200" y1="0" x2="200" y2="112" stroke="white" strokeWidth="6" />
+              {/* Route trail */}
+              <path
+                d="M 18 56 C 40 56 55 28 80 28 C 105 28 110 56 140 56 C 165 56 175 44 200 42 C 220 40 230 42 248 42"
+                stroke="#2563eb"
+                strokeWidth="3.5"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {/* Start marker */}
+              <circle cx="18" cy="56" r="5" fill="white" stroke="#2563eb" strokeWidth="2" />
+              {/* Pulse ring (live only) */}
+              {card.mapPreview === "live" && (
+                <circle cx="248" cy="42" r="11" fill="#2563eb" opacity="0.18">
+                  <animate attributeName="r" values="8;15;8" dur="2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.22;0;0.22" dur="2s" repeatCount="indefinite" />
+                </circle>
+              )}
+              {/* Current / end position dot */}
+              <circle cx="248" cy="42" r="5.5" fill="#2563eb" stroke="white" strokeWidth="2" />
+            </svg>
+            {/* Speed overlay (live only, suppressed when speedAlert widget carries the speed) */}
+            {card.mapPreview === "live" && !card.speedAlert && (
+              <div className="absolute bottom-2 left-3 flex items-baseline gap-1 rounded-lg bg-white/90 px-2.5 py-1.5 shadow-sm backdrop-blur-sm">
+                <span className="text-[22px] font-bold leading-none tabular-nums text-neutral-900">37</span>
+                <span className="text-[11px] font-medium text-neutral-400">mph</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Context block */}
         <div className="p-4 pb-3">
           <div className="mb-3 flex items-start justify-between">
@@ -231,7 +382,11 @@ export function AgentCardView({
             {card.status && <StatusBadge {...card.status} />}
           </div>
 
-          {card.rows && card.rows.length > 0 && (
+          {card.tireMap ? (
+            <TirePressureView tireMap={card.tireMap} />
+          ) : card.speedAlert ? (
+            <SpeedAlertView speedAlert={card.speedAlert} />
+          ) : card.rows && card.rows.length > 0 ? (
             <div className="flex flex-col gap-2">
               {card.rows.map((row) => (
                 <div
@@ -249,7 +404,7 @@ export function AgentCardView({
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
 
         {card.whyItMatters && <WhyItMatters text={card.whyItMatters} />}

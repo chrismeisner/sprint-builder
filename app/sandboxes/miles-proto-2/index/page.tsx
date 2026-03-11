@@ -23,7 +23,7 @@ interface Scenario {
   name: string;
   tierLevel: TierLevel;
   tier: string;
-  trigger: string;
+  overview: string;
   category: string;
   constraint?: string;
   isNotAgent?: boolean;
@@ -33,154 +33,176 @@ interface Scenario {
 const scenarios: Scenario[] = [
   {
     id: 1,
-    name: "Fuel Low After a Trip",
-    tierLevel: 2,
-    tier: "Active (Alert → Chat)",
-    trigger: "Trip ends, fuel level below user's threshold or default",
-    category: "Coaching",
-    constraint: "Never show map, gas stations, or route suggestions — explicitly banned anti-pattern",
-    href: "/miles?context=fuel",
-  },
-  {
-    id: 2,
     name: "Kid Starts Driving / Trip in Progress",
     tierLevel: 2,
     tier: "Active (Alert → Chat)",
-    trigger: "Vehicle starts a trip; both parents alerted simultaneously (Ring doorbell model)",
+    overview: "Prove that both parents receive, view, and trust a live trip as it happens and after it ends.",
+    category: "Family",
+    href: "/notification?context=kid-trip",
+  },
+  {
+    id: 2,
+    name: "Kid Speeding",
+    href: "/notification?context=kid-speeding",
+    tierLevel: 2,
+    tier: "Active (Alert → Chat)",
+    overview: "Show the agent interrupting an active trip thread with a driving behavior alert and parent response options.",
     category: "Family",
   },
   {
     id: 3,
-    name: "Kid Speeding",
+    name: "Hard Braking (Real-Time Alert)",
+    href: "/notification?context=coaching-braking",
     tierLevel: 2,
     tier: "Active (Alert → Chat)",
-    trigger: "Speed exceeds set threshold during active trip",
-    category: "Family",
+    overview: "Same as speeding but for a deceleration event, proving the mid-trip alert pattern repeats cleanly.",
+    category: "Coaching",
   },
   {
     id: 4,
-    name: "Low Tire Pressure",
+    name: "Fuel Low After a Trip",
     tierLevel: 2,
     tier: "Active (Alert → Chat)",
-    trigger: "Device reports tire pressure below safe range (only when vehicle provides data)",
-    category: "Maintenance",
+    overview: "Establish the baseline reminder pattern: agent surfaces a low-stakes issue, user picks how to handle it, done.",
+    category: "Coaching",
+    constraint: "Never show map, gas stations, or route suggestions — explicitly banned anti-pattern",
+    href: "/notification?context=fuel",
   },
   {
     id: 5,
-    name: "Oil Change Due",
+    name: "Low Tire Pressure",
+    href: "/notification?context=tire-pressure",
     tierLevel: 2,
-    tier: "Active / Passive",
-    trigger: "Mileage or time-based oil change threshold approaching; no badgering once snoozed",
+    tier: "Active (Alert → Chat)",
+    overview: "Prove the full card anatomy works end-to-end: data visualization, coaching layer, action set, and resolution.",
     category: "Maintenance",
-    href: "/miles?context=oil",
   },
   {
     id: 6,
-    name: "Major Maintenance Early Warning",
-    tierLevel: 1,
-    tier: "Passive (Badge)",
-    trigger: "Approaching major milestone from vehicle maintenance schedule (e.g., coolant flush at 50k)",
+    name: "Oil Change Due",
+    tierLevel: 2,
+    tier: "Active / Passive",
+    overview: "Show the reminder pattern with more action variety (time-based, mileage-based, already done) and the \"don't badger\" behavior.",
     category: "Maintenance",
+    href: "/notification?context=oil",
   },
   {
     id: 7,
-    name: "Model-Specific Known Issue",
-    tierLevel: 1,
-    tier: "Passive (Badge)",
-    trigger: "Make/model/year associated with known common issue at certain mileage",
-    category: "Maintenance",
+    name: "Severe Crash — Emergency",
+    tierLevel: 3,
+    tier: "Emergency (Full-screen)",
+    overview: "Define the boundary where the agent pattern stops and a full-screen, red-button emergency UI takes over.",
+    category: "Emergency",
+    isNotAgent: true,
   },
   {
     id: 8,
-    name: "Maintenance Intake / Source of Truth",
-    tierLevel: 2,
-    tier: "Active (Onboarding → Passive)",
-    trigger: "Initial setup after device install; populates to-do list from make/model/mileage",
-    category: "Onboarding",
+    name: "Less Severe Crash / Vehicle Breakdown",
+    tierLevel: 3,
+    tier: "Emergency (Simplified)",
+    overview: "Show the second tier of crash response where the user is conscious and choosing between tow or ambulance.",
+    category: "Emergency",
+    isNotAgent: true,
   },
   {
     id: 9,
-    name: "Pre-Service Appointment Briefing",
+    name: "Maintenance Intake / Source of Truth Setup",
     tierLevel: 2,
-    tier: "Active (Alert → Chat)",
-    trigger: "Service appointment approaching or user says they're going to the shop",
-    category: "Maintenance",
+    tier: "Active (Onboarding → Passive)",
+    overview: "Walk through the onboarding moment where the agent builds the vehicle's maintenance baseline item by item.",
+    category: "Onboarding",
   },
   {
     id: 10,
-    name: "Insurance Policy — Photo Intake + Insight",
-    tierLevel: 1,
-    tier: "Passive (Badge)",
-    trigger: "Setup to-do for intake; then renewal approaching months later for insight",
-    category: "Documents",
+    name: "Check Engine Light",
+    tierLevel: 2,
+    tier: "Active (Alert → Chat)",
+    overview: "Test the alert → chat flow with a higher-anxiety vehicle issue that needs calm explanation.",
+    category: "Vehicle Health",
+    href: "/notification?context=check-engine",
   },
   {
     id: 11,
-    name: "Registration Expiring",
-    tierLevel: 1,
-    tier: "Passive (Badge)",
-    trigger: "Registration expiration approaching (30 days, then 14 days)",
-    category: "Documents",
-    href: "/miles?context=registration",
-  },
-  {
-    id: 12,
     name: "Trip Summary — Contextual Q&A",
     tierLevel: 1,
     tier: "Passive (In-context)",
-    trigger: "User opens agent while viewing a completed trip; agent is context-aware",
+    overview: "Prove the agent can be user-initiated from a screen, not just alert-driven, with suggested prompts scoped to a completed trip.",
     category: "Trips",
     href: "/miles?context=trip-detail",
   },
   {
+    id: 12,
+    name: "Hard Braking (Post-Trip Review)",
+    href: "/miles?context=coaching-braking",
+    tierLevel: 2,
+    tier: "Active (Alert → Chat)",
+    overview: "Show braking events as markers on a completed trip route inside the trip summary view.",
+    category: "Coaching",
+  },
+  {
     id: 13,
-    name: "Trip Detail — Save Destination",
+    name: "Insurance Photo Intake",
     tierLevel: 1,
-    tier: "Passive (In-context)",
-    trigger: "Agent detects new or frequently visited destination from trip detail",
-    category: "Trips",
+    tier: "Passive (Badge)",
+    overview: "Demonstrate the agent asking the user to contribute a document and following up months later with insight from it.",
+    category: "Documents",
   },
   {
     id: 14,
-    name: "Check Engine Light",
-    tierLevel: 2,
-    tier: "Active (Alert → Chat)",
-    trigger: "Device reads check engine code from OBD data; drops into dashboard as alert",
-    category: "Vehicle Health",
+    name: "Registration Expiring",
+    tierLevel: 1,
+    tier: "Passive (Badge)",
+    overview: "Show the passive badge entry point for a time-based reminder that's handled in seconds and backgrounded.",
+    category: "Documents",
+    href: "/notification?context=registration",
   },
   {
     id: 15,
-    name: "Severe Crash — Emergency",
-    tierLevel: 3,
-    tier: "Emergency (Full-screen)",
-    trigger: "High g-force + collision data; auto-dispatches first responder via Affiliated",
-    category: "Emergency",
-    isNotAgent: true,
-  },
-  {
-    id: 16,
-    name: "Less Severe Crash / Breakdown",
-    tierLevel: 3,
-    tier: "Emergency (Simplified)",
-    trigger: "Moderate g-force or vehicle undrivable; below auto-dispatch threshold",
-    category: "Emergency",
-    isNotAgent: true,
-  },
-  {
-    id: 17,
     name: "Post-Incident Follow-Up",
     tierLevel: 1,
     tier: "Passive (Badge)",
-    trigger: "2–3 days after crash or emergency event (Ring follow-up model)",
+    overview: "Prove the agent can re-open a closed loop days after an emergency with a human-touch check-in.",
     category: "Emergency",
   },
   {
-    id: 18,
-    name: "Service Receipt Photo → Update Log",
+    id: 16,
+    name: "Service Receipt Photo",
     tierLevel: 2,
     tier: "Active / Passive",
-    trigger: "User marks maintenance done or tells agent they got service",
+    overview: "Show the agent prompting for a photo after a maintenance item is marked done to keep the log accurate.",
     category: "Maintenance",
+  },
+  {
+    id: 17,
+    name: "Major Maintenance Early Warning",
+    tierLevel: 1,
+    tier: "Passive (Badge)",
+    overview: "Surface a future maintenance milestone from the vehicle's schedule before it becomes urgent.",
+    category: "Maintenance",
+  },
+  {
+    id: 18,
+    name: "Model-Specific Known Issue",
+    tierLevel: 1,
+    tier: "Passive (Badge)",
+    overview: "Proactively flag a common problem for this make/model/mileage that the user may not know about.",
+    category: "Maintenance",
+  },
+  {
+    id: 19,
+    name: "Pre-Service Appointment Briefing",
+    tierLevel: 2,
+    tier: "Active (Alert → Chat)",
+    overview: "Arm the user with what their car actually needs before they walk into the shop.",
+    category: "Maintenance",
+  },
+  {
+    id: 20,
+    name: "Trip Detail — Save Destination",
+    tierLevel: 1,
+    tier: "Passive (In-context)",
+    overview: "Show the agent offering to name a location based on where the user is in the app, replacing a settings screen.",
+    category: "Trips",
   },
 ];
 
@@ -193,11 +215,26 @@ const sections: Section[] = [
     ],
   },
   {
+    title: "Notification Entry Points",
+    pages: [
+      { href: "/notification?context=kid-speeding", label: "Speed Alert — Jack", note: "notification → agent" },
+      { href: "/notification?context=tire-pressure", label: "Low Tire Pressure", note: "notification → agent" },
+      { href: "/notification?context=kid-trip", label: "Kid Started a Trip", note: "notification → agent" },
+      { href: "/notification?context=coaching-braking", label: "Hard Braking Detected", note: "notification → agent" },
+      { href: "/notification?context=fuel", label: "Fuel Getting Low", note: "notification → agent" },
+      { href: "/notification?context=check-engine", label: "Check Engine Light", note: "notification → agent" },
+      { href: "/notification?context=oil", label: "Maintenance Reminder", note: "notification → agent" },
+      { href: "/notification?context=registration", label: "Registration Expiring", note: "notification → agent" },
+      { href: "/notification?context=trip-detail", label: "Trip Complete", note: "notification → agent" },
+    ],
+  },
+  {
     title: "Notification Scenarios",
     pages: [
       { href: "/dashboard?mode=complete", label: "Trip Complete", note: "Emma finished a trip" },
       { href: "/miles?context=coaching-braking", label: "Hard Braking Detected", note: "alert → agent" },
       { href: "/miles?context=fuel", label: "Fuel Getting Low", note: "reminder flow" },
+      { href: "/miles?context=check-engine", label: "Check Engine Light", note: "OBD alert → agent" },
       { href: "/driver-score", label: "Score Updated", note: "+3 from last week" },
       { href: "/miles?context=oil", label: "Maintenance Reminder", note: "oil change · mileage options" },
       { href: "/miles?context=registration", label: "Registration Expiring", note: "Apr 15 deadline" },
@@ -282,8 +319,12 @@ const sections: Section[] = [
       { href: "/miles?context=oil", label: "Miles agent", note: "oil change context" },
       { href: "/miles?context=registration", label: "Miles agent", note: "registration renewal" },
       { href: "/miles?context=trip-detail", label: "Miles agent", note: "from trip detail" },
+      { href: "/miles?context=kid-speeding", label: "Miles agent", note: "kid speeding — speed alert" },
+      { href: "/miles?context=tire-pressure", label: "Miles agent", note: "tire pressure — 4-corner viz" },
+      { href: "/miles?context=kid-trip", label: "Miles agent", note: "kid trip — live + completion" },
       { href: "/miles?context=vehicle-health", label: "Miles agent", note: "from vehicle health" },
       { href: "/miles?context=driver-score", label: "Miles agent", note: "from driver score" },
+      { href: "/miles?context=check-engine", label: "Miles agent", note: "check engine alert" },
       { href: "/miles?context=coaching-braking", label: "Miles agent", note: "hard braking event" },
     ],
   },
@@ -468,7 +509,7 @@ export default function IndexPage() {
         (s) =>
           s.name.toLowerCase().includes(q) ||
           s.tier.toLowerCase().includes(q) ||
-          s.trigger.toLowerCase().includes(q) ||
+          s.overview.toLowerCase().includes(q) ||
           s.category.toLowerCase().includes(q)
       );
     }
@@ -818,7 +859,7 @@ export default function IndexPage() {
                       <SortIcon active={sortKey === "tierLevel"} dir={sortDir} />
                     </button>
                   </th>
-                  <th className="pb-2 pr-4 text-left text-xs font-medium text-neutral-400">Trigger</th>
+                  <th className="pb-2 pr-4 text-left text-xs font-medium text-neutral-400">Overview</th>
                   <th className="w-28 pb-2 pr-4 text-left">
                     <button type="button" onClick={() => handleSort("category")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
                       Category
@@ -865,7 +906,7 @@ export default function IndexPage() {
                       </span>
                     </td>
                     <td className="py-3 pr-4 align-top">
-                      <span className="text-xs text-neutral-500">{scenario.trigger}</span>
+                      <span className="text-xs text-neutral-500">{scenario.overview}</span>
                     </td>
                     <td className="py-3 pr-4 align-top">
                       <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${categoryColor(scenario.category)}`}>
