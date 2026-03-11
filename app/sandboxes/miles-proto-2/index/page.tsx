@@ -302,7 +302,7 @@ function priorityBadgeClass(p: Priority) {
   return map[p];
 }
 
-function priorityLabel(p: Priority) {
+function _priorityLabel(p: Priority) {
   const map: Record<Priority, string> = {
     p0: "P0 Critical",
     p1: "P1 High",

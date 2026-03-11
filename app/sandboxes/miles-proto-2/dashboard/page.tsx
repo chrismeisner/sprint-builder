@@ -189,7 +189,7 @@ const RECENT_TRIPS: RecentTrip[] = [
 /*  Sub-components                                                     */
 /* ------------------------------------------------------------------ */
 
-function FleetSwitcher({
+function _FleetSwitcher({
   vehicles,
   selected,
   onSelect,
@@ -492,7 +492,7 @@ function FleetView({ vehicles }: { vehicles: Vehicle[] }) {
 
 
 
-function MilesScoreCard({ vehicle }: { vehicle: Vehicle }) {
+function _MilesScoreCard({ vehicle }: { vehicle: Vehicle }) {
   return (
     <Link
       href="/driver-score"
@@ -833,7 +833,7 @@ function TripDriverCard({ driver }: { driver: string }) {
 }
 
 function TripInProgress({
-  vehicle,
+  vehicle: _vehicle,
   driver,
   vehicleLabel,
 }: {
@@ -1033,7 +1033,7 @@ function TripComplete({
   );
 }
 
-function FleetMapView({
+function _FleetMapView({
   vehicles,
   onSelectVehicle,
 }: {

@@ -2,13 +2,6 @@
 
 import { useState } from "react";
 import Link from "@/app/sandboxes/miles-proto-2/_components/link";
-import { MapView } from "@/app/sandboxes/miles-proto-2/_components/map-view";
-
-const LIVE_ROUTE: [number, number][] = [
-  [33.0152, -96.7108], [33.0168, -96.7088], [33.0183, -96.7065],
-  [33.0185, -96.7038], [33.0185, -96.7010], [33.0185, -96.6982],
-  [33.0198, -96.6960], [33.0218, -96.6945], [33.0240, -96.6932],
-];
 
 interface Trip {
   id: string;
