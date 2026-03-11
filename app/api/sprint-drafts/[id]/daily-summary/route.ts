@@ -337,13 +337,6 @@ Return ONLY a JSON object with these exact keys:
     : "http://localhost:3000";
   const sprintUrl = `${appUrl}/sprints/${sprintId}`;
 
-  // Always include the sprint page itself as the first link
-  const sprintLabel = sprint.title ? `${sprint.title} — Sprint Overview` : "Sprint Overview";
-  if (!seenUrls.has(sprintUrl)) {
-    seenUrls.add(sprintUrl);
-    allUpdateLinks.unshift({ url: sprintUrl, label: sprintLabel, day: latestDay });
-  }
-
   const bodyHtml = emailBody
     .split("\n")
     .map((line) => {
