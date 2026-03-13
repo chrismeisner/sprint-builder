@@ -4,6 +4,16 @@ This directory contains versioned snapshots of the landing page for reference an
 
 ## Version History
 
+### v4-playbook-direction-2026-03-12
+**Date:** March 12, 2026  
+**Description:** Copy exploration that introduces subtle "Let's move the ball" language and reframes the services section as "My Playbook."  
+**Key Features:**
+- Subtle `Let's move the ball` link in the top header
+- `My Playbook` framing for the services section
+- Supporting intro copy focused on momentum, alignment, and forward movement
+
+---
+
 ### v1-baseline-2026-02-11
 **Date:** February 11, 2026  
 **Description:** Initial baseline version - clean, minimalist portfolio landing page  

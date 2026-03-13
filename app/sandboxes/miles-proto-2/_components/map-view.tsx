@@ -11,8 +11,8 @@ const TILE_ATTR =
 export interface MapMarker {
   lat: number;
   lng: number;
-  /** "start" = hollow ring, "end" = filled dot, "event" = red pulse */
-  type?: "start" | "end" | "event";
+  /** "start" = hollow ring, "end" = filled dot, "event" = red pulse, "vehicle" = car badge */
+  type?: "start" | "end" | "event" | "vehicle";
   /** Optional badge label rendered above the dot */
   label?: string;
   /** Override dot fill color (hex/css) */
@@ -39,6 +39,21 @@ export interface MapViewProps {
 }
 
 function markerIcon(Leaf: typeof L, type: MapMarker["type"] = "end", color?: string, label?: string): L.DivIcon {
+  if (type === "vehicle") {
+    const vehicleColor = color ?? "#16a34a";
+
+    return Leaf.divIcon({
+      className: "",
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+      html: `<div style="width:24px;height:24px;background:${vehicleColor};border-radius:9999px;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;color:white;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M7.5 16.5h9m-11.21-1.35.73-2.9a2.25 2.25 0 0 1 2.18-1.7h7.6a2.25 2.25 0 0 1 2.18 1.7l.73 2.9M6 16.5v.75a.75.75 0 0 0 .75.75h.75a.75.75 0 0 0 .75-.75v-.75m7.5 0v.75a.75.75 0 0 0 .75.75h.75a.75.75 0 0 0 .75-.75v-.75M7.5 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>`,
+    });
+  }
+
   const dotColor = color ?? (type === "start" ? "white" : type === "event" ? "#ef4444" : "#2563eb");
   const borderColor = type === "start" ? (color ?? "#3b82f6") : "white";
   const dotSize = type === "event" ? 16 : 14;

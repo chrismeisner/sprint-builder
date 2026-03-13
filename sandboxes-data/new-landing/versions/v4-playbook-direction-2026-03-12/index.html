@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chris Meisner - Product & Brand Designer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23d1d5db'/></svg>">
+  <meta name="description" content="Chris Meisner is a product and brand designer in Philadelphia, partnering with early-stage startups on focused brand and product Foundations.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Chris Meisner - Product & Brand Designer">
+  <meta property="og:description" content="Chris Meisner is a product and brand designer in Philadelphia, partnering with early-stage startups on focused brand and product Foundations.">
+  <meta property="og:image" content="/api/sandbox-files/new-landing/images/sun-moon_og.jpg">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Chris Meisner - Product & Brand Designer">
+  <meta name="twitter:description" content="Chris Meisner is a product and brand designer in Philadelphia, partnering with early-stage startups on focused brand and product Foundations.">
+  <meta name="twitter:image" content="/api/sandbox-files/new-landing/images/sun-moon_og.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <script type="module">
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+      document.documentElement.classList.toggle('dark', e.matches);
+    });
+  </script>
+  <style>
+    @font-face {
+      font-family: 'Noto Emoji';
+      src: url('./NotoEmoji-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    .emoji {
+      font-family: 'Noto Emoji', sans-serif;
+    }
+    .cal-booked {
+      position: relative;
+    }
+    .cal-booked::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 120%;
+      height: 1.5px;
+      background-color: currentColor;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 antialiased">
+  <div class="min-h-dvh flex flex-col">
+
+    <!-- Main Content -->
+    <main id="main-content" class="flex-1">
+
+      <!-- Sticky Header (appears after hero CTA scrolls out of view) -->
+      <div id="sticky-header" class="sticky top-0 z-50">
+        <div class="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-700 px-8 lg:px-16 py-3">
+          <div class="max-w-2xl mx-auto flex items-center justify-between">
+          <span class="text-sm font-medium text-neutral-900 dark:text-neutral-100">Chris Meisner</span>
+          <div class="flex items-center gap-3">
+            <button id="theme-toggle" type="button" class="flex items-center justify-center size-8 rounded-md text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400" aria-label="Toggle dark mode">
+              <svg class="size-4 hidden dark:block" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/></svg>
+              <svg class="size-4 block dark:hidden" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/></svg>
+            </button>
+            <a href="/login" class="inline-flex items-center justify-center h-8 px-3 rounded-md border border-neutral-300 dark:border-neutral-600 text-neutral-600 dark:text-neutral-400 text-sm font-medium hover:border-neutral-500 dark:hover:border-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
+              Client login
+            </a>
+          </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- About Section -->
+      <section id="about" class="p-8 pt-16 lg:px-16 lg:py-10 lg:pt-20">
+        <div class="max-w-2xl mx-auto">
+          <div class="mb-12">
+            <h2 class="font-sans text-4xl font-semibold leading-tight mb-6 text-balance text-neutral-900 dark:text-neutral-100">Chris Meisner</h2>
+            <div class="mb-6">
+              <p class="text-lg font-normal leading-relaxed text-pretty text-neutral-900 dark:text-neutral-100 mb-4">
+                Senior product &amp; brand design for teams shipping complex products — fast, clearly, and at scale.
+              </p>
+              <p class="text-sm font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400">
+                I partner with early-stage founders and product-led startups — usually Series A or earlier — who are building something real but need senior design to get it out the door. Whether it's shaping a brand from scratch, designing the first product experience, or coming back for the next phase — I plug in wherever you are and help you ship.
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <a id="hero-cta" href="/intake" class="inline-flex items-center justify-center h-10 px-4 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
+                Get started
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Experience Section -->
+      <section id="experience" class="p-8 lg:px-16 lg:py-10">
+        <div class="max-w-2xl mx-auto">
+          <div class="mb-12">
+            <h2 class="font-sans text-2xl font-semibold leading-snug mb-4 text-balance text-neutral-900 dark:text-neutral-100">Experience</h2>
+            <p class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 text-pretty max-w-lg">Brands and products I've helped build.</p>
+          </div>
+          <div class="grid grid-cols-6 gap-4">
+            <!-- Placeholder logos — replace with actual brand marks -->
+            <div class="aspect-square w-full rounded-md bg-neutral-200 dark:bg-neutral-700"></div>
+            <div class="aspect-square w-full rounded-md bg-neutral-200 dark:bg-neutral-700"></div>
+            <div class="aspect-square w-full rounded-md bg-neutral-200 dark:bg-neutral-700"></div>
+            <div class="aspect-square w-full rounded-md bg-neutral-200 dark:bg-neutral-700"></div>
+            <div class="aspect-square w-full rounded-md bg-neutral-200 dark:bg-neutral-700"></div>
+            <div class="aspect-square w-full rounded-md bg-neutral-200 dark:bg-neutral-700"></div>
+            <div class="aspect-square w-full rounded-md bg-neutral-200 dark:bg-neutral-700"></div>
+            <div class="aspect-square w-full rounded-md bg-neutral-200 dark:bg-neutral-700"></div>
+            <div class="aspect-square w-full rounded-md bg-neutral-200 dark:bg-neutral-700"></div>
+            <div class="aspect-square w-full rounded-md bg-neutral-200 dark:bg-neutral-700"></div>
+            <div class="aspect-square w-full rounded-md bg-neutral-200 dark:bg-neutral-700"></div>
+            <div class="aspect-square w-full rounded-md bg-neutral-200 dark:bg-neutral-700"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Capabilities Section -->
+      <section id="capabilities" class="p-8 lg:px-16 lg:py-10">
+        <div class="max-w-2xl mx-auto">
+          <div class="mb-12">
+            <h2 class="font-sans text-2xl font-semibold leading-snug mb-4 text-balance text-neutral-900 dark:text-neutral-100">Capabilities</h2>
+            <p class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 text-pretty max-w-lg">From brand foundations to product experiences — here's what I can help you build.</p>
+          </div>
+
+          <!-- Samples Carousel (hidden for MVP — re-enable when ready) -->
+          <!--
+          <div id="samples" class="scroll-mt-16 mb-12">
+            <button type="button" id="samples-carousel" class="relative w-full block text-left rounded-md overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400 cursor-pointer bg-transparent border-0 p-0" aria-label="Advance to next sample">
+              <div class="overflow-hidden rounded-md aspect-[3/2] bg-neutral-100 dark:bg-neutral-800">
+                <div id="carousel-track" class="relative w-full h-full">
+                  (slides rendered by JS)
+                </div>
+              </div>
+            </button>
+          </div>
+          -->
+
+          <div class="grid sm:grid-cols-2 gap-x-12 gap-y-10">
+
+            <!-- Brand -->
+            <div>
+              <h3 class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mb-3">Brand</h3>
+              <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
+                <li>Naming & Positioning</li>
+                <li>Logo & Wordmark</li>
+                <li>Color & Typography Systems</li>
+                <li>Visual Style Guide</li>
+                <li>Brand Narrative & Messaging</li>
+                <li>Brand Moodboards</li>
+                <li>Brand Personality & Tone Guide</li>
+              </ul>
+            </div>
+
+            <!-- Product -->
+            <div>
+              <h3 class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mb-3">Product</h3>
+              <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
+                <li>ICP & Personas</li>
+                <li>User Journey Maps</li>
+                <li>Navigation & UX Flows</li>
+                <li>Interactive Prototypes</li>
+                <li>Production-Ready Screens</li>
+                <li>Feature Hierarchy & Roadmap</li>
+                <li>UX Audit & Recommendations</li>
+              </ul>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Services Section -->
+      <section id="services" class="p-8 lg:px-16 lg:py-10">
+        <div class="max-w-2xl mx-auto">
+          <div class="mb-12">
+            <h2 class="font-sans text-2xl font-semibold leading-snug mb-4 text-balance text-neutral-900 dark:text-neutral-100">Let's move the ball</h2>
+            <p class="text-sm font-normal leading-normal text-pretty text-neutral-600 dark:text-neutral-400 max-w-lg">
+              Different teams need different levels of support. These are the core ways I help founders and product teams get aligned, make decisions, and keep momentum.
+            </p>
+          </div>
+
+          <div class="space-y-8 mb-16">
+
+            <div class="border border-neutral-200 dark:border-neutral-700 rounded-md p-6 lg:p-8">
+              <div class="mb-6">
+                <h3 class="text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100 text-balance mb-2">Foundation Sprints</h3>
+                <p class="text-sm font-medium leading-normal text-neutral-900 dark:text-neutral-100 mb-4 text-pretty">
+                  You leave with clarity, alignment, and a shippable direction.
+                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">$4,000–$20,000</span>
+                  <span class="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">1–2 weeks</span>
+                  <span class="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">Custom scope</span>
+                </div>
+              </div>
+
+              <p class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 mb-8 text-pretty">
+                Every Foundation Sprint runs on the studio's proven process — one or two weeks depending on scope. You select from brand or product deliverables to shape the exact scope, and I drive the work from kickoff to handoff. Start with what matters most now — then come back for the next sprint when you're ready.
+              </p>
+
+              <div class="grid sm:grid-cols-2 gap-8">
+                <div>
+                  <h4 class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mb-3">What you get</h4>
+                  <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>One to two weeks of focused, studio-run design work</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>3-hour kickoff workshop to align on goals, constraints, and success metrics</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Brand or product deliverables you choose</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Final handoff — polished, documented, and ready to ship</span>
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mb-3">Best for</h4>
+                  <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Early-stage founders shaping their first brand or product</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Startups at Series A or earlier who need to ship</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Teams starting from scratch on brand or product</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Anyone who needs a clear, shippable direction fast</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="mt-8 flex flex-wrap items-center gap-3">
+                <a href="/intake?engagement=foundation-sprint" class="inline-flex items-center justify-center h-10 px-4 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
+                  Get started
+                </a>
+                <a href="https://cal.com/chrismeisner/sprint-planning" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center h-10 px-4 rounded-md border border-neutral-300 dark:border-neutral-600 text-neutral-600 dark:text-neutral-400 text-sm font-medium hover:border-neutral-500 dark:hover:border-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
+                  Book a free sprint planning call
+                </a>
+              </div>
+
+            </div>
+
+            <div id="sprint-update-cycle" class="border border-neutral-200 dark:border-neutral-700 rounded-md p-6 lg:p-8">
+              <div class="mb-6">
+                <h3 class="text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100 text-balance mb-2">Feedback Cycles</h3>
+                <p class="text-sm font-medium leading-normal text-neutral-900 dark:text-neutral-100 mb-4 text-pretty">
+                  Your sprint shipped the direction. Feedback Cycles help you refine it with real-world input.
+                </p>
+                <!-- $2,000/week reflects ~10–12 hrs of focused follow-on refinement work per week -->
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">$2,000</span>
+                  <span class="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">Per week</span>
+                  <span class="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">Existing clients only</span>
+                </div>
+              </div>
+
+              <p class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 mb-8 text-pretty">
+                Available to clients who have completed at least one Foundation Sprint. Where sprints produce net-new deliverables, Feedback Cycles are for evolving what already exists: incorporating feedback, refining based on real-world use, and improving the work already in your hands. One structured feedback loop per week, no long-term commitment.
+              </p>
+
+              <div class="grid sm:grid-cols-2 gap-8">
+                <div>
+                  <h4 class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mb-3">What you get</h4>
+                  <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Monday sync to review feedback and align on what to refine</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Wednesday WIP delivery with one round of async feedback</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Friday final files — revised, polished, and ready to use</span>
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mb-3">Best for</h4>
+                  <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Refining sprint deliverables based on market or user feedback</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Brands evolving after launch</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Products iterating on shipped screens and flows</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Keeping existing work sharp without starting a new sprint</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="mt-8 flex flex-wrap items-center gap-3">
+                <a href="/intake/updates" class="inline-flex items-center justify-center h-10 px-4 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
+                  Start a feedback cycle
+                </a>
+                <span class="text-sm text-neutral-400 dark:text-neutral-500">Available after your first sprint.</span>
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="space-y-8">
+
+            <div id="team-player" class="border border-neutral-200 dark:border-neutral-700 rounded-md p-6 lg:p-8">
+              <div class="mb-6">
+                <h3 class="text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100 text-balance mb-2">Team Player</h3>
+                <p class="text-sm font-medium leading-normal text-neutral-900 dark:text-neutral-100 mb-4 text-pretty">
+                  You already have direction — you just need someone to execute it.
+                </p>
+                <!-- $5,000/week for embedded design execution — no studio process overhead -->
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">$5,000</span>
+                  <span class="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">Per week</span>
+                </div>
+              </div>
+
+              <p class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 mb-8 text-pretty">
+                For teams that have a PM, a roadmap, or a clear set of priorities. You manage the work, I show up and ship — joining standups, working in your Figma, communicating async. No defined studio process; just fast, reliable design help on your terms.
+              </p>
+
+              <div class="grid sm:grid-cols-2 gap-8">
+                <div>
+                  <h4 class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mb-3">What you get</h4>
+                  <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Part-time weekly rate — consistent, focused hours</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Async communication via Slack</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Join your standups & planning</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Work directly in your tools & Figma</span>
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mb-3">Best for</h4>
+                  <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Agencies needing extra design capacity</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Startups with PMs or a clear roadmap</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Teams between design hires</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Ongoing product iteration</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="mt-8 flex items-center gap-4">
+                <a href="/intake?engagement=team-player" class="inline-flex items-center justify-center h-10 px-4 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
+                  Get started
+                </a>
+              </div>
+
+            </div>
+
+            <div id="show-and-tell" class="border border-neutral-200 dark:border-neutral-700 rounded-md p-6 lg:p-8">
+              <div class="mb-6">
+                <h3 class="text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100 text-balance mb-2">AI Show & Tell</h3>
+                <p class="text-sm font-medium leading-normal text-neutral-900 dark:text-neutral-100 mb-4 text-pretty">
+                  See what AI can actually do for your design workflow — live.
+                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">$300</span>
+                  <span class="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">60 minutes</span>
+                  <span class="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400">Virtual</span>
+                </div>
+              </div>
+
+              <p class="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 mb-8 text-pretty">
+                A one-hour live session where I walk you through the AI tools and workflows I use every day as a designer. I'm always learning — new models, new tools, new ways to integrate them into real design work — and I tailor each session to what the person booking actually needs. Whether you're curious about prototyping with AI, automating parts of your workflow, or just want to see what's possible right now, I'll show you.
+              </p>
+
+              <div class="grid sm:grid-cols-2 gap-8">
+                <div>
+                  <h4 class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mb-3">What you get</h4>
+                  <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>60-minute live walkthrough of AI tools and techniques</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Session tailored to your role, tools, and goals</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Live Q&A — bring your questions and use cases</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Recording of the session for your reference</span>
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="text-sm font-medium leading-none text-neutral-900 dark:text-neutral-100 mb-3">Best for</h4>
+                  <ul class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Designers looking to integrate AI into their practice</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Creative teams evaluating AI tools and workflows</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Founders who want to understand what AI-assisted design looks like</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-neutral-400 dark:text-neutral-500 mt-0.5">—</span>
+                      <span>Anyone curious but not sure where to start</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="mt-8 flex items-center gap-4">
+                <a href="https://cal.com/chrismeisner/ai-show-and-tell" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center h-10 px-4 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-300 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400">
+                  Book a session
+                </a>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- Availability Section (hidden for MVP — re-enable when ready) -->
+      <!--
+      <section id="availability" class="p-8 lg:px-16 lg:py-10">
+        <div class="max-w-2xl mx-auto">
+          <div class="mb-8">
+            <h2 class="font-sans text-2xl font-semibold leading-snug mb-2 text-balance text-neutral-900 dark:text-neutral-100">Availability</h2>
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 text-pretty mt-4">
+              Availability shifts quickly — if you see an opening that works, lock it in. <a href="https://cal.com/chrismeisner/sprint-planning" target="_blank" rel="noopener noreferrer" class="underline text-neutral-900 dark:text-neutral-100 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">Book a quick call</a> and let's see if it's a fit.
+            </p>
+          </div>
+          <div id="availability-calendar" class="border border-neutral-200 dark:border-neutral-700 rounded-md p-6 lg:p-8">
+            <div>
+              <div class="flex items-center justify-between mb-4 gap-4">
+                <button type="button" id="cal-prev" class="flex items-center justify-center size-8 rounded-md text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-500" aria-label="Previous month">
+                  <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <h3 id="cal-month-label" class="text-sm font-medium text-neutral-900 dark:text-neutral-100 text-center flex-1"></h3>
+                <button type="button" id="cal-next" class="flex items-center justify-center size-8 rounded-md text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-500" aria-label="Next month">
+                  <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                </button>
+              </div>
+              <div class="grid grid-cols-7 mb-2">
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">S</div>
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">M</div>
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">T</div>
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">W</div>
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">T</div>
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">F</div>
+                <div class="text-center text-xs font-medium text-neutral-400 dark:text-neutral-500 py-1">S</div>
+              </div>
+              <div id="cal-grid" class="grid grid-cols-7 transition-opacity duration-200 ease-in-out"></div>
+            </div>
+            <div class="flex items-center gap-6 mt-6 pt-6 border-t border-neutral-200 dark:border-neutral-700">
+              <div class="flex items-center gap-2">
+                <span class="size-3 rounded-full border-2 border-emerald-500"></span>
+                <span class="text-xs text-neutral-500 dark:text-neutral-500">Available</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="size-3 rounded-full border-2 border-emerald-500/50"></span>
+                <span class="text-xs text-neutral-500 dark:text-neutral-500">Limited</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="relative size-3 rounded-full text-neutral-400 dark:text-neutral-500 flex items-center justify-center text-xs font-medium cal-booked">×</span>
+                <span class="text-xs text-neutral-500 dark:text-neutral-500">Booked</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      -->
+
+      <!-- Contact Section -->
+      <section id="contact" class="p-8 lg:px-16 lg:py-10">
+        <div class="max-w-2xl mx-auto">
+          <div class="mb-12">
+            <h2 class="font-sans text-2xl font-semibold leading-snug text-balance text-neutral-900 dark:text-neutral-100">About</h2>
+          </div>
+
+          <div class="flex flex-col md:flex-row gap-8 lg:gap-12 items-start">
+            <!-- Profile Image -->
+            <div class="size-48 md:size-64 flex-shrink-0">
+              <img src="/api/sandbox-files/new-landing/images/headshot.jpeg" alt="Chris Meisner" class="size-full object-cover rounded-md">
+            </div>
+
+            <!-- Contact Info -->
+            <div class="space-y-4">
+              <p class="text-sm font-normal leading-relaxed text-pretty text-neutral-600 dark:text-neutral-400">
+                I've been designing for startups and digital agencies since 2010 — in-house design lead, contractor, cofounder. I've raised through a Series A, worked embedded with early-stage teams, and partnered with agencies doing serious brand and product work.
+              </p>
+              <p class="text-sm font-normal leading-relaxed text-pretty text-neutral-600 dark:text-neutral-400">
+                Most of what goes wrong at the early stage isn't a lack of design — it's too much of the wrong kind. Decks that live in Notion, style guides nobody opens, wireframes that never get tested. I build things that actually ship: decisive, practical outputs aimed at getting you real feedback and traction.
+              </p>
+              <p class="text-sm font-normal leading-relaxed text-pretty text-neutral-600 dark:text-neutral-400">
+                Based in Philadelphia. Working with clients here, in New York, and remotely.
+              </p>
+              <div class="pt-2 space-y-3">
+                <div>
+                  <a href="mailto:hello@chrismeisner.com" class="text-neutral-900 dark:text-neutral-100 underline hover:text-neutral-600 dark:hover:text-neutral-400 text-sm transition-colors duration-150">hello@chrismeisner.com</a>
+                </div>
+                <div class="flex gap-4">
+                  <a href="https://www.linkedin.com/in/chrismeisner/" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">LinkedIn</a>
+                  <span class="text-neutral-300 dark:text-neutral-600">·</span>
+                  <a href="https://x.com/chrismeisner" target="_blank" rel="noopener noreferrer" class="text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150 text-sm">X</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Projects Section (hidden for MVP — re-enable when ready) -->
+      <!--
+      <section id="projects" class="p-8 lg:px-16 lg:py-10">
+        <div class="max-w-2xl mx-auto">
+          <div class="mb-8">
+            <h2 class="font-sans text-2xl font-semibold leading-snug mb-2 text-balance text-neutral-900 dark:text-neutral-100">Projects</h2>
+          </div>
+          <div class="border border-neutral-200 dark:border-neutral-700 rounded-md overflow-hidden">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50">
+                  <th scope="col" class="text-left font-medium text-neutral-500 dark:text-neutral-500 px-4 py-3">Project</th>
+                  <th scope="col" class="text-left font-medium text-neutral-500 dark:text-neutral-500 px-4 py-3 hidden sm:table-cell">Type</th>
+                  <th scope="col" class="text-left font-medium text-neutral-500 dark:text-neutral-500 px-4 py-3 hidden md:table-cell">Year</th>
+                  <th scope="col" class="text-right font-medium text-neutral-500 dark:text-neutral-500 px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
+                <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors duration-100">
+                  <td class="px-4 py-3.5 font-medium text-neutral-900 dark:text-neutral-100">Stackwell</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden sm:table-cell">Brand + Product</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden md:table-cell">2025</td>
+                  <td class="px-4 py-3.5 text-right"><a href="https://stackwell.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-neutral-900 dark:text-neutral-100 hover:text-neutral-500 dark:hover:text-neutral-400 transition-colors duration-150">Live<svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a></td>
+                </tr>
+                <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors duration-100">
+                  <td class="px-4 py-3.5 font-medium text-neutral-900 dark:text-neutral-100">Kindra Health</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden sm:table-cell">Product</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden md:table-cell">2025</td>
+                  <td class="px-4 py-3.5 text-right"><span class="inline-flex items-center rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">Private Beta</span></td>
+                </tr>
+                <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors duration-100">
+                  <td class="px-4 py-3.5 font-medium text-neutral-900 dark:text-neutral-100">Terrace Finance</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden sm:table-cell">Brand</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden md:table-cell">2025</td>
+                  <td class="px-4 py-3.5 text-right"><a href="https://terracefinance.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-neutral-900 dark:text-neutral-100 hover:text-neutral-500 dark:hover:text-neutral-400 transition-colors duration-150">Live<svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a></td>
+                </tr>
+                <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors duration-100">
+                  <td class="px-4 py-3.5 font-medium text-neutral-900 dark:text-neutral-100">Campfire</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden sm:table-cell">Product</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden md:table-cell">2026</td>
+                  <td class="px-4 py-3.5 text-right"><span class="inline-flex items-center rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">In Development</span></td>
+                </tr>
+                <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors duration-100">
+                  <td class="px-4 py-3.5 font-medium text-neutral-900 dark:text-neutral-100">Nomad Insurance</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden sm:table-cell">Brand + Product</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden md:table-cell">2024</td>
+                  <td class="px-4 py-3.5 text-right"><a href="https://nomadinsurance.co" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-neutral-900 dark:text-neutral-100 hover:text-neutral-500 dark:hover:text-neutral-400 transition-colors duration-150">Live<svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a></td>
+                </tr>
+                <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors duration-100">
+                  <td class="px-4 py-3.5 font-medium text-neutral-900 dark:text-neutral-100">Roost</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden sm:table-cell">Brand</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden md:table-cell">2024</td>
+                  <td class="px-4 py-3.5 text-right"><span class="inline-flex items-center rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">Private Beta</span></td>
+                </tr>
+                <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors duration-100">
+                  <td class="px-4 py-3.5 font-medium text-neutral-900 dark:text-neutral-100">Fieldwork Studio</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden sm:table-cell">Brand + Product</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden md:table-cell">2024</td>
+                  <td class="px-4 py-3.5 text-right"><a href="https://fieldwork.studio" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-neutral-900 dark:text-neutral-100 hover:text-neutral-500 dark:hover:text-neutral-400 transition-colors duration-150">Live<svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a></td>
+                </tr>
+                <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors duration-100">
+                  <td class="px-4 py-3.5 font-medium text-neutral-900 dark:text-neutral-100">Pathfinder AI</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden sm:table-cell">Product</td>
+                  <td class="px-4 py-3.5 text-neutral-500 dark:text-neutral-400 hidden md:table-cell">2026</td>
+                  <td class="px-4 py-3.5 text-right"><span class="inline-flex items-center rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">In Development</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      -->
+
+      <!-- FAQ Section -->
+      <section id="faq" class="p-8 lg:px-16 lg:py-10">
+        <div class="max-w-2xl mx-auto">
+          <div class="mb-12">
+            <h2 class="font-sans text-2xl font-semibold leading-snug text-balance text-neutral-900 dark:text-neutral-100">FAQ</h2>
+          </div>
+          <div class="divide-y divide-neutral-200 dark:divide-neutral-700">
+
+            <details class="group py-5">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">
+                How does a Foundation Sprint work?
+                <svg class="size-4 flex-shrink-0 text-neutral-400 dark:text-neutral-500 transition-transform duration-200 group-open:rotate-45" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              </summary>
+              <p class="mt-4 text-sm font-normal leading-relaxed text-neutral-600 dark:text-neutral-400 text-pretty">
+                Sprints run one or two weeks depending on scope — both follow the same uphill/downhill cadence. In a two-week sprint, Week 1 is uphill: explore broadly, review options, lock direction. Week 2 is downhill: heads-down build and Friday handoff. In a one-week sprint, Wednesday is the lock-in point — uphill through midweek, downhill to Friday. Either way, you select deliverables before we start so scope and price are defined before Day 1.
+              </p>
+            </details>
+
+            <details class="group py-5">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">
+                What's the difference between Foundation Sprints and the Sprint Update Cycle?
+                <svg class="size-4 flex-shrink-0 text-neutral-400 dark:text-neutral-500 transition-transform duration-200 group-open:rotate-45" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              </summary>
+              <p class="mt-4 text-sm font-normal leading-relaxed text-neutral-600 dark:text-neutral-400 text-pretty">
+                Sprints produce net-new deliverables — a logo, a product flow, a brand guide. The Sprint Update Cycle is for existing clients who want to iterate on work already delivered: incorporating feedback, refining based on real-world use, keeping things sharp. It's only available after completing at least one Foundation Sprint.
+              </p>
+            </details>
+
+            <details class="group py-5">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">
+                Can I start with just brand or just product?
+                <svg class="size-4 flex-shrink-0 text-neutral-400 dark:text-neutral-500 transition-transform duration-200 group-open:rotate-45" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              </summary>
+              <p class="mt-4 text-sm font-normal leading-relaxed text-neutral-600 dark:text-neutral-400 text-pretty">
+                Yes — that's the point. You pick the deliverables that matter most right now, and we scope the sprint around those. Start with brand if that's the gap, start with product if you're shipping. Come back for the next sprint when you're ready.
+              </p>
+            </details>
+
+            <details class="group py-5">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">
+                Do you work with teams that already have a designer?
+                <svg class="size-4 flex-shrink-0 text-neutral-400 dark:text-neutral-500 transition-transform duration-200 group-open:rotate-45" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              </summary>
+              <p class="mt-4 text-sm font-normal leading-relaxed text-neutral-600 dark:text-neutral-400 text-pretty">
+                Yes, through the Team Player engagement. If you have a PM, a roadmap, or a clear set of priorities and just need extra design capacity, I plug in directly — working in your tools, joining standups, and shipping on your terms. No studio process required.
+              </p>
+            </details>
+
+            <details class="group py-5">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">
+                Do you use AI in your work?
+                <svg class="size-4 flex-shrink-0 text-neutral-400 dark:text-neutral-500 transition-transform duration-200 group-open:rotate-45" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              </summary>
+              <p class="mt-4 text-sm font-normal leading-relaxed text-neutral-600 dark:text-neutral-400 text-pretty">
+                Yes. AI is part of how this studio works — for research, ideation, writing, and building the tooling behind the client portal you're interacting with. The judgment, craft, and decisions are mine, but AI accelerates the process and lets me deliver more in less time without cutting corners on quality.
+              </p>
+            </details>
+
+            <details class="group py-5">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">
+                How far in advance should I reach out?
+                <svg class="size-4 flex-shrink-0 text-neutral-400 dark:text-neutral-500 transition-transform duration-200 group-open:rotate-45" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              </summary>
+              <p class="mt-4 text-sm font-normal leading-relaxed text-neutral-600 dark:text-neutral-400 text-pretty">
+                Sooner is better — availability shifts quickly and sprints book by the Monday start date. If you're thinking about starting in the next 4–6 weeks, now is a good time to get in touch. Fill out the <a href="/intake" class="underline text-neutral-900 dark:text-neutral-100 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors duration-150">intake form</a> and we'll go from there.
+              </p>
+            </details>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="p-8 lg:px-16 lg:py-10 border-t border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
+        <div class="max-w-2xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <p class="text-neutral-400 dark:text-neutral-500 text-sm">&copy; 2026 Chris Meisner. All rights reserved.</p>
+          <nav class="flex items-center gap-4 text-sm">
+            <a href="/privacy" class="text-neutral-400 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Privacy</a>
+            <a href="/terms" class="text-neutral-400 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Terms</a>
+            <a href="/support" class="text-neutral-400 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors duration-150">Support</a>
+          </nav>
+        </div>
+      </footer>
+
+    </main>
+  </div>
+
+  <script>
+    // ── Smooth scroll ─────────────────────────────
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const href = this.getAttribute('href');
+        if (href === '#') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          const target = document.querySelector(href);
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      });
+    });
+
+    // ── Dark mode toggle (press 'd' or click button) ──
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+    }
+
+    document.getElementById('theme-toggle')?.addEventListener('click', toggleDarkMode);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'd' && !e.metaKey && !e.ctrlKey && !e.altKey &&
+          !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        toggleDarkMode();
+      }
+    });
+
+
+    /* ── Samples Carousel (hidden for MVP — re-enable when ready) ──────────────
+    const slides = [
+      { image: 'images/projects/01a.png', alt: 'Brand identity design sample' },
+      { image: 'images/projects/01b.png', alt: 'Brand identity collateral' }
+    ];
+
+    const track = document.getElementById('carousel-track');
+    let currentSlide = 0;
+
+    slides.forEach((slide, i) => {
+      const el = document.createElement('div');
+      el.className = 'absolute inset-0 motion-safe:transition-opacity motion-safe:duration-500 motion-safe:ease-in-out motion-reduce:transition-none ' +
+        (i === 0 ? 'opacity-100' : 'opacity-0');
+      el.innerHTML = `<img src="${slide.image}" alt="${slide.alt}" class="w-full h-full object-cover object-top">`;
+      track.appendChild(el);
+    });
+
+    const FADE_MS = 500;
+    let clickLocked = false;
+
+    function goTo(index) {
+      track.children[currentSlide].style.opacity = '0';
+      currentSlide = index;
+      track.children[currentSlide].style.opacity = '1';
+    }
+
+    function advanceNext() {
+      if (clickLocked) return;
+      clickLocked = true;
+      const next = (currentSlide + 1) % slides.length;
+      goTo(next);
+      setTimeout(() => { clickLocked = false; }, FADE_MS);
+    }
+
+    document.getElementById('samples-carousel').addEventListener('click', advanceNext);
+    setInterval(advanceNext, 4000);
+    ── End Samples Carousel ── */
+
+    /* ── Availability Calendar (hidden for MVP — re-enable when ready) ──────────
+    (async function () {
+      const today = new Date();
+      let currentMonthIndex = 0;
+      let weeklyAvailability = {};
+      try {
+        const response = await fetch('./availability.json');
+        const data = await response.json();
+        data.weeks.forEach(item => {
+          const weekDates = getWeekDates(item.year, item.week);
+          weekDates.forEach(date => {
+            const key = date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+            weeklyAvailability[key] = item.status;
+          });
+        });
+      } catch (error) {
+        console.error('Error loading availability:', error);
+      }
+      function getWeekDates(year, weekNum) {
+        const dates = [];
+        const jan4 = new Date(year, 0, 4);
+        const dayOfWeek = jan4.getDay();
+        const daysFromMonday = (dayOfWeek === 0) ? -6 : 1 - dayOfWeek;
+        const week1Monday = new Date(jan4);
+        week1Monday.setDate(jan4.getDate() + daysFromMonday);
+        const targetMonday = new Date(week1Monday);
+        targetMonday.setDate(week1Monday.getDate() + (weekNum - 1) * 7);
+        for (let i = 0; i < 5; i++) {
+          const date = new Date(targetMonday);
+          date.setDate(targetMonday.getDate() + i);
+          dates.push(date);
+        }
+        return dates;
+      }
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+      function statusClasses(status) {
+        if (status === 'available') return 'border-2 border-emerald-500 text-emerald-700 dark:text-emerald-400';
+        if (status === 'partial') return 'border-2 border-emerald-500/50 text-emerald-700 dark:text-emerald-400';
+        if (status === 'booked') return 'cal-booked text-neutral-400 dark:text-neutral-500';
+        return '';
+      }
+      function renderMonth(monthOffset) {
+        const grid = document.getElementById('cal-grid');
+        const label = document.getElementById('cal-month-label');
+        const currentMonth = today.getMonth() + monthOffset;
+        const currentYear = today.getFullYear() + Math.floor(currentMonth / 12);
+        const month = ((currentMonth % 12) + 12) % 12;
+        label.textContent = monthNames[month] + ' ' + currentYear;
+        const fragment = document.createDocumentFragment();
+        const firstDay = new Date(currentYear, month, 1).getDay();
+        const daysInMonth = new Date(currentYear, month + 1, 0).getDate();
+        for (let i = 0; i < firstDay; i++) {
+          const empty = document.createElement('div');
+          empty.className = 'py-1.5';
+          fragment.appendChild(empty);
+        }
+        for (let d = 1; d <= daysInMonth; d++) {
+          const key = currentYear + '-' + pad(month + 1) + '-' + pad(d);
+          const dayOfWeek = new Date(currentYear, month, d).getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          const status = weeklyAvailability[key] || null;
+          const isToday = d === today.getDate() && month === today.getMonth() && currentYear === today.getFullYear();
+          const cell = document.createElement('div');
+          cell.className = 'flex items-center justify-center py-2';
+          const inner = document.createElement('span');
+          inner.textContent = d;
+          inner.className = 'size-11 flex items-center justify-center rounded-full text-xs transition-colors duration-150 ';
+          if (isToday) inner.className += 'ring-2 ring-neutral-900 dark:ring-neutral-100 ';
+          if (status) inner.className += statusClasses(status);
+          else if (isWeekend) inner.className += 'text-neutral-300 dark:text-neutral-600';
+          else inner.className += 'text-neutral-500 dark:text-neutral-400';
+          cell.appendChild(inner);
+          fragment.appendChild(cell);
+        }
+        grid.style.opacity = '0';
+        setTimeout(() => { grid.innerHTML = ''; grid.appendChild(fragment); grid.style.opacity = '1'; }, 200);
+      }
+      function updateArrows() {
+        document.getElementById('cal-prev').disabled = currentMonthIndex === 0;
+        document.getElementById('cal-next').disabled = currentMonthIndex === 2;
+      }
+      function showMonth(index) { currentMonthIndex = index; renderMonth(index); updateArrows(); }
+      showMonth(0);
+      document.getElementById('cal-prev').addEventListener('click', () => { if (currentMonthIndex > 0) showMonth(currentMonthIndex - 1); });
+      document.getElementById('cal-next').addEventListener('click', () => { if (currentMonthIndex < 2) showMonth(currentMonthIndex + 1); });
+      const calendarContainer = document.getElementById('availability-calendar');
+      let startX = 0, startY = 0, isDragging = false, hasMoved = false;
+      function handleStart(e) { const p = e.touches ? e.touches[0] : e; startX = p.clientX; startY = p.clientY; isDragging = true; hasMoved = false; calendarContainer.style.cursor = 'grabbing'; }
+      function handleMove(e) { if (!isDragging) return; const p = e.touches ? e.touches[0] : e; const dx = Math.abs(p.clientX - startX); const dy = Math.abs(p.clientY - startY); if (dx > dy && dx > 10) { e.preventDefault(); hasMoved = true; } }
+      function handleEnd(e) { if (!isDragging) return; const p = e.changedTouches ? e.changedTouches[0] : e; const dx = p.clientX - startX; const dy = Math.abs(p.clientY - startY); isDragging = false; calendarContainer.style.cursor = ''; if (hasMoved && Math.abs(dx) > 50 && Math.abs(dx) > dy) { if (dx > 0 && currentMonthIndex > 0) showMonth(currentMonthIndex - 1); else if (dx < 0 && currentMonthIndex < 2) showMonth(currentMonthIndex + 1); } }
+      function handleCancel() { isDragging = false; calendarContainer.style.cursor = ''; }
+      calendarContainer.addEventListener('touchstart', handleStart, { passive: true });
+      calendarContainer.addEventListener('touchmove', handleMove, { passive: false });
+      calendarContainer.addEventListener('touchend', handleEnd);
+      calendarContainer.addEventListener('touchcancel', handleCancel);
+      calendarContainer.addEventListener('mousedown', handleStart);
+      calendarContainer.addEventListener('mousemove', handleMove);
+      calendarContainer.addEventListener('mouseup', handleEnd);
+      calendarContainer.addEventListener('mouseleave', handleCancel);
+      calendarContainer.style.cursor = 'grab';
+      calendarContainer.style.userSelect = 'none';
+    })();
+    ── End Availability Calendar ── */
+  </script>
+</body>
+</html>

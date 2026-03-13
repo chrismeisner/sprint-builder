@@ -54,23 +54,25 @@ const FUEL_ACTIONS: ActionOption[] = [
 
 const OIL_ACTIONS: ActionOption[] = [
   {
-    id: "week",
-    label: "Remind me in a week",
+    id: "month-before",
+    label: "Remind me 1 month before",
+    detail: "Apr 12",
     style: "primary",
     icon: "clock",
     response: {
-      text: "I'll check back in a week.",
-      subtext: "Added to your Miles to-do list.",
+      text: "Got it — I'll remind you on Apr 12, or sooner if you hit the mileage threshold first.",
+      subtext: "Miles will track both time and mileage.",
     },
   },
   {
-    id: "500mi",
-    label: "At 500 miles remaining",
+    id: "800mi",
+    label: "Remind me at ~800 mi remaining",
+    detail: "Mileage",
     style: "secondary",
     icon: "calendar",
     response: {
-      text: "I'll remind you at 500 miles remaining.",
-      subtext: "Tracking your mileage automatically.",
+      text: "Sounds good — I'll remind you when you're about 800 miles away, or on Apr 12 if time comes first.",
+      subtext: "Tracking both time and mileage automatically.",
     },
   },
   {
@@ -148,14 +150,15 @@ export const CONTEXTS: Record<string, ContextConfig> = {
     greeting: "Here's what I know about your upcoming oil change.",
     badgeLabel: "Maintenance",
     card: {
-      intro: "Your oil change is coming up. Here's the details:",
+      intro:
+        "Your next oil change is due by May 12, 2026 or in about 800 miles, whichever comes first.",
       title: "Oil Change",
-      subtitle: "Next service interval",
+      subtitle: "Every 6 months or 5,000 mi",
       status: { label: "Due Soon", level: "warn" },
       rows: [
-        { label: "Remaining", value: "~800 mi", highlight: true },
+        { label: "Due by date", value: "May 12, 2026", highlight: true },
+        { label: "Due by mileage", value: "~800 mi", highlight: true },
         { label: "Last changed", value: "Nov 12, 2025" },
-        { label: "Interval", value: "Every 5,000 mi" },
         { label: "Oil type", value: "0W-20 Synthetic" },
       ],
       whyItMatters:
@@ -256,7 +259,7 @@ export const CONTEXTS: Record<string, ContextConfig> = {
     badgeLabel: "Speed Alert",
     card: {
       title: "Jack — Speed Alert",
-      subtitle: "2019 Subaru Outback",
+      subtitle: "2021 Toyota RAV4 XLE",
       status: { label: "Over limit", level: "warn" },
       mapPreview: "live",
       speedAlert: {
@@ -363,11 +366,11 @@ export const CONTEXTS: Record<string, ContextConfig> = {
   },
 
   "kid-trip": {
-    greeting: "Jack just started a trip in the 2019 Subaru Outback. Here's the live view:",
+    greeting: "Jack just started a trip in the RAV4. Here's the live view:",
     badgeLabel: "Trip in progress",
     card: {
       title: "Jack — Live Trip",
-      subtitle: "2019 Subaru Outback",
+      subtitle: "2021 Toyota RAV4 XLE",
       status: { label: "Live", level: "info" },
       mapPreview: "live",
       rows: [
@@ -381,7 +384,7 @@ export const CONTEXTS: Record<string, ContextConfig> = {
           label: "Open full live view",
           style: "primary",
           icon: "none",
-          href: "/dashboard?mode=trip&driver=Jack&vehicleLabel=Subaru+Outback",
+          href: "/dashboard?mode=trip&driver=Jack&vehicleLabel=Toyota+RAV4",
           response: {
             text: "Opening the full live view. You'll see higher-frequency GPS updates and turn-by-turn trail as Jack drives.",
           },
@@ -403,7 +406,7 @@ export const CONTEXTS: Record<string, ContextConfig> = {
                 role: "agent-card",
                 card: {
                   title: "Jack — Trip Complete",
-                  subtitle: "2019 Subaru Outback",
+                  subtitle: "2021 Toyota RAV4 XLE",
                   status: { label: "Ended", level: "good" },
                   mapPreview: "completed",
                   rows: [
@@ -425,7 +428,7 @@ export const CONTEXTS: Record<string, ContextConfig> = {
                     },
                     {
                       id: "score-question",
-                      label: "How did this affect his score?",
+                      label: "How did this affect thier score?",
                       style: "secondary",
                       icon: "none",
                       response: {
@@ -464,7 +467,7 @@ export const CONTEXTS: Record<string, ContextConfig> = {
                   style: "secondary",
                   icon: "clock",
                   response: {
-                    text: "Got it — I'll ping you at the start of every trip in the Outback.",
+                    text: "Got it — I'll ping you at the start of every trip in the RAV4.",
                     subtext: "You can change this anytime in Notification Settings.",
                   },
                 },
@@ -675,14 +678,15 @@ export const PENDING_ITEMS: PendingItem[] = [
   {
     id: "oil",
     card: {
-      intro: "Your oil change is coming up. Here's what I know:",
+      intro:
+        "Your next oil change is due by May 12, 2026 or in about 800 miles, whichever comes first.",
       title: "Oil Change",
-      subtitle: "Next service interval",
+      subtitle: "Every 6 months or 5,000 mi",
       status: { label: "Due Soon", level: "warn" },
       rows: [
-        { label: "Remaining", value: "~800 mi", highlight: true },
+        { label: "Due by date", value: "May 12, 2026", highlight: true },
+        { label: "Due by mileage", value: "~800 mi", highlight: true },
         { label: "Last changed", value: "Nov 12, 2025" },
-        { label: "Interval", value: "Every 5,000 mi" },
       ],
       whyItMatters:
         "Delaying oil changes can lead to increased engine wear, reduced fuel efficiency, and potentially costly repairs. Staying on schedule keeps your engine running smoothly.",

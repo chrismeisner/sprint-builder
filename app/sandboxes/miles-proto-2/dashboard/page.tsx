@@ -1,9 +1,13 @@
 "use client";
 
-import { Suspense, useState, useCallback, useRef } from "react";
+import { Suspense, useState, useCallback, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "@/app/sandboxes/miles-proto-2/_components/link";
 import { MapView } from "@/app/sandboxes/miles-proto-2/_components/map-view";
+import { TodoPreview } from "@/app/sandboxes/miles-proto-2/_components/todo-preview";
+import { TripListItem } from "@/app/sandboxes/miles-proto-2/_components/trip-list-item";
+import { DEMO_TODOS } from "@/app/sandboxes/miles-proto-2/_lib/demo-todos";
+import { DEMO_TRIPS } from "@/app/sandboxes/miles-proto-2/_lib/demo-trips";
 import { p } from "@/app/sandboxes/miles-proto-2/_lib/nav";
 
 /* ------------------------------------------------------------------ */
@@ -13,6 +17,7 @@ import { p } from "@/app/sandboxes/miles-proto-2/_lib/nav";
 interface Vehicle {
   id: string;
   name: string;
+  imageSrc: string;
   year: number;
   make: string;
   model: string;
@@ -42,6 +47,7 @@ const VEHICLES: Vehicle[] = [
   {
     id: "civic",
     name: "Civic",
+    imageSrc: "/api/sandbox-files/miles-proto-2/public/images/civic.jpg",
     year: 2019,
     make: "Honda",
     model: "Civic Sport",
@@ -68,6 +74,7 @@ const VEHICLES: Vehicle[] = [
   {
     id: "rav4",
     name: "RAV4",
+    imageSrc: "/api/sandbox-files/miles-proto-2/public/images/rav4.jpg",
     year: 2021,
     make: "Toyota",
     model: "RAV4 XLE",
@@ -81,7 +88,7 @@ const VEHICLES: Vehicle[] = [
     deviceOnline: true,
     driverScore: 74,
     scoreUpdated: "Updated today",
-    liveTrip: { driver: "Jack", vehicleLabel: "Subaru Outback", mph: 34, startedAgo: "12 mins ago" },
+    liveTrip: { driver: "Jack", vehicleLabel: "Toyota RAV4", mph: 34, startedAgo: "12 mins ago" },
     lastTrip: {
       from: "Preston Rd & Belt Line",
       to: "Elm St & 4th Ave",
@@ -114,9 +121,9 @@ const COACHING_CARDS: CoachingCard[] = [
   {
     id: "oil-reminder",
     message:
-      "Your oil change is due in ~800 miles. I can help you schedule it or set a reminder.",
+      "Your next oil change is due by May 12 or in about 800 miles, whichever comes first. I can help you schedule it or set a reminder.",
     actionLabel: "Chat with Miles",
-    actionHref: "/miles?context=fuel",
+    actionHref: "/miles?context=oil",
     dismissLabel: "Dismiss",
   },
   {
@@ -127,20 +134,6 @@ const COACHING_CARDS: CoachingCard[] = [
     actionHref: "/miles?context=fuel",
     dismissLabel: "Dismiss",
   },
-];
-
-interface TodoItem {
-  id: string;
-  title: string;
-  subtitle: string;
-  type: "setup" | "near-term" | "long-horizon";
-  vehicle: string;
-}
-
-const TODOS: TodoItem[] = [
-  { id: "insurance", title: "Upload insurance card", subtitle: "Needed for roadside assistance", type: "setup", vehicle: "Civic" },
-  { id: "oil", title: "Oil change due", subtitle: "~800 mi remaining", type: "near-term", vehicle: "RAV4" },
-  { id: "coolant", title: "Coolant flush at 50,000 mi", subtitle: "~12,800 mi away", type: "long-horizon", vehicle: "Civic" },
 ];
 
 const LIVE_ROUTE: [number, number][] = [
@@ -166,24 +159,7 @@ const TRIP_SUMMARY = {
   driver: "Emma",
 };
 
-interface RecentTrip {
-  id: string;
-  from: string;
-  to: string;
-  date: string;
-  timeRange: string;
-  distance: string;
-  duration: string;
-  events: number;
-  driver: string;
-  vehicle: string;
-}
-
-const RECENT_TRIPS: RecentTrip[] = [
-  { id: "t1", from: "Home", to: "Target", date: "Today", timeRange: "3:42 – 3:54 PM", distance: "4.2 mi", duration: "12 min", events: 1, driver: "Chris", vehicle: "Civic" },
-  { id: "t2", from: "Target", to: "Preston Rd & Belt Line", date: "Today", timeRange: "4:30 – 4:41 PM", distance: "4.1 mi", duration: "11 min", events: 0, driver: "Chris", vehicle: "Civic" },
-  { id: "t3", from: "Elm St & 4th Ave", to: "1200 Commerce St", date: "Yesterday", timeRange: "8:05 – 8:32 AM", distance: "11.3 mi", duration: "27 min", events: 2, driver: "Emma", vehicle: "RAV4" },
-];
+const RECENT_TRIPS = DEMO_TRIPS.slice(0, 3);
 
 /* ------------------------------------------------------------------ */
 /*  Shared vehicle content (no map) — used by both list and card view  */
@@ -225,7 +201,7 @@ function VehicleCardContent({ v }: { v: Vehicle }) {
         </div>
         <div className="flex items-center gap-1">
           <img
-            src="/miles-proto-2/images/civic.png"
+            src={v.imageSrc}
             alt={v.name}
             className="w-24 object-contain opacity-90"
           />
@@ -238,7 +214,7 @@ function VehicleCardContent({ v }: { v: Vehicle }) {
       {/* Bento stats — always Score / Engine / Fuel */}
       <div className="grid grid-cols-3 gap-2 px-4 pb-3">
         <div className="flex flex-col gap-1.5 rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-2.5">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Score</span>
+          <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Miles Score</span>
           <div className="flex items-center gap-1.5">
             <span className="size-1.5 rounded-full bg-green-500" />
             <span className="text-sm font-semibold leading-none text-green-700">{v.driverScore}</span>
@@ -294,25 +270,15 @@ function VehicleCardContent({ v }: { v: Vehicle }) {
 /*  Fleet view with list / card toggle                                 */
 /* ------------------------------------------------------------------ */
 
-function FleetView({ vehicles }: { vehicles: Vehicle[] }) {
+function FleetView({
+  vehicles,
+  headerAction,
+}: {
+  vehicles: Vehicle[];
+  headerAction: "profile" | "roadside";
+}) {
   const liveVehicle = vehicles.find((v) => v.liveTrip);
   const hasLive = !!liveVehicle;
-  const [viewMode, setViewMode] = useState<"list" | "card">("list");
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const idx = Math.round(el.scrollLeft / el.clientWidth);
-    if (idx !== activeIndex) setActiveIndex(idx);
-  }, [activeIndex]);
-
-  const goTo = useCallback((idx: number) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
-  }, []);
 
   const allMarkers = [
     ...vehicles
@@ -334,15 +300,29 @@ function FleetView({ vehicles }: { vehicles: Vehicle[] }) {
       {/* Dashboard header */}
       <div className="flex items-center justify-between px-5 pt-3">
         <h1 className="text-2xl font-bold leading-none text-neutral-900">Miles</h1>
-        <Link
-          href="/account"
-          className="flex items-center gap-2 rounded-full py-1 pl-3 pr-1 transition-colors hover:bg-neutral-100"
-        >
-          <span className="text-sm font-medium text-neutral-700">Chris M.</span>
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-600 text-xs font-semibold leading-none text-white">
-            CM
-          </div>
-        </Link>
+        {headerAction === "roadside" ? (
+          <button
+            type="button"
+            className="flex items-center gap-2 rounded-full border border-red-200 bg-white px-3 py-2 transition-colors hover:bg-red-50"
+          >
+            <div className="flex size-7 items-center justify-center rounded-full bg-red-50">
+              <svg className="size-4 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+              </svg>
+            </div>
+            <span className="text-sm font-semibold text-red-700">Roadside Assist</span>
+          </button>
+        ) : (
+          <Link
+            href="/account"
+            className="flex items-center gap-2 rounded-full py-1 pl-3 pr-1 transition-colors hover:bg-neutral-100"
+          >
+            <span className="text-sm font-medium text-neutral-700">Chris M.</span>
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-600 text-xs font-semibold leading-none text-white">
+              CM
+            </div>
+          </Link>
+        )}
       </div>
 
       {/* Fleet map — always shown, never changes */}
@@ -357,83 +337,18 @@ function FleetView({ vehicles }: { vehicles: Vehicle[] }) {
         </div>
       </div>
 
-      {/* Vehicles section header + toggle */}
-      <div className="flex items-center justify-between px-5">
+      {/* Vehicles section header */}
+      <div className="px-5">
         <span className="text-xs font-semibold uppercase tracking-widest text-neutral-400">Vehicles</span>
-        <div className="flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-neutral-100 p-0.5">
-          {/* List view icon */}
-          <button
-            type="button"
-            onClick={() => setViewMode("list")}
-            aria-label="List view"
-            className={`flex size-7 items-center justify-center rounded-md transition-colors ${
-              viewMode === "list" ? "bg-white shadow-sm text-neutral-800" : "text-neutral-400 hover:text-neutral-600"
-            }`}
-          >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
-          </button>
-          {/* Card / carousel icon */}
-          <button
-            type="button"
-            onClick={() => { setViewMode("card"); setActiveIndex(0); }}
-            aria-label="Card view"
-            className={`flex size-7 items-center justify-center rounded-md transition-colors ${
-              viewMode === "card" ? "bg-white shadow-sm text-neutral-800" : "text-neutral-400 hover:text-neutral-600"
-            }`}
-          >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-            </svg>
-          </button>
-        </div>
       </div>
 
-      {/* List view */}
-      {viewMode === "list" && (
-        <div className="flex flex-col gap-3 px-5">
-          {[...vehicles].sort((a, b) => (b.liveTrip ? 1 : 0) - (a.liveTrip ? 1 : 0)).map((v) => (
-            <div key={v.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
-              <VehicleCardContent v={v} />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Card / carousel view */}
-      {viewMode === "card" && (
-        <div className="flex flex-col gap-2">
-          <div
-            ref={scrollRef}
-            onScroll={handleScroll}
-            className="flex snap-x snap-mandatory overflow-x-scroll"
-            style={{ scrollbarWidth: "none" }}
-          >
-            {[...vehicles].sort((a, b) => (b.liveTrip ? 1 : 0) - (a.liveTrip ? 1 : 0)).map((v) => (
-              <div key={v.id} className="flex w-full shrink-0 snap-start px-5">
-                <div className="w-full overflow-hidden rounded-2xl border border-neutral-200 bg-white">
-                  <VehicleCardContent v={v} />
-                </div>
-              </div>
-            ))}
+      <div className="flex flex-col gap-3 px-5">
+        {[...vehicles].sort((a, b) => (b.liveTrip ? 1 : 0) - (a.liveTrip ? 1 : 0)).map((v) => (
+          <div key={v.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+            <VehicleCardContent v={v} />
           </div>
-          {/* Pagination dots */}
-          <div className="flex items-center justify-center gap-1.5">
-            {vehicles.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => goTo(i)}
-                aria-label={`Go to vehicle ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all duration-200 ${
-                  i === activeIndex ? "w-4 bg-neutral-700" : "w-1.5 bg-neutral-300 hover:bg-neutral-400"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
@@ -451,36 +366,13 @@ function RecentTrips() {
       </div>
       <div className="flex flex-col divide-y divide-neutral-100 rounded-xl border border-neutral-200 bg-white">
         {RECENT_TRIPS.map((t) => (
-          <Link
+          <TripListItem
             key={t.id}
+            trip={t}
             href="/trip-receipt"
-            className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-neutral-50"
-          >
-            <div className="flex flex-1 flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium leading-none text-neutral-900">
-                  {t.from} &rarr; {t.to}
-                </span>
-                {t.events > 0 && (
-                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-                    {t.events}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-neutral-400">
-                <span>{t.date} · {t.timeRange}</span>
-                <span className="text-neutral-300">&middot;</span>
-                <span>{t.distance}</span>
-              </div>
-              <div className="flex items-center gap-2 text-[11px]">
-                <span className="rounded bg-neutral-100 px-1.5 py-0.5 font-medium text-neutral-500">{t.vehicle}</span>
-                <span className="rounded bg-neutral-100 px-1.5 py-0.5 font-medium text-neutral-500">{t.driver}</span>
-              </div>
-            </div>
-            <svg className="size-4 shrink-0 text-neutral-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </svg>
-          </Link>
+            showVehicle
+            className="py-3"
+          />
         ))}
       </div>
     </div>
@@ -592,58 +484,11 @@ function AgentCoachingCarousel({
   );
 }
 
-function TodoPreview({ items }: { items: TodoItem[] }) {
-  const typeStyles = {
-    setup: { dot: "bg-blue-500", text: "text-neutral-900", sub: "text-neutral-500" },
-    "near-term": { dot: "bg-amber-500", text: "text-neutral-900", sub: "text-neutral-500" },
-    "long-horizon": { dot: "bg-neutral-300", text: "text-neutral-400", sub: "text-neutral-300" },
-  };
+function QuickActions({ showRoadsideAssist }: { showRoadsideAssist: boolean }) {
+  if (!showRoadsideAssist) return null;
 
   return (
-    <div className="mx-5 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
-          To-Do
-        </span>
-        <Link
-          href="/todos"
-          className="text-xs font-medium text-blue-600 hover:text-blue-700"
-        >
-          See all
-        </Link>
-      </div>
-      <div className="flex flex-col rounded-xl border border-neutral-200 bg-white divide-y divide-neutral-100">
-        {items.map((item) => {
-          const s = typeStyles[item.type];
-          return (
-            <div
-              key={item.id}
-              className={`flex items-center gap-3 px-4 py-3 ${item.type === "long-horizon" ? "opacity-60" : ""}`}
-            >
-              <span className={`size-2 shrink-0 rounded-full ${s.dot}`} />
-              <div className="flex flex-1 flex-col gap-0.5">
-                <span className={`text-sm font-medium leading-none ${s.text}`}>
-                  {item.title}
-                </span>
-                <span className={`text-xs leading-none ${s.sub}`}>{item.subtitle}</span>
-                <div className="flex items-center gap-2 pt-0.5 text-[11px]">
-                  <span className="rounded bg-neutral-100 px-1.5 py-0.5 font-medium text-neutral-500">{item.vehicle}</span>
-                </div>
-              </div>
-              <svg className="size-4 shrink-0 text-neutral-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-              </svg>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function QuickActions() {
-  return (
-    <div className="mx-5 grid grid-cols-2 gap-3">
+    <div className="mx-5 grid grid-cols-1 gap-3">
       <button
         type="button"
         className="flex flex-col items-center gap-2 rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:bg-neutral-50"
@@ -655,17 +500,6 @@ function QuickActions() {
         </div>
         <span className="text-xs font-semibold text-neutral-700">Roadside Assist</span>
       </button>
-      <button
-        type="button"
-        className="flex flex-col items-center gap-2 rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:bg-neutral-50"
-      >
-        <div className="flex size-10 items-center justify-center rounded-full bg-green-50">
-          <svg className="size-5 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-        </div>
-        <span className="text-xs font-semibold text-neutral-700">Log Service</span>
-      </button>
     </div>
   );
 }
@@ -674,21 +508,42 @@ function QuickActions() {
 /*  State B: Trip in Progress                                          */
 /* ------------------------------------------------------------------ */
 
-function LiveSpeed({ mph }: { mph: number }) {
+function LiveSpeed({ mph, maxMph }: { mph: number; maxMph: number }) {
+  const protoOffsets = [0, 1, 0, -1, 0, 1, 0, -1] as const;
+  const [offsetIndex, setOffsetIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setOffsetIndex((prev) => (prev + 1) % protoOffsets.length);
+    }, 1400);
+
+    return () => window.clearInterval(interval);
+  }, [protoOffsets.length]);
+
+  const displayMph = mph + protoOffsets[offsetIndex];
+
   return (
-    <div className="mx-5 flex items-center justify-between rounded-xl bg-neutral-900 px-5 py-4">
-      <div className="flex items-baseline gap-2">
-        <span className="text-4xl font-bold leading-none tabular-nums text-white">
-          {mph}
-        </span>
-        <span className="text-sm font-medium text-white/50">mph</span>
+    <div className="mx-5 flex items-start justify-between gap-3 rounded-xl bg-neutral-900 px-5 py-4">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-baseline gap-2">
+          <span className="text-4xl font-bold leading-none tabular-nums text-white">
+            {displayMph}
+          </span>
+          <span className="text-sm font-medium text-white/50">mph</span>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <span className="text-sm font-semibold tabular-nums text-white">{maxMph} mph</span>
+          <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">Trip max speed</span>
+        </div>
       </div>
-      <div className="flex items-center gap-1.5">
-        <span className="relative flex size-2">
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-400 opacity-75" />
-          <span className="relative inline-flex size-2 rounded-full bg-green-500" />
-        </span>
-        <span className="text-xs font-medium text-green-400">Live</span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-1.5 pt-1">
+          <span className="relative flex size-2">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-400 opacity-75" />
+            <span className="relative inline-flex size-2 rounded-full bg-green-500" />
+          </span>
+          <span className="text-xs font-medium text-green-400">Live</span>
+        </div>
       </div>
     </div>
   );
@@ -815,7 +670,7 @@ function TripInProgress({
       </div>
 
       {/* Speed */}
-      <LiveSpeed mph={34} />
+      <LiveSpeed mph={34} maxMph={47} />
 
       {/* Vehicle health bento */}
       <TripVehicleStatus vehicleLabel={vehicleLabel} />
@@ -964,6 +819,7 @@ function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [coachingDismissed, setCoachingDismissed] = useState(false);
+  const [headerAction, setHeaderAction] = useState<"profile" | "roadside">("profile");
 
   const modeParam = searchParams.get("mode") as DashboardMode | null;
   const mode: DashboardMode =
@@ -1000,7 +856,7 @@ function DashboardContent() {
         <TripComplete vehicle={vehicle} onReturn={() => setMode("parked")} />
       ) : (
         <div className="flex flex-col gap-4">
-          <FleetView vehicles={VEHICLES} />
+          <FleetView vehicles={VEHICLES} headerAction={headerAction} />
           <RecentTrips />
           {!coachingDismissed && (
             <AgentCoachingCarousel
@@ -1008,8 +864,8 @@ function DashboardContent() {
               onDismiss={() => setCoachingDismissed(true)}
             />
           )}
-          <TodoPreview items={TODOS} />
-          <QuickActions />
+          <TodoPreview items={DEMO_TODOS} className="mx-5" />
+          <QuickActions showRoadsideAssist={headerAction === "profile"} />
         </div>
       )}
 
@@ -1033,6 +889,27 @@ function DashboardContent() {
               {m === "complete" ? "trip complete" : m}
             </button>
           ))}
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-300">
+            Header action
+          </span>
+          <div className="flex items-center gap-1.5">
+            {(["profile", "roadside"] as const).map((action) => (
+              <button
+                key={action}
+                type="button"
+                onClick={() => setHeaderAction(action)}
+                className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                  headerAction === action
+                    ? "bg-neutral-200 text-neutral-700"
+                    : "text-neutral-400 hover:text-neutral-600"
+                }`}
+              >
+                {action === "profile" ? "profile" : "roadside assist"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </main>

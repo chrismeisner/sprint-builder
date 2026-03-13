@@ -20,7 +20,7 @@ const HIDDEN_ON = new Set([
 function HomeIcon({ active }: { active: boolean }) {
   return (
     <svg
-      className={`size-6 transition-colors ${active ? "text-blue-600 dark:text-blue-400" : "text-neutral-400 dark:text-neutral-500"}`}
+      className={`size-6 transition-colors ${active ? "text-green-600 dark:text-green-400" : "text-neutral-400 dark:text-neutral-500"}`}
       aria-hidden="true"
       fill={active ? "currentColor" : "none"}
       viewBox="0 0 24 24"
@@ -46,7 +46,7 @@ function HomeIcon({ active }: { active: boolean }) {
 function ProfileIcon({ active }: { active: boolean }) {
   return (
     <svg
-      className={`size-6 transition-colors ${active ? "text-blue-600 dark:text-blue-400" : "text-neutral-400 dark:text-neutral-500"}`}
+      className={`size-6 transition-colors ${active ? "text-green-600 dark:text-green-400" : "text-neutral-400 dark:text-neutral-500"}`}
       aria-hidden="true"
       fill={active ? "currentColor" : "none"}
       viewBox="0 0 24 24"
@@ -111,7 +111,7 @@ export function BottomNav() {
             <HomeIcon active={isHome} />
             <span
               className={`text-[10px] font-medium leading-none transition-colors ${
-                isHome ? "text-blue-600 dark:text-blue-400" : "text-neutral-400 dark:text-neutral-500"
+                isHome ? "text-green-600 dark:text-green-400" : "text-neutral-400 dark:text-neutral-500"
               }`}
             >
               Home
@@ -142,7 +142,7 @@ export function BottomNav() {
             <ProfileIcon active={isProfile} />
             <span
               className={`text-[10px] font-medium leading-none transition-colors ${
-                isProfile ? "text-blue-600 dark:text-blue-400" : "text-neutral-400 dark:text-neutral-500"
+                isProfile ? "text-green-600 dark:text-green-400" : "text-neutral-400 dark:text-neutral-500"
               }`}
             >
               Profile

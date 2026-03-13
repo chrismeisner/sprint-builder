@@ -95,7 +95,7 @@ export default function DeviceHealthPage() {
           <svg className="size-4" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
-          Subaru Outback
+          Toyota RAV4
         </Link>
 
         {/* Header */}
@@ -121,7 +121,7 @@ export default function DeviceHealthPage() {
                 Device is online
               </span>
               <span className="text-xs font-normal leading-normal text-green-700 dark:text-green-400">
-                2019 Civic Sport &middot; Everything looks good
+                2021 Toyota RAV4 XLE &middot; Everything looks good
               </span>
             </div>
           </div>
@@ -137,7 +137,7 @@ export default function DeviceHealthPage() {
                 Device is offline
               </span>
               <span className="text-xs font-normal leading-normal text-red-700 dark:text-red-400">
-                2019 Civic Sport &middot; Last seen 3 hours ago
+                2021 Toyota RAV4 XLE &middot; Last seen 3 hours ago
               </span>
             </div>
           </div>
@@ -248,7 +248,7 @@ export default function DeviceHealthPage() {
           href="/vehicle?from=dashboard"
           className="flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-6 text-base font-medium leading-none text-white motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-blue-400 dark:focus-visible:ring-offset-neutral-900"
         >
-          Back to Subaru Outback
+          Back to Toyota RAV4
         </Link>
 
         {/* Demo cheat link */}

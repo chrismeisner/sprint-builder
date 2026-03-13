@@ -4,6 +4,22 @@
 
 var VERSIONS = [
   {
+    name: "v4-playbook-direction-2026-03-12",
+    version: "4",
+    title: "Playbook Direction",
+    date: "March 12, 2026",
+    dateValue: "2026-03-12",
+    lastModified: "2026-03-12T12:00:00Z",
+    description: "Copy exploration that adds a subtle 'Let's move the ball' header CTA and reframes the services section around 'My Playbook.'",
+    features: [
+      "Subtle 'Let's move the ball' link in the top header",
+      "'My Playbook' framing for the services section",
+      "Momentum-oriented intro copy without changing the page structure"
+    ],
+    status: "archived",
+    path: "v4-playbook-direction-2026-03-12/index.html"
+  },
+  {
     name: "v3-mvp-2026-03-02",
     version: "3",
     title: "MVP",

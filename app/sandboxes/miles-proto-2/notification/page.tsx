@@ -28,7 +28,7 @@ const NOTIFS: Record<string, NotifDef> = {
   },
   "kid-trip": {
     title: "Jack Started a Trip",
-    body: "Jack's driving the Subaru Outback. Tap to talk to Miles about this trip.",
+    body: "Jack's driving the RAV4. Tap to talk to Miles about this trip.",
     href: "/miles?context=kid-trip",
   },
   fuel: {
@@ -38,7 +38,7 @@ const NOTIFS: Record<string, NotifDef> = {
   },
   oil: {
     title: "Maintenance Reminder",
-    body: "Your oil change is due in ~800 miles. Talk to Miles and decide how to handle it.",
+    body: "Your next oil change is due by May 12 or in about 800 miles, whichever comes first. Talk to Miles to set a reminder.",
     href: "/miles?context=oil",
   },
   registration: {

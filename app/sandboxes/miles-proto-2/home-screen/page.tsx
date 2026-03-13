@@ -60,7 +60,7 @@ const NOTIFICATIONS: Notification[] = [
     app: "Miles",
     icon: "miles",
     title: "Maintenance Reminder",
-    body: "Your oil change is coming up in about 800 miles. Tap to set a reminder or mark it done.",
+    body: "Your next oil change is due by May 12 or in about 800 miles, whichever comes first. Tap to set a reminder or mark it done.",
     time: "2h ago",
     href: "/miles?context=oil",
     group: "earlier",
