@@ -3,7 +3,10 @@
 import Link from "@/app/sandboxes/miles-proto-2/_components/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { BASE, p } from "@/app/sandboxes/miles-proto-2/_lib/nav";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
+
+const FOOTER_NAV_MODE_STORAGE_KEY = "miles-proto-2-footer-nav-mode";
+type FooterNavMode = "full" | "compact";
 
 const HIDDEN_ON = new Set([
   BASE, BASE + "/",
@@ -184,6 +187,34 @@ const TABS: TabDef[] = [
 function BottomNavInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [footerNavMode, setFooterNavMode] = useState<FooterNavMode>("full");
+
+  useEffect(() => {
+    const readMode = () => {
+      try {
+        const raw = window.localStorage.getItem(FOOTER_NAV_MODE_STORAGE_KEY);
+        setFooterNavMode(raw === "compact" ? "compact" : "full");
+      } catch {
+        setFooterNavMode("full");
+      }
+    };
+
+    readMode();
+
+    const handleStorage = (event: StorageEvent) => {
+      if (!event.key || event.key === FOOTER_NAV_MODE_STORAGE_KEY) {
+        readMode();
+      }
+    };
+    const handleCustomChange = () => readMode();
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("miles-proto-2-footer-nav-mode-change", handleCustomChange);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("miles-proto-2-footer-nav-mode-change", handleCustomChange);
+    };
+  }, []);
 
   if (HIDDEN_ON.has(pathname)) return null;
 
@@ -198,6 +229,8 @@ function BottomNavInner() {
     pathname === `${BASE}/vehicle` || pathname === `${BASE}/vehicle/` ||
     pathname === `${BASE}/device-health` || pathname === `${BASE}/device-health/`;
   const fromTab = isVehicleModal ? (searchParams.get("from") ?? "dashboard") : null;
+  const tabsToRender =
+    footerNavMode === "compact" ? TABS.filter((tab) => tab.label !== "Profile") : TABS;
 
   return (
     <nav
@@ -205,7 +238,7 @@ function BottomNavInner() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="mx-auto flex items-center justify-around px-2 py-2">
-        {TABS.map((tab) => {
+        {tabsToRender.map((tab) => {
           const active = isVehicleModal
             ? tab.href === `/${fromTab}`
             : isFamilyLiveTrip

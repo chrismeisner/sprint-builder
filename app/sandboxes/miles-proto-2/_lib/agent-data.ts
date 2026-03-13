@@ -5,6 +5,7 @@
 /*  To add a new context or scenario, edit this file only.             */
 /* ------------------------------------------------------------------ */
 
+import { LIVE_TRIP_CAR, LIVE_TRIP_ROUTE } from "./demo-trips";
 import type {
   ActionOption,
   ChatMessage,
@@ -371,8 +372,11 @@ export const CONTEXTS: Record<string, ContextConfig> = {
     card: {
       title: "Jack — Live Trip",
       subtitle: "2021 Toyota RAV4 XLE",
-      status: { label: "Live", level: "info" },
       mapPreview: "live",
+      mapRoute: LIVE_TRIP_ROUTE,
+      mapMarkers: [
+        { lat: LIVE_TRIP_CAR[0], lng: LIVE_TRIP_CAR[1], type: "vehicle" },
+      ],
       rows: [
         { label: "Duration", value: "12 min" },
         { label: "Car status", value: "OK ✓" },
@@ -395,60 +399,7 @@ export const CONTEXTS: Record<string, ContextConfig> = {
           style: "dismiss",
           icon: "check",
           response: {
-            text: "Got it — I'll stay quiet for this one. I'll let you know when the trip ends.",
-            followUpDelay: 3000,
-            followUpMessages: [
-              {
-                role: "agent",
-                text: "Jack's trip just ended. 23 minutes, 8.4 miles. Everything looked good.",
-              },
-              {
-                role: "agent-card",
-                card: {
-                  title: "Jack — Trip Complete",
-                  subtitle: "2021 Toyota RAV4 XLE",
-                  status: { label: "Ended", level: "good" },
-                  mapPreview: "completed",
-                  rows: [
-                    { label: "Duration", value: "23 min" },
-                    { label: "Distance", value: "8.4 mi" },
-                    { label: "Score", value: "84", highlight: true },
-                    { label: "Car status", value: "OK ✓" },
-                  ],
-                  actions: [
-                    {
-                      id: "trip-detail",
-                      label: "View trip detail",
-                      style: "primary",
-                      icon: "calendar",
-                      response: {
-                        text: "Here's the full breakdown of Jack's trip. You can see his route, speed profile, and any events.",
-                        subtext: "Opening trip detail.",
-                      },
-                    },
-                    {
-                      id: "score-question",
-                      label: "How did this affect thier score?",
-                      style: "secondary",
-                      icon: "none",
-                      response: {
-                        text: "This trip scored 84 — right around Jack's recent average of 83. No hard braking or speeding events, clean acceleration. It's a solid baseline trip and won't move his score much in either direction.",
-                        subtext: "Jack's rolling 30-day score is 83.",
-                      },
-                    },
-                    {
-                      id: "done",
-                      label: "Got it",
-                      style: "dismiss",
-                      icon: "check",
-                      response: {
-                        text: "Nice — nothing to worry about on this one.",
-                      },
-                    },
-                  ],
-                },
-              },
-            ],
+            text: "Great — you won't get any more notifications for this trip; you can find the details of it in your trips section anytime later.",
           },
         },
         {
@@ -480,6 +431,61 @@ export const CONTEXTS: Record<string, ContextConfig> = {
                   response: {
                     text: "Set. I'll only notify you for trips that start after 10 PM.",
                     subtext: "You can change this anytime in Notification Settings.",
+                    followUpDelay: 3000,
+                    followUpMessages: [
+                      {
+                        role: "agent",
+                        text: "Jack's trip just ended. 23 minutes, 8.4 miles. Everything looked good.",
+                      },
+                      {
+                        role: "agent-card",
+                        card: {
+                          title: "Jack — Trip Complete",
+                          subtitle: "2021 Toyota RAV4 XLE",
+                          status: { label: "Ended", level: "good" },
+                          mapPreview: "completed",
+                          mapRoute: LIVE_TRIP_ROUTE,
+                          mapMarkers: [],
+                          rows: [
+                            { label: "Duration", value: "23 min" },
+                            { label: "Distance", value: "8.4 mi" },
+                            { label: "Score", value: "84", highlight: true },
+                            { label: "Car status", value: "OK ✓" },
+                          ],
+                          actions: [
+                            {
+                              id: "trip-detail",
+                              label: "View trip detail",
+                              style: "primary",
+                              icon: "calendar",
+                              response: {
+                                text: "Here's the full breakdown of Jack's trip. You can see his route, speed profile, and any events.",
+                                subtext: "Opening trip detail.",
+                              },
+                            },
+                            {
+                              id: "score-question",
+                              label: "How did this affect thier score?",
+                              style: "secondary",
+                              icon: "none",
+                              response: {
+                                text: "This trip scored 84 — right around Jack's recent average of 83. No hard braking or speeding events, clean acceleration. It's a solid baseline trip and won't move his score much in either direction.",
+                                subtext: "Jack's rolling 30-day score is 83.",
+                              },
+                            },
+                            {
+                              id: "done",
+                              label: "Got it",
+                              style: "dismiss",
+                              icon: "check",
+                              response: {
+                                text: "Nice — nothing to worry about on this one.",
+                              },
+                            },
+                          ],
+                        },
+                      },
+                    ],
                   },
                 },
                 {

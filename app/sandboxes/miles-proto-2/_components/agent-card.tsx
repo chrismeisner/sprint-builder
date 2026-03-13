@@ -10,6 +10,7 @@ import type {
   TireMap,
 } from "@/app/sandboxes/miles-proto-2/_lib/agent-types";
 import { p } from "@/app/sandboxes/miles-proto-2/_lib/nav";
+import { MapView } from "@/app/sandboxes/miles-proto-2/_components/map-view";
 
 /* ------------------------------------------------------------------ */
 /*  Primitives                                                         */
@@ -330,48 +331,74 @@ export function AgentCardView({
           hasActions ? "max-w-[90%]" : "max-w-[85%]"
         }`}
       >
-        {/* Faux map preview */}
+        {/* Map preview — MapView (same as trips) when mapRoute is set, else static SVG */}
         {card.mapPreview && (
-          <div className="relative h-28 w-full overflow-hidden bg-[#e8eaed]">
-            <svg
-              viewBox="0 0 300 112"
-              xmlns="http://www.w3.org/2000/svg"
-              className="absolute inset-0 h-full w-full"
-              aria-hidden="true"
-            >
-              {/* Road grid */}
-              <line x1="0" y1="56" x2="300" y2="56" stroke="white" strokeWidth="10" />
-              <line x1="0" y1="28" x2="300" y2="28" stroke="white" strokeWidth="6" />
-              <line x1="0" y1="84" x2="300" y2="84" stroke="white" strokeWidth="6" />
-              <line x1="80" y1="0" x2="80" y2="112" stroke="white" strokeWidth="6" />
-              <line x1="200" y1="0" x2="200" y2="112" stroke="white" strokeWidth="6" />
-              {/* Route trail */}
-              <path
-                d="M 18 56 C 40 56 55 28 80 28 C 105 28 110 56 140 56 C 165 56 175 44 200 42 C 220 40 230 42 248 42"
-                stroke="#2563eb"
-                strokeWidth="3.5"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              {/* Start marker */}
-              <circle cx="18" cy="56" r="5" fill="white" stroke="#2563eb" strokeWidth="2" />
-              {/* Pulse ring (live only) */}
-              {card.mapPreview === "live" && (
-                <circle cx="248" cy="42" r="11" fill="#2563eb" opacity="0.18">
-                  <animate attributeName="r" values="8;15;8" dur="2s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0.22;0;0.22" dur="2s" repeatCount="indefinite" />
-                </circle>
-              )}
-              {/* Current / end position dot */}
-              <circle cx="248" cy="42" r="5.5" fill="#2563eb" stroke="white" strokeWidth="2" />
-            </svg>
-            {/* Speed overlay (live only, suppressed when speedAlert widget carries the speed) */}
-            {card.mapPreview === "live" && !card.speedAlert && (
-              <div className="absolute bottom-2 left-3 flex items-baseline gap-1 rounded-lg bg-white/90 px-2.5 py-1.5 shadow-sm backdrop-blur-sm">
-                <span className="text-[22px] font-bold leading-none tabular-nums text-neutral-900">37</span>
-                <span className="text-[11px] font-medium text-neutral-400">mph</span>
-              </div>
+          <div className="relative h-28 w-full overflow-hidden bg-neutral-100">
+            {card.mapRoute ? (
+              <>
+                <MapView
+                  route={card.mapRoute}
+                  markers={card.mapMarkers}
+                  interactive={false}
+                  routeColor={card.mapPreview === "live" ? "#16a34a" : "#2563eb"}
+                  routeWeight={4}
+                  className="absolute inset-0"
+                />
+                {card.mapPreview === "live" && (
+                  <div className="absolute right-3 top-3">
+                    <span className="flex items-center gap-1 rounded-full bg-green-700 px-2 py-0.5 text-[10px] font-semibold text-white">
+                      <span className="relative flex size-1.5">
+                        <span className="absolute inline-flex size-full animate-ping rounded-full bg-white opacity-75" />
+                        <span className="relative inline-flex size-1.5 rounded-full bg-white" />
+                      </span>
+                      Live
+                    </span>
+                  </div>
+                )}
+                {card.mapPreview === "live" && !card.speedAlert && (
+                  <div className="absolute bottom-2 left-3 flex items-baseline gap-1 rounded-lg bg-white/90 px-2.5 py-1.5 shadow-sm backdrop-blur-sm">
+                    <span className="text-[22px] font-bold leading-none tabular-nums text-neutral-900">37</span>
+                    <span className="text-[11px] font-medium text-neutral-400">mph</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <svg
+                  viewBox="0 0 300 112"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="absolute inset-0 h-full w-full"
+                  aria-hidden="true"
+                >
+                  <line x1="0" y1="56" x2="300" y2="56" stroke="white" strokeWidth="10" />
+                  <line x1="0" y1="28" x2="300" y2="28" stroke="white" strokeWidth="6" />
+                  <line x1="0" y1="84" x2="300" y2="84" stroke="white" strokeWidth="6" />
+                  <line x1="80" y1="0" x2="80" y2="112" stroke="white" strokeWidth="6" />
+                  <line x1="200" y1="0" x2="200" y2="112" stroke="white" strokeWidth="6" />
+                  <path
+                    d="M 18 56 C 40 56 55 28 80 28 C 105 28 110 56 140 56 C 165 56 175 44 200 42 C 220 40 230 42 248 42"
+                    stroke="#2563eb"
+                    strokeWidth="3.5"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="18" cy="56" r="5" fill="white" stroke="#2563eb" strokeWidth="2" />
+                  {card.mapPreview === "live" && (
+                    <circle cx="248" cy="42" r="11" fill="#2563eb" opacity="0.18">
+                      <animate attributeName="r" values="8;15;8" dur="2s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.22;0;0.22" dur="2s" repeatCount="indefinite" />
+                    </circle>
+                  )}
+                  <circle cx="248" cy="42" r="5.5" fill="#2563eb" stroke="white" strokeWidth="2" />
+                </svg>
+                {card.mapPreview === "live" && !card.speedAlert && (
+                  <div className="absolute bottom-2 left-3 flex items-baseline gap-1 rounded-lg bg-white/90 px-2.5 py-1.5 shadow-sm backdrop-blur-sm">
+                    <span className="text-[22px] font-bold leading-none tabular-nums text-neutral-900">37</span>
+                    <span className="text-[11px] font-medium text-neutral-400">mph</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

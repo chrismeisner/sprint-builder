@@ -70,6 +70,10 @@ export interface AgentCard {
   status?: { label: string; level: StatusLevel };
   /** Renders a faux GPS map above the data rows. "live" shows a pulsing current-position dot. */
   mapPreview?: "live" | "completed";
+  /** When set with mapPreview, use the shared MapView (Leaflet) instead of the static SVG. */
+  mapRoute?: [number, number][];
+  /** Markers for the map (e.g. vehicle position). Used when mapRoute is set. */
+  mapMarkers?: { lat: number; lng: number; type?: "start" | "end" | "event" | "vehicle"; color?: string; label?: string }[];
   /** Renders a four-corner tire pressure visualization instead of rows. */
   tireMap?: TireMap;
   /** Renders a prominent speed-vs-limit display instead of rows. */

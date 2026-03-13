@@ -4,21 +4,8 @@ import { useState } from "react";
 import Link from "@/app/sandboxes/miles-proto-2/_components/link";
 import { MapView } from "@/app/sandboxes/miles-proto-2/_components/map-view";
 import { TripListItem } from "@/app/sandboxes/miles-proto-2/_components/trip-list-item";
-import { DEMO_TRIPS, TRIP_DRIVERS } from "@/app/sandboxes/miles-proto-2/_lib/demo-trips";
+import { DEMO_TRIPS, LIVE_TRIP_CAR, LIVE_TRIP_ROUTE, TRIP_DRIVERS } from "@/app/sandboxes/miles-proto-2/_lib/demo-trips";
 import type { DemoTrip } from "@/app/sandboxes/miles-proto-2/_lib/demo-trips";
-
-const LIVE_TRIP_ROUTE: [number, number][] = [
-  [33.0152, -96.7108],
-  [33.0168, -96.7088],
-  [33.0183, -96.7065],
-  [33.0185, -96.7038],
-  [33.0185, -96.701],
-  [33.0198, -96.696],
-  [33.0218, -96.6945],
-  [33.024, -96.6932],
-];
-
-const LIVE_TRIP_CAR = LIVE_TRIP_ROUTE[5];
 
 export default function TripsPage() {
   const [contentView, setContentView] = useState<"trips" | "locations">("trips");
@@ -185,25 +172,23 @@ export default function TripsPage() {
             })}
           </div>
 
-          {/* Ask Miles */}
+          {/* Faux infinite scroll loading */}
           <div className="px-5 pt-5">
-            <Link
-              href="/miles?context=trip-detail"
-              className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 transition-colors hover:bg-green-100"
-            >
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-green-100">
-                <svg className="size-4.5 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
-                </svg>
-              </div>
-              <div className="flex flex-1 flex-col gap-0.5">
-                <span className="text-sm font-semibold text-green-800">Ask Miles about your trips</span>
-                <span className="text-xs text-green-600">Get a summary or ask about specific events</span>
-              </div>
-              <svg className="size-4 shrink-0 text-green-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            <div className="flex items-center justify-center gap-2 py-3">
+              <svg
+                className="size-4 animate-spin text-neutral-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.364 6.364-2.121-2.121M8.757 8.757 6.636 6.636m11.728 0-2.121 2.121M8.757 15.243l-2.121 2.121" />
               </svg>
-            </Link>
+              <span className="text-xs font-medium text-neutral-500">
+                Loading past trips
+              </span>
+            </div>
           </div>
         </>
       ) : (

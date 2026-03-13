@@ -15,6 +15,19 @@ export interface DemoTrip {
 
 export const TRIP_DRIVERS = ["All", "Chris", "Emma"] as const;
 
+/** Shared route for live-trip map (trips list, Miles agent kid-trip card, etc.). */
+export const LIVE_TRIP_ROUTE: [number, number][] = [
+  [33.0152, -96.7108],
+  [33.0168, -96.7088],
+  [33.0183, -96.7065],
+  [33.0185, -96.7038],
+  [33.0185, -96.701],
+  [33.0198, -96.696],
+  [33.0218, -96.6945],
+  [33.024, -96.6932],
+];
+export const LIVE_TRIP_CAR = LIVE_TRIP_ROUTE[5];
+
 export const DEMO_TRIPS: DemoTrip[] = [
   {
     id: "t1",

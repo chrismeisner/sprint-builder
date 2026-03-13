@@ -10,6 +10,9 @@ import { DEMO_TODOS } from "@/app/sandboxes/miles-proto-2/_lib/demo-todos";
 import { DEMO_TRIPS } from "@/app/sandboxes/miles-proto-2/_lib/demo-trips";
 import { p } from "@/app/sandboxes/miles-proto-2/_lib/nav";
 
+const FOOTER_NAV_MODE_STORAGE_KEY = "miles-proto-2-footer-nav-mode";
+type FooterNavMode = "full" | "compact";
+
 /* ------------------------------------------------------------------ */
 /*  Demo data                                                          */
 /* ------------------------------------------------------------------ */
@@ -303,14 +306,14 @@ function FleetView({
         {headerAction === "roadside" ? (
           <button
             type="button"
-            className="flex items-center gap-2 rounded-full border border-red-200 bg-white px-3 py-2 transition-colors hover:bg-red-50"
+            className="flex h-8 items-center gap-1.5 rounded-full border border-red-200 bg-white px-2.5 transition-colors hover:bg-red-50"
           >
-            <div className="flex size-7 items-center justify-center rounded-full bg-red-50">
-              <svg className="size-4 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <div className="flex size-6 items-center justify-center rounded-full bg-red-50">
+              <svg className="size-3.5 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
               </svg>
             </div>
-            <span className="text-sm font-semibold text-red-700">Roadside Assist</span>
+            <span className="text-xs font-semibold text-red-700">Roadside Assist</span>
           </button>
         ) : (
           <Link
@@ -820,6 +823,7 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const [coachingDismissed, setCoachingDismissed] = useState(false);
   const [headerAction, setHeaderAction] = useState<"profile" | "roadside">("profile");
+  const [footerNavMode, setFooterNavMode] = useState<FooterNavMode>("full");
 
   const modeParam = searchParams.get("mode") as DashboardMode | null;
   const mode: DashboardMode =
@@ -828,6 +832,15 @@ function DashboardContent() {
   const vehicleLabelParam = searchParams.get("vehicleLabel") ?? undefined;
 
   const vehicle = VEHICLES[0];
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(FOOTER_NAV_MODE_STORAGE_KEY);
+      setFooterNavMode(raw === "compact" ? "compact" : "full");
+    } catch {
+      setFooterNavMode("full");
+    }
+  }, []);
 
   const navigate = useCallback(
     (params: { mode?: string }) => {
@@ -842,6 +855,16 @@ function DashboardContent() {
 
   function setMode(m: DashboardMode) {
     navigate({ mode: m });
+  }
+
+  function setNavMode(mode: FooterNavMode) {
+    setFooterNavMode(mode);
+    try {
+      window.localStorage.setItem(FOOTER_NAV_MODE_STORAGE_KEY, mode);
+      window.dispatchEvent(new Event("miles-proto-2-footer-nav-mode-change"));
+    } catch {
+      // ignore localStorage errors in prototype
+    }
   }
 
   return (
@@ -909,6 +932,35 @@ function DashboardContent() {
                 {action === "profile" ? "profile" : "roadside assist"}
               </button>
             ))}
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-300">
+            Footer tabs
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setNavMode("full")}
+              className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                footerNavMode === "full"
+                  ? "bg-neutral-200 text-neutral-700"
+                  : "text-neutral-400 hover:text-neutral-600"
+              }`}
+            >
+              5 tabs
+            </button>
+            <button
+              type="button"
+              onClick={() => setNavMode("compact")}
+              className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                footerNavMode === "compact"
+                  ? "bg-neutral-200 text-neutral-700"
+                  : "text-neutral-400 hover:text-neutral-600"
+              }`}
+            >
+              4 tabs (hide profile)
+            </button>
           </div>
         </div>
       </div>
