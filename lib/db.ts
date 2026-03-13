@@ -11,6 +11,8 @@ declare global {
   var _deliveryUrlPatched: boolean | undefined;
   // eslint-disable-next-line no-var
   var _projectEmojiPatched: boolean | undefined;
+  // eslint-disable-next-line no-var
+  var _deliverableCategoriesPatched: boolean | undefined;
 }
 
 function createPool(): Pool {
@@ -92,6 +94,40 @@ export async function ensureSchema(): Promise<void> {
       global._projectEmojiPatched = true;
     } catch {
       global._projectEmojiPatched = true;
+    }
+  }
+
+  // Hotfix: support multi-category deliverables
+  if (!global._deliverableCategoriesPatched) {
+    try {
+      const pool = getPool();
+      await pool.query(`
+        ALTER TABLE deliverables
+        ADD COLUMN IF NOT EXISTS categories text[] NOT NULL DEFAULT '{}'::text[]
+      `);
+      await pool.query(`
+        UPDATE deliverables
+        SET categories = CASE
+          WHEN category IS NOT NULL AND btrim(category) <> '' THEN ARRAY[category]
+          ELSE '{}'::text[]
+        END
+        WHERE categories IS NULL OR array_length(categories, 1) IS NULL
+      `);
+      await pool.query(`
+        ALTER TABLE sprint_deliverables
+        ADD COLUMN IF NOT EXISTS deliverable_categories text[] DEFAULT '{}'::text[]
+      `);
+      await pool.query(`
+        UPDATE sprint_deliverables
+        SET deliverable_categories = CASE
+          WHEN deliverable_category IS NOT NULL AND btrim(deliverable_category) <> '' THEN ARRAY[deliverable_category]
+          ELSE '{}'::text[]
+        END
+        WHERE deliverable_categories IS NULL OR array_length(deliverable_categories, 1) IS NULL
+      `);
+      global._deliverableCategoriesPatched = true;
+    } catch {
+      global._deliverableCategoriesPatched = true;
     }
   }
 
@@ -279,6 +315,7 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS deliverable_name text,
     ADD COLUMN IF NOT EXISTS deliverable_description text,
     ADD COLUMN IF NOT EXISTS deliverable_category text,
+    ADD COLUMN IF NOT EXISTS deliverable_categories text[] DEFAULT '{}'::text[],
     ADD COLUMN IF NOT EXISTS deliverable_scope text,
     ADD COLUMN IF NOT EXISTS base_points numeric(3,1),
     ADD COLUMN IF NOT EXISTS custom_hours numeric(10,2),
@@ -344,6 +381,7 @@ export async function ensureSchema(): Promise<void> {
       name text NOT NULL,
       description text,
       category text,
+      categories text[] NOT NULL DEFAULT '{}'::text[],
       points numeric(3,1) DEFAULT 1.0,
       scope text,
       format text,
@@ -361,7 +399,23 @@ export async function ensureSchema(): Promise<void> {
   `);
   await pool.query(`
     ALTER TABLE deliverables
+    ADD COLUMN IF NOT EXISTS categories text[] NOT NULL DEFAULT '{}'::text[]
+  `);
+  await pool.query(`
+    UPDATE deliverables
+    SET categories = CASE
+      WHEN category IS NOT NULL AND btrim(category) <> '' THEN ARRAY[category]
+      ELSE '{}'::text[]
+    END
+    WHERE categories IS NULL OR array_length(categories, 1) IS NULL
+  `);
+  await pool.query(`
+    ALTER TABLE deliverables
     ADD COLUMN IF NOT EXISTS format text
+  `);
+  await pool.query(`
+    ALTER TABLE deliverables
+    ADD COLUMN IF NOT EXISTS deliverable_type text
   `);
   // Add presentation content for "how we present this deliverable" template
   await pool.query(`
@@ -416,6 +470,10 @@ export async function ensureSchema(): Promise<void> {
     ALTER COLUMN points SET DEFAULT 1.0
   `);
   await pool.query(`UPDATE deliverables SET points = 1.0 WHERE points IS NULL`);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_deliverables_categories_gin
+    ON deliverables USING GIN (categories)
+  `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS accounts (
       id text PRIMARY KEY,

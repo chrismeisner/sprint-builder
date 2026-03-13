@@ -45,6 +45,7 @@ export async function POST(request: Request, { params }: Params) {
          d.name,
          d.description,
          d.category,
+         d.categories,
          d.scope,
          d.points
        FROM sprint_deliverables sd
@@ -74,6 +75,7 @@ export async function POST(request: Request, { params }: Params) {
         name: string;
         description: string | null;
         category: string | null;
+        categories: string[] | null;
         scope: string | null;
         points: number | null;
       };
@@ -97,15 +99,17 @@ export async function POST(request: Request, { params }: Params) {
          SET deliverable_name = $1,
              deliverable_description = $2,
              deliverable_category = $3,
-             deliverable_scope = $4,
-             base_points = $5,
-             custom_estimate_points = $6,
-             custom_hours = $7
-         WHERE id = $8`,
+             deliverable_categories = $4::text[],
+             deliverable_scope = $5,
+             base_points = $6,
+             custom_estimate_points = $7,
+             custom_hours = $8
+         WHERE id = $9`,
         [
           del.name,
           del.description,
-          del.category,
+          del.category ?? (Array.isArray(del.categories) ? del.categories[0] ?? null : null),
+          Array.isArray(del.categories) ? del.categories : (del.category ? [del.category] : []),
           del.scope,
           basePoints,
           newCustomPoints,

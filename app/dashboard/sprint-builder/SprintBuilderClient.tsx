@@ -11,6 +11,7 @@ type Deliverable = {
   name: string;
   description: string | null;
   category: string | null;
+  categories: string[];
   scope: string | null;
   points: number | null;
 };
@@ -144,7 +145,14 @@ export default function SprintBuilderClient({
     }
   }, [isAuthenticated, preselectedProjectId, projects]);
   const categoryNames = useMemo(
-    () => Array.from(new Set(deliverables.map((d) => d.category || "Uncategorized"))),
+    () =>
+      Array.from(
+        new Set(
+          deliverables.flatMap((d) =>
+            d.categories && d.categories.length > 0 ? d.categories : [d.category || "Uncategorized"]
+          )
+        )
+      ),
     [deliverables]
   );
   const [visibleCategories, setVisibleCategories] = useState<Set<string>>(
@@ -696,7 +704,11 @@ export default function SprintBuilderClient({
         [
           "Deliverable",
           escapeCsv(d.name),
-          escapeCsv(d.category || ""),
+          escapeCsv(
+            d.categories && d.categories.length > 0
+              ? d.categories.join(", ")
+              : d.category || ""
+          ),
           Number.isFinite(basePoints) ? basePoints.toFixed(2) : "",
           Number.isFinite(multiplier) ? multiplier.toFixed(2) : "",
           Number.isFinite(adjustedPoints) ? adjustedPoints.toFixed(2) : "",
@@ -719,9 +731,12 @@ export default function SprintBuilderClient({
 
   // Group deliverables by category
   const deliverablesByCategory = deliverables.reduce((acc, d) => {
-    const cat = d.category || "Uncategorized";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(d);
+    const categories =
+      d.categories && d.categories.length > 0 ? d.categories : [d.category || "Uncategorized"];
+    categories.forEach((cat) => {
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(d);
+    });
     return acc;
   }, {} as Record<string, Deliverable[]>);
 
@@ -1039,9 +1054,9 @@ export default function SprintBuilderClient({
                             >
                               i
                             </button>
-                            {d.category && (
+                            {d.categories && d.categories.length > 0 && (
                               <span className={`${badgeClass} inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 px-2 py-0.5`}>
-                                {d.category}
+                                {d.categories.join(", ")}
                               </span>
                             )}
                             {item.multiplier !== 1 && (
@@ -1640,7 +1655,9 @@ export default function SprintBuilderClient({
             <div className="flex items-start justify-between">
               <div>
                 <h3 className={sectionHeadingClass}>{infoDeliverable.name}</h3>
-                {infoDeliverable.category && <p className={sectionHelperClass}>{infoDeliverable.category}</p>}
+                {infoDeliverable.categories && infoDeliverable.categories.length > 0 && (
+                  <p className={sectionHelperClass}>{infoDeliverable.categories.join(", ")}</p>
+                )}
               </div>
               <button
                 type="button"

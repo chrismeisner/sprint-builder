@@ -11,6 +11,7 @@ type Row = {
   name: string;
   description: string | null;
   category: string | null;
+  categories: string[];
   points: number | null;
   scope: string | null;
   format: string | null;
@@ -37,7 +38,11 @@ export default function DeliverablesClient({ rows }: Props) {
   const [duplicateSubmitting, setDuplicateSubmitting] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const [enabledCategories, setEnabledCategories] = useState<string[]>(() => {
-    const unique = new Set(rows.map((row) => row.category ?? UNCATEGORIZED_KEY));
+    const unique = new Set(
+      rows.flatMap((row) =>
+        row.categories && row.categories.length > 0 ? row.categories : [UNCATEGORIZED_KEY]
+      )
+    );
     return Array.from(unique);
   });
   const [showInactive, setShowInactive] = useState(true);
@@ -84,7 +89,11 @@ export default function DeliverablesClient({ rows }: Props) {
   const buttonTextClass = getTypographyClassName("body-sm");
 
   const categoryOptions = useMemo(() => {
-    const unique = new Set(items.map((item) => item.category ?? UNCATEGORIZED_KEY));
+    const unique = new Set(
+      items.flatMap((item) =>
+        item.categories && item.categories.length > 0 ? item.categories : [UNCATEGORIZED_KEY]
+      )
+    );
     return Array.from(unique).sort((a, b) => {
       const aLabel = getCategoryLabel(a === UNCATEGORIZED_KEY ? null : a);
       const bLabel = getCategoryLabel(b === UNCATEGORIZED_KEY ? null : b);
@@ -126,7 +135,8 @@ export default function DeliverablesClient({ rows }: Props) {
     if (enabledCategories.length === 0) return [];
     const enabled = new Set(enabledCategories);
     return items.filter((item) => {
-      const inCategory = enabled.has(item.category ?? UNCATEGORIZED_KEY);
+      const categories = item.categories && item.categories.length > 0 ? item.categories : [UNCATEGORIZED_KEY];
+      const inCategory = categories.some((category) => enabled.has(category));
       const inStatus = item.active || showInactive;
       return inCategory && inStatus;
     });
@@ -150,7 +160,10 @@ export default function DeliverablesClient({ rows }: Props) {
       if (sortColumn === "name") {
         result = compareStrings(a.name, b.name);
       } else if (sortColumn === "category") {
-        result = compareStrings(a.category, b.category);
+        result = compareStrings(
+          a.categories && a.categories.length > 0 ? a.categories.join(", ") : a.category,
+          b.categories && b.categories.length > 0 ? b.categories.join(", ") : b.category
+        );
         if (result === 0) {
           result = compareNumbers(a.points, b.points);
         }
@@ -212,7 +225,8 @@ export default function DeliverablesClient({ rows }: Props) {
       const body: Record<string, unknown> = {
         name: nameValue,
         description: duplicateTarget.description,
-        category: duplicateTarget.category,
+        category: duplicateTarget.categories?.[0] ?? duplicateTarget.category,
+        categories: duplicateTarget.categories ?? [],
         scope: duplicateTarget.scope,
         format: duplicateTarget.format,
         points: duplicateTarget.points,
@@ -249,7 +263,7 @@ export default function DeliverablesClient({ rows }: Props) {
     const headers = ["Name", "Category", "Points", "Hours", "Active", "Format", "Tags"];
     const rows = sortedItems.map((item) => [
       item.name,
-      item.category ?? "",
+      item.categories?.join("; ") || item.category || "",
       formatPoints(item.points),
       formatHours(item.points),
       item.active ? "Active" : "Inactive",
@@ -455,7 +469,11 @@ export default function DeliverablesClient({ rows }: Props) {
                     >
                       <td className={`${tableCellClass} px-4 py-2`}>{item.name}</td>
                       <td className={`${tableCellClass} px-4 py-2`}>
-                        {item.category || <span className="opacity-50">—</span>}
+                        {item.categories && item.categories.length > 0 ? (
+                          item.categories.join(", ")
+                        ) : (
+                          <span className="opacity-50">—</span>
+                        )}
                       </td>
                       <td className={`${tableCellClass} px-4 py-2`}>
                         {item.points != null ? (
@@ -514,6 +532,14 @@ export default function DeliverablesClient({ rows }: Props) {
                             className={`${buttonTextClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1 hover:bg-black/5 dark:hover:bg-white/10`}
                           >
                             Edit
+                          </Link>
+                          <Link
+                            href={`/deliverables/${item.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${buttonTextClass} inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1 hover:bg-black/5 dark:hover:bg-white/10`}
+                          >
+                            Public
                           </Link>
                           <button
                             type="button"

@@ -47,6 +47,7 @@ export default async function SharedSprintPage({ params }: Props) {
        sd.deliverable_name,
        sd.deliverable_description,
        sd.deliverable_category,
+       sd.deliverable_categories,
        sd.deliverable_scope,
        sd.base_points,
        sd.custom_estimate_points,
@@ -58,6 +59,7 @@ export default async function SharedSprintPage({ params }: Props) {
        d.name,
        d.description,
        d.category,
+       d.categories,
        d.scope
      FROM sprint_deliverables sd
      LEFT JOIN deliverables d ON sd.deliverable_id = d.id
@@ -75,7 +77,19 @@ export default async function SharedSprintPage({ params }: Props) {
     return {
       name: (row.deliverable_name as string | null) ?? (row.name as string | null) ?? "",
       description: (row.deliverable_description as string | null) ?? (row.description as string | null) ?? null,
-      category: (row.deliverable_category as string | null) ?? (row.category as string | null) ?? null,
+      category:
+        (row.deliverable_category as string | null) ??
+        (Array.isArray(row.deliverable_categories) ? ((row.deliverable_categories as string[])[0] ?? null) : null) ??
+        (row.category as string | null) ??
+        (Array.isArray(row.categories) ? ((row.categories as string[])[0] ?? null) : null),
+      categories:
+        (Array.isArray(row.deliverable_categories) && (row.deliverable_categories as string[]).length > 0
+          ? (row.deliverable_categories as string[])
+          : Array.isArray(row.categories)
+            ? (row.categories as string[])
+            : ((row.deliverable_category as string | null) ?? (row.category as string | null))
+              ? [((row.deliverable_category as string | null) ?? (row.category as string | null)) as string]
+              : []),
       scope: (row.custom_scope as string | null) ?? (row.deliverable_scope as string | null) ?? (row.scope as string | null) ?? null,
       basePoints: base,
       adjustedPoints: adjusted,

@@ -12,6 +12,7 @@ type Row = {
   name: string;
   description: string | null;
   category: string | null;
+  categories: string[];
   points: number | null;
   scope: string | null;
   format: string | null;
@@ -29,7 +30,7 @@ type Props = {
 export default function DeliverableDetailClient({ row, availableTags: initialTags }: Props) {
   const router = useRouter();
   const [name, setName] = useState(row.name);
-  const [category, setCategory] = useState(row.category ?? "");
+  const [categories, setCategories] = useState<string[]>(row.categories ?? (row.category ? [row.category] : []));
   const [description, setDescription] = useState(row.description ?? "");
   const [scope, setScope] = useState(row.scope ?? "");
   const [format, setFormat] = useState(row.format ?? "");
@@ -87,6 +88,10 @@ export default function DeliverableDetailClient({ row, availableTags: initialTag
     setTags((prev) => (prev.includes(value) ? prev.filter((t) => t !== value) : [...prev, value]));
   };
 
+  const toggleCategory = (value: string) => {
+    setCategories((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
+  };
+
   const filteredOptions = availableTags.filter(
     (tag) =>
       !tags.includes(tag) &&
@@ -128,7 +133,8 @@ export default function DeliverableDetailClient({ row, availableTags: initialTag
       setSuccess(null);
       const body: Record<string, unknown> = {
         name,
-        category,
+        category: categories[0] ?? null,
+        categories,
         description,
         scope,
         format,
@@ -238,19 +244,23 @@ export default function DeliverableDetailClient({ row, availableTags: initialTag
             />
           </div>
           <div className="sm:col-span-1">
-            <label className={`${labelClass} mb-1 block`} htmlFor="category">
-              Category
-            </label>
-            <select
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className={`${bodySm} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-            >
-              <option value="">Select category</option>
-              <option value="Branding">Branding</option>
-              <option value="Product">Product</option>
-            </select>
+            <label className={`${labelClass} mb-1 block`}>Categories</label>
+            <div className="flex flex-wrap gap-2">
+              {["Branding", "Product"].map((categoryOption) => (
+                <label
+                  key={categoryOption}
+                  className={`${bodySm} inline-flex items-center gap-2 rounded-md border border-black/10 px-3 py-1.5 bg-white`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={categories.includes(categoryOption)}
+                    onChange={() => toggleCategory(categoryOption)}
+                    className="h-4 w-4"
+                  />
+                  <span>{categoryOption}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="sm:col-span-2">
             <label className={`${labelClass} mb-1 block`} htmlFor="description">

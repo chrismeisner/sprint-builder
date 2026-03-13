@@ -23,6 +23,7 @@ type SprintDeliverable = {
   deliverableId: string;
   name: string;
   category: string | null;
+  categories: string[];
   deliverableType: null;
   complexityScore: number;
   customHours: number | null;
@@ -1423,7 +1424,9 @@ export default function SprintDetailContent(props: Props) {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 align-top">{d.category ?? "—"}</td>
+                      <td className="px-4 py-3 align-top">
+                        {d.categories && d.categories.length > 0 ? d.categories.join(", ") : d.category ?? "—"}
+                      </td>
                       {showAdminContent && (
                         <td className="px-4 py-3 align-top">
                           {d.customPoints != null ? `${d.customPoints} pts` : "—"}

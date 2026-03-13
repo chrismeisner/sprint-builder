@@ -11,6 +11,7 @@ type Deliverable = {
   description: string | null;
   scope: string | null;
   category: string | null;
+  categories: string[];
   points: NumericLike;
 };
 
@@ -61,23 +62,40 @@ export default async function DeliverablesPage() {
         name,
         description,
         scope,
-        category,
+        CASE
+          WHEN 'Branding' = ANY(categories) THEN 'Branding'
+          WHEN 'Product' = ANY(categories) THEN 'Product'
+          ELSE COALESCE(category, categories[1])
+        END AS category,
+        CASE
+          WHEN categories IS NOT NULL AND array_length(categories, 1) IS NOT NULL THEN categories
+          WHEN category IS NOT NULL AND btrim(category) <> '' THEN ARRAY[category]::text[]
+          ELSE '{}'::text[]
+        END AS categories,
         points
       FROM deliverables
       WHERE active = true
         AND (deliverable_type IS NULL OR deliverable_type != 'workshop')
-      ORDER BY category ASC, name ASC
+      ORDER BY
+        CASE
+          WHEN 'Branding' = ANY(categories) THEN 1
+          WHEN 'Product' = ANY(categories) THEN 2
+          ELSE 3
+        END ASC,
+        name ASC
     `
   );
 
   const deliverables: Deliverable[] = result.rows;
 
   const grouped = deliverables.reduce<Record<string, Deliverable[]>>((acc, item) => {
-    const key = item.category ?? "Other";
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(item);
+    const categories = item.categories?.length ? item.categories : [item.category ?? "Other"];
+    categories.forEach((key) => {
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(item);
+    });
     return acc;
   }, {});
 

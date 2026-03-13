@@ -20,7 +20,16 @@ export default async function DeliverableTemplatesPage() {
       id,
       name,
       description,
-      category,
+      CASE
+        WHEN 'Branding' = ANY(categories) THEN 'Branding'
+        WHEN 'Product' = ANY(categories) THEN 'Product'
+        ELSE COALESCE(category, categories[1])
+      END AS category,
+      CASE
+        WHEN categories IS NOT NULL AND array_length(categories, 1) IS NOT NULL THEN categories
+        WHEN category IS NOT NULL AND btrim(category) <> '' THEN ARRAY[category]::text[]
+        ELSE '{}'::text[]
+      END AS categories,
       points,
       scope,
       format,
@@ -32,7 +41,13 @@ export default async function DeliverableTemplatesPage() {
       created_at,
       updated_at
     FROM deliverables
-    ORDER BY category, name
+    ORDER BY
+      CASE
+        WHEN 'Branding' = ANY(categories) THEN 1
+        WHEN 'Product' = ANY(categories) THEN 2
+        ELSE 3
+      END,
+      name
   `);
 
   const deliverables = result.rows.map((row) => ({
@@ -40,6 +55,7 @@ export default async function DeliverableTemplatesPage() {
     name: row.name as string,
     description: row.description as string | null,
     category: row.category as string | null,
+    categories: row.categories as string[],
     points: row.points ? Number(row.points) : null,
     scope: row.scope as string | null,
     format: row.format as string | null,
@@ -55,9 +71,11 @@ export default async function DeliverableTemplatesPage() {
   // Group by category without relying on Set iteration (avoids downlevel iteration issues)
   const categories: string[] = [];
   for (const d of deliverables) {
-    const category = d.category || "Uncategorized";
-    if (!categories.includes(category)) {
-      categories.push(category);
+    const categoryList = d.categories?.length ? d.categories : [d.category || "Uncategorized"];
+    for (const category of categoryList) {
+      if (!categories.includes(category)) {
+        categories.push(category);
+      }
     }
   }
 

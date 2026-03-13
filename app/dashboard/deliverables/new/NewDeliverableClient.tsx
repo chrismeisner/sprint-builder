@@ -10,7 +10,7 @@ import { hoursFromPoints } from "@/lib/pricing";
 export default function NewDeliverableClient() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [scope, setScope] = useState("");
   const [format, setFormat] = useState("");
@@ -44,6 +44,10 @@ export default function NewDeliverableClient() {
 
   const removeTag = (value: string) => {
     setTags((prev) => prev.filter((tag) => tag !== value));
+  };
+
+  const toggleCategory = (value: string) => {
+    setCategories((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
   };
 
   const toggleExistingTag = (value: string) => {
@@ -87,7 +91,8 @@ export default function NewDeliverableClient() {
       const body: Record<string, unknown> = {
         name,
         description: description || null,
-        category: category || null,
+        category: categories[0] ?? null,
+        categories,
         scope: scope || null,
         format: format || null,
         points: points || null,
@@ -149,19 +154,23 @@ export default function NewDeliverableClient() {
             />
           </div>
           <div className="sm:col-span-1">
-            <label className={`${labelClass} mb-1 block`} htmlFor="category">
-              Category
-            </label>
-            <select
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className={`${inputTextClass} w-full rounded-md border border-black/15 px-2 py-1.5 bg-white text-black`}
-            >
-              <option value="">Select category</option>
-              <option value="Branding">Branding</option>
-              <option value="Product">Product</option>
-            </select>
+            <label className={`${labelClass} mb-1 block`}>Categories</label>
+            <div className="flex flex-wrap gap-2">
+              {["Branding", "Product"].map((categoryOption) => (
+                <label
+                  key={categoryOption}
+                  className={`${inputTextClass} inline-flex items-center gap-2 rounded-md border border-black/10 px-3 py-1.5 bg-white`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={categories.includes(categoryOption)}
+                    onChange={() => toggleCategory(categoryOption)}
+                    className="h-4 w-4"
+                  />
+                  <span>{categoryOption}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="sm:col-span-2">
             <label className={`${labelClass} mb-1 block`} htmlFor="description">

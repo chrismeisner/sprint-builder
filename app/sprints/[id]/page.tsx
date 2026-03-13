@@ -119,11 +119,13 @@ export default async function SprintDetailPage({ params }: PageProps) {
       spd.deliverable_name,
       spd.deliverable_description,
       spd.deliverable_category,
+      spd.deliverable_categories,
       spd.deliverable_scope,
       spd.base_points,
       spd.delivery_url,
       d.name AS base_name,
       d.category AS base_category,
+      d.categories AS base_categories,
       d.scope AS base_scope,
       d.fixed_hours,
       d.fixed_price,
@@ -140,6 +142,14 @@ export default async function SprintDetailPage({ params }: PageProps) {
     deliverableId: row.deliverable_id as string,
     name: (row.deliverable_name as string | null) ?? (row.base_name as string | null) ?? "",
     category: (row.deliverable_category as string | null) ?? (row.base_category as string | null),
+    categories:
+      (Array.isArray(row.deliverable_categories) && (row.deliverable_categories as string[]).length > 0
+        ? (row.deliverable_categories as string[])
+        : Array.isArray(row.base_categories)
+          ? (row.base_categories as string[])
+          : ((row.deliverable_category as string | null) ?? (row.base_category as string | null))
+            ? [((row.deliverable_category as string | null) ?? (row.base_category as string | null)) as string]
+            : []),
     deliverableType: null,
     complexityScore: row.complexity_score != null ? Number(row.complexity_score) : 1.0,
     customHours: row.custom_hours != null ? Number(row.custom_hours) : null,

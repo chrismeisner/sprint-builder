@@ -31,6 +31,7 @@ type DeliverableItem = {
   name: string;
   description: string | null;
   category: string | null;
+  categories: string[];
   scope: string | null;
   basePoints: number;
   adjustedPoints: number;
@@ -256,9 +257,11 @@ export default function SharedSprintView({
 
   const byCategory: Record<string, DeliverableItem[]> = {};
   deliverables.forEach((d) => {
-    const cat = d.category || "Deliverables";
-    if (!byCategory[cat]) byCategory[cat] = [];
-    byCategory[cat].push(d);
+    const cats = d.categories && d.categories.length > 0 ? d.categories : [d.category || "Deliverables"];
+    cats.forEach((cat) => {
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(d);
+    });
   });
 
   const totalDays = sprint.weeks * 5;

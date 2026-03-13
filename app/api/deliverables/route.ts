@@ -3,6 +3,23 @@ import { ensureSchema, getPool } from "@/lib/db";
 
 const ALLOWED_CATEGORIES = ["Branding", "Product"];
 
+function normalizeCategories(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const cleaned = value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((v): v is string => v.length > 0 && ALLOWED_CATEGORIES.includes(v));
+  return Array.from(new Set(cleaned));
+}
+
+function deriveCategories(category: unknown, categories: unknown): string[] {
+  const normalizedCategories = normalizeCategories(categories);
+  if (normalizedCategories.length > 0) return normalizedCategories;
+  if (typeof category === "string" && category.trim() && ALLOWED_CATEGORIES.includes(category.trim())) {
+    return [category.trim()];
+  }
+  return [];
+}
+
 export async function GET(request: Request) {
   try {
     await ensureSchema();
@@ -16,7 +33,16 @@ export async function GET(request: Request) {
             d.id,
             d.name,
             d.description,
-            d.category,
+            CASE
+              WHEN 'Branding' = ANY(d.categories) THEN 'Branding'
+              WHEN 'Product' = ANY(d.categories) THEN 'Product'
+              ELSE COALESCE(d.category, d.categories[1])
+            END AS category,
+            CASE
+              WHEN d.categories IS NOT NULL AND array_length(d.categories, 1) IS NOT NULL THEN d.categories
+              WHEN d.category IS NOT NULL AND btrim(d.category) <> '' THEN ARRAY[d.category]::text[]
+              ELSE '{}'::text[]
+            END AS categories,
             d.points,
             d.scope,
             d.format,
@@ -28,7 +54,7 @@ export async function GET(request: Request) {
           LEFT JOIN deliverable_tag_links dtl ON dtl.deliverable_id = d.id
           LEFT JOIN deliverable_tags dt ON dt.id = dtl.tag_id
           WHERE (d.deliverable_type IS NULL OR d.deliverable_type != 'workshop')
-          GROUP BY d.id, d.name, d.description, d.category, d.points, d.scope, d.format, d.active, d.created_at, d.updated_at
+          GROUP BY d.id, d.name, d.description, d.category, d.categories, d.points, d.scope, d.format, d.active, d.created_at, d.updated_at
           ORDER BY d.active DESC, d.name ASC
         `
         : `
@@ -36,7 +62,16 @@ export async function GET(request: Request) {
             d.id,
             d.name,
             d.description,
-            d.category,
+            CASE
+              WHEN 'Branding' = ANY(d.categories) THEN 'Branding'
+              WHEN 'Product' = ANY(d.categories) THEN 'Product'
+              ELSE COALESCE(d.category, d.categories[1])
+            END AS category,
+            CASE
+              WHEN d.categories IS NOT NULL AND array_length(d.categories, 1) IS NOT NULL THEN d.categories
+              WHEN d.category IS NOT NULL AND btrim(d.category) <> '' THEN ARRAY[d.category]::text[]
+              ELSE '{}'::text[]
+            END AS categories,
             d.points,
             d.scope,
             d.format,
@@ -49,7 +84,7 @@ export async function GET(request: Request) {
           LEFT JOIN deliverable_tags dt ON dt.id = dtl.tag_id
           WHERE d.active = true
             AND (d.deliverable_type IS NULL OR d.deliverable_type != 'workshop')
-          GROUP BY d.id, d.name, d.description, d.category, d.points, d.scope, d.format, d.active, d.created_at, d.updated_at
+          GROUP BY d.id, d.name, d.description, d.category, d.categories, d.points, d.scope, d.format, d.active, d.created_at, d.updated_at
           ORDER BY d.name ASC
         `
     );
@@ -70,10 +105,11 @@ export async function POST(request: Request) {
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
-    const { name, description, category, points, scope, format, active, tags } = body as {
+    const { name, description, category, categories, points, scope, format, active, tags } = body as {
       name?: unknown;
       description?: unknown;
       category?: unknown;
+      categories?: unknown;
       points?: unknown;
       scope?: unknown;
       format?: unknown;
@@ -108,13 +144,8 @@ export async function POST(request: Request) {
       return Array.from(new Set(cleaned));
     };
 
-    const normalizedCategory =
-      typeof category === "string" && category.trim()
-        ? category.trim()
-        : null;
-    if (normalizedCategory && !ALLOWED_CATEGORIES.includes(normalizedCategory)) {
-      return NextResponse.json({ error: "Category must be Branding or Product" }, { status: 400 });
-    }
+    const normalizedCategories = deriveCategories(category, categories);
+    const normalizedCategory = normalizedCategories[0] ?? null;
 
     const tagNames = normalizeTags(tags);
     const id = crypto.randomUUID();
@@ -123,14 +154,15 @@ export async function POST(request: Request) {
     await pool.query("BEGIN");
     await pool.query(
       `
-        INSERT INTO deliverables (id, name, description, category, points, scope, format, active)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO deliverables (id, name, description, category, categories, points, scope, format, active)
+        VALUES ($1, $2, $3, $4, $5::text[], $6, $7, $8, $9)
       `,
       [
         id,
         name.trim(),
         typeof description === "string" ? description : null,
         normalizedCategory,
+        normalizedCategories,
         pointsValue,
         typeof scope === "string" ? scope : null,
         typeof format === "string" ? format : null,

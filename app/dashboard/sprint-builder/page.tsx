@@ -10,6 +10,7 @@ type Deliverable = {
   name: string;
   description: string | null;
   category: string | null;
+  categories: string[];
   scope: string | null;
   points: number | null;
 };
@@ -29,10 +30,31 @@ export default async function SprintBuilderPage() {
 
   // Fetch deliverables
   const deliverablesResult = await pool.query(`
-    SELECT id, name, description, category, scope, points
+    SELECT
+      id,
+      name,
+      description,
+      CASE
+        WHEN 'Branding' = ANY(categories) THEN 'Branding'
+        WHEN 'Product' = ANY(categories) THEN 'Product'
+        ELSE COALESCE(category, categories[1])
+      END AS category,
+      CASE
+        WHEN categories IS NOT NULL AND array_length(categories, 1) IS NOT NULL THEN categories
+        WHEN category IS NOT NULL AND btrim(category) <> '' THEN ARRAY[category]::text[]
+        ELSE '{}'::text[]
+      END AS categories,
+      scope,
+      points
     FROM deliverables
     WHERE active = true
-    ORDER BY category ASC, name ASC
+    ORDER BY
+      CASE
+        WHEN 'Branding' = ANY(categories) THEN 1
+        WHEN 'Product' = ANY(categories) THEN 2
+        ELSE 3
+      END ASC,
+      name ASC
   `);
 
   const deliverables: Deliverable[] = deliverablesResult.rows;

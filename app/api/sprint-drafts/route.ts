@@ -192,6 +192,7 @@ export async function POST(request: Request) {
           d.name,
           d.description,
           d.category,
+          d.categories,
           d.scope
         FROM sprint_package_deliverables spd
         JOIN deliverables d ON spd.deliverable_id = d.id
@@ -214,9 +215,9 @@ export async function POST(request: Request) {
         await pool.query(
           `INSERT INTO sprint_deliverables (
              id, sprint_draft_id, deliverable_id, quantity,
-             deliverable_name, deliverable_description, deliverable_category, deliverable_scope, base_points
+             deliverable_name, deliverable_description, deliverable_category, deliverable_categories, deliverable_scope, base_points
            )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[], $9, $10)
            ON CONFLICT (sprint_draft_id, deliverable_id) DO NOTHING`,
           [
             junctionId,
@@ -226,6 +227,7 @@ export async function POST(request: Request) {
             row.name ?? null,
             row.description ?? null,
             row.category ?? null,
+            Array.isArray(row.categories) ? row.categories : (row.category ? [row.category] : []),
             row.scope ?? null,
             basePoints,
           ]
@@ -246,7 +248,7 @@ export async function POST(request: Request) {
           if (typeof deliverableId === "string" && deliverableId.trim()) {
             // Fetch deliverable details
             const delRes = await pool.query(
-              `SELECT id, name, description, category, scope, points
+              `SELECT id, name, description, category, categories, scope, points
                FROM deliverables
                WHERE id = $1`,
               [deliverableId]
@@ -258,6 +260,7 @@ export async function POST(request: Request) {
                 name: string | null;
                 description: string | null;
                 category: string | null;
+                categories: string[] | null;
                 scope: string | null;
                 points: number | null;
               };
@@ -276,9 +279,9 @@ export async function POST(request: Request) {
               await pool.query(
                 `INSERT INTO sprint_deliverables (
                    id, sprint_draft_id, deliverable_id, quantity,
-                   deliverable_name, deliverable_description, deliverable_category, deliverable_scope, base_points, custom_estimate_points, notes
+                   deliverable_name, deliverable_description, deliverable_category, deliverable_categories, deliverable_scope, base_points, custom_estimate_points, notes
                  )
-                 VALUES ($1, $2, $3, 1, $4, $5, $6, $7, $8::numeric(10,2), $9::numeric(10,2), $10)
+                 VALUES ($1, $2, $3, 1, $4, $5, $6, $7::text[], $8, $9::numeric(10,2), $10::numeric(10,2), $11)
                  ON CONFLICT (sprint_draft_id, deliverable_id) DO NOTHING`,
                 [
                   junctionId,
@@ -286,7 +289,8 @@ export async function POST(request: Request) {
                   deliverableId,
                   delRow.name ?? null,
                   delRow.description ?? null,
-                  delRow.category ?? null,
+                  delRow.category ?? (Array.isArray(delRow.categories) ? delRow.categories[0] ?? null : null),
+                  Array.isArray(delRow.categories) ? delRow.categories : (delRow.category ? [delRow.category] : []),
                   delRow.scope ?? null,
                   basePoints,
                   adjustedPoints,

@@ -3,6 +3,15 @@ import { ensureSchema, getPool } from "@/lib/db";
 
 const ALLOWED_CATEGORIES = ["Branding", "Product"];
 
+function normalizeCategories(value: unknown): string[] | null {
+  if (value === undefined) return null;
+  if (!Array.isArray(value)) return [];
+  const cleaned = value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((v): v is string => v.length > 0 && ALLOWED_CATEGORIES.includes(v));
+  return Array.from(new Set(cleaned));
+}
+
 type Params = {
   params: { id: string };
 };
@@ -15,10 +24,11 @@ export async function PATCH(request: Request, { params }: Params) {
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
-    const { name, description, category, points, scope, format, active, tags } = body as {
+    const { name, description, category, categories, points, scope, format, active, tags } = body as {
       name?: unknown;
       description?: unknown;
       category?: unknown;
+      categories?: unknown;
       points?: unknown;
       scope?: unknown;
       format?: unknown;
@@ -37,6 +47,7 @@ export async function PATCH(request: Request, { params }: Params) {
       return Array.from(new Set(cleaned));
     };
     const tagNames = normalizeTags(tags);
+    const categoriesValue = normalizeCategories(categories);
 
     if (typeof name === "string") {
       fields.push(`name = $${fields.length + 1}`);
@@ -46,13 +57,25 @@ export async function PATCH(request: Request, { params }: Params) {
       fields.push(`description = $${fields.length + 1}`);
       values.push(description);
     }
-    if (typeof category === "string") {
-      const normalized = category.trim();
+    if (typeof category === "string" || category === null) {
+      const normalized = typeof category === "string" ? category.trim() : "";
       if (normalized && !ALLOWED_CATEGORIES.includes(normalized)) {
         return NextResponse.json({ error: "Category must be Branding or Product" }, { status: 400 });
       }
       fields.push(`category = $${fields.length + 1}`);
       values.push(normalized || null);
+      if (categoriesValue === null) {
+        fields.push(`categories = $${fields.length + 1}::text[]`);
+        values.push(normalized ? [normalized] : []);
+      }
+    }
+    if (categoriesValue !== null) {
+      fields.push(`categories = $${fields.length + 1}::text[]`);
+      values.push(categoriesValue);
+      if (category === undefined) {
+        fields.push(`category = $${fields.length + 1}`);
+        values.push(categoriesValue[0] ?? null);
+      }
     }
     if (typeof scope === "string" || scope === null) {
       fields.push(`scope = $${fields.length + 1}`);

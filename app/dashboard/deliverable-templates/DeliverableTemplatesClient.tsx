@@ -10,6 +10,7 @@ type Deliverable = {
   name: string;
   description: string | null;
   category: string | null;
+  categories: string[];
   points: number | null;
   scope: string | null;
   format: string | null;
@@ -47,7 +48,11 @@ export default function DeliverableTemplatesClient({ deliverables: initialDelive
   };
 
   const filteredDeliverables = selectedCategory
-    ? deliverables.filter((d) => (d.category || "Uncategorized") === selectedCategory)
+    ? deliverables.filter((d) =>
+        (d.categories && d.categories.length > 0
+          ? d.categories
+          : [d.category || "Uncategorized"]).includes(selectedCategory)
+      )
     : deliverables;
 
   const handleTemplateDataChange = useCallback((deliverableId: string, newData: Record<string, unknown>) => {
@@ -144,7 +149,11 @@ export default function DeliverableTemplatesClient({ deliverables: initialDelive
           All ({deliverables.length})
         </button>
         {categories.map((category) => {
-          const count = deliverables.filter((d) => (d.category || "Uncategorized") === category).length;
+          const count = deliverables.filter((d) =>
+            (d.categories && d.categories.length > 0
+              ? d.categories
+              : [d.category || "Uncategorized"]).includes(category)
+          ).length;
           return (
             <button
               key={category}
@@ -205,7 +214,11 @@ export default function DeliverableTemplatesClient({ deliverables: initialDelive
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={t.mono}>{deliverable.category || "Uncategorized"}</span>
+                  <span className={t.mono}>
+                    {deliverable.categories && deliverable.categories.length > 0
+                      ? deliverable.categories.join(", ")
+                      : deliverable.category || "Uncategorized"}
+                  </span>
                   <svg
                     className={`w-5 h-5 text-text-muted transition-transform ${isExpanded ? "rotate-180" : ""}`}
                     fill="none"

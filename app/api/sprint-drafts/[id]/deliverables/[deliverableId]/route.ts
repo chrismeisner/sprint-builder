@@ -200,6 +200,7 @@ export async function GET(request: Request, { params }: Params) {
         d.name as global_name,
         d.description as global_description,
         d.category as global_category,
+        d.categories as global_categories,
         d.scope as global_scope,
         d.presentation_content,
         sd.title as sprint_title,
@@ -243,6 +244,14 @@ export async function GET(request: Request, { params }: Params) {
         name: row.deliverable_name ?? row.global_name,
         description: row.deliverable_description ?? row.global_description,
         category: row.deliverable_category ?? row.global_category,
+        categories:
+          (Array.isArray(row.deliverable_categories) && row.deliverable_categories.length > 0
+            ? row.deliverable_categories
+            : Array.isArray(row.global_categories)
+              ? row.global_categories
+              : (row.deliverable_category ?? row.global_category)
+                ? [row.deliverable_category ?? row.global_category]
+                : []),
         scope: row.custom_scope ?? row.deliverable_scope ?? row.global_scope,
         basePoints: row.base_points,
         customPoints: row.custom_estimate_points,

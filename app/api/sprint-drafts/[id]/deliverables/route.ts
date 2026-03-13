@@ -67,7 +67,7 @@ export async function POST(request: Request, { params }: Params) {
 
     // Fetch the deliverable details including scope
     const deliverableResult = await pool.query(
-      `SELECT id, name, description, scope, category, points
+      `SELECT id, name, description, scope, category, categories, points
        FROM deliverables WHERE id = $1 AND active = true`,
       [deliverableId]
     );
@@ -82,6 +82,7 @@ export async function POST(request: Request, { params }: Params) {
       description: string | null;
       scope: string | null;
       category: string | null;
+      categories: string[] | null;
       points: number | null;
     };
 
@@ -95,9 +96,9 @@ export async function POST(request: Request, { params }: Params) {
     await pool.query(
       `INSERT INTO sprint_deliverables 
        (id, sprint_draft_id, deliverable_id, quantity,
-        deliverable_name, deliverable_description, deliverable_category, deliverable_scope, base_points,
+        deliverable_name, deliverable_description, deliverable_category, deliverable_categories, deliverable_scope, base_points,
         custom_estimate_points, custom_hours)
-       VALUES ($1, $2, $3, 1, $4, $5, $6, $7, $8, $9, $10)
+       VALUES ($1, $2, $3, 1, $4, $5, $6, $7::text[], $8, $9, $10, $11)
        ON CONFLICT (sprint_draft_id, deliverable_id) DO NOTHING`,
       [
         junctionId,
@@ -105,7 +106,8 @@ export async function POST(request: Request, { params }: Params) {
         deliverable.id,
         deliverable.name,
         deliverable.description,
-        deliverable.category,
+        deliverable.category ?? (Array.isArray(deliverable.categories) ? deliverable.categories[0] ?? null : null),
+        Array.isArray(deliverable.categories) ? deliverable.categories : (deliverable.category ? [deliverable.category] : []),
         deliverable.scope,
         adjustedPoints,
         adjustedPoints,
@@ -143,6 +145,7 @@ export async function POST(request: Request, { params }: Params) {
         id: deliverable.id,
         name: deliverable.name,
         category: deliverable.category,
+        categories: Array.isArray(deliverable.categories) ? deliverable.categories : (deliverable.category ? [deliverable.category] : []),
         basePoints: deliverable.points,
         complexityScore: complexity,
         adjustedPoints,

@@ -135,9 +135,12 @@ export async function GET(request: Request, { params }: Params) {
          sd.complexity_score,
          sd.quantity,
          sd.deliverable_name,
+       sd.deliverable_category,
+       sd.deliverable_categories,
          d.points,
          d.name,
-         d.category
+       d.category,
+       d.categories
        FROM sprint_deliverables sd
        LEFT JOIN deliverables d ON sd.deliverable_id = d.id
        WHERE sd.sprint_draft_id = $1
@@ -152,7 +155,20 @@ export async function GET(request: Request, { params }: Params) {
       return {
         deliverableId: row.deliverable_id as string,
         name: (row.deliverable_name as string | null) ?? (row.name as string | null) ?? "",
-        category: (row.category as string | null) ?? null,
+        category:
+          (row.deliverable_category as string | null) ??
+          (Array.isArray(row.deliverable_categories) ? ((row.deliverable_categories as string[])[0] ?? null) : null) ??
+          (row.category as string | null) ??
+          (Array.isArray(row.categories) ? ((row.categories as string[])[0] ?? null) : null) ??
+          null,
+        categories:
+          (Array.isArray(row.deliverable_categories) && (row.deliverable_categories as string[]).length > 0
+            ? (row.deliverable_categories as string[])
+            : Array.isArray(row.categories)
+              ? (row.categories as string[])
+              : ((row.deliverable_category as string | null) ?? (row.category as string | null))
+                ? [((row.deliverable_category as string | null) ?? (row.category as string | null)) as string]
+                : []),
         basePoints: base,
         adjustedPoints: adjusted,
         multiplier,
@@ -583,7 +599,7 @@ export async function PATCH(request: Request, { params }: Params) {
         const scopeVal = typeof item.customScope === "string" && item.customScope.trim() ? item.customScope.trim() : null;
 
         const delRes = await pool.query(
-          `SELECT id, name, description, category, scope, points
+          `SELECT id, name, description, category, categories, scope, points
            FROM deliverables
            WHERE id = $1`,
           [item.deliverableId]
@@ -594,6 +610,7 @@ export async function PATCH(request: Request, { params }: Params) {
           name: string | null;
           description: string | null;
           category: string | null;
+          categories: string[] | null;
           scope: string | null;
           points: number | null;
         };
@@ -604,10 +621,10 @@ export async function PATCH(request: Request, { params }: Params) {
         await pool.query(
           `INSERT INTO sprint_deliverables (
              id, sprint_draft_id, deliverable_id, quantity,
-             deliverable_name, deliverable_description, deliverable_category, deliverable_scope,
+             deliverable_name, deliverable_description, deliverable_category, deliverable_categories, deliverable_scope,
              base_points, custom_estimate_points, custom_hours, complexity_score, notes, custom_scope
            )
-           VALUES ($1, $2, $3, 1, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+           VALUES ($1, $2, $3, 1, $4, $5, $6, $7::text[], $8, $9, $10, $11, $12, $13, $14)
            ON CONFLICT (sprint_draft_id, deliverable_id) DO NOTHING`,
           [
             randomUUID(),
@@ -615,7 +632,8 @@ export async function PATCH(request: Request, { params }: Params) {
             d.id,
             d.name ?? null,
             d.description ?? null,
-            d.category ?? null,
+            d.category ?? (Array.isArray(d.categories) ? d.categories[0] ?? null : null),
+            Array.isArray(d.categories) ? d.categories : (d.category ? [d.category] : []),
             d.scope ?? null,
             basePoints,
             adjustedPoints,

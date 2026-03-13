@@ -51,7 +51,18 @@ export default async function DeliverableDetailPage({ params }: PageProps) {
   // Try to find by ID first, then by slug
   const result = await pool.query(
     `SELECT 
-      id, name, description, category, points, scope, format,
+      id, name, description,
+      CASE
+        WHEN 'Branding' = ANY(categories) THEN 'Branding'
+        WHEN 'Product' = ANY(categories) THEN 'Product'
+        ELSE COALESCE(category, categories[1])
+      END AS category,
+      CASE
+        WHEN categories IS NOT NULL AND array_length(categories, 1) IS NOT NULL THEN categories
+        WHEN category IS NOT NULL AND btrim(category) <> '' THEN ARRAY[category]::text[]
+        ELSE '{}'::text[]
+      END AS categories,
+      points, scope, format,
       presentation_content, example_images, slug, active,
       template_data, created_at, updated_at
      FROM deliverables 
@@ -69,6 +80,7 @@ export default async function DeliverableDetailPage({ params }: PageProps) {
     name: string;
     description: string | null;
     category: string | null;
+    categories: string[];
     points: NumericLike;
     scope: string | null;
     format: string | null;
@@ -112,7 +124,9 @@ export default async function DeliverableDetailPage({ params }: PageProps) {
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <span className={`inline-flex items-center rounded-full bg-black/10 dark:bg-white/10 px-3 py-1 ${getTypographyClassName("mono-sm")} text-black/70 dark:text-white/60`}>
-                {deliverable.category ?? "Deliverable"}
+                {deliverable.categories && deliverable.categories.length > 0
+                  ? deliverable.categories.join(", ")
+                  : deliverable.category ?? "Deliverable"}
               </span>
               {!deliverable.active && (
                 <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/40 px-3 py-1 text-xs text-red-800 dark:text-red-200">
@@ -175,7 +189,11 @@ export default async function DeliverableDetailPage({ params }: PageProps) {
           </div>
           <div className="rounded-lg bg-black/5 dark:bg-white/5 p-4 text-center">
             <p className={t.monoLabel}>Category</p>
-            <p className="text-xl font-bold">{deliverable.category ?? "General"}</p>
+            <p className="text-xl font-bold">
+              {deliverable.categories && deliverable.categories.length > 0
+                ? deliverable.categories.join(", ")
+                : deliverable.category ?? "General"}
+            </p>
           </div>
         </div>
       </section>
