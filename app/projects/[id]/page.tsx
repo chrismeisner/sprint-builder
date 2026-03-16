@@ -376,6 +376,30 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         )}
       </section>
 
+      {/* Figma brand / Design system hub */}
+      <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <Typography as="h2" scale="h3">
+              Figma brand
+            </Typography>
+            <Typography as="span" scale="body-sm" className="opacity-60">
+              Design system hub
+            </Typography>
+          </div>
+          <Link
+            href={`/projects/${project.id}/hub`}
+            className="inline-flex items-center gap-1.5 rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 transition"
+          >
+            Open hub
+            <span aria-hidden>→</span>
+          </Link>
+        </div>
+        <Typography as="p" scale="body-sm" className="opacity-70">
+          Link your Figma source of truth, sync on demand, and view the project’s design tokens and component reference.
+        </Typography>
+      </section>
+
       {/* Tasks (admin only) */}
       {isAdmin && (
         <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-4">

@@ -1,0 +1,49 @@
+{
+  "description": "Component contract: shared names and token usage. Figma and web reference these so 'Button/primary' means the same thing.",
+  "components": [
+    {
+      "id": "button",
+      "name": "Button",
+      "variants": [
+        { "id": "primary", "label": "Primary" },
+        { "id": "secondary", "label": "Secondary" },
+        { "id": "ghost", "label": "Ghost" }
+      ],
+      "tokens": {
+        "background": { "primary": "brand.accent", "secondary": "surface.strong", "ghost": "transparent" },
+        "text": { "primary": "brand.inverse", "secondary": "text.primary", "ghost": "text.primary" },
+        "borderRadius": "borderRadius.default",
+        "paddingX": "spacing.4",
+        "paddingY": "spacing.2"
+      }
+    },
+    {
+      "id": "card",
+      "name": "Card",
+      "variants": [
+        { "id": "default", "label": "Default" }
+      ],
+      "tokens": {
+        "background": "surface.card",
+        "borderRadius": "borderRadius.card",
+        "shadow": "boxShadow.card",
+        "padding": "spacing.6"
+      }
+    },
+    {
+      "id": "input",
+      "name": "Input",
+      "variants": [
+        { "id": "default", "label": "Default" },
+        { "id": "error", "label": "Error" }
+      ],
+      "tokens": {
+        "background": "surface.card",
+        "border": { "default": "stroke.muted", "error": "semantic.danger" },
+        "borderRadius": "borderRadius.default",
+        "text": "text.primary",
+        "placeholder": "text.muted"
+      }
+    }
+  ]
+}

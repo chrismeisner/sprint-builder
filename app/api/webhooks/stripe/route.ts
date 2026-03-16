@@ -22,7 +22,7 @@ import {
  *   URL: https://<your-domain>/api/webhooks/stripe
  *
  * Events handled:
- *   payment_intent.processing       → mark matching invoice as "processing" + notify (ACH)
+ *   payment_intent.processing       → mark matching invoice as "processing" + notify admin (payment submitted, pending)
  *   payment_intent.succeeded        → mark matching invoice as "paid"
  *   payment_intent.payment_failed   → mark matching invoice as "failed"
  *   checkout.session.completed      → mark matching invoice as "paid"
@@ -147,28 +147,39 @@ async function handleEvent(event: import("stripe").Stripe.Event, origin: string)
 // Individual event handlers
 // ---------------------------------------------------------------------------
 
+/** Resolve Stripe ID we can use to match sprint_invoices: prefer invoice id when this PaymentIntent is for an invoice. */
+function paymentIntentToInvoiceStripeId(pi: import("stripe").Stripe.PaymentIntent): string {
+  const inv = pi.invoice;
+  if (typeof inv === "string") return inv;
+  if (inv && typeof inv === "object" && "id" in inv) return (inv as { id: string }).id;
+  return pi.id;
+}
+
 async function onPaymentIntentProcessing(
   pi: import("stripe").Stripe.PaymentIntent,
   origin: string
 ) {
-  console.log(`[StripeWebhook] PaymentIntent processing (ACH initiated): ${pi.id}`);
-  await updateInvoiceStatus(pi.id, "processing", origin, pi.metadata);
+  const stripeId = paymentIntentToInvoiceStripeId(pi);
+  console.log(`[StripeWebhook] PaymentIntent processing (payment submitted, pending): ${pi.id}`);
+  await updateInvoiceStatus(stripeId, "processing", origin, pi.metadata);
 }
 
 async function onPaymentIntentSucceeded(
   pi: import("stripe").Stripe.PaymentIntent,
   origin: string
 ) {
+  const stripeId = paymentIntentToInvoiceStripeId(pi);
   console.log(`[StripeWebhook] PaymentIntent succeeded: ${pi.id}`);
-  await updateInvoiceStatus(pi.id, "paid", origin, pi.metadata);
+  await updateInvoiceStatus(stripeId, "paid", origin, pi.metadata);
 }
 
 async function onPaymentIntentFailed(
   pi: import("stripe").Stripe.PaymentIntent,
   origin: string
 ) {
+  const stripeId = paymentIntentToInvoiceStripeId(pi);
   console.log(`[StripeWebhook] PaymentIntent failed: ${pi.id}`);
-  await updateInvoiceStatus(pi.id, "failed", origin, pi.metadata);
+  await updateInvoiceStatus(stripeId, "failed", origin, pi.metadata);
 }
 
 async function onCheckoutSessionCompleted(
@@ -309,7 +320,7 @@ async function writeChangelogs(
   origin: string
 ) {
   const summaryMap: Record<string, string> = {
-    processing: "ACH bank transfer initiated — payment processing",
+    processing: "Payment submitted — pending (not yet cleared)",
     paid: "Invoice payment received via Stripe",
     failed: "Stripe invoice payment failed",
     voided: "Stripe invoice voided",
@@ -352,9 +363,8 @@ async function writeChangelogs(
 }
 
 /**
- * Fires when an ACH bank transfer is initiated (payment_intent.processing).
- * Notifies the studio immediately and confirms receipt to the client.
- * The actual settlement notification comes later via sendInvoicePaidNotifications.
+ * Fires when the client has submitted payment and it's in the pending state (payment_intent.processing).
+ * Notifies admins that payment is pending; confirms to the client. Settlement notification is sent later via sendInvoicePaidNotifications.
  */
 async function sendInvoiceProcessingNotifications(
   pool: ReturnType<typeof getPool>,

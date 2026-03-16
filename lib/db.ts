@@ -620,6 +620,13 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_projects_project_type ON projects(project_type);
   `);
+  // Figma hub: source URL and last sync time (for "Sync via Claude" flow)
+  await pool.query(`
+    ALTER TABLE projects ADD COLUMN IF NOT EXISTS figma_file_url text;
+  `);
+  await pool.query(`
+    ALTER TABLE projects ADD COLUMN IF NOT EXISTS hub_last_synced_at timestamptz;
+  `);
   // Project membership (share projects by email)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS project_members (

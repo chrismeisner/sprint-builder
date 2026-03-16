@@ -518,7 +518,8 @@ ${muted("Meisner Design")}
 }
 
 /**
- * Invoice paid — sent to all admin accounts as an internal notification
+ * Invoice paid — sent to all admin accounts when payment has cleared and funds are available.
+ * (Stripe sends invoice.paid when the payment is settled, not when it was merely initiated.)
  */
 export function generateInvoicePaidAdminEmail(params: {
   invoiceLabel: string;
@@ -535,11 +536,11 @@ export function generateInvoicePaidAdminEmail(params: {
   const contextText = sprintTitle ? ` for ${sprintTitle}` : "";
   const clientDisplay = clientName ? `${clientName} (${clientEmail})` : clientEmail;
 
-  const subject = `Invoice paid: ${invoiceLabel}${sprintTitle ? ` — ${sprintTitle}` : ""}`;
+  const subject = `Payment cleared: ${invoiceLabel}${sprintTitle ? ` — ${sprintTitle}` : ""}`;
 
   const text = `${greeting}
 
-${clientDisplay} has paid invoice "${invoiceLabel}"${contextText}.
+Payment for invoice "${invoiceLabel}"${contextText} from ${clientDisplay} has cleared — the funds have been deposited and are available.
 
 Amount: ${formattedAmount}
 
@@ -550,7 +551,7 @@ No action needed — this is an automatic notification.
 
   const html = emailShell(`
 <p style="margin:0 0 16px;">${greeting}</p>
-<p style="margin:0 0 16px;"><strong>${clientDisplay}</strong> has paid invoice &ldquo;${invoiceLabel}&rdquo;${context}.</p>
+<p style="margin:0 0 16px;">Payment for invoice &ldquo;${invoiceLabel}&rdquo;${context} from <strong>${clientDisplay}</strong> has cleared&nbsp;&mdash; the funds have been deposited and are available.</p>
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
   <tr>
     <td style="padding:12px 16px;background-color:#f4f4f5;">
@@ -571,7 +572,8 @@ ${muted("No action needed&nbsp;&mdash; this is an automatic notification.")}
 }
 
 /**
- * ACH payment processing — sent to admin when payment is initiated but not yet settled
+ * Payment pending — sent to admin when the client has submitted payment and it's in the pending state
+ * (e.g. ACH initiated; funds not yet cleared). A separate "payment cleared" email is sent when funds are available.
  */
 export function generateInvoiceProcessingAdminEmail(params: {
   invoiceLabel: string;
@@ -589,22 +591,22 @@ export function generateInvoiceProcessingAdminEmail(params: {
   const clientNote = clientEmail ? ` from <strong>${clientEmail}</strong>` : "";
   const clientNoteText = clientEmail ? ` from ${clientEmail}` : "";
 
-  const subject = `ACH payment processing: ${invoiceLabel}${sprintTitle ? ` — ${sprintTitle}` : ""}`;
+  const subject = `Payment pending: ${invoiceLabel}${sprintTitle ? ` — ${sprintTitle}` : ""}`;
 
   const text = `${greeting}
 
-An ACH bank transfer has been initiated${clientNoteText} for invoice "${invoiceLabel}"${contextText}.
+A client has submitted payment${clientNoteText} for invoice "${invoiceLabel}"${contextText}. The payment is pending (not yet cleared).
 
 Amount: ${formattedAmount}
 
-ACH transfers typically settle within 1–3 business days. You'll receive another notification once payment clears.
+For ACH/bank transfers, funds typically settle within 1–3 business days. You'll receive another notification once the payment has cleared and funds are available.
 ${sprintUrl ? `\nView sprint: ${sprintUrl}\n` : ""}
 — Meisner Design
 `;
 
   const html = emailShell(`
 <p style="margin:0 0 16px;">${greeting}</p>
-<p style="margin:0 0 16px;">An ACH bank transfer has been initiated${clientNote} for invoice &ldquo;${invoiceLabel}&rdquo;${context}.</p>
+<p style="margin:0 0 16px;">A client has submitted payment${clientNote} for invoice &ldquo;${invoiceLabel}&rdquo;${context}. The payment is <strong>pending</strong> (not yet cleared).</p>
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
   <tr>
     <td style="padding:12px 16px;background-color:#f4f4f5;">
@@ -619,7 +621,7 @@ ${sprintUrl ? `\nView sprint: ${sprintUrl}\n` : ""}
 </table>
 ${sprintUrl ? secondaryLink(sprintUrl, "View sprint →") : ""}
 ${divider()}
-${muted("ACH transfers typically settle within 1&ndash;3 business days. You&rsquo;ll receive another notification once payment clears.")}
+${muted("For ACH/bank transfers, funds typically settle within 1&ndash;3 business days. You&rsquo;ll receive another notification once the payment has cleared and funds are available.")}
 `);
 
   return { subject, text, html };

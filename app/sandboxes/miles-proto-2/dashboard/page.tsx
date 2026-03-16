@@ -897,6 +897,12 @@ function DashboardContent() {
         <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-300">
           Proto controls
         </span>
+        <Link
+          href={p("/hub")}
+          className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-50"
+        >
+          Design system hub
+        </Link>
         <div className="flex items-center gap-1.5">
           {(["parked", "trip", "complete"] as const).map((m) => (
             <button

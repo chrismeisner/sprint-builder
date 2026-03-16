@@ -1,0 +1,36 @@
+{
+  "spacing": {
+    "0":       { "$value": "0",    "$type": "dimension" },
+    "1":       { "$value": "4px",  "$type": "dimension" },
+    "2":       { "$value": "8px",  "$type": "dimension" },
+    "3":       { "$value": "12px", "$type": "dimension" },
+    "4":       { "$value": "16px", "$type": "dimension" },
+    "5":       { "$value": "20px", "$type": "dimension" },
+    "6":       { "$value": "24px", "$type": "dimension" },
+    "8":       { "$value": "32px", "$type": "dimension" },
+    "10":      { "$value": "40px", "$type": "dimension" },
+    "12":      { "$value": "48px", "$type": "dimension" },
+    "16":      { "$value": "64px", "$type": "dimension" },
+    "20":      { "$value": "80px", "$type": "dimension" },
+    "24":      { "$value": "96px", "$type": "dimension" },
+    "page":    { "$value": "40px", "$type": "dimension" },
+    "section": { "$value": "48px", "$type": "dimension" },
+    "gutter":  { "$value": "24px", "$type": "dimension" }
+  },
+  "borderRadius": {
+    "none":    { "$value": "0",      "$type": "dimension" },
+    "sm":      { "$value": "2px",    "$type": "dimension" },
+    "default": { "$value": "4px",    "$type": "dimension" },
+    "md":      { "$value": "6px",    "$type": "dimension" },
+    "lg":      { "$value": "8px",    "$type": "dimension" },
+    "xl":      { "$value": "12px",   "$type": "dimension" },
+    "2xl":     { "$value": "16px",   "$type": "dimension" },
+    "3xl":     { "$value": "24px",   "$type": "dimension" },
+    "card":    { "$value": "24px",   "$type": "dimension" },
+    "pill":    { "$value": "9999px", "$type": "dimension" },
+    "full":    { "$value": "9999px", "$type": "dimension" }
+  },
+  "boxShadow": {
+    "card": { "$value": "0 24px 70px rgba(0,0,0,0.08)", "$type": "shadow" }
+  }
+}

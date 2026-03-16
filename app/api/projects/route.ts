@@ -145,7 +145,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { id, name, description, status, projectType, emoji } = body as { id?: unknown; name?: unknown; description?: unknown; status?: unknown; projectType?: unknown; emoji?: unknown };
+    const { id, name, description, status, projectType, emoji, figmaFileUrl } = body as { id?: unknown; name?: unknown; description?: unknown; status?: unknown; projectType?: unknown; emoji?: unknown; figmaFileUrl?: unknown };
 
     if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json({ error: "Project id is required" }, { status: 400 });
@@ -157,9 +157,10 @@ export async function PATCH(request: Request) {
     const hasStatusUpdate = typeof status === "string" && status.trim();
     const hasProjectTypeUpdate = typeof projectType === "string" && projectType.trim();
     const hasEmojiUpdate = typeof emoji === "string";
+    const hasFigmaFileUrlUpdate = typeof figmaFileUrl === "string" || figmaFileUrl === null;
     
-    if (!hasNameUpdate && !hasDescriptionUpdate && !hasStatusUpdate && !hasProjectTypeUpdate && !hasEmojiUpdate) {
-      return NextResponse.json({ error: "At least name, description, status, projectType, or emoji is required" }, { status: 400 });
+    if (!hasNameUpdate && !hasDescriptionUpdate && !hasStatusUpdate && !hasProjectTypeUpdate && !hasEmojiUpdate && !hasFigmaFileUrlUpdate) {
+      return NextResponse.json({ error: "At least name, description, status, projectType, emoji, or figmaFileUrl is required" }, { status: 400 });
     }
 
     // Validate status value if provided
@@ -201,9 +202,22 @@ export async function PATCH(request: Request) {
     }
     const accountId = (ownerCheck.rows[0] as { account_id: string | null }).account_id;
     
-    // For name/description/emoji updates, require ownership. For status-only updates, require admin.
-    if ((hasNameUpdate || hasDescriptionUpdate || hasEmojiUpdate) && !user.isAdmin && (!accountId || accountId !== user.accountId)) {
-      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    // For name/description/emoji/figmaFileUrl updates, require ownership or membership. For status-only updates, require admin.
+    if ((hasNameUpdate || hasDescriptionUpdate || hasEmojiUpdate || hasFigmaFileUrlUpdate) && !user.isAdmin && (!accountId || accountId !== user.accountId)) {
+      // Allow project members to update figmaFileUrl for their project
+      if (hasFigmaFileUrlUpdate && !hasNameUpdate && !hasDescriptionUpdate && !hasEmojiUpdate) {
+        const memberCheck = await pool.query(
+          `SELECT 1 FROM project_members WHERE project_id = $1 AND lower(email) = lower($2) LIMIT 1`,
+          [id.trim(), user.email]
+        );
+        if (memberCheck.rowCount === 0) {
+          return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+        }
+      } else if (hasFigmaFileUrlUpdate) {
+        return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+      } else {
+        return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+      }
     }
 
     // Build dynamic update query
@@ -241,6 +255,12 @@ export async function PATCH(request: Request) {
       paramIndex++;
     }
 
+    if (hasFigmaFileUrlUpdate) {
+      updates.push(`figma_file_url = $${paramIndex}`);
+      params.push(figmaFileUrl === null || (typeof figmaFileUrl === "string" && !figmaFileUrl.trim()) ? null : (figmaFileUrl as string).trim());
+      paramIndex++;
+    }
+
     updates.push("updated_at = now()");
     params.push(id.trim());
 
@@ -248,7 +268,7 @@ export async function PATCH(request: Request) {
       `UPDATE projects
        SET ${updates.join(", ")}
        WHERE id = $${paramIndex}
-       RETURNING id, name, description, status, project_type, emoji, created_at, updated_at, account_id`,
+       RETURNING id, name, description, status, project_type, emoji, figma_file_url, hub_last_synced_at, created_at, updated_at, account_id`,
       params
     );
 

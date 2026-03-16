@@ -82,9 +82,12 @@ export async function GET(
 
     const sandboxRecord = sandboxCheck.rows[0] as { id: string; is_public: boolean; project_id: string } | undefined;
     const isPublic = sandboxRecord?.is_public === true;
+    // In development, unregistered sandbox folders (e.g. miles-proto-2) are allowed without auth
+    // so that prototype pages work in any browser context (including Cursor's embedded browser).
+    const isDevUnregistered = process.env.NODE_ENV === "development" && !sandboxRecord;
 
-    // If sandbox is public, allow access without authentication
-    if (isPublic) {
+    // If sandbox is public (or dev unregistered), allow access without authentication
+    if (isPublic || isDevUnregistered) {
       // Public sandbox - no auth required, skip to serving the file
     } else {
       // Private sandbox - require authentication

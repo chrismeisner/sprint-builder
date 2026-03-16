@@ -4,7 +4,12 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { BASE } from "@/app/sandboxes/miles-proto-2/_lib/nav";
 
-const BYPASS_ROUTES = new Set([`${BASE}/index`, `${BASE}/index/`]);
+const BYPASS_ROUTES = new Set([
+  `${BASE}/index`,
+  `${BASE}/index/`,
+  `${BASE}/hub`,
+  `${BASE}/hub/`,
+]);
 
 const presets = [
   { key: "mobile", label: "Mobile", width: 390 },

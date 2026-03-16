@@ -10,6 +10,7 @@ type FooterNavMode = "full" | "compact";
 
 const HIDDEN_ON = new Set([
   BASE, BASE + "/",
+  p("/hub"), p("/hub/"),
   ...(["/signup", "/signup-name", "/scan-device", "/permissions",
   "/billing", "/install", "/find-port", "/plug-in-device",
   "/pair-device", "/getting-online", "/help-port", "/help-port/vehicle",
