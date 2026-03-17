@@ -176,31 +176,31 @@ function VehicleCardContent({ v }: { v: Vehicle }) {
     : null;
 
   const engineLabel = v.engine === "good" ? "Good" : v.engine === "attention" ? "Attention" : "—";
-  const engineDot = v.engine === "good" ? "bg-green-500" : "bg-amber-500";
-  const engineText = v.engine === "good" ? "text-green-700" : "text-amber-700";
+  const engineDot = v.engine === "good" ? "bg-semantic-success" : "bg-semantic-warning";
+  const engineText = v.engine === "good" ? "text-semantic-success" : "text-semantic-warning";
   const fuelPct = v.fuelPct ?? 0;
-  const fuelDot = fuelPct > 30 ? "bg-green-500" : "bg-amber-500";
-  const fuelText = fuelPct > 30 ? "text-neutral-700" : "text-amber-700";
+  const fuelDot = fuelPct > 30 ? "bg-semantic-success" : "bg-semantic-warning";
+  const fuelText = fuelPct > 30 ? "text-text-secondary" : "text-semantic-warning";
 
   return (
     <>
       {/* Vehicle header + car image */}
-      <Link href={vehicleHref} className="flex items-center justify-between gap-3 px-4 pt-3.5 pb-2 transition-colors hover:bg-neutral-50/80">
+      <Link href={vehicleHref} className="flex items-center justify-between gap-3 px-4 pt-3.5 pb-2 transition-colors hover:bg-background/80">
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-neutral-900">{v.name}</span>
+            <span className="text-sm font-semibold text-text-primary">{v.name}</span>
             {live && (
-              <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+              <span className="flex items-center gap-1 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-semibold text-semantic-success">
                 <span className="relative flex size-1.5">
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-400 opacity-75" />
-                  <span className="relative inline-flex size-1.5 rounded-full bg-green-500" />
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-semantic-success opacity-75" />
+                  <span className="relative inline-flex size-1.5 rounded-full bg-semantic-success" />
                 </span>
                 Live
               </span>
             )}
           </div>
-          <span className="text-xs text-neutral-400">{v.year} {v.make} {v.model}</span>
-          {!live && <span className="text-[11px] text-neutral-300">{v.locationLabel} · Parked {v.lastUpdated}</span>}
+          <span className="text-xs text-text-muted">{v.year} {v.make} {v.model}</span>
+          {!live && <span className="text-[11px] text-text-muted">{v.locationLabel} · Parked {v.lastUpdated}</span>}
         </div>
         <div className="flex items-center gap-1">
           <img
@@ -208,7 +208,7 @@ function VehicleCardContent({ v }: { v: Vehicle }) {
             alt={v.name}
             className="w-24 object-contain opacity-90"
           />
-          <svg className="size-4 shrink-0 text-neutral-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <svg className="size-4 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
           </svg>
         </div>
@@ -216,22 +216,22 @@ function VehicleCardContent({ v }: { v: Vehicle }) {
 
       {/* Bento stats — always Score / Engine / Fuel */}
       <div className="grid grid-cols-3 gap-2 px-4 pb-3">
-        <div className="flex flex-col gap-1.5 rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-2.5">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Miles Score</span>
+        <div className="flex flex-col gap-1.5 rounded-panel border border-stroke-muted bg-background px-3 py-2.5">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Miles Score</span>
           <div className="flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-green-500" />
-            <span className="text-sm font-semibold leading-none text-green-700">{v.driverScore}</span>
+            <span className="size-1.5 rounded-full bg-semantic-success" />
+            <span className="text-sm font-semibold leading-none text-semantic-success">{v.driverScore}</span>
           </div>
         </div>
-        <div className="flex flex-col gap-1.5 rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-2.5">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Engine</span>
+        <div className="flex flex-col gap-1.5 rounded-panel border border-stroke-muted bg-background px-3 py-2.5">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Engine</span>
           <div className="flex items-center gap-1.5">
             <span className={`size-1.5 rounded-full ${engineDot}`} />
             <span className={`text-sm font-semibold leading-none ${engineText}`}>{engineLabel}</span>
           </div>
         </div>
-        <div className="flex flex-col gap-1.5 rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-2.5">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Fuel</span>
+        <div className="flex flex-col gap-1.5 rounded-panel border border-stroke-muted bg-background px-3 py-2.5">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Fuel</span>
           <div className="flex items-center gap-1.5">
             <span className={`size-1.5 rounded-full ${fuelDot}`} />
             <span className={`text-sm font-semibold leading-none ${fuelText}`}>{fuelPct}%</span>
@@ -243,23 +243,23 @@ function VehicleCardContent({ v }: { v: Vehicle }) {
       {live && tripHref && (
         <Link
           href={tripHref}
-          className="mx-4 mb-4 flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-3 py-2.5 transition-colors hover:bg-green-100"
+          className="mx-4 mb-4 flex items-center justify-between rounded-panel border border-stroke-muted bg-surface-subtle px-3 py-2.5 transition-colors hover:bg-surface-strong"
         >
           <div className="flex items-center gap-2.5">
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-green-600 text-[11px] font-semibold text-white">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-semantic-success text-[11px] font-semibold text-background">
               {live.driver[0]}
             </div>
             <div className="flex flex-col">
-              <span className="text-xs font-semibold text-green-900">{live.driver} is driving</span>
-              <span className="text-[11px] text-green-700">{live.startedAgo}</span>
+              <span className="text-xs font-semibold text-semantic-success">{live.driver} is driving</span>
+              <span className="text-[11px] text-semantic-success">{live.startedAgo}</span>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="flex items-baseline gap-0.5">
-              <span className="text-lg font-bold tabular-nums text-green-900">{live.mph}</span>
-              <span className="text-[11px] text-green-700">mph</span>
+              <span className="text-lg font-bold tabular-nums text-semantic-success">{live.mph}</span>
+              <span className="text-[11px] text-semantic-success">mph</span>
             </div>
-            <svg className="size-3.5 text-green-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <svg className="size-3.5 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
           </div>
@@ -302,26 +302,26 @@ function FleetView({
     <div className="flex flex-col gap-4">
       {/* Dashboard header */}
       <div className="flex items-center justify-between px-5 pt-3">
-        <h1 className="text-2xl font-bold leading-none text-neutral-900">Miles</h1>
+        <h1 className="text-2xl font-bold leading-none text-text-primary">Miles</h1>
         {headerAction === "roadside" ? (
           <button
             type="button"
-            className="flex h-8 items-center gap-1.5 rounded-full border border-red-200 bg-white px-2.5 transition-colors hover:bg-red-50"
+            className="flex h-8 items-center gap-1.5 rounded-full border border-stroke-muted bg-surface-card px-2.5 transition-colors hover:bg-surface-subtle"
           >
-            <div className="flex size-6 items-center justify-center rounded-full bg-red-50">
-              <svg className="size-3.5 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <div className="flex size-6 items-center justify-center rounded-full bg-surface-subtle">
+              <svg className="size-3.5 text-semantic-danger" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
               </svg>
             </div>
-            <span className="text-xs font-semibold text-red-700">Roadside Assist</span>
+            <span className="text-xs font-semibold text-semantic-danger">Roadside Assist</span>
           </button>
         ) : (
           <Link
             href="/account"
-            className="flex items-center gap-2 rounded-full py-1 pl-3 pr-1 transition-colors hover:bg-neutral-100"
+            className="flex items-center gap-2 rounded-full py-1 pl-3 pr-1 transition-colors hover:bg-surface-strong"
           >
-            <span className="text-sm font-medium text-neutral-700">Chris M.</span>
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-600 text-xs font-semibold leading-none text-white">
+            <span className="text-sm font-medium text-text-secondary">Chris M.</span>
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-accent text-xs font-semibold leading-none text-brand-inverse">
               CM
             </div>
           </Link>
@@ -329,11 +329,11 @@ function FleetView({
       </div>
 
       {/* Fleet map — always shown, never changes */}
-      <div className="mx-5 overflow-hidden rounded-2xl border border-neutral-200">
+      <div className="mx-5 overflow-hidden rounded-card border border-stroke-muted">
         <div className="relative aspect-[3/2] w-full overflow-hidden">
           <MapView markers={allMarkers} interactive={false} />
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent px-4 pb-3 pt-6">
-            <span className="text-xs font-medium text-white/80">
+            <span className="text-xs font-medium text-background/80">
               {vehicles.length} vehicles · {hasLive ? "1 trip active" : "all parked"}
             </span>
           </div>
@@ -342,12 +342,12 @@ function FleetView({
 
       {/* Vehicles section header */}
       <div className="px-5">
-        <span className="text-xs font-semibold uppercase tracking-widest text-neutral-400">Vehicles</span>
+        <span className="text-xs font-semibold uppercase tracking-widest text-text-muted">Vehicles</span>
       </div>
 
       <div className="flex flex-col gap-3 px-5">
         {[...vehicles].sort((a, b) => (b.liveTrip ? 1 : 0) - (a.liveTrip ? 1 : 0)).map((v) => (
-          <div key={v.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+          <div key={v.id} className="overflow-hidden rounded-card border border-stroke-muted bg-surface-card">
             <VehicleCardContent v={v} />
           </div>
         ))}
@@ -360,14 +360,14 @@ function RecentTrips() {
   return (
     <div className="mx-5 flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
           Recent Trips
         </span>
-        <Link href="/trips" className="text-xs font-medium text-blue-600 hover:text-blue-700">
+        <Link href="/trips" className="text-xs font-medium text-semantic-info hover:text-semantic-info/80">
           See all
         </Link>
       </div>
-      <div className="flex flex-col divide-y divide-neutral-100 rounded-xl border border-neutral-200 bg-white">
+      <div className="flex flex-col divide-y divide-stroke-muted rounded-panel border border-stroke-muted bg-surface-card">
         {RECENT_TRIPS.map((t) => (
           <TripListItem
             key={t.id}
@@ -390,9 +390,9 @@ function AgentCoachingCard({
   onDismiss: () => void;
 }) {
   return (
-    <div className="flex w-full flex-col gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
+    <div className="flex w-full flex-col gap-3 rounded-panel border border-stroke-muted bg-surface-subtle p-4">
       <div className="flex flex-col gap-2">
-        <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-green-100">
+        <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-strong">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/miles-proto-2/miles-icon.svg"
@@ -400,21 +400,21 @@ function AgentCoachingCard({
             className="size-8 object-contain"
           />
         </div>
-        <p className="text-sm leading-relaxed text-green-800">
+        <p className="text-sm leading-relaxed text-text-secondary">
           {card.message}
         </p>
       </div>
       <div className="flex items-center gap-2">
         <Link
           href={card.actionHref}
-          className="flex h-8 items-center rounded-lg bg-green-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-green-700"
+          className="flex h-8 items-center rounded-control bg-semantic-success px-3.5 text-xs font-semibold text-background transition-opacity hover:opacity-90"
         >
           {card.actionLabel}
         </Link>
         <button
           type="button"
           onClick={onDismiss}
-          className="flex h-8 items-center rounded-lg px-3.5 text-xs font-semibold text-green-700 transition-colors hover:bg-green-100"
+          className="flex h-8 items-center rounded-control px-3.5 text-xs font-semibold text-semantic-success transition-colors hover:bg-surface-strong"
         >
           {card.dismissLabel}
         </button>
@@ -452,7 +452,7 @@ function AgentCoachingCarousel({
 
   return (
     <div className="mx-5 flex flex-col gap-2">
-      <span className="text-xs font-semibold uppercase tracking-widest text-neutral-400">
+      <span className="text-xs font-semibold uppercase tracking-widest text-text-muted">
         From Miles
       </span>
       <div
@@ -478,7 +478,7 @@ function AgentCoachingCarousel({
             onClick={() => goTo(i)}
             aria-label={`Go to card ${i + 1}`}
             className={`h-1.5 rounded-full transition-all duration-200 ${
-              i === activeIndex ? "w-4 bg-neutral-700" : "w-1.5 bg-neutral-300 hover:bg-neutral-400"
+              i === activeIndex ? "w-4 bg-foreground" : "w-1.5 bg-stroke-muted hover:bg-stroke-strong"
             }`}
           />
         ))}
@@ -494,14 +494,14 @@ function QuickActions({ showRoadsideAssist }: { showRoadsideAssist: boolean }) {
     <div className="mx-5 grid grid-cols-1 gap-3">
       <button
         type="button"
-        className="flex flex-col items-center gap-2 rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:bg-neutral-50"
+        className="flex flex-col items-center gap-2 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-background"
       >
-        <div className="flex size-10 items-center justify-center rounded-full bg-red-50">
-          <svg className="size-5 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <div className="flex size-10 items-center justify-center rounded-full bg-surface-subtle">
+          <svg className="size-5 text-semantic-danger" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
           </svg>
         </div>
-        <span className="text-xs font-semibold text-neutral-700">Roadside Assist</span>
+        <span className="text-xs font-semibold text-text-secondary">Roadside Assist</span>
       </button>
     </div>
   );
@@ -526,26 +526,26 @@ function LiveSpeed({ mph, maxMph }: { mph: number; maxMph: number }) {
   const displayMph = mph + protoOffsets[offsetIndex];
 
   return (
-    <div className="mx-5 flex items-start justify-between gap-3 rounded-xl bg-neutral-900 px-5 py-4">
+    <div className="mx-5 flex items-start justify-between gap-3 rounded-panel bg-foreground px-5 py-4">
       <div className="flex flex-col gap-2">
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-bold leading-none tabular-nums text-white">
+          <span className="text-4xl font-bold leading-none tabular-nums text-background">
             {displayMph}
           </span>
-          <span className="text-sm font-medium text-white/50">mph</span>
+          <span className="text-sm font-medium text-background/50">mph</span>
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-sm font-semibold tabular-nums text-white">{maxMph} mph</span>
-          <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">Trip max speed</span>
+          <span className="text-sm font-semibold tabular-nums text-background">{maxMph} mph</span>
+          <span className="text-[10px] font-medium uppercase tracking-wide text-background/40">Trip max speed</span>
         </div>
       </div>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-1.5 pt-1">
           <span className="relative flex size-2">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex size-2 rounded-full bg-green-500" />
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-semantic-success opacity-75" />
+            <span className="relative inline-flex size-2 rounded-full bg-semantic-success" />
           </span>
-          <span className="text-xs font-medium text-green-400">Live</span>
+          <span className="text-xs font-medium text-semantic-success">Live</span>
         </div>
       </div>
     </div>
@@ -554,27 +554,27 @@ function LiveSpeed({ mph, maxMph }: { mph: number; maxMph: number }) {
 
 function TripVehicleStatus({ vehicleLabel }: { vehicleLabel?: string }) {
   const STATUSES = [
-    { label: "Engine", value: "Good", dot: "bg-green-500", text: "text-green-700" },
-    { label: "Battery", value: "Fair", dot: "bg-amber-500", text: "text-amber-700" },
-    { label: "Fuel", value: "38%", dot: "bg-blue-500", text: "text-neutral-700" },
+    { label: "Engine", value: "Good", dot: "bg-semantic-success", text: "text-semantic-success" },
+    { label: "Battery", value: "Fair", dot: "bg-semantic-warning", text: "text-semantic-warning" },
+    { label: "Fuel", value: "38%", dot: "bg-semantic-info", text: "text-text-secondary" },
   ];
   return (
     <Link
       href={`/vehicle?from=dashboard&vehicle=rav4`}
-      className="mx-5 block rounded-xl border border-neutral-200 bg-white p-3 transition-colors hover:bg-neutral-50"
+      className="mx-5 block rounded-panel border border-stroke-muted bg-surface-card p-3 transition-colors hover:bg-background"
     >
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
           {vehicleLabel ?? "Vehicle"}
         </span>
-        <svg className="size-3.5 text-neutral-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <svg className="size-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
         </svg>
       </div>
       <div className="grid grid-cols-3 gap-2">
         {STATUSES.map((s) => (
-          <div key={s.label} className="flex flex-col gap-1 rounded-lg bg-neutral-50 px-2.5 py-2">
-            <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">{s.label}</span>
+          <div key={s.label} className="flex flex-col gap-1 rounded-control bg-background px-2.5 py-2">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">{s.label}</span>
             <div className="flex items-center gap-1.5">
               <span className={`size-1.5 rounded-full ${s.dot}`} />
               <span className={`text-xs font-semibold leading-none ${s.text}`}>{s.value}</span>
@@ -588,24 +588,24 @@ function TripVehicleStatus({ vehicleLabel }: { vehicleLabel?: string }) {
 
 function TripDriverCard({ driver }: { driver: string }) {
   const DRIVER_DATA: Record<string, { initials: string; color: string; score: number; relation: string }> = {
-    Jack:  { initials: "JM", color: "bg-blue-500",   score: 74, relation: "Child" },
-    Emma:  { initials: "EM", color: "bg-purple-500", score: 79, relation: "Spouse" },
-    Chris: { initials: "CM", color: "bg-green-600",  score: 82, relation: "You" },
+    Jack:  { initials: "JM", color: "bg-semantic-info", score: 74, relation: "Child" },
+    Emma:  { initials: "EM", color: "bg-brand-primary", score: 79, relation: "Spouse" },
+    Chris: { initials: "CM", color: "bg-semantic-success", score: 82, relation: "You" },
   };
-  const d = DRIVER_DATA[driver] ?? { initials: driver.slice(0, 2).toUpperCase(), color: "bg-neutral-400", score: "--", relation: "Driver" };
+  const d = DRIVER_DATA[driver] ?? { initials: driver.slice(0, 2).toUpperCase(), color: "bg-stroke-strong", score: "--", relation: "Driver" };
   return (
     <Link
       href="/drivers"
-      className="mx-5 flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 transition-colors hover:bg-neutral-50"
+      className="mx-5 flex items-center gap-3 rounded-panel border border-stroke-muted bg-surface-card p-3.5 transition-colors hover:bg-background"
     >
-      <div className={`flex size-9 shrink-0 items-center justify-center rounded-full ${d.color} text-xs font-semibold text-white`}>
+      <div className={`flex size-9 shrink-0 items-center justify-center rounded-full ${d.color} text-xs font-semibold text-brand-inverse`}>
         {d.initials}
       </div>
       <div className="flex flex-1 flex-col gap-0.5">
-        <span className="text-sm font-semibold leading-none text-neutral-900">{driver}</span>
-        <span className="text-xs text-neutral-400">{d.relation} · Miles Score {d.score}</span>
+        <span className="text-sm font-semibold leading-none text-text-primary">{driver}</span>
+        <span className="text-xs text-text-muted">{d.relation} · Miles Score {d.score}</span>
       </div>
-      <svg className="size-4 shrink-0 text-neutral-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <svg className="size-4 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
       </svg>
     </Link>
@@ -626,17 +626,17 @@ function TripInProgress({
     <div className="flex flex-col gap-4 pt-3">
       {/* Modal header — Trip active left, close right */}
       <div className="flex items-center justify-between px-5 pt-2">
-        <span className="flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700">
+        <span className="flex items-center gap-1.5 rounded-full bg-surface-strong px-3 py-1.5 text-xs font-semibold text-semantic-success">
           <span className="relative flex size-2">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-500 opacity-75" />
-            <span className="relative inline-flex size-2 rounded-full bg-green-600" />
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-semantic-success opacity-75" />
+            <span className="relative inline-flex size-2 rounded-full bg-semantic-success" />
           </span>
           Trip active
         </span>
         {fromAgent && (
           <Link
             href="/miles?context=kid-trip"
-            className="inline-flex size-8 items-center justify-center rounded-full bg-black/10 text-neutral-600 transition-colors hover:bg-black/15"
+            className="inline-flex size-8 items-center justify-center rounded-full bg-black/10 text-text-secondary transition-colors hover:bg-black/15"
             aria-label="Close"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
@@ -647,7 +647,7 @@ function TripInProgress({
       </div>
 
       {/* Live Map */}
-      <div className="relative mx-5 overflow-hidden rounded-xl">
+      <div className="relative mx-5 overflow-hidden rounded-panel">
         <div className="aspect-[4/3] w-full">
           <MapView
             route={LIVE_ROUTE}
@@ -662,11 +662,11 @@ function TripInProgress({
         </div>
         {/* Trip stats overlay */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8">
-          <div className="flex items-center gap-4 text-white/80">
+          <div className="flex items-center gap-4 text-background/80">
             <span className="text-xs font-medium">4.2 mi</span>
-            <span className="text-white/40">&middot;</span>
+            <span className="text-background/40">&middot;</span>
             <span className="text-xs font-medium">12 min</span>
-            <span className="text-white/40">&middot;</span>
+            <span className="text-background/40">&middot;</span>
             <span className="text-xs font-medium">Preston Rd & Belt Line &rarr; ...</span>
           </div>
         </div>
@@ -700,16 +700,16 @@ function TripComplete({
     <div className="flex flex-col gap-4 pt-3">
       {/* Header */}
       <div className="flex flex-col gap-0.5 px-5">
-        <h1 className="text-lg font-semibold leading-snug text-neutral-900">
+        <h1 className="text-lg font-semibold leading-snug text-text-primary">
           {vehicle.name}
         </h1>
-        <span className="text-xs text-neutral-500">Trip complete</span>
+        <span className="text-xs text-text-secondary">Trip complete</span>
       </div>
 
       {/* Trip summary card */}
-      <div className="mx-5 flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="mx-5 flex flex-col gap-4 rounded-panel border border-stroke-muted bg-surface-card p-4">
         {/* Map thumbnail */}
-        <div className="relative aspect-[2/1] w-full overflow-hidden rounded-lg">
+        <div className="relative aspect-[2/1] w-full overflow-hidden rounded-control">
           <MapView
             route={LIVE_ROUTE}
             markers={[
@@ -723,41 +723,41 @@ function TripComplete({
 
         {/* Route name */}
         <div className="flex flex-col gap-1">
-          <span className="text-base font-semibold text-neutral-900">
+          <span className="text-base font-semibold text-text-primary">
             {s.from} &rarr; {s.to}
           </span>
-          <span className="text-xs text-neutral-500">{s.time}</span>
+          <span className="text-xs text-text-secondary">{s.time}</span>
         </div>
 
         {/* Stats row */}
         <div className="grid grid-cols-4 gap-3">
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] uppercase tracking-wide text-neutral-400">Distance</span>
-            <span className="text-sm font-semibold tabular-nums text-neutral-900">{s.distance}</span>
+            <span className="text-[11px] uppercase tracking-wide text-text-muted">Distance</span>
+            <span className="text-sm font-semibold tabular-nums text-text-primary">{s.distance}</span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] uppercase tracking-wide text-neutral-400">Duration</span>
-            <span className="text-sm font-semibold tabular-nums text-neutral-900">{s.duration}</span>
+            <span className="text-[11px] uppercase tracking-wide text-text-muted">Duration</span>
+            <span className="text-sm font-semibold tabular-nums text-text-primary">{s.duration}</span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] uppercase tracking-wide text-neutral-400">Score</span>
-            <span className="text-sm font-semibold tabular-nums text-neutral-900">{s.score}</span>
+            <span className="text-[11px] uppercase tracking-wide text-text-muted">Score</span>
+            <span className="text-sm font-semibold tabular-nums text-text-primary">{s.score}</span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] uppercase tracking-wide text-neutral-400">Events</span>
-            <span className="text-sm font-semibold tabular-nums text-neutral-900">{s.events}</span>
+            <span className="text-[11px] uppercase tracking-wide text-text-muted">Events</span>
+            <span className="text-sm font-semibold tabular-nums text-text-primary">{s.events}</span>
           </div>
         </div>
 
         {/* Driver */}
-        <div className="flex items-center gap-2 border-t border-neutral-100 pt-3">
-          <div className="flex size-7 items-center justify-center rounded-full bg-neutral-100">
-            <svg className="size-3.5 text-neutral-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <div className="flex items-center gap-2 border-t border-stroke-muted pt-3">
+          <div className="flex size-7 items-center justify-center rounded-full bg-surface-strong">
+            <svg className="size-3.5 text-text-secondary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
             </svg>
           </div>
-          <span className="text-sm text-neutral-600">{s.driver}</span>
-          <button type="button" className="ml-auto text-xs font-medium text-blue-600 hover:text-blue-700">
+          <span className="text-sm text-text-secondary">{s.driver}</span>
+          <button type="button" className="ml-auto text-xs font-medium text-semantic-info hover:text-semantic-info/80">
             Not {s.driver}?
           </button>
         </div>
@@ -765,35 +765,35 @@ function TripComplete({
         {/* CTA */}
         <Link
           href="/trip-detail"
-          className="flex h-10 items-center justify-center rounded-lg bg-neutral-900 text-sm font-semibold text-white transition-colors hover:bg-neutral-700"
+          className="flex h-10 items-center justify-center rounded-control bg-foreground text-sm font-semibold text-background transition-colors hover:bg-foreground/85"
         >
           View trip detail
         </Link>
       </div>
 
       {/* Post-trip coaching opportunity */}
-      <div className="mx-5 flex flex-col gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
+      <div className="mx-5 flex flex-col gap-3 rounded-panel border border-stroke-muted bg-surface-subtle p-4">
         <div className="flex items-start gap-3">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-100">
-            <svg className="size-4 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-strong">
+            <svg className="size-4 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
             </svg>
           </div>
-          <p className="flex-1 text-sm leading-relaxed text-green-800">
+          <p className="flex-1 text-sm leading-relaxed text-text-secondary">
             One hard braking event on Preston Rd. Leaving a little more following distance can help — want tips?
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Link
             href="/miles?context=coaching-braking"
-            className="flex h-8 items-center rounded-lg bg-green-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-green-700"
+            className="flex h-8 items-center rounded-control bg-semantic-success px-3.5 text-xs font-semibold text-background transition-opacity hover:opacity-90"
           >
             Show me
           </Link>
           <button
             type="button"
             onClick={onReturn}
-            className="flex h-8 items-center rounded-lg px-3.5 text-xs font-semibold text-green-600 transition-colors hover:bg-green-100"
+            className="flex h-8 items-center rounded-control px-3.5 text-xs font-semibold text-semantic-success transition-colors hover:bg-surface-strong"
           >
             Done
           </button>
@@ -804,7 +804,7 @@ function TripComplete({
       <button
         type="button"
         onClick={onReturn}
-        className="mx-5 flex h-10 items-center justify-center rounded-lg border border-neutral-200 bg-white text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50"
+        className="mx-5 flex h-10 items-center justify-center rounded-control border border-stroke-muted bg-surface-card text-sm font-medium text-text-secondary transition-colors hover:bg-background"
       >
         Back to dashboard
       </button>
@@ -868,7 +868,7 @@ function DashboardContent() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col bg-neutral-50 pb-24">
+    <main className="flex min-h-dvh flex-col bg-background pb-24">
       {mode === "trip" || vehicleLabelParam ? (
         <TripInProgress
           vehicle={vehicle}
@@ -893,13 +893,13 @@ function DashboardContent() {
       )}
 
       {/* Proto state toggle */}
-      <div className="mx-5 mt-6 flex flex-col items-center gap-3 border-t border-neutral-200 pt-4">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-300">
+      <div className="mx-5 mt-6 flex flex-col items-center gap-3 border-t border-stroke-muted pt-4">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted">
           Proto controls
         </span>
         <Link
           href={p("/hub")}
-          className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-50"
+          className="rounded-full border border-stroke-muted bg-surface-card px-3 py-1.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-background"
         >
           Design system hub
         </Link>
@@ -911,8 +911,8 @@ function DashboardContent() {
               onClick={() => setMode(m)}
               className={`rounded-full px-3 py-1.5 text-[11px] font-medium capitalize transition-colors ${
                 mode === m
-                  ? "bg-neutral-200 text-neutral-700"
-                  : "text-neutral-400 hover:text-neutral-600"
+                  ? "bg-surface-strong text-text-secondary"
+                  : "text-text-muted hover:text-text-secondary"
               }`}
             >
               {m === "complete" ? "trip complete" : m}
@@ -920,7 +920,7 @@ function DashboardContent() {
           ))}
         </div>
         <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-300">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted">
             Header action
           </span>
           <div className="flex items-center gap-1.5">
@@ -931,8 +931,8 @@ function DashboardContent() {
                 onClick={() => setHeaderAction(action)}
                 className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
                   headerAction === action
-                    ? "bg-neutral-200 text-neutral-700"
-                    : "text-neutral-400 hover:text-neutral-600"
+                    ? "bg-surface-strong text-text-secondary"
+                    : "text-text-muted hover:text-text-secondary"
                 }`}
               >
                 {action === "profile" ? "profile" : "roadside assist"}
@@ -941,7 +941,7 @@ function DashboardContent() {
           </div>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-300">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted">
             Footer tabs
           </span>
           <div className="flex items-center gap-1.5">
@@ -950,8 +950,8 @@ function DashboardContent() {
               onClick={() => setNavMode("full")}
               className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
                 footerNavMode === "full"
-                  ? "bg-neutral-200 text-neutral-700"
-                  : "text-neutral-400 hover:text-neutral-600"
+                  ? "bg-surface-strong text-text-secondary"
+                  : "text-text-muted hover:text-text-secondary"
               }`}
             >
               5 tabs
@@ -961,8 +961,8 @@ function DashboardContent() {
               onClick={() => setNavMode("compact")}
               className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
                 footerNavMode === "compact"
-                  ? "bg-neutral-200 text-neutral-700"
-                  : "text-neutral-400 hover:text-neutral-600"
+                  ? "bg-surface-strong text-text-secondary"
+                  : "text-text-muted hover:text-text-secondary"
               }`}
             >
               4 tabs (hide profile)

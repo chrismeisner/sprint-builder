@@ -6,6 +6,7 @@ import dynamicImport from "next/dynamic";
 import Typography from "@/components/ui/Typography";
 
 const DeleteSprintButton = dynamicImport(() => import("../DeleteSprintButton"), { ssr: false });
+const AdminSprintStatusDropdown = dynamicImport(() => import("@/app/components/AdminSprintStatusDropdown"), { ssr: false });
 const SprintShareLink = dynamicImport(() => import("../SprintShareLink"), { ssr: false });
 const ProjectDocuments = dynamicImport(() => import("../ProjectDocuments"), { ssr: false });
 const ProjectDemos = dynamicImport(() => import("../ProjectDemos"), { ssr: false });
@@ -263,9 +264,17 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                         )}
                       </td>
                       <td className="px-4 py-2">
-                        <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs">
-                          {s.status || "draft"}
-                        </span>
+                        {isAdmin ? (
+                          <AdminSprintStatusDropdown
+                            sprintId={s.id}
+                            currentStatus={s.status || "draft"}
+                            compact
+                          />
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs">
+                            {s.status || "draft"}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-2 tabular-nums text-neutral-600 dark:text-neutral-400">
                         {s.total_fixed_price != null ? `$${Number(s.total_fixed_price).toLocaleString()}` : "—"}
@@ -278,7 +287,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                       </td>
                       {isAdmin && (
                         <td className="px-4 py-2">
-                          <DeleteSprintButton sprintId={s.id} />
+                          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
+                            <DeleteSprintButton sprintId={s.id} />
+                          </div>
                         </td>
                       )}
                     </tr>

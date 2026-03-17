@@ -1,6 +1,8 @@
 {
   "tokenSetOrder": [
     "primitives",
+    "typography",
+    "state",
     "semantic-light",
     "semantic-dark",
     "sizing"

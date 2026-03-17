@@ -1,0 +1,15 @@
+{
+  "name": "Miles Hub Bootstrap (MVP)",
+  "id": "miles-hub-bootstrap-mvp-local",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "reasoning": "This development plugin fetches local token and typography JSON from a local Next.js app to bootstrap Figma variables and text styles.",
+    "allowedDomains": [
+      "http://localhost:3000/",
+      "https://localhost:3000/"
+    ]
+  }
+}

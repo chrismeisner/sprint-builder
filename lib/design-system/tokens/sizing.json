@@ -26,9 +26,35 @@
     "xl":      { "$value": "12px",   "$type": "dimension" },
     "2xl":     { "$value": "16px",   "$type": "dimension" },
     "3xl":     { "$value": "24px",   "$type": "dimension" },
-    "card":    { "$value": "24px",   "$type": "dimension" },
+    "control": { "$value": "8px",    "$type": "dimension" },
+    "panel":   { "$value": "12px",   "$type": "dimension" },
+    "card":    { "$value": "16px",   "$type": "dimension" },
     "pill":    { "$value": "9999px", "$type": "dimension" },
     "full":    { "$value": "9999px", "$type": "dimension" }
+  },
+  "borderWidth": {
+    "none":     { "$value": "0px", "$type": "dimension" },
+    "hairline": { "$value": "1px", "$type": "dimension" },
+    "sm":       { "$value": "1px", "$type": "dimension" },
+    "md":       { "$value": "2px", "$type": "dimension" },
+    "lg":       { "$value": "4px", "$type": "dimension" }
+  },
+  "opacity": {
+    "0": { "$value": 0, "$type": "number" },
+    "10": { "$value": 0.1, "$type": "number" },
+    "20": { "$value": 0.2, "$type": "number" },
+    "30": { "$value": 0.3, "$type": "number" },
+    "40": { "$value": 0.4, "$type": "number" },
+    "50": { "$value": 0.5, "$type": "number" },
+    "60": { "$value": 0.6, "$type": "number" },
+    "70": { "$value": 0.7, "$type": "number" },
+    "80": { "$value": 0.8, "$type": "number" },
+    "90": { "$value": 0.9, "$type": "number" },
+    "100": { "$value": 1, "$type": "number" },
+    "disabled": { "$value": 0.5, "$type": "number" },
+    "subtle": { "$value": 0.8, "$type": "number" },
+    "muted": { "$value": 0.6, "$type": "number" },
+    "overlay": { "$value": 0.4, "$type": "number" }
   },
   "boxShadow": {
     "card": { "$value": "0 24px 70px rgba(0,0,0,0.08)", "$type": "shadow" }

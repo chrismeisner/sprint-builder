@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import AdminSprintStatusDropdown from "@/app/components/AdminSprintStatusDropdown";
 
 type SprintDraft = {
   id: string;
@@ -60,17 +61,6 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
     in_progress: sprintDrafts.filter((s) => s.status === "in_progress").length,
     complete: sprintDrafts.filter((s) => s.status === "complete").length,
   };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
-      scheduled: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-      in_progress: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-      complete: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-    };
-    return colors[status] || colors.draft;
-  };
-
 
   return (
     <div className="space-y-6">
@@ -170,9 +160,11 @@ export default function SprintDraftsClient({ sprintDrafts }: Props) {
                       <div className="text-xs opacity-60">{sprint.email || <span className="opacity-50">—</span>}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getStatusColor(sprint.status)}`}>
-                        {sprint.status.replace("_", " ")}
-                      </span>
+                      <AdminSprintStatusDropdown
+                        sprintId={sprint.id}
+                        currentStatus={sprint.status}
+                        compact
+                      />
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="font-semibold">{sprint.deliverableCount}</div>

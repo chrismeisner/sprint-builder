@@ -1,0 +1,42 @@
+{
+  "fontFamilies": {
+    "inter": { "$value": "Inter", "$type": "string" },
+    "inter-tight": { "$value": "Inter Tight", "$type": "string" },
+    "system": { "$value": "system-ui", "$type": "string" }
+  },
+  "fontWeights": {
+    "light": { "$value": 300, "$type": "number" },
+    "regular": { "$value": 400, "$type": "number" },
+    "medium": { "$value": 500, "$type": "number" },
+    "semibold": { "$value": 600, "$type": "number" },
+    "bold": { "$value": 700, "$type": "number" },
+    "black": { "$value": 900, "$type": "number" }
+  },
+  "fontSizes": {
+    "xs": { "$value": "12px", "$type": "dimension" },
+    "sm": { "$value": "14px", "$type": "dimension" },
+    "base": { "$value": "16px", "$type": "dimension" },
+    "lg": { "$value": "18px", "$type": "dimension" },
+    "xl": { "$value": "20px", "$type": "dimension" },
+    "2xl": { "$value": "24px", "$type": "dimension" },
+    "3xl": { "$value": "32px", "$type": "dimension" },
+    "display": { "$value": "48px", "$type": "dimension" },
+    "hero": { "$value": "80px", "$type": "dimension" }
+  },
+  "lineHeights": {
+    "tight": { "$value": "16px", "$type": "dimension" },
+    "snug": { "$value": "18px", "$type": "dimension" },
+    "normal": { "$value": "20px", "$type": "dimension" },
+    "relaxed": { "$value": "24px", "$type": "dimension" },
+    "comfortable": { "$value": "26px", "$type": "dimension" },
+    "display": { "$value": "53px", "$type": "dimension" },
+    "hero": { "$value": "85px", "$type": "dimension" }
+  },
+  "letterSpacings": {
+    "tight": { "$value": "-2%", "$type": "string" },
+    "normal": { "$value": "0%", "$type": "string" },
+    "wide": { "$value": "1%", "$type": "string" },
+    "ui": { "$value": "2%", "$type": "string" },
+    "caps": { "$value": "8%", "$type": "string" }
+  }
+}

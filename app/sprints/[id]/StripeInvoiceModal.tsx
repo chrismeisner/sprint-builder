@@ -212,7 +212,7 @@ export default function StripeInvoiceModal({
     : clientEmail
       ? [{ email: clientEmail, name: null }]
       : [];
-  const defaultStripeEmail = clientEmail ?? stripeEmailOptions[0]?.email ?? null;
+  const defaultStripeEmail = initialInvoice.stripe_recipient_email ?? clientEmail ?? stripeEmailOptions[0]?.email ?? null;
   const [selectedStripeEmail, setSelectedStripeEmail] = useState<string | null>(defaultStripeEmail);
 
   // Due date — defaults to 14 days from today
@@ -299,7 +299,7 @@ export default function StripeInvoiceModal({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "send", ccAdmin, ccClientEmails }),
+          body: JSON.stringify({ action: "send", ccAdmin, ccClientEmails, recipientEmail: selectedStripeEmail }),
         }
       );
       const data = await res.json() as { invoice?: SprintInvoice; error?: string };
@@ -482,11 +482,12 @@ export default function StripeInvoiceModal({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                {stripeEmailOptions.length > 1 && step === "idle" ? (
+                {stripeEmailOptions.length > 0 && step !== "sent" ? (
                   <div className="flex items-center gap-2 flex-wrap">
                     <select
                       value={selectedStripeEmail ?? ""}
                       onChange={(e) => setSelectedStripeEmail(e.target.value || null)}
+                      disabled={sending}
                       className={`${getTypographyClassName("body-sm")} font-medium text-text-primary bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded px-2 py-0.5 pr-6 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 truncate max-w-full`}
                     >
                       {stripeEmailOptions.map((m) => (
@@ -507,7 +508,10 @@ export default function StripeInvoiceModal({
                     <RoleBadge role="client" />
                   </div>
                 )}
-                <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>Stripe invoice email — always sent</p>
+                <p className={`${getTypographyClassName("body-sm")} text-text-muted text-[11px] mt-0.5`}>
+                  Stripe invoice email — always sent
+                  {step === "generated" ? " (applies on send)" : ""}
+                </p>
               </div>
             </div>
 

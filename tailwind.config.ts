@@ -86,7 +86,9 @@ const config: Config = {
         gutter: "1.5rem",
       },
       borderRadius: {
-        card: "1.5rem",
+        control: "0.5rem",
+        panel: "0.75rem",
+        card: "1rem",
         pill: "9999px",
       },
       boxShadow: {

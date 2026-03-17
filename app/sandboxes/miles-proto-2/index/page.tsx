@@ -70,6 +70,13 @@ const scenarios: Scenario[] = [
 ];
 
 const sections: Section[] = [
+  /* ── Design system ── */
+  {
+    title: "Design system",
+    pages: [
+      { href: "/hub", label: "Design system hub", note: "tokens, typography, component inventory" },
+    ],
+  },
   /* ── Faux Home Screen ── */
   {
     title: "Home Screen & Notifications",
@@ -570,6 +577,13 @@ export default function IndexPage() {
               className="h-8 w-full rounded-md border border-neutral-200 bg-neutral-50 pl-8 pr-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-shadow focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
+
+          <a
+            href={`${BASE}/hub`}
+            className="shrink-0 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-900"
+          >
+            Design hub
+          </a>
 
           <a
             href={BASE}

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "heroku-postbuild": "next build"
+    "heroku-postbuild": "next build",
+    "tokens:figma": "node lib/design-system/build-figma-tokens.mjs"
   },
   "engines": {
     "node": "18.x"

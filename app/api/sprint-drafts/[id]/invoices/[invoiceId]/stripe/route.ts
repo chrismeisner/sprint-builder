@@ -87,7 +87,7 @@ export async function POST(request: Request, { params }: Params) {
     // Fetch the sprint invoice
     const invRes = await pool.query(
       `SELECT si.id, si.sprint_id, si.label, si.amount, si.stripe_invoice_id,
-              si.invoice_status, si.invoice_url
+              si.invoice_status, si.invoice_url, si.stripe_recipient_email
        FROM sprint_invoices si
        WHERE si.id = $1 AND si.sprint_id = $2`,
       [params.invoiceId, params.id]
@@ -104,6 +104,7 @@ export async function POST(request: Request, { params }: Params) {
       stripe_invoice_id: string | null;
       invoice_status: string;
       invoice_url: string | null;
+      stripe_recipient_email: string | null;
     };
 
     // -------------------------------------------------------------------------
@@ -267,7 +268,139 @@ export async function POST(request: Request, { params }: Params) {
       }
 
       const stripe = getStripe();
-      await stripe.invoices.sendInvoice(inv.stripe_invoice_id);
+      let stripeInvoiceIdForSend = inv.stripe_invoice_id;
+      let invoiceUrlForEmails = inv.invoice_url ?? "";
+      let recipientEmailForRecord: string | null = inv.stripe_recipient_email ?? null;
+
+      // Allow changing the "always sent" Stripe recipient right before send.
+      // If the selected email differs from the generated draft recipient, we
+      // regenerate the Stripe invoice under the selected account, then send it.
+      if (
+        recipientEmail &&
+        (!inv.invoice_status || !["sent", "paid", "processing", "refunded"].includes(inv.invoice_status))
+      ) {
+        const normalizedSelected = recipientEmail.toLowerCase();
+        const normalizedStored = (inv.stripe_recipient_email ?? "").toLowerCase();
+
+        if (normalizedSelected !== normalizedStored) {
+          // Resolve sprint context for fallback account + description
+          const sprintRes = await pool.query(
+            `SELECT sd.id, sd.title,
+                    COALESCE(p.account_id, d.account_id) AS client_account_id
+             FROM sprint_drafts sd
+             LEFT JOIN projects p ON sd.project_id = p.id
+             LEFT JOIN documents d ON sd.document_id = d.id
+             WHERE sd.id = $1`,
+            [params.id]
+          );
+          if ((sprintRes.rowCount ?? 0) === 0) {
+            return NextResponse.json({ error: "Sprint not found" }, { status: 404 });
+          }
+          const sprint = sprintRes.rows[0] as {
+            id: string;
+            title: string | null;
+            client_account_id: string | null;
+          };
+
+          // Lookup selected recipient account first, then fallback to sprint client
+          let billingAccountId: string | null = sprint.client_account_id;
+          const emailRes = await pool.query(
+            `SELECT id FROM accounts WHERE lower(email) = lower($1) LIMIT 1`,
+            [recipientEmail]
+          );
+          if ((emailRes.rowCount ?? 0) > 0) {
+            billingAccountId = (emailRes.rows[0] as { id: string }).id;
+          }
+          if (!billingAccountId) {
+            return NextResponse.json(
+              { error: "No client account is linked to this recipient — cannot send invoice" },
+              { status: 400 }
+            );
+          }
+
+          const billingEmailRes = await pool.query(
+            `SELECT email FROM accounts WHERE id = $1`,
+            [billingAccountId]
+          );
+          const resolvedRecipientEmail: string | null =
+            (billingEmailRes.rows[0] as { email: string } | undefined)?.email ?? null;
+          if (!resolvedRecipientEmail) {
+            return NextResponse.json(
+              { error: "Selected recipient account has no email address" },
+              { status: 400 }
+            );
+          }
+
+          // Read current Stripe invoice settings so the regenerated invoice keeps
+          // the same due date + payment method availability.
+          const currentStripeInvoice = await stripe.invoices.retrieve(inv.stripe_invoice_id);
+          const dueDateSec =
+            currentStripeInvoice.due_date ?? Math.floor((Date.now() + 14 * 86400 * 1000) / 1000);
+          const paymentMethodTypes =
+            currentStripeInvoice.payment_settings?.payment_method_types?.length
+              ? currentStripeInvoice.payment_settings.payment_method_types
+              : ["us_bank_account"];
+
+          if (!inv.amount || inv.amount <= 0) {
+            return NextResponse.json(
+              { error: "Invoice must have a positive amount before sending" },
+              { status: 400 }
+            );
+          }
+
+          const stripeCustomerId = await getOrCreateStripeCustomer(pool, billingAccountId);
+          const amountCents = Math.round(inv.amount * 100);
+          const description = [sprint.title, inv.label].filter(Boolean).join(" — ");
+
+          const replacementStripeInvoice = await stripe.invoices.create({
+            customer: stripeCustomerId,
+            collection_method: "send_invoice",
+            due_date: dueDateSec,
+            payment_settings: {
+              payment_method_types: paymentMethodTypes,
+            },
+            metadata: {
+              sprint_id: params.id,
+              invoice_id: params.invoiceId,
+            },
+          });
+
+          await stripe.invoiceItems.create({
+            customer: stripeCustomerId,
+            invoice: replacementStripeInvoice.id,
+            amount: amountCents,
+            currency: "usd",
+            description,
+          });
+
+          const finalizedReplacement = await stripe.invoices.finalizeInvoice(replacementStripeInvoice.id, {
+            auto_advance: false,
+          });
+
+          // Best-effort void old draft/finalized invoice so only one remains active.
+          try {
+            await stripe.invoices.voidInvoice(inv.stripe_invoice_id);
+          } catch (err) {
+            console.warn("[Send action] Previous Stripe invoice void failed:", err);
+          }
+
+          stripeInvoiceIdForSend = finalizedReplacement.id;
+          invoiceUrlForEmails = finalizedReplacement.hosted_invoice_url ?? invoiceUrlForEmails;
+          recipientEmailForRecord = resolvedRecipientEmail;
+
+          await pool.query(
+            `UPDATE sprint_invoices
+             SET stripe_invoice_id      = $1,
+                 invoice_url            = $2,
+                 stripe_recipient_email = $3,
+                 updated_at             = now()
+             WHERE id = $4`,
+            [stripeInvoiceIdForSend, invoiceUrlForEmails, recipientEmailForRecord, params.invoiceId]
+          );
+        }
+      }
+
+      await stripe.invoices.sendInvoice(stripeInvoiceIdForSend);
 
       await pool.query(
         `UPDATE sprint_invoices
@@ -287,7 +420,7 @@ export async function POST(request: Request, { params }: Params) {
           invoice_id: inv.id,
           label: inv.label,
           amount: inv.amount,
-          stripe_invoice_id: inv.stripe_invoice_id,
+          stripe_invoice_id: stripeInvoiceIdForSend,
         }
       );
 
@@ -316,7 +449,7 @@ export async function POST(request: Request, { params }: Params) {
           const emailContent = generateInvoiceSentAdminEmail({
             invoiceLabel: inv.label,
             invoiceAmount: inv.amount ?? 0,
-            hostedUrl: inv.invoice_url ?? "",
+            hostedUrl: invoiceUrlForEmails,
             adminName,
             clientEmail: clientEmailSummary,
             sprintTitle: sharedSprintTitle,
@@ -364,7 +497,7 @@ export async function POST(request: Request, { params }: Params) {
             const emailContent = generateInvoiceClientEmail({
               invoiceLabel: inv.label,
               invoiceAmount: inv.amount ?? 0,
-              hostedUrl: inv.invoice_url ?? "",
+              hostedUrl: invoiceUrlForEmails,
               clientName,
               sprintTitle: sharedSprintTitle,
               sprintUrl,
