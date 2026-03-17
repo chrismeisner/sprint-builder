@@ -6,7 +6,9 @@ import fs from "fs";
 import path from "path";
 
 type TokenValue = { $value?: string; $type?: string };
-type TokenNode = Record<string, TokenValue | TokenNode>;
+interface TokenNode {
+  [key: string]: TokenValue | TokenNode;
+}
 
 function flattenTokens(
   node: TokenNode,
