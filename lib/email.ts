@@ -21,6 +21,7 @@ export async function sendEmail(params: SendEmailParams): Promise<{
     const mailgunDomain = process.env.MAILGUN_DOMAIN;
     const mailgunFromEmail = process.env.MAILGUN_FROM_EMAIL || `no-reply@${mailgunDomain || "example.com"}`;
     const mailgunFromName = process.env.MAILGUN_FROM_NAME || "Meisner Design";
+    const mailgunReplyTo = process.env.MAILGUN_REPLY_TO;
     const mailgunFrom = mailgunFromName
       ? `${mailgunFromName} <${mailgunFromEmail}>`
       : mailgunFromEmail;
@@ -45,8 +46,9 @@ export async function sendEmail(params: SendEmailParams): Promise<{
     if (params.html) {
       requestParams.html = params.html;
     }
-    if (params.replyTo) {
-      requestParams["h:Reply-To"] = params.replyTo;
+    const replyTo = params.replyTo || mailgunReplyTo;
+    if (replyTo) {
+      requestParams["h:Reply-To"] = replyTo;
     }
     if (params.cc) {
       requestParams.cc = params.cc;

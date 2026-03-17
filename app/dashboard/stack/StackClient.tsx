@@ -80,7 +80,7 @@ const stackSections: Array<{
         name: "Mailgun",
         summary: "All outbound email (magic links, sprint notifications) goes through Mailgun using helpers in `lib/email.ts` and `/dashboard/email-test`.",
         files: ["lib/email.ts", "app/api/admin/email-test/route.ts", "app/dashboard/email-test/*"],
-        env: ["MAILGUN_API_KEY", "MAILGUN_DOMAIN", "MAILGUN_FROM_EMAIL"],
+        env: ["MAILGUN_API_KEY", "MAILGUN_DOMAIN", "MAILGUN_FROM_EMAIL", "MAILGUN_REPLY_TO"],
         statusKey: "mailgun",
         docs: "https://www.mailgun.com/",
       },

@@ -289,6 +289,7 @@ export default function EmailTestClient() {
               <li><code>MAILGUN_API_KEY</code> - Your Mailgun API key</li>
               <li><code>MAILGUN_DOMAIN</code> - Your Mailgun sending domain (e.g. mg.yourdomain.com)</li>
               <li><code>MAILGUN_FROM_EMAIL</code> - From email address (optional, defaults to no-reply@MAILGUN_DOMAIN)</li>
+              <li><code>MAILGUN_REPLY_TO</code> - Reply-to address (optional, e.g. chris@meisner.design)</li>
             </ul>
           </div>
 

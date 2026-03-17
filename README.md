@@ -13,6 +13,7 @@ TYPEFORM_WEBHOOK_SECRET=changeme
 MAILGUN_API_KEY=your-mailgun-api-key
 MAILGUN_DOMAIN=mg.yourdomain.com
 MAILGUN_FROM_EMAIL=no-reply@mg.yourdomain.com
+MAILGUN_REPLY_TO=chris@meisner.design
 
 # Google Cloud Storage (for image uploads)
 GCS_PROJECT_ID=your-gcs-project-id
@@ -39,6 +40,7 @@ Optional variables:
 - `MAILGUN_API_KEY` — Mailgun API key for sending emails (sprint notifications, magic links)
 - `MAILGUN_DOMAIN` — Mailgun sending domain (e.g. mg.yourdomain.com)
 - `MAILGUN_FROM_EMAIL` — From address for emails (defaults to no-reply@MAILGUN_DOMAIN)
+- `MAILGUN_REPLY_TO` — Reply-To address for outbound email (e.g. your admin inbox)
 - `BASE_URL` — Base URL for email links (auto-detected if not set, e.g. https://yourdomain.com)
 - `GCS_PROJECT_ID` — Google Cloud project ID (for image uploads)
 - `GCS_BUCKET_NAME` — Google Cloud Storage bucket name
