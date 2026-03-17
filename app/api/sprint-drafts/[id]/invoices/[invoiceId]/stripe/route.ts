@@ -336,10 +336,10 @@ export async function POST(request: Request, { params }: Params) {
           const currentStripeInvoice = await stripe.invoices.retrieve(inv.stripe_invoice_id);
           const dueDateSec =
             currentStripeInvoice.due_date ?? Math.floor((Date.now() + 14 * 86400 * 1000) / 1000);
-          const paymentMethodTypes =
-            currentStripeInvoice.payment_settings?.payment_method_types?.length
-              ? currentStripeInvoice.payment_settings.payment_method_types
-              : ["us_bank_account"];
+          const allowsCard =
+            currentStripeInvoice.payment_settings?.payment_method_types?.includes("card") ?? false;
+          const paymentMethodTypes: import("stripe").Stripe.InvoiceCreateParams.PaymentSettings.PaymentMethodType[] =
+            allowsCard ? ["us_bank_account", "card"] : ["us_bank_account"];
 
           if (!inv.amount || inv.amount <= 0) {
             return NextResponse.json(
