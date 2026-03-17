@@ -149,7 +149,7 @@ async function handleEvent(event: import("stripe").Stripe.Event, origin: string)
 
 /** Resolve Stripe ID we can use to match sprint_invoices: prefer invoice id when this PaymentIntent is for an invoice. */
 function paymentIntentToInvoiceStripeId(pi: import("stripe").Stripe.PaymentIntent): string {
-  const inv = pi.invoice;
+  const inv = (pi as unknown as { invoice?: string | { id: string } | null }).invoice;
   if (typeof inv === "string") return inv;
   if (inv && typeof inv === "object" && "id" in inv) return (inv as { id: string }).id;
   return pi.id;
