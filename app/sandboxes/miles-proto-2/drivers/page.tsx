@@ -19,8 +19,8 @@ interface Driver {
 
 const DRIVERS: Driver[] = [
   {
-    id: "chris",
-    name: "Chris Meisner",
+    id: "christina",
+    name: "Christina Meisner",
     initials: "CM",
     color: "bg-green-600",
     relation: "You",

@@ -4,7 +4,7 @@ import Link from "@/app/sandboxes/miles-proto-2/_components/link";
 import { useState } from "react";
 
 const drivers = [
-  { id: "chris", name: "Chris", initials: "C", role: "Primary driver" },
+  { id: "christina", name: "Christina", initials: "C", role: "Primary driver" },
   { id: "other", name: "Someone else", initials: null, role: "Assign to another driver" },
 ];
 

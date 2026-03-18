@@ -411,9 +411,9 @@ batch-selecting by fill color to speed up the linking pass.`}</pre>
                 Radius (dashboard)
               </h3>
               <ul className="space-y-1 font-mono text-xs text-text-secondary">
-                <li>rounded-card → 16px (map + primary cards)</li>
-                <li>rounded-panel → 12px (panels, bento, strips)</li>
-                <li>rounded-control → 8px (buttons, controls, thumbnails)</li>
+                <li>rounded-card → 4px (map + primary cards)</li>
+                <li>rounded-panel → 4px (panels, bento, strips)</li>
+                <li>rounded-control → 4px (buttons, controls, thumbnails)</li>
                 <li>rounded-full → pill (badges, avatars)</li>
               </ul>
             </div>

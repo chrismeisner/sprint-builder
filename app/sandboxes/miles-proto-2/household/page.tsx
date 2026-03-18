@@ -12,7 +12,7 @@ interface Driver {
 }
 
 const initialDrivers: Driver[] = [
-  { id: 1, name: "Chris", role: "owner", status: "active" },
+  { id: 1, name: "Christina", role: "owner", status: "active" },
 ];
 
 let nextId = 2;

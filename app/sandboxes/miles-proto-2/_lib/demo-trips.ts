@@ -13,7 +13,7 @@ export interface DemoTrip {
   vehicle?: string;
 }
 
-export const TRIP_DRIVERS = ["All", "Chris", "Emma"] as const;
+export const TRIP_DRIVERS = ["All", "Christina", "Emma"] as const;
 
 /** Shared route for live-trip map (trips list, Miles agent kid-trip card, etc.). */
 export const LIVE_TRIP_ROUTE: [number, number][] = [
@@ -39,7 +39,7 @@ export const DEMO_TRIPS: DemoTrip[] = [
     duration: "12 min",
     score: 88,
     events: 1,
-    driver: "Chris",
+    driver: "Christina",
     driverInitials: "CM",
     vehicle: "Civic",
   },
@@ -53,7 +53,7 @@ export const DEMO_TRIPS: DemoTrip[] = [
     duration: "11 min",
     score: 92,
     events: 0,
-    driver: "Chris",
+    driver: "Christina",
     driverInitials: "CM",
     vehicle: "Civic",
   },
@@ -109,7 +109,7 @@ export const DEMO_TRIPS: DemoTrip[] = [
     duration: "18 min",
     score: 90,
     events: 0,
-    driver: "Chris",
+    driver: "Christina",
     driverInitials: "CM",
     vehicle: "Civic",
   },
@@ -123,7 +123,7 @@ export const DEMO_TRIPS: DemoTrip[] = [
     duration: "20 min",
     score: 87,
     events: 1,
-    driver: "Chris",
+    driver: "Christina",
     driverInitials: "CM",
     vehicle: "Civic",
   },

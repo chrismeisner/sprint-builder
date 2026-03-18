@@ -77,8 +77,8 @@ const VEHICLES: Record<string, VehicleData> = {
     locationType: "saved",
     lastUpdated: "Just now",
     trips: [
-      { id: "t1", from: "6128 Preston Rd", to: "W Park Blvd & Coit Rd", date: "Today", timeRange: "3:42 – 3:54 PM", distance: "4.2 mi", duration: "12 min", score: 88, events: 1, driver: "Chris", driverInitials: "CM", vehicle: "Civic" },
-      { id: "t2", from: "3501 McDermott Rd", to: "Home", date: "Today", timeRange: "4:30 – 4:41 PM", distance: "4.1 mi", duration: "11 min", score: 92, events: 0, driver: "Chris", driverInitials: "CM", vehicle: "Civic" },
+      { id: "t1", from: "6128 Preston Rd", to: "W Park Blvd & Coit Rd", date: "Today", timeRange: "3:42 – 3:54 PM", distance: "4.2 mi", duration: "12 min", score: 88, events: 1, driver: "Christina", driverInitials: "CM", vehicle: "Civic" },
+      { id: "t2", from: "3501 McDermott Rd", to: "Home", date: "Today", timeRange: "4:30 – 4:41 PM", distance: "4.1 mi", duration: "11 min", score: 92, events: 0, driver: "Christina", driverInitials: "CM", vehicle: "Civic" },
       { id: "t3", from: "1210 Legacy Dr", to: "N Central Expy & E Park Blvd", date: "Yesterday", timeRange: "8:05 – 8:32 AM", distance: "11.3 mi", duration: "27 min", score: 79, events: 2, driver: "Emma", driverInitials: "ER", vehicle: "Civic" },
     ],
   },
@@ -285,7 +285,6 @@ function VehicleContent() {
           <TodoPreview
             items={vehicleTodos}
             title="To-Do"
-            showVehicle={false}
             href="/todos"
           />
         </section>

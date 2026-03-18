@@ -86,10 +86,13 @@ const config: Config = {
         gutter: "1.5rem",
       },
       borderRadius: {
-        control: "0.5rem",
-        panel: "0.75rem",
-        card: "1rem",
-        pill: "9999px",
+        /** 4px / 4pt — uniform radius across all container types.
+         *  iOS: .cornerRadius(4) or RoundedRectangle(cornerRadius: 4)
+         *  Semantic names preserved so values can diverge later. */
+        control: "0.25rem",  // buttons, inputs, thumbnails
+        panel: "0.25rem",    // list groups, bento cells, strips
+        card: "0.25rem",     // primary cards, map container
+        pill: "9999px",      // badges, capsule buttons → Capsule()
       },
       boxShadow: {
         card: "0 24px 70px rgba(0,0,0,0.08)",

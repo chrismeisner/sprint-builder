@@ -5,7 +5,6 @@ export interface DemoTodoItem {
   type: "setup" | "near-term" | "long-horizon";
   vehicleId: string;
   vehicleLabel: string;
-  emoji: string;
 }
 
 export const DEMO_TODOS: DemoTodoItem[] = [
@@ -16,7 +15,6 @@ export const DEMO_TODOS: DemoTodoItem[] = [
     type: "setup",
     vehicleId: "civic",
     vehicleLabel: "Civic",
-    emoji: "🪪",
   },
   {
     id: "oil",
@@ -25,7 +23,6 @@ export const DEMO_TODOS: DemoTodoItem[] = [
     type: "near-term",
     vehicleId: "rav4",
     vehicleLabel: "RAV4",
-    emoji: "🛢️",
   },
   {
     id: "coolant",
@@ -34,6 +31,5 @@ export const DEMO_TODOS: DemoTodoItem[] = [
     type: "long-horizon",
     vehicleId: "civic",
     vehicleLabel: "Civic",
-    emoji: "🧰",
   },
 ];

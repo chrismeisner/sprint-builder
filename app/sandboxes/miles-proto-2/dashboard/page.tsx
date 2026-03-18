@@ -13,6 +13,52 @@ import { p } from "@/app/sandboxes/miles-proto-2/_lib/nav";
 const FOOTER_NAV_MODE_STORAGE_KEY = "miles-proto-2-footer-nav-mode";
 type FooterNavMode = "full" | "compact";
 
+const MAPBOX_STYLES = [
+  { value: "mapbox://styles/mapbox/light-v11", label: "Light" },
+  { value: "mapbox://styles/mapbox/dark-v11", label: "Dark" },
+  { value: "mapbox://styles/mapbox/streets-v12", label: "Streets" },
+  { value: "mapbox://styles/mapbox/outdoors-v12", label: "Outdoors" },
+  { value: "mapbox://styles/mapbox/satellite-v9", label: "Satellite" },
+  { value: "mapbox://styles/mapbox/satellite-streets-v12", label: "Satellite Streets" },
+] as const;
+
+const AVATAR_MOM = "/miles-proto-2/images/mom.jpg";
+const AVATAR_TEEN = "/miles-proto-2/images/teen.jpg";
+
+/* ------------------------------------------------------------------ */
+/*  iOS Type Scale Reference                                           */
+/*  Maps Tailwind classes to Apple HIG Dynamic Type styles.            */
+/*  Use this as a guide when translating to SwiftUI / UIKit.           */
+/*                                                                     */
+/*  Role              iOS name        Tailwind                         */
+/*  ────────────────  ──────────────  ──────────────────────────────── */
+/*  Large Title       34pt bold       text-3xl  font-bold              */
+/*  Display / Hero    —               text-[2rem] font-semibold uppercase */
+/*  Title 3           20pt regular    text-lg   font-semibold          */
+/*  Headline          17pt semibold   text-base font-semibold          */
+/*  Body              17pt regular    text-base font-normal            */
+/*  Subheadline       15pt regular    text-sm   font-normal            */
+/*  Footnote          13pt regular    text-xs   font-normal            */
+/*  Caption 1         12pt regular    text-xs   font-medium            */
+/*  Caption 2         11pt regular    text-[11px]                      */
+/*  Section Header    13pt semibold   text-[11px] font-semibold        */
+/*                    (uppercased)    uppercase tracking-wide           */
+/*  Stat Value        15pt semibold   text-sm   font-semibold          */
+/*  Tint Button       15pt semibold   text-sm   font-semibold          */
+/*                    (system blue)   text-semantic-info                */
+/*                                                                     */
+/* ------------------------------------------------------------------ */
+/*  iOS Corner Radius Reference                                        */
+/*  All semantic radius tokens are 4px (4pt on iOS).                   */
+/*                                                                     */
+/*  Token             Tailwind         iOS (SwiftUI)                   */
+/*  ────────────────  ──────────────── ──────────────────────────────  */
+/*  Card              rounded-card     .cornerRadius(4)                */
+/*  Panel             rounded-panel    .cornerRadius(4)                */
+/*  Control           rounded-control  .cornerRadius(4)                */
+/*  Pill / Capsule    rounded-full     .clipShape(Capsule())           */
+/* ------------------------------------------------------------------ */
+
 /* ------------------------------------------------------------------ */
 /*  Demo data                                                          */
 /* ------------------------------------------------------------------ */
@@ -168,7 +214,14 @@ const RECENT_TRIPS = DEMO_TRIPS.slice(0, 3);
 /*  Shared vehicle content (no map) — used by both list and card view  */
 /* ------------------------------------------------------------------ */
 
-function VehicleCardContent({ v }: { v: Vehicle }) {
+const LOCATION_ICON = (
+  <svg className="size-3.5 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+  </svg>
+);
+
+function VehicleCardContent({ v, showAvatars = false }: { v: Vehicle; showAvatars?: boolean }) {
   const live = v.liveTrip;
   const vehicleHref = `/vehicle?from=dashboard&vehicle=${v.id}`;
   const tripHref = live
@@ -182,56 +235,65 @@ function VehicleCardContent({ v }: { v: Vehicle }) {
   const fuelDot = fuelPct > 30 ? "bg-semantic-success" : "bg-semantic-warning";
   const fuelText = fuelPct > 30 ? "text-text-secondary" : "text-semantic-warning";
 
+  const parkedAddress =
+    v.locationType === "saved" && v.locationLabel === "Home"
+      ? "4521 Main St"
+      : v.locationLabel;
+  const locationLine = live ? "Plano, TX" : parkedAddress;
+
   return (
     <>
-      {/* Vehicle header + car image */}
-      <Link href={vehicleHref} className="flex items-center justify-between gap-3 px-4 pt-3.5 pb-2 transition-colors hover:bg-background/80">
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-text-primary">{v.name}</span>
-            {live && (
-              <span className="flex items-center gap-1 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-semibold text-semantic-success">
-                <span className="relative flex size-1.5">
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-semantic-success opacity-75" />
-                  <span className="relative inline-flex size-1.5 rounded-full bg-semantic-success" />
-                </span>
-                Live
+      {/* Vehicle header: row 1 = pill; row 2 = nickname + location (left) | car image (right) */}
+      <Link href={vehicleHref} className="flex flex-col gap-2 px-4 pt-3.5 pb-2 transition-colors hover:bg-background/80">
+        <div className="flex flex-wrap items-center gap-2">
+          {live ? (
+            <span className="flex w-fit items-center gap-1.5 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-semantic-success">
+              <span className="relative flex size-1.5">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-semantic-success opacity-75" />
+                <span className="relative inline-flex size-1.5 rounded-full bg-semantic-success" />
               </span>
-            )}
-          </div>
-          <span className="text-xs text-text-muted">{v.year} {v.make} {v.model}</span>
-          {!live && <span className="text-[11px] text-text-muted">{v.locationLabel} · Parked {v.lastUpdated}</span>}
+              Trip active
+            </span>
+          ) : (
+            <span className="w-fit rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+              Parked
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-[2rem] font-semibold uppercase leading-tight text-text-primary">{v.name}</span>
+            <span className="flex min-w-0 items-center gap-1.5 text-sm text-text-muted">
+              {LOCATION_ICON}
+              <span className="truncate">{locationLine}</span>
+            </span>
+          </div>
           <img
             src={v.imageSrc}
             alt={v.name}
-            className="w-24 object-contain opacity-90"
+            className="w-24 shrink-0 object-contain opacity-90"
           />
-          <svg className="size-4 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-          </svg>
         </div>
       </Link>
 
-      {/* Bento stats — always Score / Engine / Fuel */}
+      {/* Stats row */}
       <div className="grid grid-cols-3 gap-2 px-4 pb-3">
-        <div className="flex flex-col gap-1.5 rounded-panel border border-stroke-muted bg-background px-3 py-2.5">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Miles Score</span>
+        <div className="flex flex-col gap-1 rounded bg-surface-subtle px-3 py-2.5">
+          <span className="text-[11px] font-medium text-text-muted">Score</span>
           <div className="flex items-center gap-1.5">
             <span className="size-1.5 rounded-full bg-semantic-success" />
             <span className="text-sm font-semibold leading-none text-semantic-success">{v.driverScore}</span>
           </div>
         </div>
-        <div className="flex flex-col gap-1.5 rounded-panel border border-stroke-muted bg-background px-3 py-2.5">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Engine</span>
+        <div className="flex flex-col gap-1 rounded bg-surface-subtle px-3 py-2.5">
+          <span className="text-[11px] font-medium text-text-muted">Engine</span>
           <div className="flex items-center gap-1.5">
             <span className={`size-1.5 rounded-full ${engineDot}`} />
             <span className={`text-sm font-semibold leading-none ${engineText}`}>{engineLabel}</span>
           </div>
         </div>
-        <div className="flex flex-col gap-1.5 rounded-panel border border-stroke-muted bg-background px-3 py-2.5">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Fuel</span>
+        <div className="flex flex-col gap-1 rounded bg-surface-subtle px-3 py-2.5">
+          <span className="text-[11px] font-medium text-text-muted">Fuel</span>
           <div className="flex items-center gap-1.5">
             <span className={`size-1.5 rounded-full ${fuelDot}`} />
             <span className={`text-sm font-semibold leading-none ${fuelText}`}>{fuelPct}%</span>
@@ -243,15 +305,19 @@ function VehicleCardContent({ v }: { v: Vehicle }) {
       {live && tripHref && (
         <Link
           href={tripHref}
-          className="mx-4 mb-4 flex items-center justify-between rounded-panel border border-stroke-muted bg-surface-subtle px-3 py-2.5 transition-colors hover:bg-surface-strong"
+          className="mx-4 mb-4 flex min-h-11 items-center justify-between rounded-panel border border-stroke-muted bg-surface-subtle px-3 py-2.5 transition-colors hover:bg-surface-strong"
         >
           <div className="flex items-center gap-2.5">
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-semantic-success text-[11px] font-semibold text-background">
-              {live.driver[0]}
-            </div>
+            {showAvatars ? (
+              <img src={AVATAR_TEEN} alt={live.driver} className="size-7 shrink-0 rounded-full object-cover" />
+            ) : (
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-semantic-success text-[11px] font-semibold text-background">
+                {live.driver[0]}
+              </div>
+            )}
             <div className="flex flex-col">
-              <span className="text-xs font-semibold text-semantic-success">{live.driver} is driving</span>
-              <span className="text-[11px] text-semantic-success">{live.startedAgo}</span>
+              <span className="text-sm font-semibold text-semantic-success">{live.driver} is driving</span>
+              <span className="text-xs text-semantic-success">{live.startedAgo}</span>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
@@ -276,24 +342,39 @@ function VehicleCardContent({ v }: { v: Vehicle }) {
 function FleetView({
   vehicles,
   headerAction,
+  showAvatars,
+  mapStyle,
 }: {
   vehicles: Vehicle[];
   headerAction: "profile" | "roadside";
+  showAvatars: boolean;
+  mapStyle: string;
 }) {
   const liveVehicle = vehicles.find((v) => v.liveTrip);
-  const hasLive = !!liveVehicle;
 
   const allMarkers = [
     ...vehicles
       .filter((v) => !v.liveTrip)
-      .map((v) => ({ lat: v.parkedAt.lat, lng: v.parkedAt.lng, type: "end" as const, color: "#2563eb" })),
-    ...(hasLive
+      .map((v) => ({
+        lat: v.parkedAt.lat,
+        lng: v.parkedAt.lng,
+        type: "end" as const,
+        color: "#2563eb",
+        label: "Parked",
+        initial: v.name[0],
+        ...(showAvatars ? { imageSrc: v.imageSrc } : {}),
+      })),
+    ...(liveVehicle
       ? [{
           lat: LIVE_ROUTE[LIVE_ROUTE.length - 1][0],
           lng: LIVE_ROUTE[LIVE_ROUTE.length - 1][1],
           type: "end" as const,
           color: "#16a34a",
           label: "Trip active",
+          initial: liveVehicle.liveTrip!.driver[0],
+          ...(showAvatars
+            ? { imageSrc: AVATAR_TEEN, overlayImageSrc: liveVehicle.imageSrc }
+            : {}),
         }]
       : []),
   ];
@@ -301,12 +382,12 @@ function FleetView({
   return (
     <div className="flex flex-col gap-4">
       {/* Dashboard header */}
-      <div className="flex items-center justify-between px-5 pt-3">
-        <h1 className="text-2xl font-bold leading-none text-text-primary">Miles</h1>
+      <div className="flex items-center justify-between px-5 pt-2">
+        <h1 className="text-3xl font-bold leading-tight text-text-primary">Miles</h1>
         {headerAction === "roadside" ? (
           <button
             type="button"
-            className="flex h-8 items-center gap-1.5 rounded-full border border-stroke-muted bg-surface-card px-2.5 transition-colors hover:bg-surface-subtle"
+            className="flex h-11 items-center gap-1.5 rounded-full border border-stroke-muted bg-surface-card px-3 transition-colors hover:bg-surface-subtle"
           >
             <div className="flex size-6 items-center justify-center rounded-full bg-surface-subtle">
               <svg className="size-3.5 text-semantic-danger" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -318,37 +399,38 @@ function FleetView({
         ) : (
           <Link
             href="/account"
-            className="flex items-center gap-2 rounded-full py-1 pl-3 pr-1 transition-colors hover:bg-surface-strong"
+            className="flex min-h-11 items-center gap-2 rounded-full py-1 pl-3 pr-1 transition-colors hover:bg-surface-strong"
           >
-            <span className="text-sm font-medium text-text-secondary">Chris M.</span>
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-accent text-xs font-semibold leading-none text-brand-inverse">
-              CM
-            </div>
+            <span className="text-sm font-medium text-text-secondary">Christina M.</span>
+            <img
+              src={AVATAR_MOM}
+              alt="Christina M."
+              className="size-8 shrink-0 rounded-full object-cover"
+            />
           </Link>
         )}
       </div>
 
-      {/* Fleet map — always shown, never changes */}
+      {/* Fleet map — always shown; fitBounds so both parked and trip-active markers are visible */}
       <div className="mx-5 overflow-hidden rounded-card border border-stroke-muted">
         <div className="relative aspect-[3/2] w-full overflow-hidden">
-          <MapView markers={allMarkers} interactive={false} />
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent px-4 pb-3 pt-6">
-            <span className="text-xs font-medium text-background/80">
-              {vehicles.length} vehicles · {hasLive ? "1 trip active" : "all parked"}
-            </span>
-          </div>
+          <MapView key={`fleet-${showAvatars}-${mapStyle}`} markers={allMarkers} mapStyle={mapStyle} />
         </div>
       </div>
 
-      {/* Vehicles section header */}
+      {/* Vehicles section header — iOS: Section Header (13pt semibold uppercased) */}
       <div className="px-5">
-        <span className="text-xs font-semibold uppercase tracking-widest text-text-muted">Vehicles</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Vehicles</span>
       </div>
 
-      <div className="flex flex-col gap-3 px-5">
+      {/* One card per vehicle; gap between cards for iOS-style grouped list appearance */}
+      <div className="mx-5 flex flex-col gap-3">
         {[...vehicles].sort((a, b) => (b.liveTrip ? 1 : 0) - (a.liveTrip ? 1 : 0)).map((v) => (
-          <div key={v.id} className="overflow-hidden rounded-card border border-stroke-muted bg-surface-card">
-            <VehicleCardContent v={v} />
+          <div
+            key={v.id}
+            className="overflow-hidden rounded-card border border-stroke-muted bg-surface-card"
+          >
+            <VehicleCardContent v={v} showAvatars={showAvatars} />
           </div>
         ))}
       </div>
@@ -356,7 +438,17 @@ function FleetView({
   );
 }
 
-function RecentTrips() {
+const DRIVER_AVATAR_MAP: Record<string, string> = {
+  Christina: AVATAR_MOM,
+  Emma: AVATAR_TEEN,
+};
+
+const VEHICLE_AVATAR_MAP: Record<string, string> = {
+  Civic: "/api/sandbox-files/miles-proto-2/public/images/civic.jpg",
+  RAV4: "/api/sandbox-files/miles-proto-2/public/images/rav4.jpg",
+};
+
+function RecentTrips({ showAvatars = false }: { showAvatars?: boolean }) {
   return (
     <div className="mx-5 flex flex-col gap-2">
       <div className="flex items-center justify-between">
@@ -373,8 +465,9 @@ function RecentTrips() {
             key={t.id}
             trip={t}
             href="/trip-receipt"
-            showVehicle
             className="py-3"
+            driverImageSrc={showAvatars ? DRIVER_AVATAR_MAP[t.driver] : undefined}
+            vehicleImageSrc={showAvatars ? VEHICLE_AVATAR_MAP[t.vehicle ?? ""] : undefined}
           />
         ))}
       </div>
@@ -407,14 +500,14 @@ function AgentCoachingCard({
       <div className="flex items-center gap-2">
         <Link
           href={card.actionHref}
-          className="flex h-8 items-center rounded-control bg-semantic-success px-3.5 text-xs font-semibold text-background transition-opacity hover:opacity-90"
+          className="flex h-10 items-center rounded-control px-4 text-sm font-semibold text-semantic-info transition-colors hover:bg-surface-strong"
         >
           {card.actionLabel}
         </Link>
         <button
           type="button"
           onClick={onDismiss}
-          className="flex h-8 items-center rounded-control px-3.5 text-xs font-semibold text-semantic-success transition-colors hover:bg-surface-strong"
+          className="flex h-10 items-center rounded-control px-4 text-sm font-medium text-text-muted transition-colors hover:bg-surface-strong"
         >
           {card.dismissLabel}
         </button>
@@ -452,7 +545,7 @@ function AgentCoachingCarousel({
 
   return (
     <div className="mx-5 flex flex-col gap-2">
-      <span className="text-xs font-semibold uppercase tracking-widest text-text-muted">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
         From Miles
       </span>
       <div
@@ -494,7 +587,7 @@ function QuickActions({ showRoadsideAssist }: { showRoadsideAssist: boolean }) {
     <div className="mx-5 grid grid-cols-1 gap-3">
       <button
         type="button"
-        className="flex flex-col items-center gap-2 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-background"
+        className="flex min-h-11 flex-col items-center gap-2 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-background"
       >
         <div className="flex size-10 items-center justify-center rounded-full bg-surface-subtle">
           <svg className="size-5 text-semantic-danger" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -573,11 +666,11 @@ function TripVehicleStatus({ vehicleLabel }: { vehicleLabel?: string }) {
       </div>
       <div className="grid grid-cols-3 gap-2">
         {STATUSES.map((s) => (
-          <div key={s.label} className="flex flex-col gap-1 rounded-control bg-background px-2.5 py-2">
-            <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">{s.label}</span>
+          <div key={s.label} className="flex flex-col gap-1 rounded bg-surface-subtle px-2.5 py-2">
+            <span className="text-[11px] font-medium text-text-muted">{s.label}</span>
             <div className="flex items-center gap-1.5">
               <span className={`size-1.5 rounded-full ${s.dot}`} />
-              <span className={`text-xs font-semibold leading-none ${s.text}`}>{s.value}</span>
+              <span className={`text-sm font-semibold leading-none ${s.text}`}>{s.value}</span>
             </div>
           </div>
         ))}
@@ -588,9 +681,9 @@ function TripVehicleStatus({ vehicleLabel }: { vehicleLabel?: string }) {
 
 function TripDriverCard({ driver }: { driver: string }) {
   const DRIVER_DATA: Record<string, { initials: string; color: string; score: number; relation: string }> = {
-    Jack:  { initials: "JM", color: "bg-semantic-info", score: 74, relation: "Child" },
-    Emma:  { initials: "EM", color: "bg-brand-primary", score: 79, relation: "Spouse" },
-    Chris: { initials: "CM", color: "bg-semantic-success", score: 82, relation: "You" },
+    Jack:      { initials: "JM", color: "bg-semantic-info", score: 74, relation: "Child" },
+    Emma:      { initials: "EM", color: "bg-brand-primary", score: 79, relation: "Spouse" },
+    Christina: { initials: "CM", color: "bg-semantic-success", score: 82, relation: "You" },
   };
   const d = DRIVER_DATA[driver] ?? { initials: driver.slice(0, 2).toUpperCase(), color: "bg-stroke-strong", score: "--", relation: "Driver" };
   return (
@@ -615,10 +708,12 @@ function TripDriverCard({ driver }: { driver: string }) {
 function TripInProgress({
   driver,
   vehicleLabel,
+  mapStyle,
 }: {
   vehicle: Vehicle;
   driver: string;
   vehicleLabel?: string;
+  mapStyle: string;
 }) {
   const currentPos = LIVE_ROUTE[LIVE_ROUTE.length - 1];
   const fromAgent = !!vehicleLabel;
@@ -650,6 +745,7 @@ function TripInProgress({
       <div className="relative mx-5 overflow-hidden rounded-panel">
         <div className="aspect-[4/3] w-full">
           <MapView
+            key={mapStyle}
             route={LIVE_ROUTE}
             markers={[
               { lat: LIVE_ROUTE[0][0], lng: LIVE_ROUTE[0][1], type: "start" },
@@ -658,6 +754,7 @@ function TripInProgress({
             interactive={false}
             routeColor="#16a34a"
             routeWeight={4}
+            mapStyle={mapStyle}
           />
         </div>
         {/* Trip stats overlay */}
@@ -691,9 +788,11 @@ function TripInProgress({
 function TripComplete({
   vehicle,
   onReturn,
+  mapStyle,
 }: {
   vehicle: Vehicle;
   onReturn: () => void;
+  mapStyle: string;
 }) {
   const s = TRIP_SUMMARY;
   return (
@@ -711,6 +810,7 @@ function TripComplete({
         {/* Map thumbnail */}
         <div className="relative aspect-[2/1] w-full overflow-hidden rounded-control">
           <MapView
+            key={mapStyle}
             route={LIVE_ROUTE}
             markers={[
               { lat: LIVE_ROUTE[0][0], lng: LIVE_ROUTE[0][1], type: "start" },
@@ -718,6 +818,7 @@ function TripComplete({
             ]}
             interactive={false}
             routeWeight={3}
+            mapStyle={mapStyle}
           />
         </div>
 
@@ -732,19 +833,19 @@ function TripComplete({
         {/* Stats row */}
         <div className="grid grid-cols-4 gap-3">
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] uppercase tracking-wide text-text-muted">Distance</span>
+            <span className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Distance</span>
             <span className="text-sm font-semibold tabular-nums text-text-primary">{s.distance}</span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] uppercase tracking-wide text-text-muted">Duration</span>
+            <span className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Duration</span>
             <span className="text-sm font-semibold tabular-nums text-text-primary">{s.duration}</span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] uppercase tracking-wide text-text-muted">Score</span>
+            <span className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Score</span>
             <span className="text-sm font-semibold tabular-nums text-text-primary">{s.score}</span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] uppercase tracking-wide text-text-muted">Events</span>
+            <span className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Events</span>
             <span className="text-sm font-semibold tabular-nums text-text-primary">{s.events}</span>
           </div>
         </div>
@@ -756,7 +857,7 @@ function TripComplete({
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
             </svg>
           </div>
-          <span className="text-sm text-text-secondary">{s.driver}</span>
+          <span className="text-sm font-medium text-text-primary">{s.driver}</span>
           <button type="button" className="ml-auto text-xs font-medium text-semantic-info hover:text-semantic-info/80">
             Not {s.driver}?
           </button>
@@ -786,14 +887,14 @@ function TripComplete({
         <div className="flex items-center gap-2">
           <Link
             href="/miles?context=coaching-braking"
-            className="flex h-8 items-center rounded-control bg-semantic-success px-3.5 text-xs font-semibold text-background transition-opacity hover:opacity-90"
+            className="flex h-10 items-center rounded-control px-4 text-sm font-semibold text-semantic-info transition-colors hover:bg-surface-strong"
           >
             Show me
           </Link>
           <button
             type="button"
             onClick={onReturn}
-            className="flex h-8 items-center rounded-control px-3.5 text-xs font-semibold text-semantic-success transition-colors hover:bg-surface-strong"
+            className="flex h-10 items-center rounded-control px-4 text-sm font-medium text-text-muted transition-colors hover:bg-surface-strong"
           >
             Done
           </button>
@@ -824,6 +925,8 @@ function DashboardContent() {
   const [coachingDismissed, setCoachingDismissed] = useState(false);
   const [headerAction, setHeaderAction] = useState<"profile" | "roadside">("profile");
   const [footerNavMode, setFooterNavMode] = useState<FooterNavMode>("full");
+  const [showAvatars, setShowAvatars] = useState(true);
+  const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/streets-v12");
 
   const modeParam = searchParams.get("mode") as DashboardMode | null;
   const mode: DashboardMode =
@@ -868,19 +971,26 @@ function DashboardContent() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col bg-background pb-24">
+    <main
+      className="flex min-h-dvh flex-col bg-background pb-28"
+      style={{
+        paddingTop: "max(env(safe-area-inset-top), 8px)",
+        paddingBottom: "max(env(safe-area-inset-bottom), 112px)",
+      }}
+    >
       {mode === "trip" || vehicleLabelParam ? (
         <TripInProgress
           vehicle={vehicle}
           driver={driverParam ?? "Emma"}
           vehicleLabel={vehicleLabelParam}
+          mapStyle={mapStyle}
         />
       ) : mode === "complete" ? (
-        <TripComplete vehicle={vehicle} onReturn={() => setMode("parked")} />
+        <TripComplete vehicle={vehicle} onReturn={() => setMode("parked")} mapStyle={mapStyle} />
       ) : (
         <div className="flex flex-col gap-4">
-          <FleetView vehicles={VEHICLES} headerAction={headerAction} />
-          <RecentTrips />
+          <FleetView vehicles={VEHICLES} headerAction={headerAction} showAvatars={showAvatars} mapStyle={mapStyle} />
+          <RecentTrips showAvatars={showAvatars} />
           {!coachingDismissed && (
             <AgentCoachingCarousel
               cards={COACHING_CARDS}
@@ -942,6 +1052,22 @@ function DashboardContent() {
         </div>
         <div className="flex flex-col items-center gap-2">
           <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted">
+            Avatars
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowAvatars((prev) => !prev)}
+            className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+              showAvatars
+                ? "bg-surface-strong text-text-secondary"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            {showAvatars ? "Photos on" : "Photos off"}
+          </button>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted">
             Footer tabs
           </span>
           <div className="flex items-center gap-1.5">
@@ -968,6 +1094,22 @@ function DashboardContent() {
               4 tabs (hide profile)
             </button>
           </div>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted">
+            Map style
+          </span>
+          <select
+            value={mapStyle}
+            onChange={(e) => setMapStyle(e.target.value)}
+            className="rounded border border-stroke-muted bg-surface-card px-3 py-2 text-[11px] font-medium text-text-primary focus:border-stroke-strong focus:outline-none focus:ring-1 focus:ring-stroke-strong"
+          >
+            {MAPBOX_STYLES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
     </main>

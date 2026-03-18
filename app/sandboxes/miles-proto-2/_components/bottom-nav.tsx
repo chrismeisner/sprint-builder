@@ -23,7 +23,7 @@ const HIDDEN_ON = new Set([
 function DashboardIcon({ active }: { active: boolean }) {
   return (
     <svg
-      className={`size-6 transition-colors ${active ? "text-green-600" : "text-neutral-400"}`}
+      className={`size-6 transition-colors ${active ? "text-blue-600" : "text-neutral-400"}`}
       aria-hidden="true"
       fill={active ? "currentColor" : "none"}
       viewBox="0 0 24 24"
@@ -49,7 +49,7 @@ function DashboardIcon({ active }: { active: boolean }) {
 function TripsIcon({ active }: { active: boolean }) {
   return (
     <svg
-      className={`size-6 transition-colors ${active ? "text-green-600" : "text-neutral-400"}`}
+      className={`size-6 transition-colors ${active ? "text-blue-600" : "text-neutral-400"}`}
       aria-hidden="true"
       fill={active ? "currentColor" : "none"}
       viewBox="0 0 24 24"
@@ -75,7 +75,7 @@ function TripsIcon({ active }: { active: boolean }) {
 function MilesIcon({ active }: { active: boolean }) {
   return (
     <svg
-      className={`size-6 transition-colors ${active ? "text-green-600" : "text-neutral-400"}`}
+      className={`size-6 transition-colors ${active ? "text-blue-600" : "text-neutral-400"}`}
       aria-hidden="true"
       fill="none"
       viewBox="0 0 24 24"
@@ -90,7 +90,7 @@ function MilesIcon({ active }: { active: boolean }) {
 function DriversIcon({ active }: { active: boolean }) {
   return (
     <svg
-      className={`size-6 transition-colors ${active ? "text-green-600" : "text-neutral-400"}`}
+      className={`size-6 transition-colors ${active ? "text-blue-600" : "text-neutral-400"}`}
       aria-hidden="true"
       fill={active ? "currentColor" : "none"}
       viewBox="0 0 24 24"
@@ -109,7 +109,7 @@ function DriversIcon({ active }: { active: boolean }) {
 function AccountIcon({ active }: { active: boolean }) {
   return (
     <svg
-      className={`size-6 transition-colors ${active ? "text-green-600" : "text-neutral-400"}`}
+      className={`size-6 transition-colors ${active ? "text-blue-600" : "text-neutral-400"}`}
       aria-hidden="true"
       fill={active ? "currentColor" : "none"}
       viewBox="0 0 24 24"
@@ -235,7 +235,7 @@ function BottomNavInner() {
 
   return (
     <nav
-      className="shrink-0 z-30 border-t border-neutral-200/80 bg-white/95 backdrop-blur-xl"
+      className="z-30 shrink-0 border-t border-neutral-200/80 bg-white/95 backdrop-blur-xl"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="mx-auto flex items-center justify-around px-2 py-2">
@@ -246,34 +246,17 @@ function BottomNavInner() {
             ? tab.label === "Trips"
             : tab.match(pathname);
           const Icon = tab.icon;
-          const isMiles = tab.label === "Miles";
           const linkContent = (
             <>
               <span className="relative flex items-center justify-center">
-                {isMiles ? (
-                  <span
-                    className={`flex items-center justify-center rounded-2xl px-4 py-2 transition-all ${
-                      active
-                        ? "bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/25 [&_svg]:stroke-white [&_svg]:!text-white"
-                        : "bg-gradient-to-br from-green-100 to-emerald-100 text-green-700"
-                    }`}
-                  >
-                    <Icon active={active} />
-                  </span>
-                ) : (
-                  <Icon active={active} />
-                )}
+                <Icon active={active} />
                 {tab.badge && !active && (
-                  <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-green-500 ring-2 ring-white" />
+                  <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-blue-600 ring-2 ring-white" />
                 )}
               </span>
               <span
                 className={`text-[10px] font-medium leading-none transition-colors ${
-                  active
-                    ? tab.label === "Miles"
-                      ? "text-green-600"
-                      : "text-green-600"
-                    : "text-neutral-400"
+                  active ? "text-blue-600" : "text-neutral-400"
                 }`}
               >
                 {tab.label}
@@ -284,7 +267,7 @@ function BottomNavInner() {
             <Link
               key={tab.href}
               href={tab.href}
-              className="relative flex min-w-0 flex-1 flex-col items-center gap-1 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-lg"
+              className="relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
               {linkContent}
             </Link>
