@@ -250,8 +250,7 @@ export function MapView({
   return (
     <div
       ref={containerRef}
-      className={`z-0 bg-neutral-100 [&_.mapboxgl-ctrl-logo]:!hidden ${className}`}
-      style={{ width: "100%", height: "100%" }}
+      className={`absolute inset-0 z-0 bg-neutral-100 [&_.mapboxgl-ctrl-logo]:!hidden ${className}`}
     />
   );
 }

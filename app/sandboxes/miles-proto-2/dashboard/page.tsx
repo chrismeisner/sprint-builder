@@ -81,7 +81,8 @@ interface Vehicle {
   driverScore: number;
   scoreDelta: number;
   scoreUpdated: string;
-  engineNote: string;
+  /** When the engine/health check was last run (e.g. "Checked 2h ago", "Today, 9:02 AM") */
+  engineCheckedAt: string;
   fuelRange: string;
   liveTrip?: { driver: string; vehicleLabel: string; mph: number; startedAgo: string };
   lastTrip: {
@@ -114,7 +115,7 @@ const VEHICLES: Vehicle[] = [
     driverScore: 82,
     scoreDelta: 3,
     scoreUpdated: "Updated today",
-    engineNote: "No fault codes",
+    engineCheckedAt: "Checked 2h ago",
     fuelRange: "~230 mi range",
     lastTrip: {
       from: "Preston Rd & Belt Line",
@@ -144,7 +145,7 @@ const VEHICLES: Vehicle[] = [
     driverScore: 74,
     scoreDelta: -2,
     scoreUpdated: "Updated today",
-    engineNote: "No fault codes",
+    engineCheckedAt: "Today, 9:02 AM",
     fuelRange: "~120 mi range",
     liveTrip: { driver: "Jack", vehicleLabel: "Toyota RAV4", mph: 34, startedAgo: "12 mins ago" },
     lastTrip: {
@@ -310,7 +311,6 @@ function VehicleCardContent({ v, showAvatars = false }: { v: Vehicle; showAvatar
             <span className={`text-[10px] font-medium leading-none tabular-nums ${v.scoreDelta >= 0 ? "text-semantic-success" : "text-semantic-warning"}`}>
               {v.scoreDelta >= 0 ? "+" : ""}{v.scoreDelta}
             </span>
-            <span className="text-[10px] font-medium leading-none text-text-muted">· 24h</span>
           </div>
         </div>
         {/* Engine */}
@@ -320,7 +320,7 @@ function VehicleCardContent({ v, showAvatars = false }: { v: Vehicle; showAvatar
             <span className={`size-1.5 rounded-full ${engineDot}`} />
             <span className={`text-sm font-semibold leading-none ${engineText}`}>{engineLabel}</span>
           </div>
-          <span className="text-[10px] font-medium leading-none text-text-muted">{v.engineNote}</span>
+          <span className="text-[10px] font-medium leading-none text-text-muted">{v.engineCheckedAt}</span>
         </div>
         {/* Fuel */}
         <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
@@ -882,7 +882,7 @@ function AgentCoachingCard({
       <div className="flex flex-col gap-2">
         <Link
           href={card.actionHref}
-          className="flex min-h-11 w-full items-center justify-center rounded-control bg-foreground px-4 text-sm font-semibold text-background transition-colors hover:bg-foreground/85 active:bg-foreground/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-strong focus-visible:ring-offset-1"
+          className="flex min-h-11 w-full items-center justify-center rounded-control bg-semantic-success px-4 text-sm font-semibold text-background transition-colors hover:bg-semantic-success/90 active:bg-semantic-success/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-semantic-success focus-visible:ring-offset-1"
         >
           {card.actionLabel}
         </Link>
@@ -1161,7 +1161,7 @@ function TripInProgress({
 
       {/* Live Map */}
       <div className="relative mx-5 overflow-hidden rounded-panel">
-        <div className="aspect-[4/3] w-full">
+        <div className="relative aspect-[4/3] w-full">
           <MapView
             key={mapStyle}
             route={LIVE_ROUTE}
