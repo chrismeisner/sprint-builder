@@ -37,18 +37,12 @@ export function ForceLightMode() {
 
   useEffect(() => {
     const html = document.documentElement;
-    const wasDark = html.classList.contains("dark");
-
     if (forceLight) {
       html.classList.remove("dark");
-    } else if (wasDark || window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    } else {
       html.classList.add("dark");
     }
-
-    return () => {
-      if (wasDark) html.classList.add("dark");
-      else html.classList.remove("dark");
-    };
+    return () => { html.classList.remove("dark"); };
   }, [forceLight]);
 
   return null;

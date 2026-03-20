@@ -3,9 +3,9 @@
 import Link from "@/app/sandboxes/miles-proto-2/_components/link";
 import type { DemoTodoItem } from "@/app/sandboxes/miles-proto-2/_lib/demo-todos";
 
-const VEHICLE_IMAGE: Record<string, string> = {
-  civic: "/api/sandbox-files/miles-proto-2/public/images/civic.jpg",
-  rav4: "/api/sandbox-files/miles-proto-2/public/images/rav4.jpg",
+const VEHICLE_COLOR: Record<string, string> = {
+  civic: "#9b1c1c",
+  rav4: "#6b8cae",
 };
 
 interface TodoPreviewProps {
@@ -40,28 +40,20 @@ export function TodoPreview({
       </div>
       <div className="flex flex-col divide-y divide-stroke-muted rounded-panel border border-stroke-muted bg-surface-card">
         {items.map((item) => {
-          const imageSrc = VEHICLE_IMAGE[item.vehicleId];
+          const vehicleColor = VEHICLE_COLOR[item.vehicleId] ?? "#6b7280";
+          const vehicleInitial = item.vehicleLabel[0].toUpperCase();
           return (
           <div
             key={item.id}
             className="flex items-center gap-3 px-4 py-3"
           >
             <span
-              className="flex size-8 shrink-0 overflow-hidden rounded-full bg-surface-subtle"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-background text-xs font-bold leading-none text-white shadow-sm"
+              style={{ backgroundColor: vehicleColor }}
               title={item.vehicleLabel}
               aria-hidden
             >
-              {imageSrc ? (
-                <img
-                  src={imageSrc}
-                  alt=""
-                  className="size-full object-cover"
-                />
-              ) : (
-                <svg className="size-full p-1.5 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 16.5h9m-11.21-1.35.73-2.9a2.25 2.25 0 0 1 2.18-1.7h7.6a2.25 2.25 0 0 1 2.18 1.7l.73 2.9M6 16.5v.75a.75.75 0 0 0 .75.75h.75a.75.75 0 0 0 .75-.75v-.75m7.5 0v.75a.75.75 0 0 0 .75.75h.75a.75.75 0 0 0 .75-.75v-.75M7.5 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" />
-                </svg>
-              )}
+              {vehicleInitial}
             </span>
             <div className="flex flex-1 flex-col gap-0.5">
               <span className="text-sm font-medium leading-none text-text-primary">

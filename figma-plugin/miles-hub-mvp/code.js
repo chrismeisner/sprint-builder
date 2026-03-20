@@ -25,8 +25,8 @@ function postStatus(message, level) {
   });
 }
 
-function normalizeBaseUrl(baseUrl) {
-  return String(baseUrl || "http://localhost:3000").replace(/\/+$/, "");
+function normalizeHubUrl(hubUrl) {
+  return String(hubUrl || "http://localhost:3000").replace(/\/+$/, "");
 }
 
 async function fetchJson(url) {
@@ -510,7 +510,48 @@ async function upsertTextStyles(typographyResponse, stats) {
   });
 }
 
-async function runSync(baseUrl, shouldSyncTextStyles) {
+/* ------------------------------------------------------------------ */
+/*  Clear — wipes our collections and Miles/ text styles before sync  */
+/* ------------------------------------------------------------------ */
+
+const MILES_COLLECTION_NAMES = ["primitives", "semantic", "typography", "state", "sizing"];
+
+/* selectedCollections — array of collection keys the user enabled.
+   Possible keys: "primitives" | "semantic" | "typography" | "state" | "sizing"
+   syncTextStyles — separate bool for Miles/ text styles */
+
+async function clearMilesData(selectedCollections, syncTextStyles) {
+  postStatus("Clearing selected Miles collections…");
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  let collectionsRemoved = 0;
+  for (const collection of collections) {
+    if (selectedCollections.includes(collection.name)) {
+      debugLog("clear:collection", { name: collection.name, id: collection.id });
+      collection.remove();
+      collectionsRemoved += 1;
+    }
+  }
+
+  let stylesRemoved = 0;
+  if (syncTextStyles) {
+    const textStyles = figma.getLocalTextStyles();
+    for (const style of textStyles) {
+      if (style.name.startsWith("Miles/")) {
+        debugLog("clear:text-style", { name: style.name });
+        style.remove();
+        stylesRemoved += 1;
+      }
+    }
+  }
+
+  const styleMsg = syncTextStyles ? " and " + stylesRemoved + " Miles/ text styles" : "";
+  postStatus(
+    "Cleared " + collectionsRemoved + " collection(s)" + styleMsg + ". Starting fresh sync…"
+  );
+  debugLog("clear:done", { collectionsRemoved, stylesRemoved });
+}
+
+async function runSync(hubUrl, mode, selectedCollections, syncTextStyles) {
   const stats = {
     created: 0,
     updated: 0,
@@ -522,41 +563,51 @@ async function runSync(baseUrl, shouldSyncTextStyles) {
     messages: [],
   };
 
-  const normalizedBase = normalizeBaseUrl(baseUrl);
-  debugLog("sync:start", { baseUrl: normalizedBase, syncTextStyles: shouldSyncTextStyles });
-  postStatus("Fetching token JSON from " + normalizedBase + "/sandboxes/miles-proto-2/hub/tokens");
-  const tokens = await fetchJson(
-    normalizedBase + "/sandboxes/miles-proto-2/hub/tokens"
-  );
+  const has = function(key) { return selectedCollections.indexOf(key) !== -1; };
+  const hub = normalizeHubUrl(hubUrl);
+  debugLog("sync:start", {
+    hubUrl: hub,
+    mode: mode || "upsert",
+    selectedCollections: selectedCollections,
+    syncTextStyles: syncTextStyles,
+  });
 
-  postStatus("Upserting token collections and variables...");
-  await upsertSingleModeTokenSet(
-    "primitives",
-    tokens.primitives || {},
-    "Base",
-    stats
-  );
-  await upsertSingleModeTokenSet(
-    "typography",
-    tokens.typography || {},
-    "Base",
-    stats
-  );
-  await upsertSingleModeTokenSet(
-    "state",
-    tokens.state || {},
-    "Base",
-    stats
-  );
-  await upsertSingleModeTokenSet("sizing", tokens.sizing || {}, "Base", stats);
-  await upsertSemanticModes(tokens["semantic-light"] || {}, tokens["semantic-dark"] || {}, stats);
+  if (mode === "clear") {
+    await clearMilesData(selectedCollections, syncTextStyles);
+  }
 
-  if (shouldSyncTextStyles) {
-    postStatus("Fetching typography styles from /hub/typography...");
-    const typography = await fetchJson(
-      normalizedBase + "/sandboxes/miles-proto-2/hub/typography"
-    );
-    postStatus("Upserting text styles...");
+  const needsTokenFetch = has("primitives") || has("semantic") || has("typography") || has("state") || has("sizing");
+  var tokens = {};
+  if (needsTokenFetch) {
+    postStatus("Fetching token JSON from " + hub + "/tokens");
+    tokens = await fetchJson(hub + "/tokens");
+  }
+
+  if (has("primitives")) {
+    postStatus("Upserting: primitives…");
+    await upsertSingleModeTokenSet("primitives", tokens.primitives || {}, "Base", stats);
+  }
+  if (has("semantic")) {
+    postStatus("Upserting: semantic (Light / Dark)…");
+    await upsertSemanticModes(tokens["semantic-light"] || {}, tokens["semantic-dark"] || {}, stats);
+  }
+  if (has("typography")) {
+    postStatus("Upserting: typography tokens…");
+    await upsertSingleModeTokenSet("typography", tokens.typography || {}, "Base", stats);
+  }
+  if (has("state")) {
+    postStatus("Upserting: state…");
+    await upsertSingleModeTokenSet("state", tokens.state || {}, "Base", stats);
+  }
+  if (has("sizing")) {
+    postStatus("Upserting: sizing…");
+    await upsertSingleModeTokenSet("sizing", tokens.sizing || {}, "Base", stats);
+  }
+
+  if (syncTextStyles) {
+    postStatus("Fetching typography styles from " + hub + "/typography…");
+    const typography = await fetchJson(hub + "/typography");
+    postStatus("Upserting: Miles/ text styles…");
     await upsertTextStyles(typography, stats);
   }
 
@@ -799,6 +850,23 @@ figma.ui.onmessage = async function (msg) {
   debugLog("ui:message", msg);
   if (!msg) return;
 
+  if (msg.type === "clear-only") {
+    try {
+      var selectedCollections = Array.isArray(msg.collections) ? msg.collections : [];
+      var syncTextStyles = !!msg.syncTextStyles;
+      await clearMilesData(selectedCollections, syncTextStyles);
+      postStatus("Clear complete.", "success");
+      figma.notify("Cleared " + selectedCollections.length + " collection(s)" + (syncTextStyles ? " and Miles/ text styles" : ""));
+      figma.ui.postMessage({ type: "result", ok: true, stats: { messages: [] } });
+    } catch (err) {
+      var message = String(err && err.message ? err.message : err);
+      postStatus("Clear failed: " + message, "error");
+      figma.notify("Clear failed", { error: true });
+      figma.ui.postMessage({ type: "result", ok: false, stats: { messages: [message] } });
+    }
+    return;
+  }
+
   if (msg.type === "create-color-samples" || msg.type === "create-samples") {
     try {
       await createColorSamplesPage();
@@ -819,7 +887,11 @@ figma.ui.onmessage = async function (msg) {
   if (msg.type !== "run-sync") return;
 
   try {
-    const stats = await runSync(msg.baseUrl, !!msg.syncTextStyles);
+    const mode = msg.mode === "clear" ? "clear" : "upsert";
+    const selectedCollections = Array.isArray(msg.collections) && msg.collections.length > 0
+      ? msg.collections
+      : MILES_COLLECTION_NAMES;
+    const stats = await runSync(msg.hubUrl || msg.baseUrl, mode, selectedCollections, !!msg.syncTextStyles);
     postStatus(
       "Done. Variables created: " +
         stats.created +

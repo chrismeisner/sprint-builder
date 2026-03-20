@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <title>Miles Hub Bootstrap MVP</title>
     <style>
+      *, *::before, *::after { box-sizing: border-box; }
       body {
         margin: 0;
         padding: 16px;
@@ -25,98 +26,352 @@
       }
       input[type="text"] {
         width: 100%;
-        box-sizing: border-box;
         border: 1px solid #d1d5db;
         border-radius: 8px;
         padding: 8px;
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 12px;
       }
-      .row {
+
+      /* ---- Section header row ---- */
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .section-header label { margin: 0; }
+      .toggle-all {
+        font-size: 11px;
+        color: #6b7280;
+        cursor: pointer;
+        background: none;
+        border: 0;
+        padding: 0;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .toggle-all:hover { color: #111827; }
+
+      /* ---- Checklist ---- */
+      .checklist {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .check-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 10px;
+        background: #fff;
+        cursor: pointer;
+        transition: background 0.1s;
+      }
+      .check-row:not(:last-child) { border-bottom: 1px solid #f3f4f6; }
+      .check-row:hover { background: #f9fafb; }
+      .check-row input[type="checkbox"] {
+        margin: 0;
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        cursor: pointer;
+        accent-color: #111827;
+      }
+      .check-row.text-style-row input[type="checkbox"] {
+        accent-color: #374151;
+      }
+      .check-label { flex: 1; min-width: 0; }
+      .check-label strong { font-size: 12px; font-weight: 600; display: block; }
+      .check-label span { font-size: 11px; color: #6b7280; }
+      .check-badge {
+        font-size: 10px;
+        font-weight: 500;
+        padding: 2px 6px;
+        border-radius: 99px;
+        background: #f3f4f6;
+        color: #6b7280;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .divider {
+        height: 1px;
+        background: #e5e7eb;
+        margin: 0;
+      }
+
+      /* ---- Mode toggle ---- */
+      .mode-toggle {
+        display: flex;
+        background: #f3f4f6;
+        border-radius: 8px;
+        padding: 3px;
+        gap: 3px;
+        margin-bottom: 10px;
+      }
+      .mode-toggle button {
+        flex: 1;
+        border: 0;
+        border-radius: 6px;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        background: transparent;
+        color: #6b7280;
+        transition: background 0.15s, color 0.15s;
+      }
+      .mode-toggle button.active {
+        background: #ffffff;
+        color: #111827;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        font-weight: 600;
+      }
+      .mode-toggle button.active.danger { background: #fef2f2; color: #b91c1c; }
+
+      /* ---- Warning box ---- */
+      .warning-box {
+        display: none;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 11px;
+        color: #b91c1c;
+        line-height: 1.5;
+        margin-bottom: 10px;
+      }
+      .warning-box.visible { display: block; }
+
+      /* ---- Buttons ---- */
+      .action-row {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin-top: 10px;
       }
       .button {
         border: 0;
         border-radius: 8px;
         padding: 9px 12px;
         font-weight: 600;
+        font-size: 12px;
         cursor: pointer;
         background: #111827;
         color: #fff;
+        transition: background 0.15s;
       }
-      .button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
+      .button.danger { background: #b91c1c; }
+      .button.secondary { background: #374151; }
+      .button.ghost-danger {
+        background: transparent;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+        font-weight: 500;
       }
-      .muted {
-        color: #6b7280;
-      }
+      .button.ghost-danger:hover { background: #fef2f2; }
+      .button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+      /* ---- Status log ---- */
       .status {
         margin-top: 8px;
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
         white-space: pre-wrap;
+        max-height: 160px;
+        overflow-y: auto;
       }
-      .status .ok { color: #166534; }
-      .status .warn { color: #92400e; }
+      .status .ok    { color: #166534; }
+      .status .warn  { color: #92400e; }
       .status .error { color: #b91c1c; }
-      .status .info { color: #374151; }
-      .list {
-        margin: 0;
-        padding-left: 16px;
-      }
+      .status .info  { color: #374151; }
+
       code {
         background: #f3f4f6;
         border-radius: 4px;
         padding: 1px 4px;
+        font-size: 11px;
       }
+      .muted { color: #6b7280; }
     </style>
   </head>
   <body>
+
+    <!-- URL -->
     <div class="panel">
-      <label for="baseUrl">Local app base URL</label>
-      <input id="baseUrl" type="text" value="http://localhost:3000" />
-      <div class="row">
-        <input id="syncTextStyles" type="checkbox" checked />
-        <label for="syncTextStyles" style="margin: 0; font-weight: 500;">Create / update text styles from <code>/hub/typography</code></label>
-      </div>
-      <p class="muted" style="margin: 10px 0 0;">
-        This will upsert Figma collections and variables from:
-        <code>/sandboxes/miles-proto-2/hub/tokens</code>
-      </p>
-      <p class="muted" style="margin: 8px 0 0;">
-        Semantic color values are linked as aliases to matching primitive colors when possible.
+      <label for="hubUrl">Hub URL</label>
+      <input id="hubUrl" type="text" value="http://localhost:3000/sandboxes/miles-proto-2/hub" />
+      <p class="muted" style="margin: 4px 0 0; font-size: 10px;">
+        Full path to any project's hub endpoint — plugin appends <code>/tokens</code> and <code>/typography</code> automatically.
       </p>
     </div>
 
+    <!-- Collections to sync -->
     <div class="panel">
-      <div class="row" style="margin-top: 0;">
-        <button class="button" id="runBtn">Initialize / Upsert from Hub</button>
-        <button class="button" id="sampleBtn" style="background:#374151;">Create Color Samples</button>
+      <div class="section-header">
+        <label>Collections to sync</label>
+        <button class="toggle-all" id="toggleAllBtn" onclick="toggleAll()">Select all</button>
+      </div>
+      <div class="checklist">
+        <label class="check-row">
+          <input type="checkbox" id="col-primitives" checked />
+          <div class="check-label">
+            <strong>Primitives</strong>
+            <span>Base color palette — raw hex values</span>
+          </div>
+          <span class="check-badge">COLOR</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="col-semantic" checked />
+          <div class="check-label">
+            <strong>Semantic</strong>
+            <span>Light &amp; Dark mode aliases → primitives</span>
+          </div>
+          <span class="check-badge">COLOR · 2 modes</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="col-typography" />
+          <div class="check-label">
+            <strong>Typography</strong>
+            <span>Web font primitives (size, weight, line-height) — optional, iOS uses Text Styles instead</span>
+          </div>
+          <span class="check-badge">FLOAT / STRING</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="col-state" />
+          <div class="check-label">
+            <strong>State</strong>
+            <span>Interaction state tokens (hover, active, focus, disabled) — optional, not used in iOS handoff</span>
+          </div>
+          <span class="check-badge">FLOAT</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="col-sizing" checked />
+          <div class="check-label">
+            <strong>Sizing</strong>
+            <span>Spacing, border radius &amp; shadow</span>
+          </div>
+          <span class="check-badge">FLOAT / STRING</span>
+        </label>
+        <div class="divider"></div>
+        <label class="check-row text-style-row">
+          <input type="checkbox" id="col-textStyles" checked />
+          <div class="check-label">
+            <strong>Text styles</strong>
+            <span>Miles/* Figma text styles from <code>/hub/typography</code></span>
+          </div>
+          <span class="check-badge">TEXT STYLE</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Mode + run -->
+    <div class="panel">
+      <label style="margin-bottom: 8px;">Sync mode</label>
+      <div class="mode-toggle">
+        <button id="modeUpsert" class="active" onclick="setMode('upsert')">Upsert</button>
+        <button id="modeClear" onclick="setMode('clear')">Clear &amp; Rebuild</button>
+      </div>
+
+      <p class="muted" id="modeDesc" style="margin: 0 0 10px; font-size: 11px;">
+        Updates existing variables and adds any that are missing. Safe to run repeatedly.
+      </p>
+
+      <div class="warning-box" id="warningBox">
+        ⚠ <strong>Destructive.</strong> Deletes the checked collections and <code>Miles/</code>
+        text styles from Figma first, then rebuilds from scratch. Any manual overrides will be lost.
+      </div>
+
+      <div class="action-row">
+        <button class="button" id="runBtn">Upsert from Hub</button>
+        <button class="button secondary" id="sampleBtn">Color Samples</button>
+      </div>
+      <div class="action-row" style="margin-top: 8px;">
+        <button class="button ghost-danger" id="clearBtn">Clear checked variables</button>
       </div>
       <div id="status" class="status"></div>
     </div>
 
-    <div class="panel">
-      <strong>Expected output</strong>
-      <ul class="list muted">
-        <li>Collection: <code>primitives</code> (mode: Base)</li>
-        <li>Collection: <code>typography</code> (mode: Base)</li>
-        <li>Collection: <code>state</code> (mode: Base)</li>
-        <li>Collection: <code>sizing</code> (mode: Base)</li>
-        <li>Collection: <code>semantic</code> (modes: Light / Dark)</li>
-        <li>Text styles: <code>Miles/*</code> (optional)</li>
-      </ul>
-    </div>
-
     <script>
-      const runBtn = document.getElementById("runBtn");
-      const sampleBtn = document.getElementById("sampleBtn");
-      const baseUrlInput = document.getElementById("baseUrl");
-      const syncTextStylesInput = document.getElementById("syncTextStyles");
-      const statusEl = document.getElementById("status");
+      const runBtn         = document.getElementById("runBtn");
+      const sampleBtn      = document.getElementById("sampleBtn");
+      const clearBtn       = document.getElementById("clearBtn");
+      const hubUrlInput    = document.getElementById("hubUrl");
+      const statusEl       = document.getElementById("status");
+      const warningBox     = document.getElementById("warningBox");
+      const modeDesc       = document.getElementById("modeDesc");
+      const toggleAllBtn   = document.getElementById("toggleAllBtn");
+
+      // Collection checkbox ids (excluding text styles which is separate)
+      const COLLECTION_IDS = ["primitives", "semantic", "typography", "state", "sizing"];
+
+      let currentMode = "upsert";
+      let allChecked  = false; // typography + state unchecked by default
+
+      // ---- Toggle-all ----
+      function toggleAll() {
+        allChecked = !allChecked;
+        COLLECTION_IDS.forEach(function(id) {
+          document.getElementById("col-" + id).checked = allChecked;
+        });
+        document.getElementById("col-textStyles").checked = allChecked;
+        toggleAllBtn.textContent = allChecked ? "Deselect all" : "Select all";
+      }
+
+      // Keep toggle-all label in sync when individual boxes change
+      document.querySelectorAll(".checklist input[type='checkbox']").forEach(function(cb) {
+        cb.addEventListener("change", function() {
+          const all = Array.from(
+            document.querySelectorAll(".checklist input[type='checkbox']")
+          ).every(function(c) { return c.checked; });
+          const none = Array.from(
+            document.querySelectorAll(".checklist input[type='checkbox']")
+          ).every(function(c) { return !c.checked; });
+          if (all) {
+            allChecked = true;
+            toggleAllBtn.textContent = "Deselect all";
+          } else if (none) {
+            allChecked = false;
+            toggleAllBtn.textContent = "Select all";
+          } else {
+            toggleAllBtn.textContent = "Select all";
+          }
+        });
+      });
+
+      // ---- Mode ----
+      const MODE_CONFIG = {
+        upsert: {
+          label: "Upsert from Hub",
+          desc: "Updates existing variables and adds any that are missing. Safe to run repeatedly.",
+          danger: false,
+        },
+        clear: {
+          label: "Clear & Rebuild from Hub",
+          desc: "Deletes the checked collections and text styles first, then rebuilds everything from scratch.",
+          danger: true,
+        },
+      };
+
+      function setMode(mode) {
+        currentMode = mode;
+        const cfg = MODE_CONFIG[mode];
+        document.getElementById("modeUpsert").className = mode === "upsert" ? "active" : "";
+        document.getElementById("modeClear").className  = mode === "clear"  ? "active danger" : "";
+        runBtn.textContent  = cfg.label;
+        runBtn.className    = cfg.danger ? "button danger" : "button";
+        modeDesc.textContent = cfg.desc;
+        warningBox.className = cfg.danger ? "warning-box visible" : "warning-box";
+      }
+
+      // ---- Helpers ----
+      function getSelectedCollections() {
+        return COLLECTION_IDS.filter(function(id) {
+          return document.getElementById("col-" + id).checked;
+        });
+      }
 
       function appendStatus(message, level) {
         const line = document.createElement("div");
@@ -126,43 +381,79 @@
         statusEl.scrollTop = statusEl.scrollHeight;
       }
 
-      function clearStatus() {
-        statusEl.innerHTML = "";
+      function clearStatus() { statusEl.innerHTML = ""; }
+
+      function setBusy(busy) {
+        runBtn.disabled    = busy;
+        sampleBtn.disabled = busy;
+        clearBtn.disabled  = busy;
+        document.querySelectorAll(".checklist input[type='checkbox']").forEach(function(cb) {
+          cb.disabled = busy;
+        });
+        toggleAllBtn.disabled = busy;
       }
 
-      runBtn.onclick = () => {
+      // ---- Run sync ----
+      runBtn.onclick = function() {
+        const collections = getSelectedCollections();
+        const syncTextStyles = document.getElementById("col-textStyles").checked;
+
+        if (collections.length === 0 && !syncTextStyles) {
+          appendStatus("Nothing selected — check at least one category.", "warn");
+          return;
+        }
+
         clearStatus();
-        runBtn.disabled = true;
-        sampleBtn.disabled = true;
-        appendStatus("Starting sync...", "info");
+        setBusy(true);
+        appendStatus(currentMode === "clear" ? "Clearing and rebuilding…" : "Starting sync…", "info");
+
         parent.postMessage(
           {
             pluginMessage: {
               type: "run-sync",
-              baseUrl: baseUrlInput.value.trim(),
-              syncTextStyles: syncTextStylesInput.checked,
+              mode: currentMode,
+              hubUrl: hubUrlInput.value.trim(),
+              collections: collections,
+              syncTextStyles: syncTextStyles,
             },
           },
           "*"
         );
       };
 
-      sampleBtn.onclick = () => {
+      // ---- Clear variables only ----
+      clearBtn.onclick = function() {
+        var collections = getSelectedCollections();
+        var syncTextStyles = document.getElementById("col-textStyles").checked;
+
+        if (collections.length === 0 && !syncTextStyles) {
+          appendStatus("Nothing selected — check at least one category.", "warn");
+          return;
+        }
+
+        var label = collections.join(", ");
+        if (syncTextStyles) label += (label ? ", " : "") + "Miles/* text styles";
+        if (!confirm("Delete these from Figma?\n\n" + label + "\n\nThis cannot be undone.")) return;
+
         clearStatus();
-        runBtn.disabled = true;
-        sampleBtn.disabled = true;
-        appendStatus("Creating color samples page...", "info");
+        setBusy(true);
+        appendStatus("Clearing: " + label + "…", "info");
         parent.postMessage(
-          {
-            pluginMessage: {
-              type: "create-color-samples",
-            },
-          },
+          { pluginMessage: { type: "clear-only", collections: collections, syncTextStyles: syncTextStyles } },
           "*"
         );
       };
 
-      window.onmessage = (event) => {
+      // ---- Color samples ----
+      sampleBtn.onclick = function() {
+        clearStatus();
+        setBusy(true);
+        appendStatus("Creating color samples page…", "info");
+        parent.postMessage({ pluginMessage: { type: "create-color-samples" } }, "*");
+      };
+
+      // ---- Receive messages ----
+      window.onmessage = function(event) {
         const msg = event.data && event.data.pluginMessage;
         if (!msg) return;
 
@@ -170,15 +461,10 @@
           appendStatus(msg.message, msg.level || "info");
         }
         if (msg.type === "result") {
-          runBtn.disabled = false;
-          sampleBtn.disabled = false;
-          if (msg.ok) {
-            appendStatus("Sync completed successfully.", "ok");
-          } else {
-            appendStatus("Sync completed with errors.", "warn");
-          }
+          setBusy(false);
+          appendStatus(msg.ok ? "Completed successfully." : "Completed with errors.", msg.ok ? "ok" : "warn");
           if (msg.stats && Array.isArray(msg.stats.messages)) {
-            msg.stats.messages.forEach((m) => appendStatus(m, "warn"));
+            msg.stats.messages.forEach(function(m) { appendStatus(m, "warn"); });
           }
         }
       };

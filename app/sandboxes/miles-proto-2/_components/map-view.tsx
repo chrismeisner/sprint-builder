@@ -23,10 +23,15 @@ export interface MapMarker {
   type?: "start" | "end" | "event" | "vehicle";
   label?: string;
   color?: string;
+  /** Override the label pill background independently from the marker dot/circle color */
+  labelColor?: string;
   initial?: string;
   imageSrc?: string;
   /** Overlapping avatar (e.g. vehicle) shown bottom-right on top of imageSrc — trip list / todo style */
   overlayImageSrc?: string;
+  /** Overlapping initial badge (solid color circle with letter) shown bottom-right on top of imageSrc */
+  overlayInitial?: string;
+  overlayColor?: string;
   carIcon?: boolean;
 }
 
@@ -62,10 +67,22 @@ function createMarkerElement(m: MapMarker): HTMLDivElement {
   }
 
   const hasPhoto = !!m.imageSrc;
-  const hasOverlay = !!m.overlayImageSrc;
+  const hasOverlay = !!m.overlayImageSrc || !!m.overlayInitial;
   const hasAvatar = !!(m.initial || m.imageSrc || m.carIcon);
-  const avatarSize = hasPhoto ? 56 : m.carIcon ? 40 : hasAvatar ? 28 : type === "event" ? 16 : 14;
-  const borderW = hasPhoto ? 3 : 2.5;
+  /* Initial + label pill (e.g. fleet “Parked”) should match the main circle size of photo + overlay markers (e.g. “Driving”). */
+  const largeInitialWithLabel = !!(m.initial && m.label && !m.imageSrc && !m.carIcon);
+  const avatarSize = hasPhoto
+    ? 56
+    : m.carIcon
+      ? 40
+      : largeInitialWithLabel
+        ? 56
+        : hasAvatar
+          ? 28
+          : type === "event"
+            ? 16
+            : 14;
+  const borderW = hasPhoto || largeInitialWithLabel ? 3 : 2.5;
 
   let avatarHtml: string;
   if (m.carIcon) {
@@ -75,14 +92,19 @@ function createMarkerElement(m: MapMarker): HTMLDivElement {
     /* Trip-active style: large profile avatar + vehicle overlay circle (recent trips / todo style) */
     const overlaySize = 28;
     const overlayOffset = -4;
+    const overlayBadge = m.overlayInitial
+      ? `<div style="position:absolute;right:${overlayOffset}px;bottom:${overlayOffset}px;width:${overlaySize}px;height:${overlaySize}px;border-radius:9999px;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.25);background:${m.overlayColor ?? color};display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;font-family:system-ui,-apple-system,sans-serif;line-height:1;">${m.overlayInitial}</div>`
+      : `<div style="position:absolute;right:${overlayOffset}px;bottom:${overlayOffset}px;width:${overlaySize}px;height:${overlaySize}px;border-radius:9999px;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.25);overflow:hidden;background:#e5e7eb;"><img src="${m.overlayImageSrc}" style="width:100%;height:100%;object-fit:cover;" /></div>`;
     avatarHtml = `<div style="position:relative;display:inline-flex;flex-shrink:0;">
       <div style="width:${avatarSize}px;height:${avatarSize}px;border-radius:9999px;border:${borderW}px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3);overflow:hidden;"><img src="${m.imageSrc}" style="width:100%;height:100%;object-fit:cover;" /></div>
-      <div style="position:absolute;right:${overlayOffset}px;bottom:${overlayOffset}px;width:${overlaySize}px;height:${overlaySize}px;border-radius:9999px;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.25);overflow:hidden;background:#e5e7eb;"><img src="${m.overlayImageSrc}" style="width:100%;height:100%;object-fit:cover;" /></div>
+      ${overlayBadge}
     </div>`;
   } else if (m.imageSrc) {
     avatarHtml = `<div style="width:${avatarSize}px;height:${avatarSize}px;border-radius:9999px;border:${borderW}px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3);flex-shrink:0;overflow:hidden;"><img src="${m.imageSrc}" style="width:100%;height:100%;object-fit:cover;" /></div>`;
   } else if (m.initial) {
-    avatarHtml = `<div style="width:${avatarSize}px;height:${avatarSize}px;background:${color};border-radius:9999px;border:2.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,.25);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;font-family:system-ui,-apple-system,sans-serif;line-height:1;">${m.initial}</div>`;
+    const initialFontSize = largeInitialWithLabel ? 22 : 11;
+    const initialShadow = largeInitialWithLabel ? "0 2px 8px rgba(0,0,0,.3)" : "0 1px 4px rgba(0,0,0,.25)";
+    avatarHtml = `<div style="width:${avatarSize}px;height:${avatarSize}px;background:${color};border-radius:9999px;border:${borderW}px solid white;box-shadow:${initialShadow};flex-shrink:0;display:flex;align-items:center;justify-content:center;color:white;font-size:${initialFontSize}px;font-weight:700;font-family:system-ui,-apple-system,sans-serif;line-height:1;">${m.initial}</div>`;
   } else {
     avatarHtml = `<div style="width:${avatarSize}px;height:${avatarSize}px;background:${color};border-radius:9999px;border:2.5px solid ${borderColor};box-shadow:0 1px 4px rgba(0,0,0,.25);flex-shrink:0;"></div>`;
   }
@@ -92,8 +114,9 @@ function createMarkerElement(m: MapMarker): HTMLDivElement {
     const labelFontSize = hasPhoto ? 11 : 10;
     const labelPad = hasPhoto ? "4px 10px" : "3px 8px";
     const gap = hasPhoto ? 6 : 4;
+    const pillColor = m.labelColor ?? color;
     el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:${gap}px;pointer-events:none;">
-      <div style="background:${color};color:white;border-radius:9999px;padding:${labelPad};font-size:${labelFontSize}px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.2);font-family:system-ui,-apple-system,sans-serif;line-height:1.4;letter-spacing:0.03em;text-transform:uppercase;">${m.label}</div>
+      <div style="background:${pillColor};color:white;border-radius:9999px;padding:${labelPad};font-size:${labelFontSize}px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.2);font-family:system-ui,-apple-system,sans-serif;line-height:1.4;letter-spacing:0.03em;text-transform:uppercase;">${m.label}</div>
       ${avatarHtml}
     </div>`;
   } else {

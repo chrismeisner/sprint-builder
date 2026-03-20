@@ -1,34 +1,25 @@
 import { NextResponse } from "next/server";
-import { typographyScale } from "@/lib/design-system/tokens";
+import { iosTypographyScale } from "@/lib/design-system/ios-typography";
 
 export const dynamic = "force-dynamic";
 
-type TypographyStyle = {
+/**
+ * Returns one Figma text style per iOS typography token.
+ * Style names follow the pattern: Miles/{name}  (e.g. "Miles/Large Title")
+ *
+ * No mobile/desktop split — this is an iOS handoff reference and every
+ * style maps directly to a single iOS HIG Dynamic Type role or a named
+ * custom size.
+ */
+
+type FigmaTextStyle = {
   name: string;
   fontFamily: string;
-  fontWeight: number;
   fontStyle: string;
   fontSizePx: number;
   lineHeightPx: number;
   letterSpacingPercent: number;
 };
-
-function parseToPx(input: string): number {
-  const value = input.trim().toLowerCase();
-  if (value.endsWith("px")) {
-    return parseFloat(value.slice(0, -2));
-  }
-  if (value.endsWith("rem")) {
-    return parseFloat(value.slice(0, -3)) * 16;
-  }
-  const asNum = parseFloat(value);
-  return Number.isFinite(asNum) ? asNum : 0;
-}
-
-function parseWeight(input: string): number {
-  const m = input.match(/(\d{3})/);
-  return m ? parseInt(m[1], 10) : 400;
-}
 
 function fontStyleFromWeight(weight: number): string {
   if (weight >= 900) return "Black";
@@ -36,47 +27,23 @@ function fontStyleFromWeight(weight: number): string {
   if (weight >= 700) return "Bold";
   if (weight >= 600) return "Semi Bold";
   if (weight >= 500) return "Medium";
+  if (weight >= 400) return "Regular";
   if (weight >= 300) return "Light";
   return "Regular";
 }
 
-function inferLetterSpacingPercent(baseClass: string): number {
-  const m = baseClass.match(/tracking-\[(-?\d*\.?\d+)em\]/);
-  if (!m) return 0;
-  return parseFloat(m[1]) * 100;
-}
-
-function buildStyles(): TypographyStyle[] {
-  const styles: TypographyStyle[] = [];
-
-  typographyScale.forEach((token) => {
-    const weight = parseWeight(token.fontWeight);
-    const fontStyle = fontStyleFromWeight(weight);
-    const letterSpacingPercent = inferLetterSpacingPercent(token.baseClass);
-    const family = token.fontFamily.includes("Inter") ? "Inter" : "Inter";
-
-    styles.push({
-      name: `Miles/${token.id}/mobile`,
-      fontFamily: family,
-      fontWeight: weight,
-      fontStyle,
-      fontSizePx: parseToPx(token.mobile.rem),
-      lineHeightPx: parseToPx(token.mobile.lineHeight),
-      letterSpacingPercent,
-    });
-
-    styles.push({
-      name: `Miles/${token.id}/desktop`,
-      fontFamily: family,
-      fontWeight: weight,
-      fontStyle,
-      fontSizePx: parseToPx(token.desktop.rem),
-      lineHeightPx: parseToPx(token.desktop.lineHeight),
-      letterSpacingPercent,
-    });
-  });
-
-  return styles;
+function buildStyles(): FigmaTextStyle[] {
+  return iosTypographyScale.map((token) => ({
+    name: `Miles/${token.name}`,
+    // AI voice styles use Roboto Mono (widely available in Figma);
+    // all others use Inter (maps to SF Pro on iOS).
+    fontFamily: token.mono ? "Roboto Mono" : "Inter",
+    fontStyle: fontStyleFromWeight(token.fontWeightNumeric),
+    fontSizePx: token.sizePx,
+    lineHeightPx: token.lineHeightPx,
+    // Convert em → percent (Figma uses percent for letter spacing)
+    letterSpacingPercent: token.letterSpacingEm * 100,
+  }));
 }
 
 function withCors(response: NextResponse) {
@@ -93,9 +60,7 @@ export async function OPTIONS() {
 export async function GET() {
   return withCors(
     NextResponse.json(
-      {
-        styles: buildStyles(),
-      },
+      { styles: buildStyles() },
       {
         headers: {
           "Cache-Control": "no-store, max-age=0",

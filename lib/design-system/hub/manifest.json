@@ -1,29 +1,23 @@
 {
-  "name": "form-intake design system hub",
-  "version": "0.1.0",
-  "description": "Single source of truth for tokens and component contracts. Synced from Figma; consumed by Style Dictionary and the app.",
-  "source": {
-    "figma": {
-      "fileKey": "YOUR_FIGMA_FILE_KEY",
-      "sync": "Figma → hub (variables API); hub → CSS/App via Style Dictionary"
-    }
-  },
+  "name": "Miles design system hub",
+  "version": "0.2.0",
+  "description": "Single source of truth for design tokens, typography, and component contracts. The Figma plugin reads from hub API routes; the app consumes tokens via CSS variables and Tailwind.",
   "tokenSets": {
-    "order": ["primitives", "sizing", "semantic-light", "semantic-dark"],
+    "order": ["primitives", "typography", "state", "semantic-light", "semantic-dark", "sizing"],
     "paths": {
       "primitives": "../tokens/primitives.json",
-      "sizing": "../tokens/sizing.json",
+      "typography": "../tokens/typography.json",
+      "state": "../tokens/state.json",
       "semantic-light": "../tokens/semantic-light.json",
-      "semantic-dark": "../tokens/semantic-dark.json"
+      "semantic-dark": "../tokens/semantic-dark.json",
+      "sizing": "../tokens/sizing.json"
     }
   },
-  "outputs": {
-    "css": {
-      "primitives": "app/generated-tokens.css",
-      "semantic-light": "app/generated-semantic-light.css",
-      "semantic-dark": "app/generated-semantic-dark.css"
-    },
-    "tailwind": "lib/design-system/tailwind-tokens.json"
+  "hubRoutes": {
+    "tokens": "/hub/tokens",
+    "typography": "/hub/typography",
+    "manifest": "/hub/manifest",
+    "componentSpecs": "/hub/component-specs"
   },
   "componentSpecs": "./component-specs.json"
 }

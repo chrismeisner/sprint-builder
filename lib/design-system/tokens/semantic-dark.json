@@ -9,9 +9,7 @@
   },
   "brand": {
     "primary": { "$value": "#ffffff", "$type": "color" },
-    "inverse": { "$value": "#000000", "$type": "color" },
-    "muted":   { "$value": "#d4d4d4", "$type": "color" },
-    "accent":  { "$value": "#03ff7f", "$type": "color" }
+    "inverse": { "$value": "#000000", "$type": "color" }
   },
   "surface": {
     "subtle": { "$value": "#171717", "$type": "color" },

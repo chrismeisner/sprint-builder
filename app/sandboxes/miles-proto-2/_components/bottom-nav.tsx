@@ -176,7 +176,7 @@ const TABS: TabDef[] = [
   },
   {
     href: "/profile",
-    label: "Profile",
+    label: "Account",
     icon: AccountIcon,
     match: (pn) =>
       pn === `${BASE}/profile` ||
@@ -231,11 +231,11 @@ function BottomNavInner() {
     pathname === `${BASE}/device-health` || pathname === `${BASE}/device-health/`;
   const fromTab = isVehicleModal ? (searchParams.get("from") ?? "dashboard") : null;
   const tabsToRender =
-    footerNavMode === "compact" ? TABS.filter((tab) => tab.label !== "Profile") : TABS;
+    footerNavMode === "compact" ? TABS.filter((tab) => tab.label !== "Account") : TABS;
 
   return (
     <nav
-      className="z-30 shrink-0 border-t border-neutral-200/80 bg-white/95 backdrop-blur-xl"
+      className="z-30 shrink-0 border-t border-neutral-200/80 bg-white/95 backdrop-blur-xl dark:border-neutral-800/80 dark:bg-neutral-950/95"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="mx-auto flex items-center justify-around px-2 py-2">
@@ -251,12 +251,12 @@ function BottomNavInner() {
               <span className="relative flex items-center justify-center">
                 <Icon active={active} />
                 {tab.badge && !active && (
-                  <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-blue-600 ring-2 ring-white" />
+                  <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-blue-600 ring-2 ring-white dark:ring-neutral-950" />
                 )}
               </span>
               <span
                 className={`text-[10px] font-medium leading-none transition-colors ${
-                  active ? "text-blue-600" : "text-neutral-400"
+                  active ? "text-blue-600" : "text-neutral-400 dark:text-neutral-500"
                 }`}
               >
                 {tab.label}
@@ -267,7 +267,7 @@ function BottomNavInner() {
             <Link
               key={tab.href}
               href={tab.href}
-              className="relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              className="relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950"
             >
               {linkContent}
             </Link>

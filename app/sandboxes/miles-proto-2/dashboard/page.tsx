@@ -1,11 +1,11 @@
 "use client";
 
-import { Suspense, useState, useCallback, useRef, useEffect } from "react";
+import { Suspense, useState, useCallback, useRef, useEffect, useLayoutEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "@/app/sandboxes/miles-proto-2/_components/link";
 import { MapView } from "@/app/sandboxes/miles-proto-2/_components/map-view";
 import { TodoPreview } from "@/app/sandboxes/miles-proto-2/_components/todo-preview";
-import { TripListItem } from "@/app/sandboxes/miles-proto-2/_components/trip-list-item";
+import { useForceLightMode, setForceLightMode } from "@/app/sandboxes/miles-proto-2/_components/force-light-mode";
 import { DEMO_TODOS } from "@/app/sandboxes/miles-proto-2/_lib/demo-todos";
 import { DEMO_TRIPS } from "@/app/sandboxes/miles-proto-2/_lib/demo-trips";
 import { p } from "@/app/sandboxes/miles-proto-2/_lib/nav";
@@ -33,7 +33,7 @@ const AVATAR_TEEN = "/miles-proto-2/images/teen.jpg";
 /*  Role              iOS name        Tailwind                         */
 /*  ────────────────  ──────────────  ──────────────────────────────── */
 /*  Large Title       34pt bold       text-3xl  font-bold              */
-/*  Display / Hero    —               text-[2rem] font-semibold uppercase */
+/*  Display / Hero    —               text-2xl   font-semibold uppercase */
 /*  Title 3           20pt regular    text-lg   font-semibold          */
 /*  Headline          17pt semibold   text-base font-semibold          */
 /*  Body              17pt regular    text-base font-normal            */
@@ -49,14 +49,14 @@ const AVATAR_TEEN = "/miles-proto-2/images/teen.jpg";
 /*                                                                     */
 /* ------------------------------------------------------------------ */
 /*  iOS Corner Radius Reference                                        */
-/*  All semantic radius tokens are 4px (4pt on iOS).                   */
 /*                                                                     */
 /*  Token             Tailwind         iOS (SwiftUI)                   */
 /*  ────────────────  ──────────────── ──────────────────────────────  */
-/*  Card              rounded-card     .cornerRadius(4)                */
-/*  Panel             rounded-panel    .cornerRadius(4)                */
-/*  Control           rounded-control  .cornerRadius(4)                */
-/*  Pill / Capsule    rounded-full     .clipShape(Capsule())           */
+/*  Card    16px      rounded-card     .cornerRadius(16)               */
+/*  Panel   12px      rounded-panel    .cornerRadius(12)               */
+/*  Control  8px      rounded-control  .cornerRadius(8)                */
+/*  Pill              rounded-pill     .clipShape(Capsule())           */
+/*  Circle            rounded-full     .clipShape(Circle())            */
 /* ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ */
@@ -79,7 +79,10 @@ interface Vehicle {
   fuelPct: number | null;
   deviceOnline: boolean;
   driverScore: number;
+  scoreDelta: number;
   scoreUpdated: string;
+  engineNote: string;
+  fuelRange: string;
   liveTrip?: { driver: string; vehicleLabel: string; mph: number; startedAgo: string };
   lastTrip: {
     from: string;
@@ -109,7 +112,10 @@ const VEHICLES: Vehicle[] = [
     fuelPct: 62,
     deviceOnline: true,
     driverScore: 82,
+    scoreDelta: 3,
     scoreUpdated: "Updated today",
+    engineNote: "No fault codes",
+    fuelRange: "~230 mi range",
     lastTrip: {
       from: "Preston Rd & Belt Line",
       to: "4521 Main St",
@@ -136,7 +142,10 @@ const VEHICLES: Vehicle[] = [
     fuelPct: 38,
     deviceOnline: true,
     driverScore: 74,
+    scoreDelta: -2,
     scoreUpdated: "Updated today",
+    engineNote: "No fault codes",
+    fuelRange: "~120 mi range",
     liveTrip: { driver: "Jack", vehicleLabel: "Toyota RAV4", mph: 34, startedAgo: "12 mins ago" },
     lastTrip: {
       from: "Preston Rd & Belt Line",
@@ -208,7 +217,6 @@ const TRIP_SUMMARY = {
   driver: "Emma",
 };
 
-const RECENT_TRIPS = DEMO_TRIPS.slice(0, 3);
 
 /* ------------------------------------------------------------------ */
 /*  Shared vehicle content (no map) — used by both list and card view  */
@@ -243,63 +251,89 @@ function VehicleCardContent({ v, showAvatars = false }: { v: Vehicle; showAvatar
 
   return (
     <>
-      {/* Vehicle header: row 1 = pill; row 2 = nickname + location (left) | car image (right) */}
+      {/* Vehicle header: name first, then status, then location (left) | car image (right) */}
       <Link href={vehicleHref} className="flex flex-col gap-2 px-4 pt-3.5 pb-2 transition-colors hover:bg-background/80">
-        <div className="flex flex-wrap items-center gap-2">
-          {live ? (
-            <span className="flex w-fit items-center gap-1.5 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-semantic-success">
-              <span className="relative flex size-1.5">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-semantic-success opacity-75" />
-                <span className="relative inline-flex size-1.5 rounded-full bg-semantic-success" />
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <span className="text-2xl font-semibold uppercase leading-tight text-text-primary">{v.name}</span>
+            {live ? (
+              <span className="flex w-fit items-center gap-1.5 rounded-full bg-semantic-success px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-background">
+                <span className="relative flex size-1.5">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-background opacity-75" />
+                  <span className="relative inline-flex size-1.5 rounded-full bg-background" />
+                </span>
+                Driving
               </span>
-              Trip active
-            </span>
-          ) : (
-            <span className="w-fit rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
-              Parked
-            </span>
-          )}
-        </div>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-[2rem] font-semibold uppercase leading-tight text-text-primary">{v.name}</span>
+            ) : (
+              <span className="w-fit rounded-full bg-semantic-info px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-background">
+                Parked
+              </span>
+            )}
             <span className="flex min-w-0 items-center gap-1.5 text-sm text-text-muted">
               {LOCATION_ICON}
               <span className="truncate">{locationLine}</span>
             </span>
           </div>
-          <img
-            src={v.imageSrc}
-            alt={v.name}
-            className="w-24 shrink-0 object-contain opacity-90"
-          />
+          <div className="flex shrink-0 items-center gap-1">
+            <img
+              src={v.imageSrc}
+              alt={v.name}
+              className="w-24 object-contain opacity-90"
+            />
+            <svg className="size-3.5 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </div>
         </div>
       </Link>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-2 px-4 pb-3">
-        <div className="flex flex-col gap-1 rounded bg-surface-subtle px-3 py-2.5">
+      <Link href={vehicleHref} className="flex flex-col gap-2 px-4 pb-3 transition-colors hover:bg-background/60">
+      <div className="grid grid-cols-3 gap-2">
+        {/* Score */}
+        <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
           <span className="text-[11px] font-medium text-text-muted">Score</span>
           <div className="flex items-center gap-1.5">
             <span className="size-1.5 rounded-full bg-semantic-success" />
             <span className="text-sm font-semibold leading-none text-semantic-success">{v.driverScore}</span>
           </div>
+          <div className="flex items-center gap-0.5">
+            {v.scoreDelta >= 0 ? (
+              <svg className="size-2.5 shrink-0 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+              </svg>
+            ) : (
+              <svg className="size-2.5 shrink-0 text-semantic-warning" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+              </svg>
+            )}
+            <span className={`text-[10px] font-medium leading-none tabular-nums ${v.scoreDelta >= 0 ? "text-semantic-success" : "text-semantic-warning"}`}>
+              {v.scoreDelta >= 0 ? "+" : ""}{v.scoreDelta}
+            </span>
+            <span className="text-[10px] font-medium leading-none text-text-muted">· 24h</span>
+          </div>
         </div>
-        <div className="flex flex-col gap-1 rounded bg-surface-subtle px-3 py-2.5">
+        {/* Engine */}
+        <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
           <span className="text-[11px] font-medium text-text-muted">Engine</span>
           <div className="flex items-center gap-1.5">
             <span className={`size-1.5 rounded-full ${engineDot}`} />
             <span className={`text-sm font-semibold leading-none ${engineText}`}>{engineLabel}</span>
           </div>
+          <span className="text-[10px] font-medium leading-none text-text-muted">{v.engineNote}</span>
         </div>
-        <div className="flex flex-col gap-1 rounded bg-surface-subtle px-3 py-2.5">
+        {/* Fuel */}
+        <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
           <span className="text-[11px] font-medium text-text-muted">Fuel</span>
           <div className="flex items-center gap-1.5">
             <span className={`size-1.5 rounded-full ${fuelDot}`} />
             <span className={`text-sm font-semibold leading-none ${fuelText}`}>{fuelPct}%</span>
           </div>
+          <span className="text-[10px] font-medium leading-none text-text-muted">{v.fuelRange}</span>
         </div>
       </div>
+
+      </Link>
 
       {/* Driver strip — live trip only, below bento */}
       {live && tripHref && (
@@ -311,7 +345,7 @@ function VehicleCardContent({ v, showAvatars = false }: { v: Vehicle; showAvatar
             {showAvatars ? (
               <img src={AVATAR_TEEN} alt={live.driver} className="size-7 shrink-0 rounded-full object-cover" />
             ) : (
-              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-semantic-success text-[11px] font-semibold text-background">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-semantic-success text-[11px] font-medium text-background">
                 {live.driver[0]}
               </div>
             )}
@@ -323,7 +357,7 @@ function VehicleCardContent({ v, showAvatars = false }: { v: Vehicle; showAvatar
           <div className="flex items-center gap-1.5">
             <div className="flex items-baseline gap-0.5">
               <span className="text-lg font-bold tabular-nums text-semantic-success">{live.mph}</span>
-              <span className="text-[11px] text-semantic-success">mph</span>
+              <span className="text-[11px] font-medium text-semantic-success">mph</span>
             </div>
             <svg className="size-3.5 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -339,16 +373,66 @@ function VehicleCardContent({ v, showAvatars = false }: { v: Vehicle; showAvatar
 /*  Fleet view with list / card toggle                                 */
 /* ------------------------------------------------------------------ */
 
+function HeaderAction({
+  headerAction,
+  size = "default",
+}: {
+  headerAction: "profile" | "roadside";
+  size?: "default" | "compact";
+}) {
+  if (headerAction === "roadside") {
+    return (
+      <button
+        type="button"
+        aria-label="Roadside Assist"
+        className={`inline-flex shrink-0 items-center justify-center rounded-full border border-stroke-muted bg-surface-card transition-colors hover:bg-surface-subtle ${
+          size === "compact" ? "size-9" : "size-11"
+        }`}
+      >
+        <svg
+          className={`text-semantic-danger ${size === "compact" ? "size-4" : "size-5"}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+          aria-hidden
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+        </svg>
+      </button>
+    );
+  }
+  return (
+    <Link
+      href="/account"
+      className={`flex items-center gap-2 rounded-full transition-colors hover:bg-surface-strong ${
+        size === "compact" ? "py-0.5 pl-2 pr-0.5 min-h-9" : "py-1 pl-3 pr-1 min-h-11"
+      }`}
+    >
+      {size !== "compact" && (
+        <span className="text-sm font-medium text-text-secondary">Christina M.</span>
+      )}
+      <img
+        src={AVATAR_MOM}
+        alt="Christina M."
+        className={`shrink-0 rounded-full object-cover ${size === "compact" ? "size-7" : "size-8"}`}
+      />
+    </Link>
+  );
+}
+
 function FleetView({
   vehicles,
   headerAction,
   showAvatars,
   mapStyle,
+  titleRef,
 }: {
   vehicles: Vehicle[];
   headerAction: "profile" | "roadside";
   showAvatars: boolean;
   mapStyle: string;
+  titleRef?: React.RefObject<HTMLHeadingElement>;
 }) {
   const liveVehicle = vehicles.find((v) => v.liveTrip);
 
@@ -359,22 +443,22 @@ function FleetView({
         lat: v.parkedAt.lat,
         lng: v.parkedAt.lng,
         type: "end" as const,
-        color: "#2563eb",
+        color: VEHICLE_COLOR_MAP[v.name] ?? "#6b7280",
+        labelColor: "#2563eb",
         label: "Parked",
         initial: v.name[0],
-        ...(showAvatars ? { imageSrc: v.imageSrc } : {}),
       })),
     ...(liveVehicle
       ? [{
           lat: LIVE_ROUTE[LIVE_ROUTE.length - 1][0],
           lng: LIVE_ROUTE[LIVE_ROUTE.length - 1][1],
           type: "end" as const,
-          color: "#16a34a",
-          label: "Trip active",
-          initial: liveVehicle.liveTrip!.driver[0],
-          ...(showAvatars
-            ? { imageSrc: AVATAR_TEEN, overlayImageSrc: liveVehicle.imageSrc }
-            : {}),
+          color: VEHICLE_COLOR_MAP[liveVehicle.name] ?? "#6b7280",
+          labelColor: "#16a34a",
+          label: "Driving",
+          imageSrc: AVATAR_TEEN,
+          overlayInitial: liveVehicle.name[0],
+          overlayColor: VEHICLE_COLOR_MAP[liveVehicle.name] ?? "#6b7280",
         }]
       : []),
   ];
@@ -383,38 +467,19 @@ function FleetView({
     <div className="flex flex-col gap-4">
       {/* Dashboard header */}
       <div className="flex items-center justify-between px-5 pt-2">
-        <h1 className="text-3xl font-bold leading-tight text-text-primary">Miles</h1>
-        {headerAction === "roadside" ? (
-          <button
-            type="button"
-            className="flex h-11 items-center gap-1.5 rounded-full border border-stroke-muted bg-surface-card px-3 transition-colors hover:bg-surface-subtle"
-          >
-            <div className="flex size-6 items-center justify-center rounded-full bg-surface-subtle">
-              <svg className="size-3.5 text-semantic-danger" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-              </svg>
-            </div>
-            <span className="text-xs font-semibold text-semantic-danger">Roadside Assist</span>
-          </button>
-        ) : (
-          <Link
-            href="/account"
-            className="flex min-h-11 items-center gap-2 rounded-full py-1 pl-3 pr-1 transition-colors hover:bg-surface-strong"
-          >
-            <span className="text-sm font-medium text-text-secondary">Christina M.</span>
-            <img
-              src={AVATAR_MOM}
-              alt="Christina M."
-              className="size-8 shrink-0 rounded-full object-cover"
-            />
-          </Link>
-        )}
+        <h1
+          ref={titleRef}
+          className="text-3xl font-bold leading-tight text-text-primary"
+        >
+          Miles
+        </h1>
+        <HeaderAction headerAction={headerAction} />
       </div>
 
       {/* Fleet map — always shown; fitBounds so both parked and trip-active markers are visible */}
-      <div className="mx-5 overflow-hidden rounded-card border border-stroke-muted">
+      <div className="mx-5 overflow-hidden rounded-card border border-stroke-muted shadow-card">
         <div className="relative aspect-[3/2] w-full overflow-hidden">
-          <MapView key={`fleet-${showAvatars}-${mapStyle}`} markers={allMarkers} mapStyle={mapStyle} />
+          <MapView key={`fleet-${showAvatars}-${mapStyle}-${liveVehicle ? "live" : "parked"}`} markers={allMarkers} mapStyle={mapStyle} />
         </div>
       </div>
 
@@ -443,33 +508,338 @@ const DRIVER_AVATAR_MAP: Record<string, string> = {
   Emma: AVATAR_TEEN,
 };
 
-const VEHICLE_AVATAR_MAP: Record<string, string> = {
-  Civic: "/api/sandbox-files/miles-proto-2/public/images/civic.jpg",
-  RAV4: "/api/sandbox-files/miles-proto-2/public/images/rav4.jpg",
+const VEHICLE_COLOR_MAP: Record<string, string> = {
+  Civic: "#9b1c1c",
+  RAV4: "#6b8cae",
 };
 
-function RecentTrips({ showAvatars = false }: { showAvatars?: boolean }) {
+function TripActivityItem({
+  trip,
+  href,
+  showAvatars,
+  driverImageSrc,
+  vehicleColor = "#2563eb",
+}: {
+  trip: (typeof DEMO_TRIPS)[number];
+  href: string;
+  showAvatars: boolean;
+  driverImageSrc?: string;
+  vehicleColor?: string;
+}) {
   return (
-    <div className="mx-5 flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
+      {/* Timestamp — outside the card, end time only (duration pill handles the rest) */}
+      <span className="px-1 text-[11px] tabular-nums text-text-muted">
+        {trip.date} · {trip.timeRange.split(/\s*[–-]\s*/).pop()}
+      </span>
+
+    <div className="relative flex items-start gap-3 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-surface-subtle">
+      <button
+        type="button"
+        className="absolute right-3 top-3 shrink-0 rounded-full border border-stroke-muted bg-surface-subtle px-2.5 py-0.5 text-[10px] font-semibold text-text-muted transition-colors hover:bg-surface-strong hover:text-text-secondary"
+      >
+        Ask Miles
+      </button>
+
+      {/* Avatar */}
+      <div className="relative mt-0.5 shrink-0">
+        {showAvatars && driverImageSrc ? (
+          <>
+            <img
+              src={driverImageSrc}
+              alt={trip.driver}
+              className="size-9 rounded-full border-2 border-background object-cover shadow-sm"
+            />
+            {trip.vehicle && (
+              <span
+                className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full border-2 border-background text-[9px] font-bold leading-none text-white shadow-sm"
+                style={{ backgroundColor: vehicleColor }}
+              >
+                {trip.vehicle[0]}
+              </span>
+            )}
+          </>
+        ) : (
+          <div className="flex size-9 items-center justify-center rounded-full bg-surface-subtle">
+            <svg className="size-4 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+            </svg>
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5 pr-20">
+        {/* Driver · vehicle */}
+        <span className="text-xs font-medium text-text-muted">
+          {trip.driver}{trip.vehicle ? ` · ${trip.vehicle}` : ""}
+        </span>
+
+        {/* Route */}
+        <Link href={href} className="block overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold leading-snug text-text-primary hover:underline">
+          {trip.from} → {trip.to}
+        </Link>
+
+        {/* Meta row */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] font-medium text-text-muted tabular-nums">{trip.duration}</span>
+          <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] font-medium text-text-muted">{trip.distance}</span>
+        </div>
+      </div>
+    </div>
+    </div>
+  );
+}
+
+interface ScoreUpdateItem {
+  id: string;
+  vehicle: string;
+  score: number;
+  delta: number;
+  date: string;
+  time: string;
+}
+
+const DEMO_SCORE_UPDATES: ScoreUpdateItem[] = [
+  { id: "su1", vehicle: "Civic",  score: 82, delta:  3, date: "Today",     time: "9:02 AM" },
+  { id: "su2", vehicle: "RAV4",   score: 74, delta: -2, date: "Yesterday", time: "9:00 AM" },
+];
+
+function ScoreUpdateActivityItem({ item }: { item: ScoreUpdateItem }) {
+  const isUp = item.delta >= 0;
+  const deltaColor = isUp ? "text-semantic-success" : "text-semantic-warning";
+  const dotColor   = isUp ? "bg-semantic-success"   : "bg-semantic-warning";
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="px-1 text-[11px] tabular-nums text-text-muted">
+        {item.date} · {item.time}
+      </span>
+      <div className="relative flex items-start gap-3 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-surface-subtle">
+        <button
+          type="button"
+          className="absolute right-3 top-3 shrink-0 rounded-full border border-stroke-muted bg-surface-subtle px-2.5 py-0.5 text-[10px] font-semibold text-text-muted transition-colors hover:bg-surface-strong hover:text-text-secondary"
+        >
+          Ask Miles
+        </button>
+
+        {/* Vehicle initial circle */}
+        <div
+          className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
+          style={{ backgroundColor: VEHICLE_COLOR_MAP[item.vehicle] ?? "#6b7280" }}
+        >
+          {item.vehicle[0]}
+        </div>
+
+        {/* Content */}
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5 pr-20">
+          <span className="text-xs font-medium text-text-muted">{item.vehicle}</span>
+          <span className="text-sm font-semibold leading-snug text-text-primary">Miles Score updated</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] font-medium tabular-nums text-text-muted">
+              {item.score}
+            </span>
+            <span className={`rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] font-semibold tabular-nums ${deltaColor}`}>
+              {isUp ? "+" : ""}{item.delta}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type ActivityEntry =
+  | { kind: "trip"; trip: (typeof DEMO_TRIPS)[number] }
+  | { kind: "score"; item: ScoreUpdateItem };
+
+const ACTIVITY_ITEMS: ActivityEntry[] = [
+  { kind: "trip",  trip: DEMO_TRIPS[0] },
+  { kind: "trip",  trip: DEMO_TRIPS[1] },
+  { kind: "score", item: DEMO_SCORE_UPDATES[0] },
+  { kind: "trip",  trip: DEMO_TRIPS[2] },
+  { kind: "score", item: DEMO_SCORE_UPDATES[1] },
+  { kind: "trip",  trip: DEMO_TRIPS[3] },
+];
+
+interface ConversationStarter {
+  id: string;
+  label: string;
+  context: string;
+  icon: React.ReactNode;
+}
+
+const CONVERSATION_STARTERS: ConversationStarter[] = [
+  {
+    id: "score-trend",
+    label: "How's my driving score trending?",
+    context: "score-trend",
+    icon: (
+      <svg className="size-4 shrink-0 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
+      </svg>
+    ),
+  },
+  {
+    id: "maintenance",
+    label: "When is the Civic due for service?",
+    context: "maintenance-civic",
+    icon: (
+      <svg className="size-4 shrink-0 text-semantic-warning" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z" />
+      </svg>
+    ),
+  },
+  {
+    id: "fuel-tip",
+    label: "Tips to stretch my fuel further",
+    context: "fuel-efficiency",
+    icon: (
+      <svg className="size-4 shrink-0 text-semantic-info" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+      </svg>
+    ),
+  },
+  {
+    id: "braking",
+    label: "Why did my score dip on the RAV4?",
+    context: "score-rav4",
+    icon: (
+      <svg className="size-4 shrink-0 text-semantic-danger" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+      </svg>
+    ),
+  },
+  {
+    id: "monthly-summary",
+    label: "Summarize my driving this month",
+    context: "monthly-summary",
+    icon: (
+      <svg className="size-4 shrink-0 text-text-secondary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+      </svg>
+    ),
+  },
+  {
+    id: "reminder",
+    label: "Remind me to fill up tomorrow",
+    context: "fuel-reminder",
+    icon: (
+      <svg className="size-4 shrink-0 text-text-secondary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+      </svg>
+    ),
+  },
+];
+
+function MilesConversationStarters() {
+  const [index, setIndex] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+
+  const current = CONVERSATION_STARTERS[index];
+
+  function roll() {
+    setSpinning(true);
+    setTimeout(() => {
+      setIndex((prev) => (prev + 1) % CONVERSATION_STARTERS.length);
+      setSpinning(false);
+    }, 160);
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-3 pt-1">
+      {/* Divider */}
+      <div className="flex w-full items-center gap-3">
+        <div className="h-px flex-1 bg-stroke-muted" />
+        <span className="text-[11px] font-medium text-text-muted">All caught up · Ask Miles</span>
+        <div className="h-px flex-1 bg-stroke-muted" />
+      </div>
+
+      {/* Single prompt */}
+      <Link
+        href={`/miles?context=${current.context}`}
+        className={`flex w-full items-center gap-2.5 rounded-panel border border-stroke-muted bg-surface-card px-4 py-3.5 text-sm font-medium text-text-secondary shadow-sm transition-all hover:bg-surface-subtle hover:text-text-primary active:bg-surface-strong ${spinning ? "opacity-0 scale-95" : "opacity-100 scale-100"}`}
+        style={{ transition: "opacity 0.12s ease, transform 0.12s ease" }}
+      >
+        {current.icon}
+        <span className="flex-1">{current.label}</span>
+        <svg className="size-3.5 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+        </svg>
+      </Link>
+
+      {/* Roll / refresh button */}
+      <button
+        type="button"
+        onClick={roll}
+        className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium text-text-muted transition-colors hover:bg-surface-subtle hover:text-text-secondary"
+      >
+        <svg
+          className={`size-3.5 transition-transform duration-300 ${spinning ? "rotate-180" : "rotate-0"}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+        </svg>
+        Try another
+      </button>
+    </div>
+  );
+}
+
+function ActivityFeed({ showAvatars = false }: { showAvatars?: boolean }) {
+  return (
+    <div className="mx-5 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-          Recent Trips
+          Activity
         </span>
         <Link href="/trips" className="text-xs font-medium text-semantic-info hover:text-semantic-info/80">
           See all
         </Link>
       </div>
-      <div className="flex flex-col divide-y divide-stroke-muted rounded-panel border border-stroke-muted bg-surface-card">
-        {RECENT_TRIPS.map((t) => (
-          <TripListItem
-            key={t.id}
-            trip={t}
-            href="/trip-receipt"
-            className="py-3"
-            driverImageSrc={showAvatars ? DRIVER_AVATAR_MAP[t.driver] : undefined}
-            vehicleImageSrc={showAvatars ? VEHICLE_AVATAR_MAP[t.vehicle ?? ""] : undefined}
-          />
-        ))}
+      <div className="flex flex-col gap-2.5">
+        {ACTIVITY_ITEMS.map((entry) =>
+          entry.kind === "trip" ? (
+            <TripActivityItem
+              key={entry.trip.id}
+              trip={entry.trip}
+              href="/trip-receipt"
+              showAvatars={showAvatars}
+              driverImageSrc={showAvatars ? DRIVER_AVATAR_MAP[entry.trip.driver] : undefined}
+              vehicleColor={showAvatars ? VEHICLE_COLOR_MAP[entry.trip.vehicle ?? ""] : undefined}
+            />
+          ) : (
+            <ScoreUpdateActivityItem key={entry.item.id} item={entry.item} />
+          )
+        )}
+
+        {/* Loading more skeleton */}
+        <div className="flex flex-col gap-1.5">
+          <div className="h-3 w-28 animate-pulse rounded-full bg-surface-strong" />
+          <div className="flex flex-col gap-3 rounded-panel border border-stroke-muted bg-surface-card p-4">
+            <div className="flex items-start gap-3">
+              <div className="size-9 shrink-0 animate-pulse rounded-full bg-surface-strong" />
+              <div className="flex flex-1 flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="h-2.5 w-24 animate-pulse rounded-full bg-surface-strong" />
+                  <div className="h-2.5 w-6 animate-pulse rounded-full bg-surface-strong" />
+                </div>
+                <div className="h-3 w-4/5 animate-pulse rounded-full bg-surface-strong" />
+                <div className="flex gap-1.5">
+                  <div className="h-5 w-12 animate-pulse rounded-full bg-surface-strong" />
+                  <div className="h-5 w-14 animate-pulse rounded-full bg-surface-strong" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Conversation starters — replaces "all caught up" */}
+        <MilesConversationStarters />
+
       </div>
     </div>
   );
@@ -483,34 +853,39 @@ function AgentCoachingCard({
   onDismiss: () => void;
 }) {
   return (
-    <div className="flex w-full flex-col gap-3 rounded-panel border border-stroke-muted bg-surface-subtle p-4">
+    <div className="flex h-full w-full flex-col gap-3 rounded-panel border border-stroke-muted bg-surface-subtle p-4 shadow-card">
       <div className="flex flex-col gap-2">
-        <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-strong">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/miles-proto-2/miles-icon.svg"
-            alt="Miles"
-            className="size-8 object-contain"
-          />
+        <div className="flex items-start justify-between">
+          <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-strong">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/miles-proto-2/miles-icon.svg"
+              alt="Miles"
+              className="size-8 object-contain"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label={card.dismissLabel}
+            className="inline-flex size-11 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface-strong hover:text-text-secondary active:bg-surface-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-strong focus-visible:ring-offset-1"
+          >
+            <svg className="size-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-        <p className="text-sm leading-relaxed text-text-secondary">
+        <p className="font-mono text-sm leading-relaxed text-text-secondary">
           {card.message}
         </p>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2">
         <Link
           href={card.actionHref}
-          className="flex h-10 items-center rounded-control px-4 text-sm font-semibold text-semantic-info transition-colors hover:bg-surface-strong"
+          className="flex min-h-11 w-full items-center justify-center rounded-control bg-foreground px-4 text-sm font-semibold text-background transition-colors hover:bg-foreground/85 active:bg-foreground/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-strong focus-visible:ring-offset-1"
         >
           {card.actionLabel}
         </Link>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="flex h-10 items-center rounded-control px-4 text-sm font-medium text-text-muted transition-colors hover:bg-surface-strong"
-        >
-          {card.dismissLabel}
-        </button>
       </div>
     </div>
   );
@@ -518,13 +893,18 @@ function AgentCoachingCard({
 
 function AgentCoachingCarousel({
   cards,
-  onDismiss,
+  onAllDismissed,
 }: {
   cards: CoachingCard[];
-  onDismiss: () => void;
+  onAllDismissed: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [activeIndex, setActiveIndex] = useState(0);
+  // Stores the target scroll index to apply after the dismissed card is removed from the DOM
+  const pendingScrollRef = useRef<number | null>(null);
+
+  const visibleCards = cards.filter((c) => !dismissedIds.has(c.id));
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -532,20 +912,61 @@ function AgentCoachingCarousel({
     const width = el.clientWidth;
     if (width <= 0) return;
     const idx = Math.round(el.scrollLeft / width);
-    const clamped = Math.max(0, Math.min(idx, cards.length - 1));
-    setActiveIndex(clamped);
-  }, [cards.length]);
+    setActiveIndex(Math.max(0, Math.min(idx, visibleCards.length - 1)));
+  }, [visibleCards.length]);
 
   const goTo = useCallback((idx: number) => {
     const el = scrollRef.current;
     if (!el) return;
-    const width = el.clientWidth;
-    el.scrollTo({ left: idx * width, behavior: "smooth" });
+    el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
   }, []);
+
+  const handleDismiss = useCallback(
+    (cardId: string) => {
+      const currentCard = visibleCards[activeIndex];
+      const newVisible = visibleCards.filter((c) => c.id !== cardId);
+
+      // Decide where to land after the card is removed
+      let newIndex: number;
+      if (currentCard && currentCard.id !== cardId) {
+        // User dismissed a different card — stay on the current one
+        newIndex = newVisible.findIndex((c) => c.id === currentCard.id);
+        if (newIndex === -1) newIndex = 0;
+      } else {
+        // User dismissed the visible card — advance or clamp to last
+        newIndex = Math.min(activeIndex, Math.max(0, newVisible.length - 1));
+      }
+
+      pendingScrollRef.current = newIndex;
+      setActiveIndex(newIndex);
+      setDismissedIds((prev) => new Set([...prev, cardId]));
+    },
+    [visibleCards, activeIndex]
+  );
+
+  // After the DOM updates (dismissed card removed), instantly scroll to the right position
+  useLayoutEffect(() => {
+    if (pendingScrollRef.current !== null) {
+      const idx = pendingScrollRef.current;
+      pendingScrollRef.current = null;
+      const el = scrollRef.current;
+      if (!el) return;
+      el.scrollTo({ left: idx * el.clientWidth, behavior: "instant" as ScrollBehavior });
+    }
+  });
+
+  // Notify parent when all cards have been dismissed
+  useEffect(() => {
+    if (visibleCards.length === 0 && dismissedIds.size > 0) {
+      onAllDismissed();
+    }
+  }, [visibleCards.length, dismissedIds.size, onAllDismissed]);
+
+  if (visibleCards.length === 0) return null;
 
   return (
     <div className="mx-5 flex flex-col gap-2">
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+      <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">
         From Miles
       </span>
       <div
@@ -554,28 +975,27 @@ function AgentCoachingCarousel({
         className="flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scrollbar-none"
         style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
       >
-        {cards.map((card) => (
-          <div
-            key={card.id}
-            className="w-full min-w-full shrink-0 basis-full snap-start"
-          >
-            <AgentCoachingCard card={card} onDismiss={onDismiss} />
+        {visibleCards.map((card) => (
+          <div key={card.id} className="w-full min-w-full shrink-0 basis-full snap-start">
+            <AgentCoachingCard card={card} onDismiss={() => handleDismiss(card.id)} />
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-center gap-1.5 pt-1">
-        {cards.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => goTo(i)}
-            aria-label={`Go to card ${i + 1}`}
-            className={`h-1.5 rounded-full transition-all duration-200 ${
-              i === activeIndex ? "w-4 bg-foreground" : "w-1.5 bg-stroke-muted hover:bg-stroke-strong"
-            }`}
-          />
-        ))}
-      </div>
+      {visibleCards.length > 1 && (
+        <div className="flex items-center justify-center gap-1.5 pt-1">
+          {visibleCards.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => goTo(i)}
+              aria-label={`Go to card ${i + 1}`}
+              className={`h-1.5 rounded-full transition-all duration-200 ${
+                i === activeIndex ? "w-4 bg-foreground" : "w-1.5 bg-stroke-muted hover:bg-stroke-strong"
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -587,14 +1007,12 @@ function QuickActions({ showRoadsideAssist }: { showRoadsideAssist: boolean }) {
     <div className="mx-5 grid grid-cols-1 gap-3">
       <button
         type="button"
-        className="flex min-h-11 flex-col items-center gap-2 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-background"
+        aria-label="Roadside Assist"
+        className="inline-flex size-11 items-center justify-center justify-self-start rounded-full border border-stroke-muted bg-surface-card transition-colors hover:bg-background"
       >
-        <div className="flex size-10 items-center justify-center rounded-full bg-surface-subtle">
-          <svg className="size-5 text-semantic-danger" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-          </svg>
-        </div>
-        <span className="text-xs font-semibold text-text-secondary">Roadside Assist</span>
+        <svg className="size-5 text-semantic-danger" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+        </svg>
       </button>
     </div>
   );
@@ -682,7 +1100,7 @@ function TripVehicleStatus({ vehicleLabel }: { vehicleLabel?: string }) {
 function TripDriverCard({ driver }: { driver: string }) {
   const DRIVER_DATA: Record<string, { initials: string; color: string; score: number; relation: string }> = {
     Jack:      { initials: "JM", color: "bg-semantic-info", score: 74, relation: "Child" },
-    Emma:      { initials: "EM", color: "bg-brand-primary", score: 79, relation: "Spouse" },
+    Emma:      { initials: "EM", color: "bg-foreground", score: 79, relation: "Spouse" },
     Christina: { initials: "CM", color: "bg-semantic-success", score: 82, relation: "You" },
   };
   const d = DRIVER_DATA[driver] ?? { initials: driver.slice(0, 2).toUpperCase(), color: "bg-stroke-strong", score: "--", relation: "Driver" };
@@ -691,7 +1109,7 @@ function TripDriverCard({ driver }: { driver: string }) {
       href="/drivers"
       className="mx-5 flex items-center gap-3 rounded-panel border border-stroke-muted bg-surface-card p-3.5 transition-colors hover:bg-background"
     >
-      <div className={`flex size-9 shrink-0 items-center justify-center rounded-full ${d.color} text-xs font-semibold text-brand-inverse`}>
+      <div className={`flex size-9 shrink-0 items-center justify-center rounded-full ${d.color} text-xs font-semibold text-background`}>
         {d.initials}
       </div>
       <div className="flex flex-1 flex-col gap-0.5">
@@ -719,14 +1137,14 @@ function TripInProgress({
   const fromAgent = !!vehicleLabel;
   return (
     <div className="flex flex-col gap-4 pt-3">
-      {/* Modal header — Trip active left, close right */}
+      {/* Modal header — Driving left, close right */}
       <div className="flex items-center justify-between px-5 pt-2">
         <span className="flex items-center gap-1.5 rounded-full bg-surface-strong px-3 py-1.5 text-xs font-semibold text-semantic-success">
           <span className="relative flex size-2">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-semantic-success opacity-75" />
             <span className="relative inline-flex size-2 rounded-full bg-semantic-success" />
           </span>
-          Trip active
+          Driving
         </span>
         {fromAgent && (
           <Link
@@ -880,7 +1298,7 @@ function TripComplete({
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
             </svg>
           </div>
-          <p className="flex-1 text-sm leading-relaxed text-text-secondary">
+          <p className="flex-1 font-mono text-sm leading-relaxed text-text-secondary">
             One hard braking event on Preston Rd. Leaving a little more following distance can help — want tips?
           </p>
         </div>
@@ -918,15 +1336,26 @@ function TripComplete({
 /* ------------------------------------------------------------------ */
 
 type DashboardMode = "parked" | "trip" | "complete";
+type FleetMode = "both-parked" | "one-driving";
 
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [coachingDismissed, setCoachingDismissed] = useState(false);
-  const [headerAction, setHeaderAction] = useState<"profile" | "roadside">("profile");
+  const [headerAction, setHeaderAction] = useState<"profile" | "roadside">("roadside");
   const [footerNavMode, setFooterNavMode] = useState<FooterNavMode>("full");
   const [showAvatars, setShowAvatars] = useState(true);
+  const [fleetMode, setFleetMode] = useState<FleetMode>("one-driving");
   const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/streets-v12");
+  const [showTodos, setShowTodos] = useState(false);
+
+  // iOS large-title → compact nav bar
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const [titleHidden, setTitleHidden] = useState(false);
+
+  // Dark mode — reads/writes the shared proto theme preference
+  const forceLight = useForceLightMode();
+  const isDark = !forceLight;
 
   const modeParam = searchParams.get("mode") as DashboardMode | null;
   const mode: DashboardMode =
@@ -945,6 +1374,29 @@ function DashboardContent() {
     }
   }, []);
 
+  // Observe the large title — when it scrolls out of the nearest overflow container,
+  // show the compact nav bar. Must use the scroll container as root (not the viewport)
+  // because the page scrolls inside PageTransition's overflow-y-auto div.
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+
+    // Walk up the DOM to find the scrollable ancestor
+    let root: Element | null = el.parentElement;
+    while (root) {
+      const oy = window.getComputedStyle(root).overflowY;
+      if (oy === "auto" || oy === "scroll") break;
+      root = root.parentElement;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setTitleHidden(!entry.isIntersecting),
+      { root: root ?? null, threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const navigate = useCallback(
     (params: { mode?: string }) => {
       const next = new URLSearchParams();
@@ -959,6 +1411,11 @@ function DashboardContent() {
   function setMode(m: DashboardMode) {
     navigate({ mode: m });
   }
+
+  const displayVehicles =
+    fleetMode === "both-parked"
+      ? VEHICLES.map((v) => ({ ...v, liveTrip: undefined }))
+      : VEHICLES;
 
   function setNavMode(mode: FooterNavMode) {
     setFooterNavMode(mode);
@@ -978,6 +1435,27 @@ function DashboardContent() {
         paddingBottom: "max(env(safe-area-inset-bottom), 112px)",
       }}
     >
+      {/* iOS compact nav bar — sticky zero-height anchor + absolute child.
+          The sticky wrapper locks to the top of the scroll container without
+          consuming space; the absolute header hangs from it. This avoids all
+          fixed-inside-overflow issues. */}
+      {(mode === "parked" && !vehicleLabelParam) && (
+        <div className="sticky top-0 z-40 h-0 overflow-visible">
+          <header
+            aria-hidden={!titleHidden}
+            className={`absolute inset-x-0 top-0 flex items-center justify-between border-b border-stroke-muted/60 bg-background/85 px-5 backdrop-blur-xl transition-all duration-200 ease-out ${
+              titleHidden
+                ? "translate-y-0 opacity-100"
+                : "-translate-y-1 opacity-0 pointer-events-none"
+            }`}
+            style={{ paddingTop: "max(env(safe-area-inset-top), 12px)", paddingBottom: "10px" }}
+          >
+            <span className="text-base font-semibold text-text-primary">Miles</span>
+            <HeaderAction headerAction={headerAction} size="compact" />
+          </header>
+        </div>
+      )}
+
       {mode === "trip" || vehicleLabelParam ? (
         <TripInProgress
           vehicle={vehicle}
@@ -989,15 +1467,15 @@ function DashboardContent() {
         <TripComplete vehicle={vehicle} onReturn={() => setMode("parked")} mapStyle={mapStyle} />
       ) : (
         <div className="flex flex-col gap-4">
-          <FleetView vehicles={VEHICLES} headerAction={headerAction} showAvatars={showAvatars} mapStyle={mapStyle} />
-          <RecentTrips showAvatars={showAvatars} />
+          <FleetView vehicles={displayVehicles} headerAction={headerAction} showAvatars={showAvatars} mapStyle={mapStyle} titleRef={titleRef} />
           {!coachingDismissed && (
             <AgentCoachingCarousel
               cards={COACHING_CARDS}
-              onDismiss={() => setCoachingDismissed(true)}
+              onAllDismissed={() => setCoachingDismissed(true)}
             />
           )}
-          <TodoPreview items={DEMO_TODOS} className="mx-5" />
+          <ActivityFeed showAvatars={showAvatars} />
+          {showTodos && <TodoPreview items={DEMO_TODOS} className="mx-5" />}
           <QuickActions showRoadsideAssist={headerAction === "profile"} />
         </div>
       )}
@@ -1008,26 +1486,31 @@ function DashboardContent() {
           Proto controls
         </span>
         <Link
-          href={p("/hub")}
+          href="/hub"
           className="rounded-full border border-stroke-muted bg-surface-card px-3 py-1.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-background"
         >
           Design system hub
         </Link>
-        <div className="flex items-center gap-1.5">
-          {(["parked", "trip", "complete"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={`rounded-full px-3 py-1.5 text-[11px] font-medium capitalize transition-colors ${
-                mode === m
-                  ? "bg-surface-strong text-text-secondary"
-                  : "text-text-muted hover:text-text-secondary"
-              }`}
-            >
-              {m === "complete" ? "trip complete" : m}
-            </button>
-          ))}
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted">
+            Fleet
+          </span>
+          <div className="flex items-center gap-1.5">
+            {(["both-parked", "one-driving"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setFleetMode(m)}
+                className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                  fleetMode === m
+                    ? "bg-surface-strong text-text-secondary"
+                    : "text-text-muted hover:text-text-secondary"
+                }`}
+              >
+                {m === "both-parked" ? "both parked" : "one driving"}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex flex-col items-center gap-2">
           <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted">
@@ -1068,6 +1551,22 @@ function DashboardContent() {
         </div>
         <div className="flex flex-col items-center gap-2">
           <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted">
+            Todos
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowTodos((prev) => !prev)}
+            className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+              showTodos
+                ? "bg-surface-strong text-text-secondary"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            {showTodos ? "Visible" : "Hidden"}
+          </button>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted">
             Footer tabs
           </span>
           <div className="flex items-center gap-1.5">
@@ -1091,7 +1590,7 @@ function DashboardContent() {
                   : "text-text-muted hover:text-text-secondary"
               }`}
             >
-              4 tabs (hide profile)
+              4 tabs (hide account)
             </button>
           </div>
         </div>
@@ -1110,6 +1609,35 @@ function DashboardContent() {
               </option>
             ))}
           </select>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted">
+            Theme
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setForceLightMode(true)}
+              className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                !isDark
+                  ? "bg-surface-strong text-text-secondary"
+                  : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              Light
+            </button>
+            <button
+              type="button"
+              onClick={() => setForceLightMode(false)}
+              className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                isDark
+                  ? "bg-surface-strong text-text-secondary"
+                  : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              Dark
+            </button>
+          </div>
         </div>
       </div>
     </main>

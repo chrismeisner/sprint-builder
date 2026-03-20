@@ -61,8 +61,6 @@ const config: Config = {
         brand: {
           primary: "var(--color-brand-primary)",
           inverse: "var(--color-brand-inverse)",
-          muted: "var(--color-brand-muted)",
-          accent: "var(--color-brand-accent)",
         },
         surface: {
           subtle: "var(--color-surface-subtle)",
@@ -86,13 +84,12 @@ const config: Config = {
         gutter: "1.5rem",
       },
       borderRadius: {
-        /** 4px / 4pt — uniform radius across all container types.
-         *  iOS: .cornerRadius(4) or RoundedRectangle(cornerRadius: 4)
-         *  Semantic names preserved so values can diverge later. */
-        control: "0.25rem",  // buttons, inputs, thumbnails
-        panel: "0.25rem",    // list groups, bento cells, strips
-        card: "0.25rem",     // primary cards, map container
-        pill: "9999px",      // badges, capsule buttons → Capsule()
+        /** Semantic radius tokens — matches lib/design-system/tokens/sizing.json
+         *  iOS mapping: control → 8pt, panel → 12pt, card → 16pt, pill → Capsule() */
+        control: "8px",    // buttons, inputs, thumbnails → .cornerRadius(8)
+        panel: "12px",     // list groups, bento cells, strips → .cornerRadius(12)
+        card: "16px",      // primary cards, map container → .cornerRadius(16)
+        pill: "9999px",    // badges, capsule buttons → .clipShape(Capsule())
       },
       boxShadow: {
         card: "0 24px 70px rgba(0,0,0,0.08)",

@@ -10,9 +10,9 @@
         { "id": "ghost", "label": "Ghost" }
       ],
       "tokens": {
-        "background": { "primary": "brand.accent", "secondary": "surface.strong", "ghost": "transparent" },
-        "text": { "primary": "brand.inverse", "secondary": "text.primary", "ghost": "text.primary" },
-        "borderRadius": "borderRadius.default",
+        "background": { "primary": "foreground", "secondary": "surface.strong", "ghost": "transparent" },
+        "text": { "primary": "background", "secondary": "text.primary", "ghost": "text.primary" },
+        "borderRadius": "borderRadius.control",
         "paddingX": "spacing.4",
         "paddingY": "spacing.2"
       }
@@ -25,9 +25,10 @@
       ],
       "tokens": {
         "background": "surface.card",
+        "stroke": "stroke.muted",
         "borderRadius": "borderRadius.card",
         "shadow": "boxShadow.card",
-        "padding": "spacing.6"
+        "padding": "spacing.4"
       }
     },
     {
@@ -40,7 +41,7 @@
       "tokens": {
         "background": "surface.card",
         "border": { "default": "stroke.muted", "error": "semantic.danger" },
-        "borderRadius": "borderRadius.default",
+        "borderRadius": "borderRadius.control",
         "text": "text.primary",
         "placeholder": "text.muted"
       }

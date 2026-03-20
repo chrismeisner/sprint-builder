@@ -51,13 +51,13 @@ export default function MilesLayout({
 }) {
   return (
     <div
-      className={`${inter.variable} font-sans antialiased bg-neutral-100 text-neutral-900`}
+      className={`${inter.variable} font-sans antialiased bg-neutral-100 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100`}
       style={{ fontFamily: "var(--font-miles-sans), ui-sans-serif, system-ui, sans-serif" }}
     >
       <ForceLightMode />
       <KeyboardShortcuts />
       <DeviceSwitcher>
-        <div className="flex h-dvh flex-col overflow-hidden">
+        <div className="flex flex-col">
           <PageTransition>{children}</PageTransition>
           <BottomNav />
         </div>

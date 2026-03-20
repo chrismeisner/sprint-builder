@@ -6,6 +6,17 @@ export const dynamic = "force-dynamic";
 
 const HUB_DIR = path.join(process.cwd(), "lib", "design-system", "hub");
 
+function withCors(response: NextResponse) {
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  return response;
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 204 }));
+}
+
 /**
  * GET /sandboxes/miles-proto-2/hub/manifest
  *
@@ -17,17 +28,21 @@ export async function GET() {
     const manifestPath = path.join(HUB_DIR, "manifest.json");
     const raw = await fs.promises.readFile(manifestPath, "utf8");
     const manifest = JSON.parse(raw);
-    return NextResponse.json(manifest, {
-      headers: {
-        "Cache-Control": "no-store, max-age=0",
-        "Content-Type": "application/json",
-      },
-    });
+    return withCors(
+      NextResponse.json(manifest, {
+        headers: {
+          "Cache-Control": "no-store, max-age=0",
+          "Content-Type": "application/json",
+        },
+      })
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json(
-      { error: "Failed to load manifest", detail: message },
-      { status: 500 }
+    return withCors(
+      NextResponse.json(
+        { error: "Failed to load manifest", detail: message },
+        { status: 500 }
+      )
     );
   }
 }
