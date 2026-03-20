@@ -1145,7 +1145,11 @@ function AgentCoachingCarousel({
 
       pendingScrollRef.current = newIndex;
       setActiveIndex(newIndex);
-      setDismissedIds((prev) => new Set([...prev, cardId]));
+      setDismissedIds((prev) => {
+        const next = new Set(prev);
+        next.add(cardId);
+        return next;
+      });
     },
     [visibleCards, activeIndex]
   );
