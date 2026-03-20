@@ -115,7 +115,7 @@ const VEHICLES: Vehicle[] = [
     driverScore: 82,
     scoreDelta: 3,
     scoreUpdated: "Updated today",
-    engineCheckedAt: "Checked 2h ago",
+    engineCheckedAt: "10m ago",
     fuelRange: "~230 mi range",
     lastTrip: {
       from: "Preston Rd & Belt Line",
@@ -145,7 +145,7 @@ const VEHICLES: Vehicle[] = [
     driverScore: 74,
     scoreDelta: -2,
     scoreUpdated: "Updated today",
-    engineCheckedAt: "Today, 9:02 AM",
+    engineCheckedAt: "Just now",
     fuelRange: "~120 mi range",
     liveTrip: { driver: "Jack", vehicleLabel: "Toyota RAV4", mph: 34, startedAgo: "12 mins ago" },
     lastTrip: {
@@ -230,7 +230,145 @@ const LOCATION_ICON = (
   </svg>
 );
 
-function VehicleCardContent({ v, showAvatars = false }: { v: Vehicle; showAvatars?: boolean }) {
+const CHEVRON = (
+  <svg className="size-3.5 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+  </svg>
+);
+
+function StatusBadge({ live }: { live: Vehicle["liveTrip"] }) {
+  if (live) {
+    return (
+      <span className="flex w-fit items-center gap-1.5 rounded-full bg-semantic-success px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-background">
+        <span className="relative flex size-1.5">
+          <span className="absolute inline-flex size-full animate-ping rounded-full bg-background opacity-75" />
+          <span className="relative inline-flex size-1.5 rounded-full bg-background" />
+        </span>
+        Driving
+      </span>
+    );
+  }
+  return (
+    <span className="w-fit rounded-full bg-semantic-info px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-background">
+      Parked
+    </span>
+  );
+}
+
+function StatsBento({ v, engineLabel, engineDot, engineText, fuelDot, fuelText, compact = false }: {
+  v: Vehicle;
+  engineLabel: string;
+  engineDot: string;
+  engineText: string;
+  fuelDot: string;
+  fuelText: string;
+  compact?: boolean;
+}) {
+  if (compact) {
+    return (
+      <div className="flex items-center divide-x divide-stroke-muted rounded-control bg-surface-subtle overflow-hidden">
+        {/* Score */}
+        <div className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2">
+          <span className="text-sm leading-none">🚘</span>
+          <span className="text-sm font-semibold leading-none text-semantic-success">{v.driverScore}</span>
+        </div>
+        {/* Engine */}
+        <div className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2">
+          <span className="text-sm leading-none">🛠️</span>
+          <span className={`text-sm font-semibold leading-none ${engineText}`}>{engineLabel}</span>
+        </div>
+        {/* Fuel */}
+        <div className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2">
+          <span className="text-sm leading-none">⛽️</span>
+          <span className={`text-sm font-semibold leading-none tabular-nums ${fuelText}`}>{(v.fuelPct ?? 0)}%</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {/* Score */}
+      <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
+        <span className="text-[11px] font-medium text-text-muted">Score</span>
+        <div className="flex items-center gap-1.5">
+          <span className="size-1.5 rounded-full bg-semantic-success" />
+          <span className="text-sm font-semibold leading-none text-semantic-success">{v.driverScore}</span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          {v.scoreDelta >= 0 ? (
+            <svg className="size-2.5 shrink-0 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+            </svg>
+          ) : (
+            <svg className="size-2.5 shrink-0 text-semantic-warning" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+            </svg>
+          )}
+          <span className={`text-[10px] font-medium leading-none tabular-nums ${v.scoreDelta >= 0 ? "text-semantic-success" : "text-semantic-warning"}`}>
+            {v.scoreDelta >= 0 ? "+" : ""}{v.scoreDelta}
+          </span>
+        </div>
+      </div>
+      {/* Engine */}
+      <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
+        <span className="text-[11px] font-medium text-text-muted">Engine</span>
+        <div className="flex items-center gap-1.5">
+          <span className={`size-1.5 rounded-full ${engineDot}`} />
+          <span className={`text-sm font-semibold leading-none ${engineText}`}>{engineLabel}</span>
+        </div>
+        <span className="text-[10px] font-medium leading-none text-text-muted">{v.engineCheckedAt}</span>
+      </div>
+      {/* Fuel */}
+      <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
+        <span className="text-[11px] font-medium text-text-muted">Fuel</span>
+        <div className="flex items-center gap-1.5">
+          <span className={`size-1.5 rounded-full ${fuelDot}`} />
+          <span className={`text-sm font-semibold leading-none ${fuelText}`}>{(v.fuelPct ?? 0)}%</span>
+        </div>
+        <span className="text-[10px] font-medium leading-none text-text-muted">{v.fuelRange}</span>
+      </div>
+    </div>
+  );
+}
+
+function DriverStrip({ live, tripHref, showAvatars }: {
+  live: NonNullable<Vehicle["liveTrip"]>;
+  tripHref: string;
+  showAvatars: boolean;
+}) {
+  return (
+    <Link
+      href={tripHref}
+      className="mx-4 mb-4 flex min-h-11 items-center justify-between rounded-panel border border-stroke-muted bg-surface-subtle px-3 py-2.5 transition-colors hover:bg-surface-strong"
+    >
+      <div className="flex items-center gap-2.5">
+        {showAvatars ? (
+          <img src={AVATAR_TEEN} alt={live.driver} className="size-7 shrink-0 rounded-full object-cover" />
+        ) : (
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-semantic-success text-[11px] font-medium text-background">
+            {live.driver[0]}
+          </div>
+        )}
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold text-semantic-success">{live.driver} is driving</span>
+          <span className="text-xs text-semantic-success">{live.startedAgo}</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <div className="flex items-baseline gap-0.5">
+          <span className="text-lg font-bold tabular-nums text-semantic-success">{live.mph}</span>
+          <span className="text-[11px] font-medium text-semantic-success">mph</span>
+        </div>
+        <svg className="size-3.5 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+        </svg>
+      </div>
+    </Link>
+  );
+}
+
+function VehicleCardContent({ v, showAvatars = false, compact = false }: { v: Vehicle; showAvatars?: boolean; compact?: boolean }) {
   const live = v.liveTrip;
   const vehicleHref = `/vehicle?from=dashboard&vehicle=${v.id}`;
   const tripHref = live
@@ -250,121 +388,62 @@ function VehicleCardContent({ v, showAvatars = false }: { v: Vehicle; showAvatar
       : v.locationLabel;
   const locationLine = live ? "Plano, TX" : parkedAddress;
 
+  if (compact) {
+    return (
+      <>
+        {/* Compact header: name (left) | chevron (right); status + location share second line */}
+        <Link href={vehicleHref} className="flex flex-col gap-1.5 px-4 pt-3.5 pb-3 transition-colors hover:bg-background/80">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-base font-semibold uppercase leading-tight text-text-primary">{v.name}</span>
+            {CHEVRON}
+          </div>
+          <div className="flex min-w-0 items-center gap-2">
+            <StatusBadge live={live} />
+            <span className="flex min-w-0 items-center gap-1 text-xs text-text-muted">
+              {LOCATION_ICON}
+              <span className="truncate">{locationLine}</span>
+            </span>
+          </div>
+        </Link>
+
+        {/* Stats bento */}
+        <Link href={vehicleHref} className="px-4 pb-3 transition-colors hover:bg-background/60 block">
+          <StatsBento v={v} engineLabel={engineLabel} engineDot={engineDot} engineText={engineText} fuelDot={fuelDot} fuelText={fuelText} compact />
+        </Link>
+
+        {/* Driver strip — live trip only */}
+        {live && tripHref && <DriverStrip live={live} tripHref={tripHref} showAvatars={showAvatars} />}
+      </>
+    );
+  }
+
   return (
     <>
-      {/* Vehicle header: name first, then status, then location (left) | car image (right) */}
+      {/* Default header: name + status + location (left) | car image + chevron (right) */}
       <Link href={vehicleHref} className="flex flex-col gap-2 px-4 pt-3.5 pb-2 transition-colors hover:bg-background/80">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <span className="text-2xl font-semibold uppercase leading-tight text-text-primary">{v.name}</span>
-            {live ? (
-              <span className="flex w-fit items-center gap-1.5 rounded-full bg-semantic-success px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-background">
-                <span className="relative flex size-1.5">
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-background opacity-75" />
-                  <span className="relative inline-flex size-1.5 rounded-full bg-background" />
-                </span>
-                Driving
-              </span>
-            ) : (
-              <span className="w-fit rounded-full bg-semantic-info px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-background">
-                Parked
-              </span>
-            )}
+            <StatusBadge live={live} />
             <span className="flex min-w-0 items-center gap-1.5 text-sm text-text-muted">
               {LOCATION_ICON}
               <span className="truncate">{locationLine}</span>
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <img
-              src={v.imageSrc}
-              alt={v.name}
-              className="w-24 object-contain opacity-90"
-            />
-            <svg className="size-3.5 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </svg>
+            <img src={v.imageSrc} alt={v.name} className="w-24 object-contain opacity-90" />
+            {CHEVRON}
           </div>
         </div>
       </Link>
 
-      {/* Stats row */}
+      {/* Stats bento */}
       <Link href={vehicleHref} className="flex flex-col gap-2 px-4 pb-3 transition-colors hover:bg-background/60">
-      <div className="grid grid-cols-3 gap-2">
-        {/* Score */}
-        <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
-          <span className="text-[11px] font-medium text-text-muted">Score</span>
-          <div className="flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-semantic-success" />
-            <span className="text-sm font-semibold leading-none text-semantic-success">{v.driverScore}</span>
-          </div>
-          <div className="flex items-center gap-0.5">
-            {v.scoreDelta >= 0 ? (
-              <svg className="size-2.5 shrink-0 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
-              </svg>
-            ) : (
-              <svg className="size-2.5 shrink-0 text-semantic-warning" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
-              </svg>
-            )}
-            <span className={`text-[10px] font-medium leading-none tabular-nums ${v.scoreDelta >= 0 ? "text-semantic-success" : "text-semantic-warning"}`}>
-              {v.scoreDelta >= 0 ? "+" : ""}{v.scoreDelta}
-            </span>
-          </div>
-        </div>
-        {/* Engine */}
-        <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
-          <span className="text-[11px] font-medium text-text-muted">Engine</span>
-          <div className="flex items-center gap-1.5">
-            <span className={`size-1.5 rounded-full ${engineDot}`} />
-            <span className={`text-sm font-semibold leading-none ${engineText}`}>{engineLabel}</span>
-          </div>
-          <span className="text-[10px] font-medium leading-none text-text-muted">{v.engineCheckedAt}</span>
-        </div>
-        {/* Fuel */}
-        <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
-          <span className="text-[11px] font-medium text-text-muted">Fuel</span>
-          <div className="flex items-center gap-1.5">
-            <span className={`size-1.5 rounded-full ${fuelDot}`} />
-            <span className={`text-sm font-semibold leading-none ${fuelText}`}>{fuelPct}%</span>
-          </div>
-          <span className="text-[10px] font-medium leading-none text-text-muted">{v.fuelRange}</span>
-        </div>
-      </div>
-
+        <StatsBento v={v} engineLabel={engineLabel} engineDot={engineDot} engineText={engineText} fuelDot={fuelDot} fuelText={fuelText} />
       </Link>
 
-      {/* Driver strip — live trip only, below bento */}
-      {live && tripHref && (
-        <Link
-          href={tripHref}
-          className="mx-4 mb-4 flex min-h-11 items-center justify-between rounded-panel border border-stroke-muted bg-surface-subtle px-3 py-2.5 transition-colors hover:bg-surface-strong"
-        >
-          <div className="flex items-center gap-2.5">
-            {showAvatars ? (
-              <img src={AVATAR_TEEN} alt={live.driver} className="size-7 shrink-0 rounded-full object-cover" />
-            ) : (
-              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-semantic-success text-[11px] font-medium text-background">
-                {live.driver[0]}
-              </div>
-            )}
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-semantic-success">{live.driver} is driving</span>
-              <span className="text-xs text-semantic-success">{live.startedAgo}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-lg font-bold tabular-nums text-semantic-success">{live.mph}</span>
-              <span className="text-[11px] font-medium text-semantic-success">mph</span>
-            </div>
-            <svg className="size-3.5 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </svg>
-          </div>
-        </Link>
-      )}
+      {/* Driver strip — live trip only */}
+      {live && tripHref && <DriverStrip live={live} tripHref={tripHref} showAvatars={showAvatars} />}
     </>
   );
 }
@@ -427,12 +506,16 @@ function FleetView({
   showAvatars,
   mapStyle,
   titleRef,
+  compactCards,
+  setCompactCards,
 }: {
   vehicles: Vehicle[];
   headerAction: "profile" | "roadside";
   showAvatars: boolean;
   mapStyle: string;
   titleRef?: React.RefObject<HTMLHeadingElement>;
+  compactCards: boolean;
+  setCompactCards: (v: boolean) => void;
 }) {
   const liveVehicle = vehicles.find((v) => v.liveTrip);
 
@@ -476,16 +559,23 @@ function FleetView({
         <HeaderAction headerAction={headerAction} />
       </div>
 
-      {/* Fleet map — always shown; fitBounds so both parked and trip-active markers are visible */}
+      {/* Fleet map — always shown; fitBounds so both parked and trip-active markers are visible. padding-bottom gives the wrapper a definite height so Mapbox inits with non-zero size. */}
       <div className="mx-5 overflow-hidden rounded-card border border-stroke-muted shadow-card">
-        <div className="relative aspect-[3/2] w-full overflow-hidden">
+        <div className="relative w-full overflow-hidden" style={{ paddingBottom: "66.667%" }}>
           <MapView key={`fleet-${showAvatars}-${mapStyle}-${liveVehicle ? "live" : "parked"}`} markers={allMarkers} mapStyle={mapStyle} />
         </div>
       </div>
 
-      {/* Vehicles section header — iOS: Section Header (13pt semibold uppercased) */}
-      <div className="px-5">
+      {/* Vehicles section header with layout toggle */}
+      <div className="flex items-center justify-between px-5">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Vehicles</span>
+        <button
+          type="button"
+          onClick={() => setCompactCards(!compactCards)}
+          className="text-[11px] font-medium text-semantic-info transition-colors hover:text-semantic-info/80"
+        >
+          {compactCards ? "Expand" : "Collapse"}
+        </button>
       </div>
 
       {/* One card per vehicle; gap between cards for iOS-style grouped list appearance */}
@@ -495,7 +585,7 @@ function FleetView({
             key={v.id}
             className="overflow-hidden rounded-card border border-stroke-muted bg-surface-card"
           >
-            <VehicleCardContent v={v} showAvatars={showAvatars} />
+            <VehicleCardContent v={v} showAvatars={showAvatars} compact={compactCards} />
           </div>
         ))}
       </div>
@@ -519,20 +609,16 @@ function TripActivityItem({
   showAvatars,
   driverImageSrc,
   vehicleColor = "#2563eb",
+  timelineMode = false,
 }: {
   trip: (typeof DEMO_TRIPS)[number];
   href: string;
   showAvatars: boolean;
   driverImageSrc?: string;
   vehicleColor?: string;
+  timelineMode?: boolean;
 }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      {/* Timestamp — outside the card, end time only (duration pill handles the rest) */}
-      <span className="px-1 text-[11px] tabular-nums text-text-muted">
-        {trip.date} · {trip.timeRange.split(/\s*[–-]\s*/).pop()}
-      </span>
-
+  const card = (
     <div className="relative flex items-start gap-3 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-surface-subtle">
       <button
         type="button"
@@ -587,6 +673,15 @@ function TripActivityItem({
         </div>
       </div>
     </div>
+  );
+
+  if (timelineMode) return card;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="px-1 text-[11px] tabular-nums text-text-muted">
+        {trip.date} · {trip.timeRange.split(/\s*[–-]\s*/).pop()}
+      </span>
+      {card}
     </div>
   );
 }
@@ -601,21 +696,18 @@ interface ScoreUpdateItem {
 }
 
 const DEMO_SCORE_UPDATES: ScoreUpdateItem[] = [
-  { id: "su1", vehicle: "Civic",  score: 82, delta:  3, date: "Today",     time: "9:02 AM" },
-  { id: "su2", vehicle: "RAV4",   score: 74, delta: -2, date: "Yesterday", time: "9:00 AM" },
+  { id: "su-today-civic",  vehicle: "Civic", score: 82, delta:  3, date: "Today",     time: "11:30 PM" },
+  { id: "su-today-rav4",   vehicle: "RAV4",  score: 74, delta: -2, date: "Today",     time: "11:30 PM" },
+  { id: "su-yest-civic",   vehicle: "Civic", score: 79, delta:  1, date: "Yesterday", time: "11:30 PM" },
+  { id: "su-yest-rav4",    vehicle: "RAV4",  score: 76, delta: -1, date: "Yesterday", time: "11:30 PM" },
 ];
 
-function ScoreUpdateActivityItem({ item }: { item: ScoreUpdateItem }) {
+function ScoreUpdateActivityItem({ item, timelineMode = false }: { item: ScoreUpdateItem; timelineMode?: boolean }) {
   const isUp = item.delta >= 0;
   const deltaColor = isUp ? "text-semantic-success" : "text-semantic-warning";
-  const dotColor   = isUp ? "bg-semantic-success"   : "bg-semantic-warning";
 
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="px-1 text-[11px] tabular-nums text-text-muted">
-        {item.date} · {item.time}
-      </span>
-      <div className="relative flex items-start gap-3 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-surface-subtle">
+  const card = (
+    <div className="relative flex items-start gap-3 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-surface-subtle">
         <button
           type="button"
           className="absolute right-3 top-3 shrink-0 rounded-full border border-stroke-muted bg-surface-subtle px-2.5 py-0.5 text-[10px] font-semibold text-text-muted transition-colors hover:bg-surface-strong hover:text-text-secondary"
@@ -645,22 +737,119 @@ function ScoreUpdateActivityItem({ item }: { item: ScoreUpdateItem }) {
           </div>
         </div>
       </div>
+  );
+
+  if (timelineMode) return card;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="px-1 text-[11px] tabular-nums text-text-muted">
+        {item.date} · {item.time}
+      </span>
+      {card}
     </div>
   );
 }
 
-type ActivityEntry =
-  | { kind: "trip"; trip: (typeof DEMO_TRIPS)[number] }
-  | { kind: "score"; item: ScoreUpdateItem };
+interface LiveTripEntry {
+  id: string;
+  driver: string;
+  vehicleLabel: string;
+  mph: number;
+  startedAgo: string;
+  date: string;
+}
 
+const LIVE_ACTIVITY: LiveTripEntry = {
+  id: "live-jack",
+  driver: "Jack",
+  vehicleLabel: "Toyota RAV4",
+  mph: 34,
+  startedAgo: "12 mins ago",
+  date: "Today",
+};
+
+type ActivityEntry =
+  | { kind: "trip";  trip: (typeof DEMO_TRIPS)[number] }
+  | { kind: "score"; item: ScoreUpdateItem }
+  | { kind: "live";  live: LiveTripEntry };
+
+function LiveActivityCard({ live, showAvatars }: { live: LiveTripEntry; showAvatars: boolean }) {
+  const tripHref = `/dashboard?mode=trip&driver=${encodeURIComponent(live.driver)}&vehicleLabel=${encodeURIComponent(live.vehicleLabel)}`;
+  return (
+    <Link
+      href={tripHref}
+      className="flex items-center gap-3 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-surface-subtle"
+    >
+      {showAvatars ? (
+        <img src={AVATAR_TEEN} alt={live.driver} className="size-9 shrink-0 rounded-full object-cover" />
+      ) : (
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-semantic-success text-[11px] font-semibold text-background">
+          {live.driver[0]}
+        </div>
+      )}
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-sm font-semibold text-semantic-success">{live.driver} is driving</span>
+        <span className="text-xs text-text-muted">{live.vehicleLabel} · {live.startedAgo}</span>
+      </div>
+      <div className="flex items-baseline gap-0.5">
+        <span className="text-lg font-bold tabular-nums text-semantic-success">{live.mph}</span>
+        <span className="text-[11px] font-medium text-semantic-success">mph</span>
+      </div>
+      <svg className="size-3.5 shrink-0 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+      </svg>
+    </Link>
+  );
+}
+
+// Items ordered newest-first within each day.
+// Today:     live now → 4:41 PM trip → 3:54 PM trip
+// Yesterday: 11:30 PM scores → 6:02 PM trip → 8:32 AM trip
 const ACTIVITY_ITEMS: ActivityEntry[] = [
-  { kind: "trip",  trip: DEMO_TRIPS[0] },
-  { kind: "trip",  trip: DEMO_TRIPS[1] },
-  { kind: "score", item: DEMO_SCORE_UPDATES[0] },
-  { kind: "trip",  trip: DEMO_TRIPS[2] },
-  { kind: "score", item: DEMO_SCORE_UPDATES[1] },
-  { kind: "trip",  trip: DEMO_TRIPS[3] },
+  { kind: "live",  live: LIVE_ACTIVITY },         // Today — Now (live)
+  { kind: "trip",  trip: DEMO_TRIPS[1] },         // Today 4:41 PM
+  { kind: "trip",  trip: DEMO_TRIPS[0] },         // Today 3:54 PM
+  { kind: "score", item: DEMO_SCORE_UPDATES[2] }, // Yesterday 11:30 PM — Civic
+  { kind: "score", item: DEMO_SCORE_UPDATES[3] }, // Yesterday 11:30 PM — RAV4
+  { kind: "trip",  trip: DEMO_TRIPS[3] },         // Yesterday 6:02 PM
+  { kind: "trip",  trip: DEMO_TRIPS[2] },         // Yesterday 8:32 AM
 ];
+
+/* ------------------------------------------------------------------ */
+/*  Activity timeline helpers                                          */
+/* ------------------------------------------------------------------ */
+
+const ACTIVITY_DATE_LABELS: Record<string, string> = {
+  "Today":     "Today, March 20, 2026",
+  "Yesterday": "Yesterday, March 19, 2026",
+};
+
+function getEntryDate(entry: ActivityEntry): string {
+  if (entry.kind === "trip")   return entry.trip.date;
+  if (entry.kind === "score")  return entry.item.date;
+  return entry.live.date;
+}
+
+function getEntryTime(entry: ActivityEntry): string {
+  if (entry.kind === "trip")  return entry.trip.timeRange.split(/\s*[–-]\s*/).pop() ?? entry.trip.timeRange;
+  if (entry.kind === "score") return entry.item.time;
+  return "Now";
+}
+
+function groupActivityByDate(items: ActivityEntry[]) {
+  const order: string[] = [];
+  const map: Record<string, ActivityEntry[]> = {};
+  for (const item of items) {
+    const d = getEntryDate(item);
+    if (!map[d]) { order.push(d); map[d] = []; }
+    map[d].push(item);
+  }
+  return order.map((d) => ({
+    date: d,
+    label: ACTIVITY_DATE_LABELS[d] ?? d,
+    entries: map[d],
+  }));
+}
 
 interface ConversationStarter {
   id: string;
@@ -790,57 +979,74 @@ function MilesConversationStarters() {
 }
 
 function ActivityFeed({ showAvatars = false }: { showAvatars?: boolean }) {
+  const groups = groupActivityByDate(ACTIVITY_ITEMS);
+
   return (
-    <div className="mx-5 flex flex-col gap-3">
+    <div className="mx-5 flex flex-col gap-4">
+      {/* Section header */}
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-          Activity
-        </span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Activity</span>
         <Link href="/trips" className="text-xs font-medium text-semantic-info hover:text-semantic-info/80">
           See all
         </Link>
       </div>
-      <div className="flex flex-col gap-2.5">
-        {ACTIVITY_ITEMS.map((entry) =>
-          entry.kind === "trip" ? (
-            <TripActivityItem
-              key={entry.trip.id}
-              trip={entry.trip}
-              href="/trip-receipt"
-              showAvatars={showAvatars}
-              driverImageSrc={showAvatars ? DRIVER_AVATAR_MAP[entry.trip.driver] : undefined}
-              vehicleColor={showAvatars ? VEHICLE_COLOR_MAP[entry.trip.vehicle ?? ""] : undefined}
-            />
-          ) : (
-            <ScoreUpdateActivityItem key={entry.item.id} item={entry.item} />
-          )
-        )}
 
-        {/* Loading more skeleton */}
-        <div className="flex flex-col gap-1.5">
-          <div className="h-3 w-28 animate-pulse rounded-full bg-surface-strong" />
-          <div className="flex flex-col gap-3 rounded-panel border border-stroke-muted bg-surface-card p-4">
-            <div className="flex items-start gap-3">
-              <div className="size-9 shrink-0 animate-pulse rounded-full bg-surface-strong" />
-              <div className="flex flex-1 flex-col gap-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="h-2.5 w-24 animate-pulse rounded-full bg-surface-strong" />
-                  <div className="h-2.5 w-6 animate-pulse rounded-full bg-surface-strong" />
+      {/* Day groups */}
+      {groups.map((group) => (
+        <div key={group.date} className="flex flex-col gap-3">
+          {/* Day header */}
+          <span className="text-xs font-semibold text-text-secondary">{group.label}</span>
+
+          {/* Timeline entries */}
+          <div className="flex flex-col">
+            {group.entries.map((entry, i) => {
+              const isLast = i === group.entries.length - 1;
+              const key = entry.kind === "trip" ? entry.trip.id : entry.kind === "score" ? entry.item.id : entry.live.id;
+              const time = getEntryTime(entry);
+              const isLive = entry.kind === "live";
+
+              return (
+                <div key={key} className="flex gap-3">
+                  {/* Left: dot + connecting line */}
+                  <div className="flex w-5 shrink-0 flex-col items-center">
+                    {isLive ? (
+                      <span className="relative mt-[3px] flex size-2 shrink-0">
+                        <span className="absolute inline-flex size-full animate-ping rounded-full bg-semantic-success opacity-75" />
+                        <span className="relative inline-flex size-2 rounded-full bg-semantic-success" />
+                      </span>
+                    ) : (
+                      <div className="mt-[3px] size-2 shrink-0 rounded-full bg-stroke-strong" />
+                    )}
+                    {!isLast && <div className="mt-1 w-px flex-1 bg-stroke-muted" />}
+                  </div>
+
+                  {/* Right: timestamp + card */}
+                  <div className={`flex min-w-0 flex-1 flex-col gap-2 ${!isLast ? "pb-4" : ""}`}>
+                    <span className={`text-[11px] tabular-nums leading-none ${isLive ? "font-semibold text-semantic-success" : "text-text-muted"}`}>{time}</span>
+                    {entry.kind === "trip" ? (
+                      <TripActivityItem
+                        trip={entry.trip}
+                        href="/trip-receipt"
+                        showAvatars={showAvatars}
+                        driverImageSrc={showAvatars ? DRIVER_AVATAR_MAP[entry.trip.driver] : undefined}
+                        vehicleColor={showAvatars ? VEHICLE_COLOR_MAP[entry.trip.vehicle ?? ""] : undefined}
+                        timelineMode
+                      />
+                    ) : entry.kind === "score" ? (
+                      <ScoreUpdateActivityItem item={entry.item} timelineMode />
+                    ) : (
+                      <LiveActivityCard live={entry.live} showAvatars={showAvatars} />
+                    )}
+                  </div>
                 </div>
-                <div className="h-3 w-4/5 animate-pulse rounded-full bg-surface-strong" />
-                <div className="flex gap-1.5">
-                  <div className="h-5 w-12 animate-pulse rounded-full bg-surface-strong" />
-                  <div className="h-5 w-14 animate-pulse rounded-full bg-surface-strong" />
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </div>
+      ))}
 
-        {/* Conversation starters — replaces "all caught up" */}
-        <MilesConversationStarters />
-
-      </div>
+      {/* Conversation starters */}
+      <MilesConversationStarters />
     </div>
   );
 }
@@ -853,9 +1059,9 @@ function AgentCoachingCard({
   onDismiss: () => void;
 }) {
   return (
-    <div className="flex h-full w-full flex-col gap-3 rounded-panel border border-stroke-muted bg-surface-subtle p-4 shadow-card">
+    <div className="flex h-full w-full flex-col gap-3 rounded-panel border border-stroke-muted bg-surface-card p-4 shadow-card">
       <div className="flex flex-col gap-2">
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-strong">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -868,7 +1074,7 @@ function AgentCoachingCard({
             type="button"
             onClick={onDismiss}
             aria-label={card.dismissLabel}
-            className="inline-flex size-11 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface-strong hover:text-text-secondary active:bg-surface-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-strong focus-visible:ring-offset-1"
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-strong hover:text-text-secondary active:bg-surface-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-strong focus-visible:ring-offset-1"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -1348,6 +1554,7 @@ function DashboardContent() {
   const [fleetMode, setFleetMode] = useState<FleetMode>("one-driving");
   const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/streets-v12");
   const [showTodos, setShowTodos] = useState(false);
+  const [compactCards, setCompactCards] = useState(false);
 
   // iOS large-title → compact nav bar
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -1467,7 +1674,7 @@ function DashboardContent() {
         <TripComplete vehicle={vehicle} onReturn={() => setMode("parked")} mapStyle={mapStyle} />
       ) : (
         <div className="flex flex-col gap-4">
-          <FleetView vehicles={displayVehicles} headerAction={headerAction} showAvatars={showAvatars} mapStyle={mapStyle} titleRef={titleRef} />
+          <FleetView vehicles={displayVehicles} headerAction={headerAction} showAvatars={showAvatars} mapStyle={mapStyle} titleRef={titleRef} compactCards={compactCards} setCompactCards={setCompactCards} />
           {!coachingDismissed && (
             <AgentCoachingCarousel
               cards={COACHING_CARDS}

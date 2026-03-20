@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -145,112 +145,131 @@ export function MapView({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setReady(true);
-  }, []);
+    const el = containerRef.current;
+    if (!el || !MAPBOX_TOKEN) return;
 
-  useEffect(() => {
-    if (!ready || !containerRef.current || !MAPBOX_TOKEN) return;
-    if (mapRef.current) return;
+    function initMap() {
+      if (mapRef.current || !el) return;
 
-    mapboxgl.accessToken = MAPBOX_TOKEN;
+      mapboxgl.accessToken = MAPBOX_TOKEN!;
 
-    /* Pre-compute initial center from markers / route so the map never
-       starts at a distant fallback and then animates across the globe. */
-    const allLngLats: [number, number][] = [];
-    if (markers && markers.length > 0) {
-      for (const m of markers) allLngLats.push([m.lng, m.lat]);
-    }
-    if (route && route.length >= 2) {
-      for (const [lat, lng] of route) allLngLats.push([lng, lat]);
-    }
-
-    let initCenter: [number, number];
-    let initZoom: number;
-
-    if (center) {
-      initCenter = [center[1], center[0]];
-      initZoom = zoom ?? 13;
-    } else if (allLngLats.length > 0) {
-      const bounds = allLngLats.reduce(
-        (b, coord) => b.extend(coord),
-        new mapboxgl.LngLatBounds(allLngLats[0], allLngLats[0])
-      );
-      const c = bounds.getCenter();
-      initCenter = [c.lng, c.lat];
-      initZoom = zoom ?? 12;
-    } else {
-      initCenter = [-96.7108, 33.0152];
-      initZoom = zoom ?? 13;
-    }
-
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: mapStyle,
-      center: initCenter,
-      zoom: initZoom,
-      attributionControl: false,
-      interactive,
-    });
-
-    map.on("load", () => {
-      if (route && route.length >= 2) {
-        map.addSource("route", {
-          type: "geojson",
-          data: {
-            type: "LineString",
-            coordinates: route.map(([lat, lng]) => [lng, lat]),
-          } as GeoJSON.LineString,
-        });
-        map.addLayer({
-          id: "route-line",
-          type: "line",
-          source: "route",
-          layout: { "line-join": "round", "line-cap": "round" },
-          paint: {
-            "line-color": routeColor,
-            "line-width": routeWeight,
-            "line-opacity": 0.9,
-          },
-        });
-      }
-
+      /* Pre-compute initial center from markers / route so the map never
+         starts at a distant fallback and then animates across the globe. */
+      const allLngLats: [number, number][] = [];
       if (markers && markers.length > 0) {
-        for (const m of markers) {
-          const el = createMarkerElement(m);
-          const marker = new mapboxgl.Marker({ element: el })
-            .setLngLat([m.lng, m.lat])
-            .addTo(map);
-          markersRef.current.push(marker);
-        }
+        for (const m of markers) allLngLats.push([m.lng, m.lat]);
+      }
+      if (route && route.length >= 2) {
+        for (const [lat, lng] of route) allLngLats.push([lng, lat]);
       }
 
-      if (!center && !zoom && allLngLats.length > 0) {
+      let initCenter: [number, number];
+      let initZoom: number;
+
+      if (center) {
+        initCenter = [center[1], center[0]];
+        initZoom = zoom ?? 13;
+      } else if (allLngLats.length > 0) {
         const bounds = allLngLats.reduce(
           (b, coord) => b.extend(coord),
           new mapboxgl.LngLatBounds(allLngLats[0], allLngLats[0])
         );
-        map.fitBounds(bounds, { padding: 40, maxZoom: 15, animate: false });
+        const c = bounds.getCenter();
+        initCenter = [c.lng, c.lat];
+        initZoom = zoom ?? 12;
+      } else {
+        initCenter = [-96.7108, 33.0152];
+        initZoom = zoom ?? 13;
+      }
+
+      const map = new mapboxgl.Map({
+        container: el,
+        style: mapStyle,
+        center: initCenter,
+        zoom: initZoom,
+        attributionControl: false,
+        interactive,
+      });
+
+      map.on("load", () => {
+        map.resize();
+        if (route && route.length >= 2) {
+          map.addSource("route", {
+            type: "geojson",
+            data: {
+              type: "LineString",
+              coordinates: route.map(([lat, lng]) => [lng, lat]),
+            } as GeoJSON.LineString,
+          });
+          map.addLayer({
+            id: "route-line",
+            type: "line",
+            source: "route",
+            layout: { "line-join": "round", "line-cap": "round" },
+            paint: {
+              "line-color": routeColor,
+              "line-width": routeWeight,
+              "line-opacity": 0.9,
+            },
+          });
+        }
+
+        if (markers && markers.length > 0) {
+          for (const m of markers) {
+            const elMarker = createMarkerElement(m);
+            const marker = new mapboxgl.Marker({ element: elMarker })
+              .setLngLat([m.lng, m.lat])
+              .addTo(map);
+            markersRef.current.push(marker);
+          }
+        }
+
+        if (!center && !zoom && allLngLats.length > 0) {
+          const bounds = allLngLats.reduce(
+            (b, coord) => b.extend(coord),
+            new mapboxgl.LngLatBounds(allLngLats[0], allLngLats[0])
+          );
+          map.fitBounds(bounds, { padding: 40, maxZoom: 15, animate: false });
+        }
+      });
+
+      mapRef.current = map;
+    }
+
+    /* Use a ResizeObserver to wait until the container has non-zero dimensions
+       before initialising Mapbox — avoids the 0×0 canvas problem that occurs
+       when the element uses absolute/inset-0 and layout hasn't painted yet. */
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) {
+        if (!mapRef.current) {
+          initMap();
+        } else {
+          mapRef.current.resize();
+        }
       }
     });
-
-    mapRef.current = map;
+    ro.observe(el);
 
     return () => {
+      ro.disconnect();
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
-      map.remove();
+      mapRef.current?.remove();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  }, []);
 
+  /* Outer shell owns the absolute positioning / sizing; inner div is the
+     Mapbox container so ResizeObserver always sees real content dimensions. */
   return (
-    <div
-      ref={containerRef}
-      className={`absolute inset-0 z-0 bg-neutral-100 [&_.mapboxgl-ctrl-logo]:!hidden ${className}`}
-    />
+    <div className={`absolute inset-0 z-0 [&_.mapboxgl-ctrl-logo]:!hidden ${className}`}>
+      <div ref={containerRef} className="h-full w-full bg-neutral-100" />
+    </div>
   );
 }
