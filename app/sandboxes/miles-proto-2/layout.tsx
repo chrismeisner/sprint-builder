@@ -1,3 +1,4 @@
+import Script from "next/script";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { DeviceSwitcher } from "@/app/sandboxes/miles-proto-2/_components/device-switcher";
@@ -5,6 +6,7 @@ import { KeyboardShortcuts } from "@/app/sandboxes/miles-proto-2/_components/key
 import { BottomNav } from "@/app/sandboxes/miles-proto-2/_components/bottom-nav";
 import { PageTransition } from "@/app/sandboxes/miles-proto-2/_components/page-transition";
 import { ForceLightMode } from "@/app/sandboxes/miles-proto-2/_components/force-light-mode";
+import { InspectorController } from "@/app/sandboxes/miles-proto-2/_components/inspector-controller";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -50,12 +52,15 @@ export default function MilesLayout({
   children: React.ReactNode;
 }) {
   return (
+    <>
+    <Script src="https://mcp.figma.com/mcp/html-to-design/capture.js" strategy="afterInteractive" />
     <div
       className={`${inter.variable} font-sans antialiased bg-neutral-100 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100`}
       style={{ fontFamily: "var(--font-miles-sans), ui-sans-serif, system-ui, sans-serif" }}
     >
       <ForceLightMode />
       <KeyboardShortcuts />
+      <InspectorController />
       <DeviceSwitcher>
         <div className="flex flex-col">
           <PageTransition>{children}</PageTransition>
@@ -63,5 +68,6 @@ export default function MilesLayout({
         </div>
       </DeviceSwitcher>
     </div>
+    </>
   );
 }

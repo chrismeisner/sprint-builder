@@ -9,6 +9,8 @@ const BYPASS_ROUTES = new Set([
   `${BASE}/index/`,
   `${BASE}/hub`,
   `${BASE}/hub/`,
+  `${BASE}/hub/ds-reference`,
+  `${BASE}/hub/ds-reference/`,
 ]);
 
 const presets = [

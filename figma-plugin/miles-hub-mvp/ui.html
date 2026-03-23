@@ -212,7 +212,7 @@
     <div class="panel">
       <div class="section-header">
         <label>Collections to sync</label>
-        <button class="toggle-all" id="toggleAllBtn" onclick="toggleAll()">Select all</button>
+        <button class="toggle-all" id="toggleAllBtn" onclick="toggleAll()">Deselect all</button>
       </div>
       <div class="checklist">
         <label class="check-row">
@@ -232,18 +232,18 @@
           <span class="check-badge">COLOR · 2 modes</span>
         </label>
         <label class="check-row">
-          <input type="checkbox" id="col-typography" />
+          <input type="checkbox" id="col-typography" checked />
           <div class="check-label">
             <strong>Typography</strong>
-            <span>Web font primitives (size, weight, line-height) — optional, iOS uses Text Styles instead</span>
+            <span>Web font primitives (size, weight, line-height) — iOS uses Text Styles instead, but useful as a reference</span>
           </div>
           <span class="check-badge">FLOAT / STRING</span>
         </label>
         <label class="check-row">
-          <input type="checkbox" id="col-state" />
+          <input type="checkbox" id="col-state" checked />
           <div class="check-label">
             <strong>State</strong>
-            <span>Interaction state tokens (hover, active, focus, disabled) — optional, not used in iOS handoff</span>
+            <span>Interaction state tokens (hover, active, focus, disabled)</span>
           </div>
           <span class="check-badge">FLOAT</span>
         </label>
@@ -308,7 +308,7 @@
       const COLLECTION_IDS = ["primitives", "semantic", "typography", "state", "sizing"];
 
       let currentMode = "upsert";
-      let allChecked  = false; // typography + state unchecked by default
+      let allChecked  = true;
 
       // ---- Toggle-all ----
       function toggleAll() {

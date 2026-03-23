@@ -26,26 +26,43 @@ const AVATAR_MOM = "/miles-proto-2/images/mom.jpg";
 const AVATAR_TEEN = "/miles-proto-2/images/teen.jpg";
 
 /* ------------------------------------------------------------------ */
-/*  iOS Type Scale Reference                                           */
-/*  Maps Tailwind classes to Apple HIG Dynamic Type styles.            */
-/*  Use this as a guide when translating to SwiftUI / UIKit.           */
+/*  iOS Type Scale Reference — 18 roles                               */
+/*  Source of truth: lib/design-system/ios-typography.ts              */
+/*  Hub reference:  /sandboxes/miles-proto-2/hub (Typography section) */
 /*                                                                     */
-/*  Role              iOS name        Tailwind                         */
-/*  ────────────────  ──────────────  ──────────────────────────────── */
-/*  Large Title       34pt bold       text-3xl  font-bold              */
-/*  Display / Hero    —               text-2xl   font-semibold uppercase */
-/*  Title 3           20pt regular    text-lg   font-semibold          */
-/*  Headline          17pt semibold   text-base font-semibold          */
-/*  Body              17pt regular    text-base font-normal            */
-/*  Subheadline       15pt regular    text-sm   font-normal            */
-/*  Footnote          13pt regular    text-xs   font-normal            */
-/*  Caption 1         12pt regular    text-xs   font-medium            */
-/*  Caption 2         11pt regular    text-[11px]                      */
-/*  Section Header    13pt semibold   text-[11px] font-semibold        */
-/*                    (uppercased)    uppercase tracking-wide           */
-/*  Stat Value        15pt semibold   text-sm   font-semibold          */
-/*  Tint Button       15pt semibold   text-sm   font-semibold          */
-/*                    (system blue)   text-semantic-info                */
+/*  Figma style         iOS / SwiftUI               Tailwind           */
+/*  ──────────────────  ──────────────────────────  ───────────────────*/
+/*  Titles                                                             */
+/*  Large Title         .largeTitle                 text-3xl font-bold leading-tight */
+/*  Display             .title2 + .uppercase        text-2xl font-semibold uppercase leading-tight */
+/*  Title               .title3                     text-lg font-semibold leading-snug */
+/*  Headline            .headline                   text-base font-semibold */
+/*                                                                     */
+/*  Body                                                               */
+/*  Subheadline Bold    .subheadline.bold()         text-sm font-semibold leading-none */
+/*  Subheadline         .subheadline                text-sm font-medium */
+/*  Body                .body                       text-sm leading-relaxed */
+/*                                                                     */
+/*  Stats                                                              */
+/*  Stat — Large        36pt bold tabular           text-4xl font-bold leading-none tabular-nums */
+/*  Stat — Medium       18pt bold tabular           text-lg font-bold tabular-nums */
+/*                                                                     */
+/*  Captions                                                           */
+/*  Caption Emphasized  .caption.bold()             text-xs font-semibold */
+/*  Caption             .caption                    text-xs font-medium */
+/*  Caption Muted       .caption secondary          text-xs */
+/*                                                                     */
+/*  Small labels                                                       */
+/*  Section Header      caption2 semibold uppercase text-[11px] font-semibold uppercase tracking-wide */
+/*  Caption 2           .caption2                   text-[11px] font-medium */
+/*                                                                     */
+/*  Micro                                                              */
+/*  Badge               10pt semibold uppercase     text-[10px] font-semibold uppercase tracking-wide */
+/*  Micro Label         10pt medium uppercase       text-[10px] font-medium uppercase tracking-wide */
+/*                                                                     */
+/*  AI voice                                                           */
+/*  AI Body             SF Mono .body               font-mono text-sm leading-relaxed */
+/*  AI Label            SF Mono caption2 uppercase  font-mono text-[11px] font-medium uppercase tracking-wide */
 /*                                                                     */
 /* ------------------------------------------------------------------ */
 /*  iOS Corner Radius Reference                                        */

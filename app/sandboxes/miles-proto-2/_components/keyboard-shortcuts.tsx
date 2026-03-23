@@ -19,10 +19,11 @@ export function KeyboardShortcuts() {
         return;
       }
 
-      // Press "h" to go home
+      // "h" — go home
       if (event.key === "h" || event.key === "H") {
         router.push(p("/"));
       }
+      // "t" — text inspect mode (handled by TextInspector, registered here for discoverability)
     }
 
     window.addEventListener("keydown", handleKeyDown);
