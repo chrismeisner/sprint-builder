@@ -597,6 +597,18 @@ export default function HubPage() {
             Token names are stable from the start. iOS development and Figma refinement run in parallel without blocking each other — there is no sync gate or fidelity milestone to wait for. Token values improve continuously; the hub always reflects the current state.
           </p>
 
+          {/* Process diagram */}
+          <figure className="mt-4 overflow-hidden rounded-panel border border-stroke-muted bg-surface-subtle">
+            <img
+              src="/dropbox/process.png"
+              alt="Design → iOS process diagram"
+              className="w-full"
+            />
+            <figcaption className="px-3 py-2 text-[11px] text-text-muted">
+              The full loop — UX Flow → Token Source of Truth → Build + Make it Pretty (parallel) → Testing → feedback splits back to UX or visual track → version bump.
+            </figcaption>
+          </figure>
+
           {/* Phase 1 */}
           <div className="mt-5 flex items-center gap-3">
             <span className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">Phase 1 — Reference ready</span>
