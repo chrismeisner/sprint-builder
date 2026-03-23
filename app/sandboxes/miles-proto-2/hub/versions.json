@@ -1,0 +1,24 @@
+{
+  "current": "v0",
+  "versions": [
+    {
+      "version": "v0",
+      "date": "March 2026",
+      "status": "current",
+      "breaking": [],
+      "changes": [
+        { "done": true,  "text": "Dashboard fully tokenized — zero non-token color or radius utilities" },
+        { "done": true,  "text": "Typography: 18 roles mapped to iOS HIG Dynamic Type (.largeTitle → .caption2)" },
+        { "done": true,  "text": "Color tokens: semantic light + dark mode, full primitive palette" },
+        { "done": true,  "text": "Radius (control 8pt · panel 12pt · card 16pt) + spacing scale" },
+        { "done": true,  "text": "iOS Swift package — MilesTokens.swift with adaptive Color, Radius, and Spacing enums" },
+        { "done": false, "text": "Figma: dashboard screen capture in progress, token variables synced via hub plugin" }
+      ]
+    }
+  ],
+  "upcoming": [
+    "v0 → v0.1: Figma dashboard variable-linking complete, color values refined",
+    "v0.1 → v0.2: Trip detail screen tokenized + added to screen inventory",
+    "v0.x → v1: Full dashboard + 2–3 additional screens, Figma fully linked"
+  ]
+}

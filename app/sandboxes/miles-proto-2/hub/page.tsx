@@ -5,8 +5,11 @@ import primitives from "@/lib/design-system/tokens/primitives.json";
 import sizing from "@/lib/design-system/tokens/sizing.json";
 import semanticLight from "@/lib/design-system/tokens/semantic-light.json";
 import { iosTypographyScale } from "@/lib/design-system/ios-typography";
+import hubVersions from "@/app/sandboxes/miles-proto-2/hub/versions.json";
 import fs from "fs";
 import path from "path";
+
+type BreakingChange = { type: string; from: string; to: string; note: string };
 
 type TokenValue = { $value?: string; $type?: string };
 interface TokenNode {
@@ -273,9 +276,12 @@ export default function HubPage() {
           <h1 className="text-2xl font-bold leading-none text-text-primary">
             Design system hub
           </h1>
-          <p className="text-sm text-text-muted">
-            Miles · iOS handoff reference
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-text-muted">
+              Miles · iOS handoff reference
+            </p>
+            <span className="rounded-full bg-surface-strong px-2 py-0.5 text-[10px] font-semibold text-text-muted">{hubVersions.current}</span>
+          </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
@@ -306,7 +312,7 @@ export default function HubPage() {
             <span className="rounded-full bg-semantic-info/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-semantic-info">iOS handoff reference</span>
           </div>
           <p className="text-sm text-text-secondary leading-relaxed">
-            A handoff reference for the iOS engineering team. Each token, type style, radius, and spacing value maps to a native iOS primitive. The hub grows with the product — as additional screens are tokenized they enter the same pipeline using the same tooling.
+            A versioned handoff reference for the iOS engineering team. Starting at wireframe fidelity is intentional — it proves the process has real value before branded UI exists. Design will evolve; that&apos;s not a risk, it&apos;s the assumption the system is built on. Token names are stable from v0, so every line of SwiftUI written today stays valid as values are refined. Each version adds screens or improves values; the hub, iOS package, and Figma variables update together.
           </p>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
@@ -328,6 +334,141 @@ export default function HubPage() {
 
         </HubSection>
 
+        {/* Changelog */}
+        <HubSection id="changelog">
+        <section className="mt-6 rounded-panel border border-stroke-muted bg-surface-card p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-text-muted">
+              Changelog
+            </h2>
+            <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] font-medium text-text-muted">
+              how updates are delivered
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+            The hub is versioned. Each version is a stable, usable state — {hubVersions.current} is not a draft, it&apos;s a working reference. Changes happen in batches: a round of Figma refinement, a new screen tokenized, a token value updated. When a batch is ready, the version increments, this page reflects it, and the iOS package updates automatically.
+          </p>
+
+          {/* Version entries — driven by versions.json */}
+          <div className="mt-5 flex flex-col gap-5">
+            {hubVersions.versions.map((v) => (
+              <div key={v.version} className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  {v.status === "current" ? (
+                    <span className="rounded-full bg-semantic-success/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-semantic-success">
+                      current · {v.version}
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-surface-subtle px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                      {v.version}
+                    </span>
+                  )}
+                  <span className="text-[11px] text-text-muted">{v.date}</span>
+                  <div className="h-px flex-1 bg-stroke-muted" />
+                </div>
+                {(v.breaking as BreakingChange[]).length > 0 && (
+                  <div className="rounded-panel border border-semantic-warning/40 bg-semantic-warning/5 p-3">
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-semantic-warning">
+                      ⚠ Breaking changes — SwiftUI update required
+                    </p>
+                    <ul className="flex flex-col gap-2 text-xs text-text-secondary">
+                      {(v.breaking as BreakingChange[]).map((b, i) => (
+                        <li key={i} className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <code className="rounded bg-surface-strong px-1 font-mono text-[11px] line-through text-text-muted">{b.from}</code>
+                            <span className="text-text-muted">→</span>
+                            <code className="rounded bg-surface-strong px-1 font-mono text-[11px] text-text-primary">{b.to}</code>
+                            <span className="rounded-full bg-surface-strong px-1.5 py-0.5 text-[10px] font-medium text-text-muted uppercase tracking-wide">{b.type}</span>
+                          </div>
+                          <span className="text-[11px] text-text-muted leading-relaxed">{b.note}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div className="rounded-panel border border-stroke-muted bg-background p-3">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                    What&apos;s in {v.version}
+                  </p>
+                  <ul className="flex flex-col gap-1.5 text-xs text-text-secondary">
+                    {v.changes.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className={`mt-px shrink-0 ${item.done ? "text-semantic-success" : "text-semantic-info"}`}>
+                          {item.done ? "✓" : "~"}
+                        </span>
+                        <span>{item.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* How future versions work */}
+          <div className="mt-5 flex flex-col gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">How future versions work</span>
+            <p className="text-xs text-text-muted leading-relaxed">
+              As Figma refines values or new screens are tokenized, changes are batched and the hub version increments. The iOS Swift package re-downloads with updated values. Figma-linked token values update automatically via the hub plugin. Existing SwiftUI code referencing stable token names requires no changes — only the underlying values improve.
+            </p>
+            <div className="mt-1 rounded-panel border border-stroke-muted bg-surface-subtle px-3 py-2.5">
+              <ul className="flex flex-col gap-0.5">
+                {hubVersions.upcoming.map((line, i) => (
+                  <li key={i} className="font-mono text-[11px] text-text-muted">{line}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* iOS dev — when a new version ships */}
+          <div className="mt-4 rounded-panel border border-stroke-muted bg-background p-3">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">When a new version ships — iOS checklist</p>
+            <ul className="flex flex-col gap-2 text-xs text-text-secondary">
+              {[
+                {
+                  icon: "→",
+                  color: "text-text-muted",
+                  title: "Check the changelog",
+                  body: "The version badge at the top of this page increments when a new version ships. Review the entry to understand scope before doing anything else.",
+                },
+                {
+                  icon: "↓",
+                  color: "text-semantic-info",
+                  title: "Re-download the iOS package if token values changed",
+                  body: "If the changelog notes refined color, radius, or spacing values — re-download MilesTokens.swift from the button at the top of this page and drop it into Xcode.",
+                },
+                {
+                  icon: "⚠",
+                  color: "text-semantic-warning",
+                  title: "If breaking changes are listed — SwiftUI update required",
+                  body: "Token names are stable by design and almost never change. But if a name is renamed or removed, it will appear as a breaking change with a warning block in the changelog entry — with the old name, new name, and exact update needed. This is rare and will always be explicit.",
+                },
+                {
+                  icon: "✓",
+                  color: "text-semantic-success",
+                  title: "No breaking changes listed — no code changes needed",
+                  body: "If there is no breaking changes block, your SwiftUI code is unaffected. Color(.semanticSuccess), .cornerRadius(16), .font(.headline) — all stable. Only the resolved values improve.",
+                },
+                {
+                  icon: "○",
+                  color: "text-text-muted",
+                  title: "New screens in the inventory",
+                  body: "No action needed until you're ready to build them. They enter the same loop when the time comes.",
+                },
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className={`mt-px shrink-0 font-mono text-[11px] ${item.color}`}>{item.icon}</span>
+                  <span className="leading-relaxed">
+                    <strong className="font-semibold text-text-primary">{item.title} — </strong>
+                    {item.body}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+        </HubSection>
+
         {/* Getting Started — iOS developer onboarding */}
         <HubSection id="getting-started">
         <section className="mt-6 rounded-panel border border-stroke-muted bg-surface-card p-4">
@@ -335,17 +476,14 @@ export default function HubPage() {
             <h2 className="text-xs font-semibold uppercase tracking-widest text-text-muted">
               Getting started
             </h2>
-            <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-medium text-text-muted">
-              current status
-            </span>
           </div>
           <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-            This web prototype and hub are the primary handoff reference. Screen states, token mappings, and type scale are documented here for iOS development. Figma serves as a visual refinement layer alongside this hub.
+            Everything needed to start building is here now. As versions increment, the same references update in place — the prototype, token ZIP, and Figma are always accessible from this page.
           </p>
 
-          {/* What you have today */}
+          {/* Always available */}
           <div className="mt-4 flex flex-col gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">What you have today</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Always available</span>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {[
                   {
@@ -380,7 +518,7 @@ export default function HubPage() {
                   },
                   {
                     label: "Figma MCP",
-                    detail: "Once Figma screens are token-linked, an AI assistant with Figma MCP access can inspect individual layer properties — exact token names, variable bindings, and resolved values — directly during development.",
+                    detail: "Figma variables are synced via the hub plugin. As screens are captured and variable-linked, an AI assistant with Figma MCP access can inspect individual layer properties — exact token names, bindings, and resolved values — as an additional reference during development.",
                     href: null,
                     linkLabel: null,
                   },
@@ -410,13 +548,13 @@ export default function HubPage() {
               </p>
             </div>
             <p className="text-[11px] text-text-muted">
-              Providing both the prototype URL and source to an AI assistant can accelerate SwiftUI development. Figma serves as a visual refinement layer alongside this hub.
+              Providing both the prototype URL and source to an AI assistant can accelerate SwiftUI development. As Figma fidelity grows, token values update in place — the same SwiftUI calls remain valid throughout.
             </p>
           </div>
 
-          {/* What Figma adds */}
+          {/* What Figma provides */}
           <div className="mt-5 flex flex-col gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">What Figma will add</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">What Figma provides</span>
             <ul className="flex flex-col gap-1 text-xs text-text-muted">
               <li className="flex items-start gap-2">
                 <span className="mt-px text-stroke-strong">·</span>
@@ -424,19 +562,19 @@ export default function HubPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-px text-stroke-strong">·</span>
-                <span>Variable-linked layers so toggling Light ↔ Dark in Figma verifies every token in one click</span>
+                <span>Variable-linked layers — toggling Light ↔ Dark in Figma verifies every token in one click</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-px text-stroke-strong">·</span>
-                <span>AI-extractable variable bindings per layer — useful for verifying SwiftUI Color / Font assignments match exactly</span>
+                <span>AI-extractable variable bindings per layer — an AI assistant can query token-linked layers by name, returning exact token names and resolved values as a reference at any point in iOS development</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-px text-stroke-strong">·</span>
-                <span>Figma MCP access — an AI assistant can query token-linked layers by name, returning exact variable bindings and resolved values as a reference during iOS development</span>
+                <span>Designer refinements to color values, radius, or spacing — updates sync back to this hub and are picked up by the iOS build without any structural changes</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-px text-stroke-strong">·</span>
-                <span>Designer refinements to spacing, type sizing, or color values — updates are reflected in this hub via a token sync as the product evolves</span>
+                <span>Flat PNG exports for mockup decks, stakeholder presentations, and marketing assets — a free by-product of token-linked screens</span>
               </li>
             </ul>
           </div>
@@ -456,7 +594,7 @@ export default function HubPage() {
             </span>
           </div>
           <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-            The prototype reaches a point of stable structure — layout, components, states, and token-mapped styles defined. iOS development and Figma work run in parallel, with token values syncing incrementally as the design evolves.
+            Token names are stable from the start. iOS development and Figma refinement run in parallel without blocking each other — there is no sync gate or fidelity milestone to wait for. Token values improve continuously; the hub always reflects the current state.
           </p>
 
           {/* Phase 1 */}
@@ -496,16 +634,16 @@ export default function HubPage() {
               <span className="rounded-full bg-semantic-success/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-semantic-success">iOS development entry point</span>
             </div>
             <p className="text-sm font-medium text-text-primary leading-relaxed">
-              Component structure and token names are stable.
+              Build now. The values will catch up.
             </p>
             <p className="mt-1.5 text-xs text-text-secondary leading-relaxed">
-              The component hierarchy, navigation flow, screen states, and token names are defined. The hub and running dashboard serve as references for SwiftUI implementation.
+              The component hierarchy, navigation flow, and token names are defined at v0. Visual fidelity — exact color values, font choices, radius — will be refined through Figma. That&apos;s not a gap in the reference; it&apos;s the process working as intended.
             </p>
             <div className="mt-3 rounded-control border border-stroke-muted bg-background px-3 py-2.5">
-              <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">What&apos;s stable vs. what may be refined</p>
+              <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">What this means for your SwiftUI code</p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-xs">
                 <div className="flex flex-col gap-1">
-                  <span className="font-semibold text-semantic-success">Stable</span>
+                  <span className="font-semibold text-semantic-success">Wire up now — these won&apos;t change</span>
                   <ul className="flex flex-col gap-0.5 text-text-muted">
                     <li className="flex items-start gap-1.5"><span className="mt-px shrink-0 text-semantic-success">✓</span><span>Component structure and hierarchy</span></li>
                     <li className="flex items-start gap-1.5"><span className="mt-px shrink-0 text-semantic-success">✓</span><span>Screen states and navigation flow</span></li>
@@ -515,17 +653,17 @@ export default function HubPage() {
                   </ul>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="font-semibold text-semantic-warning">May be refined in Figma</span>
+                  <span className="font-semibold text-text-secondary">Expected to evolve — absorbed automatically</span>
                   <ul className="flex flex-col gap-0.5 text-text-muted">
-                    <li className="flex items-start gap-1.5"><span className="mt-px shrink-0 text-semantic-warning">~</span><span>Exact color values (hex/opacity per token)</span></li>
-                    <li className="flex items-start gap-1.5"><span className="mt-px shrink-0 text-semantic-warning">~</span><span>Font family (Inter web → SF Pro iOS is already handled; secondary typeface may change)</span></li>
-                    <li className="flex items-start gap-1.5"><span className="mt-px shrink-0 text-semantic-warning">~</span><span>Corner radius values (currently 8 / 12 / 16pt)</span></li>
-                    <li className="flex items-start gap-1.5"><span className="mt-px shrink-0 text-semantic-warning">~</span><span>Fine spacing adjustments (e.g. 16px → 20px for a section gap)</span></li>
+                    <li className="flex items-start gap-1.5"><span className="mt-px shrink-0 text-text-muted">→</span><span>Exact color values (hex/opacity per token)</span></li>
+                    <li className="flex items-start gap-1.5"><span className="mt-px shrink-0 text-text-muted">→</span><span>Secondary typeface (SF Pro is already handled)</span></li>
+                    <li className="flex items-start gap-1.5"><span className="mt-px shrink-0 text-text-muted">→</span><span>Corner radius values (currently 8 / 12 / 16pt)</span></li>
+                    <li className="flex items-start gap-1.5"><span className="mt-px shrink-0 text-text-muted">→</span><span>Fine spacing adjustments per section</span></li>
                   </ul>
                 </div>
               </div>
               <p className="mt-2.5 text-[11px] text-text-muted leading-relaxed">
-                Because everything is token-bound, any refinement is a <strong className="font-medium text-text-secondary">token value update</strong>, not a structural change. SwiftUI calls like <code className="rounded bg-surface-strong px-1 font-mono">Color(.semanticSuccess)</code>, <code className="rounded bg-surface-strong px-1 font-mono">.cornerRadius(16)</code>, and <code className="rounded bg-surface-strong px-1 font-mono">.font(.headline)</code> reference stable names — values update incrementally as tokens are refined over time.
+                Everything on the right evolves as token <em>values</em> — not names. SwiftUI calls like <code className="rounded bg-surface-strong px-1 font-mono">Color(.semanticSuccess)</code>, <code className="rounded bg-surface-strong px-1 font-mono">.cornerRadius(16)</code>, and <code className="rounded bg-surface-strong px-1 font-mono">.font(.headline)</code> stay exactly as written. Re-download the iOS package when a new version ships and the updated values are picked up automatically.
               </p>
             </div>
           </div>
@@ -537,7 +675,7 @@ export default function HubPage() {
             <span className="rounded-full bg-semantic-info/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-semantic-info">in progress</span>
           </div>
           <p className="mt-2 text-[11px] text-text-muted leading-relaxed">
-            The iOS build and the Figma finalization run simultaneously. Neither blocks the other.
+            iOS development and Figma refinement run at the same time. Neither waits for the other — and neither is ever &ldquo;done.&rdquo; As Figma values are refined, they update in this hub. As new screens are built, they enter the same loop.
           </p>
 
           {/* Two-column parallel track layout */}
@@ -569,7 +707,7 @@ export default function HubPage() {
                 {[
                   { n: "5", title: "Push tokens to Figma (plugin)", body: "Run the Miles Hub Plugin. It writes all tokens as Figma Variables (semantic · primitives · sizing) and Miles/* text styles. Re-run any time tokens change — it's idempotent." },
                   { n: "6", title: "Port screen + link variables", body: "AI capture recreates the screen as Figma layers. Then the variable-linking checklist maps every layer property to its token. Toggle Light ↔ Dark to verify all tokens respond." },
-                  { n: "7", title: "Refine visual details in Figma", body: "Designer adjusts color values, radius, font, spacing directly in Figma. Token names stay the same — only values change. When done, sync refined values back to lib/design-system/tokens/ via Figma MCP." },
+                  { n: "7", title: "Refine visual details in Figma", body: "Designer adjusts color values, radius, font, spacing directly in Figma. Token names stay the same — only values change. Sync refined values back to lib/design-system/tokens/ via Figma MCP. Token-linked screens can also be exported as flat PNGs for decks and stakeholder assets." },
                 ].map((step) => (
                   <li key={step.n} className="flex items-start gap-2.5">
                     <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-semibold text-background">
@@ -585,48 +723,25 @@ export default function HubPage() {
             </div>
           </div>
 
-          {/* Phase 3 — visual sync */}
+          {/* Ongoing — expand scope */}
           <div className="mt-6 flex items-center gap-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">Phase 3 — Visual sync</span>
-            <div className="h-px flex-1 bg-stroke-muted" />
-            <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">pending</span>
-          </div>
-          <ol className="mt-3 flex flex-col gap-3">
-            {[
-              {
-                n: "8",
-                title: "iOS visual sync",
-                body: "Compare Figma designs against the SwiftUI build. Refined token values (color, radius, font) are updated in this hub and picked up via a token sync. The hub continues to evolve as the product does — this step repeats across design iterations.",
-              },
-            ].map((step) => (
-              <li key={step.n} className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-semibold text-background">
-                  {step.n}
-                </span>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-semibold text-text-primary">{step.title}</span>
-                  <span className="text-xs text-text-muted leading-relaxed">{step.body}</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-
-          {/* Phase 4 — expand to additional screens */}
-          <div className="mt-6 flex items-center gap-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">Phase 4 — Expand to additional screens</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">Ongoing — expand scope</span>
             <div className="h-px flex-1 bg-stroke-muted" />
             <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">repeating</span>
           </div>
           <p className="mt-2 text-[11px] text-text-muted leading-relaxed">
-            As each additional screen reaches high-fidelity structure, it enters the same pipeline at Phase 1. The token system, plugin, Swift package, and Figma capture tooling are all reusable — only the screen scope grows.
+            Each additional screen enters the same loop at step 1. The token system, plugin, Swift package, and Figma tooling are all reusable — only the scope grows. The hub is always the current state of the system, whatever that state is.
+          </p>
+          <p className="mt-2 text-[11px] text-text-muted leading-relaxed">
+            Real-world testing — TestFlight builds, beta feedback, usage data — feeds back into the loop in two ways: UX or flow issues return to the prototype and become structural updates; visual or branding issues return to Figma and become token value refinements. Either way, the next version batch absorbs them through the same pipeline.
           </p>
           <div className="mt-3 rounded-panel border border-stroke-muted bg-background p-3">
             <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-2">Adopting a new screen — 3 steps</p>
             <ol className="flex flex-col gap-2">
               {[
                 { n: "A", title: "Tokenize", body: "Replace raw Tailwind color and radius classes with semantic token equivalents. Run the compliance checker (or extend it to the new file) to confirm zero non-token utilities remain." },
-                { n: "B", title: "Capture into Figma", body: "Run the Figma capture prompt with the new screen's URL in [LOCAL_PAGE_URL]. The same hub plugin, prompt, and variable-linking workflow apply without any changes." },
-                { n: "C", title: "Update screen inventory", body: "Mark the screen as tokenized and Figma-captured in the Screen inventory section below. The iOS package re-download picks up the same token set automatically — no changes needed there." },
+                { n: "B", title: "Capture into Figma", body: "Run the Figma capture prompt with the new screen's URL in [LOCAL_PAGE_URL]. The same hub plugin, prompt, and variable-linking workflow apply — no setup changes needed." },
+                { n: "C", title: "Update screen inventory", body: "Mark the screen as tokenized and Figma-captured in the Screen inventory below. The hub, iOS package, and Figma are immediately up to date — the loop continues." },
               ].map((step) => (
                 <li key={step.n} className="flex items-start gap-2.5">
                   <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-strong text-[10px] font-semibold text-text-secondary">

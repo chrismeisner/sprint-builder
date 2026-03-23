@@ -11,6 +11,7 @@ export interface SectionDef {
 
 export const HUB_SECTIONS: SectionDef[] = [
   { id: "purpose",             label: "Purpose" },
+  { id: "changelog",           label: "Changelog" },
   { id: "getting-started",     label: "Getting started" },
   { id: "pipeline",            label: "Pipeline" },
   { id: "capture-prompts",     label: "Capture prompts" },
@@ -54,6 +55,7 @@ export const PRESETS: Preset[] = [
     label: "iOS dev",
     sections: new Set([
       "purpose",
+      "changelog",
       "getting-started",
       "pipeline",
       "screen-inventory",
@@ -71,6 +73,7 @@ export const PRESETS: Preset[] = [
     label: "Designer",
     sections: new Set([
       "purpose",
+      "changelog",
       "pipeline",
       "capture-prompts",
       "figma-plugin",
