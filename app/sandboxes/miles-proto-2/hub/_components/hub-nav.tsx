@@ -15,7 +15,8 @@ export const HUB_SECTIONS: SectionDef[] = [
   { id: "getting-started",     label: "Getting started" },
   { id: "pipeline",            label: "Pipeline" },
   { id: "capture-prompts",     label: "Capture prompts" },
-  { id: "figma-plugin",        label: "Figma plugin" },
+  { id: "apply-updates",       label: "Apply updates" },
+  { id: "figma-mcp",           label: "Figma MCP" },
   { id: "color-primitives",    label: "Color · Primitives" },
   { id: "color-semantic",      label: "Color · Semantic" },
   { id: "spacing",             label: "Spacing" },
@@ -76,7 +77,8 @@ export const PRESETS: Preset[] = [
       "changelog",
       "pipeline",
       "capture-prompts",
-      "figma-plugin",
+      "apply-updates",
+      "figma-mcp",
       "screen-inventory",
       "color-primitives",
       "color-semantic",
@@ -147,7 +149,7 @@ export function HubNav() {
   const activePreset = detectPreset(visible);
 
   return (
-    <div className="sticky top-0 z-20 border-b border-stroke-muted bg-background/95 backdrop-blur-sm">
+    <div className="sticky top-0 z-20 border-b border-stroke-muted bg-background">
       <div className="mx-auto max-w-[1200px] px-5 py-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 

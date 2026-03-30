@@ -61,11 +61,21 @@ const config: Config = {
         brand: {
           primary: "var(--color-brand-primary)",
           inverse: "var(--color-brand-inverse)",
+          wordmark: "var(--color-brand-wordmark)",
+          green: "var(--color-brand-green)",
+          "green-subtle": "var(--color-brand-green-subtle)",
+          "green-muted": "var(--color-brand-green-muted)",
+          "green-emphasis": "var(--color-brand-green-emphasis)",
+          blue: "var(--color-brand-blue)",
+          "blue-subtle": "var(--color-brand-blue-subtle)",
+          "blue-muted": "var(--color-brand-blue-muted)",
+          "blue-emphasis": "var(--color-brand-blue-emphasis)",
         },
         surface: {
           subtle: "var(--color-surface-subtle)",
           strong: "var(--color-surface-strong)",
           card: "var(--color-surface-card)",
+          overlay: "var(--color-surface-overlay)",
         },
         stroke: {
           muted: "var(--color-stroke-muted)",
@@ -96,7 +106,8 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-inter)", "var(--font-akkurat)", "system-ui", "-apple-system", "sans-serif"],
-        mono: ["var(--font-akkurat-mono)", "ui-monospace", "monospace"],
+        mono: ["var(--font-overpass-mono)", "var(--font-akkurat-mono)", "ui-monospace", "monospace"],
+        "overpass-mono": ["var(--font-overpass-mono)", "ui-monospace", "monospace"],
         "gt-america": ["var(--font-gt-america)", "sans-serif"],
         "gt-compressed": ["var(--font-gt-america-compressed)", "var(--font-gt-america)", "sans-serif"],
         akkurat: ["var(--font-akkurat)", "sans-serif"],

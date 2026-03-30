@@ -7,58 +7,78 @@ export const metadata: Metadata = { title: "Design System Reference — Miles" }
    All values hardcoded as a point-in-time snapshot.
    ───────────────────────────────────────────────────────── */
 
-const GENERATED_AT = "2026-03-23 11:04";
+const GENERATED_AT = "2026-03-28 — v0.1";
 const HUB_URL = "http://localhost:3000/sandboxes/miles-proto-2/hub";
 
 const COLOR_GROUPS: Array<{
   category: string;
-  tokens: Array<{ name: string; light: string; dark: string; ios: string }>;
+  tokens: Array<{ name: string; light: string; dark: string; ios: string; primitive?: string }>;
 }> = [
   {
     category: "Base",
     tokens: [
-      { name: "background",  light: "#fafafa", dark: "#0a0a0a", ios: "UIColor.systemBackground" },
-      { name: "foreground",  light: "#0a0a0a", dark: "#f5f5f5", ios: "UIColor.label" },
-    ],
-  },
-  {
-    category: "Surface",
-    tokens: [
-      { name: "surface/card",   light: "#ffffff", dark: "#0a0a0a", ios: "UIColor.secondarySystemGroupedBackground" },
-      { name: "surface/subtle", light: "#f5f5f5", dark: "#171717", ios: "UIColor.secondarySystemBackground" },
-      { name: "surface/strong", light: "#e5e5e5", dark: "#262626", ios: "UIColor.tertiarySystemBackground" },
+      { name: "background",  light: "#f7f6f2", dark: "#030712", primitive: "gray/50 → gray/950",  ios: "UIColor.systemBackground" },
+      { name: "foreground",  light: "#030712", dark: "#f7f6f2", primitive: "gray/950 → gray/50",  ios: "UIColor.label" },
     ],
   },
   {
     category: "Text",
     tokens: [
-      { name: "text/primary",   light: "#0a0a0a", dark: "#f5f5f5", ios: "UIColor.label" },
-      { name: "text/secondary", light: "#404040", dark: "#d4d4d4", ios: "UIColor.secondaryLabel" },
-      { name: "text/muted",     light: "#737373", dark: "#a3a3a3", ios: "UIColor.tertiaryLabel" },
-      { name: "text/inverse",   light: "#fafafa", dark: "#0a0a0a", ios: "UIColor.label (inverse)" },
+      { name: "text/primary",   light: "#0a0a0a", dark: "#f5f5f5", primitive: "gray/950 → gray/50",  ios: "UIColor.label" },
+      { name: "text/secondary", light: "#404040", dark: "#d4d4d4", primitive: "gray/700 → gray/300",  ios: "UIColor.secondaryLabel" },
+      { name: "text/muted",     light: "#737373", dark: "#a3a3a3", primitive: "gray/500 → gray/400",  ios: "UIColor.tertiaryLabel" },
+      { name: "text/inverse",   light: "#fafafa", dark: "#0a0a0a", primitive: "gray/50 → gray/950",   ios: "UIColor.label (inverse)" },
+    ],
+  },
+  {
+    category: "Surface",
+    tokens: [
+      { name: "surface/subtle",  light: "#f5f5f5", dark: "#171717", primitive: "gray/50 → gray/900",  ios: "UIColor.secondarySystemBackground" },
+      { name: "surface/strong",  light: "#e5e5e5", dark: "#262626", primitive: "gray/200 → gray/800", ios: "UIColor.tertiarySystemBackground" },
+      { name: "surface/card",    light: "#ffffff", dark: "#0a0a0a", primitive: "gray/0 → gray/900",   ios: "UIColor.secondarySystemGroupedBackground" },
+      { name: "surface/overlay", light: "#242322", dark: "#363432", primitive: "gray/900 → gray/800", ios: "Custom overlay surface" },
     ],
   },
   {
     category: "Stroke",
     tokens: [
-      { name: "stroke/muted",  light: "#e5e5e5", dark: "#262626", ios: "UIColor.separator" },
-      { name: "stroke/strong", light: "#d4d4d4", dark: "#404040", ios: "UIColor.opaqueSeparator" },
+      { name: "stroke/muted",  light: "#e5e5e5", dark: "#262626", primitive: "gray/200 → gray/800", ios: "UIColor.separator" },
+      { name: "stroke/strong", light: "#d4d4d4", dark: "#404040", primitive: "gray/300 → gray/700", ios: "UIColor.opaqueSeparator" },
     ],
   },
   {
-    category: "Brand",
+    category: "Brand — Primary",
     tokens: [
-      { name: "brand/primary", light: "#0a0a0a", dark: "#ffffff", ios: "Custom brand color" },
-      { name: "brand/inverse", light: "#ffffff", dark: "#000000", ios: "Custom brand inverse" },
+      { name: "brand/wordmark",  light: "#2d6041", dark: "#8dd5b3", primitive: "green/800 → green/300", ios: "Custom wordmark color" },
+      { name: "brand/primary",   light: "#0a0a0a", dark: "#ffffff", primitive: "gray/950 → gray/0",     ios: "Custom brand color" },
+      { name: "brand/inverse",   light: "#ffffff", dark: "#000000", primitive: "gray/0 → gray/1000",    ios: "Custom brand inverse" },
+    ],
+  },
+  {
+    category: "Brand — Green",
+    tokens: [
+      { name: "brand/green",          light: "#309061", dark: "#5ebe91", primitive: "green/600 → green/400", ios: "Custom brand green" },
+      { name: "brand/green-subtle",   light: "#f2f9f5", dark: "#181a17", primitive: "green/50 → green/950",  ios: "Custom green surface" },
+      { name: "brand/green-muted",    light: "#e5f4eb", dark: "#1f2420", primitive: "green/100 → green/900", ios: "Custom green muted" },
+      { name: "brand/green-emphasis", light: "#2f7852", dark: "#8dd5b3", primitive: "green/700 → green/300", ios: "Custom green emphasis" },
+    ],
+  },
+  {
+    category: "Brand — Blue",
+    tokens: [
+      { name: "brand/blue",          light: "#3e6fa0", dark: "#9dc3e4", primitive: "blue/600 → blue/300",  ios: "Custom brand blue" },
+      { name: "brand/blue-subtle",   light: "#f4f8fa", dark: "#1f222e", primitive: "blue/50 → blue/900",   ios: "Custom blue surface" },
+      { name: "brand/blue-muted",    light: "#e6f0f5", dark: "#30405c", primitive: "blue/100 → blue/800",  ios: "Custom blue muted" },
+      { name: "brand/blue-emphasis", light: "#37577e", dark: "#9dc3e4", primitive: "blue/700 → blue/300",  ios: "Custom blue emphasis" },
     ],
   },
   {
     category: "Semantic",
     tokens: [
-      { name: "semantic/info",    light: "#2563eb", dark: "#93c5fd", ios: "UIColor.systemBlue" },
-      { name: "semantic/success", light: "#16a34a", dark: "#4ade80", ios: "UIColor.systemGreen" },
-      { name: "semantic/warning", light: "#ca8a04", dark: "#facc15", ios: "UIColor.systemYellow" },
-      { name: "semantic/danger",  light: "#dc2626", dark: "#f87171", ios: "UIColor.systemRed" },
+      { name: "semantic/success", light: "#16a34a", dark: "#4ade80", primitive: "green/600 → green/400", ios: "UIColor.systemGreen" },
+      { name: "semantic/info",    light: "#2563eb", dark: "#93c5fd", primitive: "blue/600 → blue/300",   ios: "UIColor.systemBlue" },
+      { name: "semantic/warning", light: "#ca8a04", dark: "#facc15", primitive: "—",                     ios: "UIColor.systemYellow" },
+      { name: "semantic/danger",  light: "#dc2626", dark: "#f87171", primitive: "—",                     ios: "UIColor.systemRed" },
     ],
   },
 ];
@@ -71,11 +91,11 @@ const TYPE_STYLES: Array<{
   { name: "Miles/Display",           group: "Titles",       family: "Inter",       sizePx: 24, weightLabel: "Semi Bold", weight: 600, lineHeightPx: 30, letterSpacingPct: 0,   ios: ".title2 uppercase" },
   { name: "Miles/Title",             group: "Titles",       family: "Inter",       sizePx: 18, weightLabel: "Semi Bold", weight: 600, lineHeightPx: 25, letterSpacingPct: 0,   ios: ".title3" },
   { name: "Miles/Headline",          group: "Titles",       family: "Inter",       sizePx: 16, weightLabel: "Semi Bold", weight: 600, lineHeightPx: 24, letterSpacingPct: 0,   ios: ".headline" },
-  { name: "Miles/Subheadline Bold",  group: "Body",         family: "Inter",       sizePx: 14, weightLabel: "Semi Bold", weight: 600, lineHeightPx: 14, letterSpacingPct: 0,   ios: ".subheadline.bold()" },
+  { name: "Miles/Subheadline Bold",  group: "Body",         family: "Inter",       sizePx: 14, weightLabel: "Semi Bold", weight: 600, lineHeightPx: 14, letterSpacingPct: 0,   ios: ".subheadline.bold()", sample: "Jack is driving" },
   { name: "Miles/Subheadline",       group: "Body",         family: "Inter",       sizePx: 14, weightLabel: "Medium",    weight: 500, lineHeightPx: 21, letterSpacingPct: 0,   ios: ".subheadline" },
   { name: "Miles/Body",              group: "Body",         family: "Inter",       sizePx: 14, weightLabel: "Regular",   weight: 400, lineHeightPx: 23, letterSpacingPct: 0,   ios: ".body" },
   { name: "Miles/Stat — Large",      group: "Stats",        family: "Inter",       sizePx: 36, weightLabel: "Bold",      weight: 700, lineHeightPx: 36, letterSpacingPct: 0,   ios: "Custom 36pt bold tabular", sample: "34 mph" },
-  { name: "Miles/Stat — Medium",     group: "Stats",        family: "Inter",       sizePx: 18, weightLabel: "Bold",      weight: 700, lineHeightPx: 27, letterSpacingPct: 0,   ios: "Custom 18pt bold tabular", sample: "82 pts" },
+  { name: "Miles/Stat — Medium",     group: "Stats",        family: "Inter",       sizePx: 18, weightLabel: "Bold",      weight: 700, lineHeightPx: 18, letterSpacingPct: 0,   ios: "Custom 18pt bold tabular", sample: "82 · Good · 62%" },
   { name: "Miles/Caption Emphasized",group: "Captions",     family: "Inter",       sizePx: 12, weightLabel: "Semi Bold", weight: 600, lineHeightPx: 18, letterSpacingPct: 0,   ios: ".caption.bold()" },
   { name: "Miles/Caption",           group: "Captions",     family: "Inter",       sizePx: 12, weightLabel: "Medium",    weight: 500, lineHeightPx: 18, letterSpacingPct: 0,   ios: ".caption" },
   { name: "Miles/Caption Muted",     group: "Captions",     family: "Inter",       sizePx: 12, weightLabel: "Regular",   weight: 400, lineHeightPx: 18, letterSpacingPct: 0,   ios: ".caption (secondary)" },
@@ -83,8 +103,8 @@ const TYPE_STYLES: Array<{
   { name: "Miles/Caption 2",         group: "Small labels", family: "Inter",       sizePx: 11, weightLabel: "Medium",    weight: 500, lineHeightPx: 16, letterSpacingPct: 0,   ios: ".caption2" },
   { name: "Miles/Badge",             group: "Micro",        family: "Inter",       sizePx: 10, weightLabel: "Semi Bold", weight: 600, lineHeightPx: 15, letterSpacingPct: 2.5, ios: "Custom 10pt semibold", sample: "DRIVING" },
   { name: "Miles/Micro Label",       group: "Micro",        family: "Inter",       sizePx: 10, weightLabel: "Medium",    weight: 500, lineHeightPx: 15, letterSpacingPct: 2.5, ios: "Custom 10pt medium" },
-  { name: "Miles/AI Body",           group: "AI voice",     family: "Roboto Mono", sizePx: 14, weightLabel: "Regular",   weight: 400, lineHeightPx: 23, letterSpacingPct: 0,   ios: "SF Mono .body" },
-  { name: "Miles/AI Label",          group: "AI voice",     family: "Roboto Mono", sizePx: 11, weightLabel: "Medium",    weight: 500, lineHeightPx: 16, letterSpacingPct: 2.5, ios: "SF Mono .caption2 uppercase", sample: "AI LABEL" },
+  { name: "Miles/AI Body",           group: "AI voice",     family: "Overpass Mono", sizePx: 14, weightLabel: "Regular",   weight: 400, lineHeightPx: 23, letterSpacingPct: 0,   ios: "SF Mono .body" },
+  { name: "Miles/AI Label",          group: "AI voice",     family: "Overpass Mono", sizePx: 11, weightLabel: "Medium",    weight: 500, lineHeightPx: 16, letterSpacingPct: 2.5, ios: "SF Mono .caption2 uppercase", sample: "AI LABEL" },
 ];
 
 const RADIUS_TOKENS = [
@@ -155,6 +175,7 @@ function SectionFrame({ id, title, children }: { id: string; title: string; chil
 export default function DesignSystemReferencePage() {
   return (
     <div style={{ background: "#f5f5f5", minHeight: "100dvh", paddingBottom: 96 }}>
+      <style>{`.ds-ref-back-link:hover { color: #fafafa !important; }`}</style>
       {/* ── Page header label ── */}
       <div
         id="reference/header"
@@ -172,8 +193,25 @@ export default function DesignSystemReferencePage() {
           gap: 24,
         }}
       >
-        <span>Design System Reference — generated {GENERATED_AT} from {HUB_URL}</span>
-        <span style={{ color: "#737373" }}>token-version: 0.1.1</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <a
+            href="/sandboxes/miles-proto-2/hub"
+            className="ds-ref-back-link"
+            style={{
+              color: "#737373",
+              textDecoration: "none",
+              fontFamily: "ui-monospace, monospace",
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: "0.03em",
+            }}
+          >
+            ← Hub
+          </a>
+          <span style={{ color: "#262626" }}>·</span>
+          <span>Design System Reference — generated {GENERATED_AT} from {HUB_URL}</span>
+        </div>
+        <span style={{ color: "#737373" }}>token-version: v0</span>
       </div>
 
       <div
@@ -192,8 +230,8 @@ export default function DesignSystemReferencePage() {
         ══════════════════════════════════════════ */}
         <SectionFrame id="reference/color-tokens" title="1 · Color Tokens">
           <p style={{ margin: 0, fontSize: 12, color: "#737373", lineHeight: 1.6 }}>
-            Semantic tokens resolve to different hex values per mode. Light ↔ Dark columns show both values side-by-side.
-            Primitives collection omitted — all semantic tokens already reference their primitive name.
+            Semantic tokens resolve to different hex values per mode. Light ↔ Dark columns show prototype wireframe values (not Figma production values).
+            The Primitive column shows the Figma variable alias — the shared naming contract. All token names here are in parity with the Figma file. brand/green*, brand/blue*, surface/overlay are defined for Figma parity; remaining tokens are actively used in the dashboard prototype.
           </p>
 
           {COLOR_GROUPS.map((group) => (
@@ -211,12 +249,12 @@ export default function DesignSystemReferencePage() {
                 {/* Column headers */}
                 <div style={{
                   display: "grid",
-                  gridTemplateColumns: "240px 1fr 1fr",
+                  gridTemplateColumns: "220px 1fr 1fr 160px",
                   background: "#f5f5f5",
                   padding: "8px 16px",
                   gap: 16,
                 }}>
-                  {["Token name", "Light mode", "Dark mode"].map((h) => (
+                  {["Token name", "Light mode", "Dark mode", "Primitive"].map((h) => (
                     <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "#a3a3a3" }}>
                       {h}
                     </span>
@@ -229,7 +267,7 @@ export default function DesignSystemReferencePage() {
                     id={`reference/color-tokens/${group.category.toLowerCase()}/${t.name.replace(/\//g, "-")}`}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "240px 1fr 1fr",
+                      gridTemplateColumns: "220px 1fr 1fr 160px",
                       padding: "12px 16px",
                       gap: 16,
                       background: i % 2 === 0 ? "#ffffff" : "#fafafa",
@@ -246,7 +284,7 @@ export default function DesignSystemReferencePage() {
                       <div style={{
                         width: 32, height: 32, borderRadius: 6, flexShrink: 0,
                         background: t.light,
-                        border: (t.light === "#ffffff" || t.light === "#fafafa") ? "1px solid #e5e5e5" : "none",
+                        border: (t.light === "#ffffff" || t.light === "#fafafa" || t.light === "#f7f6f2" || t.light === "#f2f9f5" || t.light === "#f4f8fa" || t.light === "#e5f4eb" || t.light === "#e6f0f5") ? "1px solid #e5e5e5" : "none",
                       }} />
                       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                         <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 12, color: "#0a0a0a", fontWeight: 500 }}>
@@ -271,6 +309,11 @@ export default function DesignSystemReferencePage() {
                         <span style={{ fontSize: 10, color: "#a3a3a3" }}>Dark</span>
                       </div>
                     </div>
+
+                    {/* Primitive reference */}
+                    <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 11, color: "#309061" }}>
+                      {t.primitive ?? "—"}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -284,7 +327,7 @@ export default function DesignSystemReferencePage() {
         <SectionFrame id="reference/typography" title="2 · Typography Scale — Miles/* Text Styles">
           <p style={{ margin: 0, fontSize: 12, color: "#737373", lineHeight: 1.6 }}>
             18 roles. Each maps 1-to-1 to an iOS HIG Dynamic Type style or named custom role.
-            Inter (web) ↔ SF Pro (iOS) · Roboto Mono (web) ↔ SF Mono (iOS).
+            Inter (web) ↔ SF Pro (iOS) · Overpass Mono (web) ↔ SF Mono (iOS).
           </p>
 
           {/* Column headers */}
@@ -338,7 +381,7 @@ export default function DesignSystemReferencePage() {
 
                         {/* Live sample */}
                         <span style={{
-                          fontFamily: s.family === "Roboto Mono" ? "ui-monospace, monospace" : "Inter, ui-sans-serif, sans-serif",
+                          fontFamily: (s.family === "Roboto Mono" || s.family === "Overpass Mono") ? "var(--font-overpass-mono), ui-monospace, monospace" : "Inter, ui-sans-serif, sans-serif",
                           fontSize: Math.min(s.sizePx, 22),
                           fontWeight: s.weight,
                           lineHeight: `${s.lineHeightPx}px`,

@@ -35,6 +35,24 @@
   --color-semantic-success: #4ade80;
   --color-semantic-warning: #facc15;
   --color-semantic-danger: #f87171;
+
+  /* brand/wordmark — dark mode (green/300) */
+  --color-brand-wordmark: #8dd5b3;
+
+  /* brand/green scale — dark mode (green/400, 300, 900, 950) */
+  --color-brand-green: #5ebe91;
+  --color-brand-green-subtle: #181a17;
+  --color-brand-green-muted: #1f2420;
+  --color-brand-green-emphasis: #8dd5b3;
+
+  /* brand/blue scale — dark mode (blue/300, 50→900, 800, 300) */
+  --color-brand-blue: #9dc3e4;
+  --color-brand-blue-subtle: #1f222e;
+  --color-brand-blue-muted: #30405c;
+  --color-brand-blue-emphasis: #9dc3e4;
+
+  /* surface/overlay — dark mode (gray/800) */
+  --color-surface-overlay: #363432;
 }
 
 :root:not(.dark) {
@@ -71,6 +89,24 @@
   --color-semantic-success: #16a34a;
   --color-semantic-warning: #ca8a04;
   --color-semantic-danger: #dc2626;
+
+  /* brand/wordmark — light mode (green/800) */
+  --color-brand-wordmark: #2d6041;
+
+  /* brand/green scale — light mode (green/600, 50, 100, 700) */
+  --color-brand-green: #309061;
+  --color-brand-green-subtle: #f2f9f5;
+  --color-brand-green-muted: #e5f4eb;
+  --color-brand-green-emphasis: #2f7852;
+
+  /* brand/blue scale — light mode (blue/600, 50, 100, 700) */
+  --color-brand-blue: #3e6fa0;
+  --color-brand-blue-subtle: #f4f8fa;
+  --color-brand-blue-muted: #e6f0f5;
+  --color-brand-blue-emphasis: #37577e;
+
+  /* surface/overlay — light mode (gray/900) */
+  --color-surface-overlay: #242322;
 }
 
 @layer base {
@@ -125,7 +161,7 @@
   pre,
   kbd,
   samp {
-    font-family: var(--font-akkurat-mono), ui-monospace, monospace;
+    font-family: var(--font-overpass-mono), var(--font-akkurat-mono), ui-monospace, monospace;
   }
 
   .wireframe-mode div {
@@ -144,7 +180,7 @@
     color: #fff;
     font-size: 10px;
     font-weight: 600;
-    font-family: var(--font-akkurat-mono), ui-monospace, monospace;
+    font-family: var(--font-overpass-mono), var(--font-akkurat-mono), ui-monospace, monospace;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -168,7 +204,7 @@
     color: #fff;
     font-size: 9px;
     font-weight: 600;
-    font-family: var(--font-akkurat-mono), ui-monospace, monospace;
+    font-family: var(--font-overpass-mono), var(--font-akkurat-mono), ui-monospace, monospace;
     letter-spacing: 0.04em;
     padding: 1px 4px;
     border-radius: 2px;

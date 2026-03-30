@@ -176,6 +176,46 @@ export const fontTokens: FontToken[] = [
     ],
   },
   {
+    id: "overpass-mono",
+    label: "Overpass Mono",
+    description: "Primary monospace font for stats, numeric data, AI voice, status badges, and all mono-spaced UI contexts.",
+    samples: sentenceSample,
+    baseClass: "font-overpass-mono",
+    tailwindClass: "font-overpass-mono",
+    variants: [
+      {
+        id: "overpass-mono-light",
+        label: "Light / 300",
+        className: "font-overpass-mono font-light",
+        description: "Lightweight mono captions and secondary labels.",
+      },
+      {
+        id: "overpass-mono-regular",
+        label: "Regular / 400",
+        className: "font-overpass-mono",
+        description: "Default mono body text and UI metadata.",
+      },
+      {
+        id: "overpass-mono-medium",
+        label: "Medium / 500",
+        className: "font-overpass-mono font-medium",
+        description: "Metric values, stat cells, and AI body copy.",
+      },
+      {
+        id: "overpass-mono-semibold",
+        label: "Semibold / 600",
+        className: "font-overpass-mono font-semibold",
+        description: "Status badges, section labels, and emphasized stats.",
+      },
+      {
+        id: "overpass-mono-bold",
+        label: "Bold / 700",
+        className: "font-overpass-mono font-bold",
+        description: "High-impact mono numerals and hero stat figures.",
+      },
+    ],
+  },
+  {
     id: "inter",
     label: "Inter",
     description: "Primary application font used for all UI, body copy, headings, and dashboard chrome.",
@@ -623,33 +663,93 @@ export type ColorToken = {
 };
 
 export const brandColors: ColorToken[] = [
+  // ── Base ──────────────────────────────────────────────────────────────────
+  {
+    id: "background",
+    swatchClass: "bg-background text-foreground border border-stroke-muted",
+    label: "background",
+    code: "bg-background",
+    description: "Default app canvas. Light: gray/50. Dark: gray/950.",
+  },
+  {
+    id: "foreground",
+    swatchClass: "bg-foreground text-background",
+    label: "foreground",
+    code: "bg-foreground",
+    description: "Inverse of background. Light: gray/950. Dark: gray/50.",
+  },
+  // ── Brand / Primary ───────────────────────────────────────────────────────
   {
     id: "brand-primary",
     swatchClass: "bg-brand-primary text-brand-inverse",
-    label: "Brand Primary",
-    code: "bg-brand-primary text-brand-inverse",
-    description: "Core brand color for typography, large surfaces, and CTAs.",
+    label: "brand/primary",
+    code: "bg-brand-primary",
+    description: "Core brand color for headings and CTAs.",
   },
   {
-    id: "brand-background",
-    swatchClass: "bg-background text-foreground border border-stroke-muted",
-    label: "Background",
-    code: "bg-background text-foreground border-stroke-muted",
-    description: "Default app canvas and page backgrounds.",
+    id: "brand-inverse",
+    swatchClass: "bg-brand-inverse text-brand-primary border border-stroke-muted",
+    label: "brand/inverse",
+    code: "bg-brand-inverse",
+    description: "Inverse of brand/primary. Light: white. Dark: black.",
+  },
+  // ── Brand / Green scale ───────────────────────────────────────────────────
+  {
+    id: "brand-green",
+    swatchClass: "bg-brand-green text-white",
+    label: "brand/green",
+    code: "bg-brand-green",
+    description: "Primary brand green. Light: green/600. Dark: green/400.",
   },
   {
-    id: "brand-muted",
-    swatchClass: "bg-brand-muted",
-    label: "Brand Muted",
-    code: "bg-brand-muted",
-    description: "Muted brand tone for hover states and subtle accents.",
+    id: "brand-green-subtle",
+    swatchClass: "bg-brand-green-subtle border border-stroke-muted",
+    label: "brand/green-subtle",
+    code: "bg-brand-green-subtle",
+    description: "Tinted green surface. Light: green/50. Dark: green/950.",
   },
   {
-    id: "brand-accent",
-    swatchClass: "bg-brand-accent text-brand-inverse",
-    label: "Brand Accent",
-    code: "bg-brand-accent text-brand-inverse",
-    description: "Accent green for CTA emphasis and positive highlights.",
+    id: "brand-green-muted",
+    swatchClass: "bg-brand-green-muted border border-stroke-muted",
+    label: "brand/green-muted",
+    code: "bg-brand-green-muted",
+    description: "Muted green fill. Light: green/100. Dark: green/900.",
+  },
+  {
+    id: "brand-green-emphasis",
+    swatchClass: "bg-brand-green-emphasis text-white",
+    label: "brand/green-emphasis",
+    code: "bg-brand-green-emphasis",
+    description: "Stronger green for active states. Light: green/700. Dark: green/300.",
+  },
+  // ── Brand / Blue scale ────────────────────────────────────────────────────
+  {
+    id: "brand-blue",
+    swatchClass: "bg-brand-blue text-white",
+    label: "brand/blue",
+    code: "bg-brand-blue",
+    description: "Primary brand blue. Light: blue/600. Dark: blue/300.",
+  },
+  {
+    id: "brand-blue-subtle",
+    swatchClass: "bg-brand-blue-subtle border border-stroke-muted",
+    label: "brand/blue-subtle",
+    code: "bg-brand-blue-subtle",
+    description: "Tinted blue surface. Light: blue/50. Dark: blue/900.",
+  },
+  {
+    id: "brand-blue-muted",
+    swatchClass: "bg-brand-blue-muted border border-stroke-muted",
+    label: "brand/blue-muted",
+    code: "bg-brand-blue-muted",
+    description: "Muted blue fill. Light: blue/100. Dark: blue/800.",
+  },
+  {
+    id: "brand-blue-emphasis",
+    swatchClass: "bg-brand-blue-emphasis text-white",
+    label: "brand/blue-emphasis",
+    code: "bg-brand-blue-emphasis",
+    description: "Stronger blue for active states. Light: blue/700. Dark: blue/300.",
   },
 ];
 

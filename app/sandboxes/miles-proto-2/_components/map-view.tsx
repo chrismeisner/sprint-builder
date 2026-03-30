@@ -116,8 +116,8 @@ function createMarkerElement(m: MapMarker): HTMLDivElement {
     const gap = hasPhoto ? 6 : 4;
     const pillColor = m.labelColor ?? color;
     el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:${gap}px;pointer-events:none;">
-      <div style="background:${pillColor};color:white;border-radius:9999px;padding:${labelPad};font-size:${labelFontSize}px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.2);font-family:system-ui,-apple-system,sans-serif;line-height:1.4;letter-spacing:0.03em;text-transform:uppercase;">${m.label}</div>
       ${avatarHtml}
+      <div style="background:${pillColor};color:white;border-radius:9999px;padding:${labelPad};font-size:${labelFontSize}px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.2);font-family:system-ui,-apple-system,sans-serif;line-height:1.4;letter-spacing:0.03em;text-transform:uppercase;">${m.label}</div>
     </div>`;
   } else {
     el.innerHTML = avatarHtml;

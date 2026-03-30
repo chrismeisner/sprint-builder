@@ -1,6 +1,6 @@
 import Script from "next/script";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Overpass_Mono } from "next/font/google";
 import { DeviceSwitcher } from "@/app/sandboxes/miles-proto-2/_components/device-switcher";
 import { KeyboardShortcuts } from "@/app/sandboxes/miles-proto-2/_components/keyboard-shortcuts";
 import { BottomNav } from "@/app/sandboxes/miles-proto-2/_components/bottom-nav";
@@ -12,6 +12,13 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-miles-sans",
   display: "swap",
+});
+
+const overpassMono = Overpass_Mono({
+  subsets: ["latin"],
+  variable: "--font-overpass-mono",
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -53,16 +60,17 @@ export default function MilesLayout({
 }) {
   return (
     <>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,300,0,0" />
     <Script src="https://mcp.figma.com/mcp/html-to-design/capture.js" strategy="afterInteractive" />
     <div
-      className={`${inter.variable} font-sans antialiased bg-neutral-100 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100`}
+      className={`${inter.variable} ${overpassMono.variable} font-sans antialiased bg-neutral-100 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100`}
       style={{ fontFamily: "var(--font-miles-sans), ui-sans-serif, system-ui, sans-serif" }}
     >
       <ForceLightMode />
       <KeyboardShortcuts />
       <InspectorController />
       <DeviceSwitcher>
-        <div className="flex flex-col">
+        <div className="flex min-h-dvh flex-col">
           <PageTransition>{children}</PageTransition>
           <BottomNav />
         </div>

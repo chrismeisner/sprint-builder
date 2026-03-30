@@ -1,24 +1,38 @@
 {
-  "current": "v0",
+  "current": "v0.1",
   "versions": [
     {
-      "version": "v0",
+      "version": "v0.1",
       "date": "March 2026",
       "status": "current",
       "breaking": [],
       "changes": [
-        { "done": true,  "text": "Dashboard fully tokenized — zero non-token color or radius utilities" },
-        { "done": true,  "text": "Typography: 18 roles mapped to iOS HIG Dynamic Type (.largeTitle → .caption2)" },
-        { "done": true,  "text": "Color tokens: semantic light + dark mode, full primitive palette" },
-        { "done": true,  "text": "Radius (control 8pt · panel 12pt · card 16pt) + spacing scale" },
-        { "done": true,  "text": "iOS Swift package — MilesTokens.swift with adaptive Color, Radius, and Spacing enums" },
-        { "done": false, "text": "Figma: dashboard screen capture in progress, token variables synced via hub plugin" }
+        { "done": true,  "text": "Header: Miles wordmark left-aligned, solid bg (no backdrop blur), sticky flush to top-0" },
+        { "done": true,  "text": "Filter pills: sticky-until-displaced — locked to header bottom, peeled away by AI card scroll" },
+        { "done": true,  "text": "Stats bento: dots removed, score to 1 decimal, label renamed 'Miles Score', delta arrow inline" },
+        { "done": true,  "text": "Activity feed: chevrons removed, all 4 card types fully iOS-tokenized" },
+        { "done": true,  "text": "Map: vehicle status label moved below avatar; filter pills repositioned above map" },
+        { "done": false, "text": "Figma: dashboard variable-linking via use_figma (in progress)" }
+      ]
+    },
+    {
+      "version": "v0",
+      "date": "March 2026",
+      "status": "released",
+      "breaking": [],
+      "changes": [
+        { "done": true, "text": "Dashboard fully tokenized — zero non-token color or radius utilities" },
+        { "done": true, "text": "Typography: 18 roles mapped to iOS HIG Dynamic Type (.largeTitle → .caption2)" },
+        { "done": true, "text": "Color tokens: semantic light + dark mode, full primitive palette" },
+        { "done": true, "text": "Radius (control 8pt · panel 12pt · card 16pt) + spacing scale" },
+        { "done": true, "text": "iOS Swift package — MilesTokens.swift with adaptive Color, Radius, and Spacing enums" },
+        { "done": true, "text": "Figma: dashboard screen capture complete, token variables synced via Figma MCP use_figma" }
       ]
     }
   ],
   "upcoming": [
-    "v0 → v0.1: Figma dashboard variable-linking complete, color values refined",
     "v0.1 → v0.2: Trip detail screen tokenized + added to screen inventory",
+    "v0.2 → v0.3: Figma dashboard variable-linking complete, color values refined",
     "v0.x → v1: Full dashboard + 2–3 additional screens, Figma fully linked"
   ]
 }
