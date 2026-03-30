@@ -430,10 +430,8 @@ function VehicleCardContent({ v, showAvatars = false, compact = false }: { v: Ve
   const lastTripAvatarSrc = CARD_DRIVER_AVATAR_MAP[v.lastTrip.driver];
 
   const engineLabel = v.engine === "good" ? "Good" : v.engine === "attention" ? "Attention" : "—";
-  const engineDot = v.engine === "good" ? "bg-semantic-success" : "bg-semantic-warning";
   const engineText = v.engine === "good" ? "text-semantic-success" : "text-semantic-warning";
   const fuelPct = v.fuelPct ?? 0;
-  const fuelDot = fuelPct > 30 ? "bg-semantic-success" : "bg-semantic-warning";
   const fuelText = fuelPct > 30 ? "text-text-secondary" : "text-semantic-warning";
 
   const parkedAddress =
@@ -1271,6 +1269,7 @@ const CONVERSATION_STARTERS: ConversationStarter[] = [
   },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function MilesConversationStarters() {
   const [index, setIndex] = useState(0);
   const [spinning, setSpinning] = useState(false);
@@ -1466,7 +1465,7 @@ function AgentCoachingCard({
   onRefresh?: () => void;
   messageWrapperRef?: React.RefObject<HTMLDivElement>;
 }) {
-  const [spinning, setSpinning] = useState(false);
+  const [, setSpinning] = useState(false);
 
   function handleRefreshClick() {
     if (!onRefresh) return;
@@ -1581,6 +1580,7 @@ function AgentCoachingCarousel({
   }
 
   /** Dismiss fades the message out then collapses the entire section. */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleDismiss() {
     const el = messageWrapperRef.current;
     if (!el || animatingRef.current) {
