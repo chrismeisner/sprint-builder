@@ -855,7 +855,7 @@ export default function TodayClient() {
           <p className="text-4xl mb-4">🎉</p>
           <p className="text-lg font-medium">No tasks for today</p>
           <p className="opacity-70 mt-1">
-            Add tasks to &quot;Today&quot; from your epics to see them here
+            Add tasks to &quot;Today&quot; from your initiatives to see them here
           </p>
           <Link
             href="/dashboard/tasks"

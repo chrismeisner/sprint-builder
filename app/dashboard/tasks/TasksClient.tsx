@@ -748,7 +748,7 @@ export default function TasksClient() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to create epic");
+        throw new Error(data.error || "Failed to create initiative");
       }
 
       setNewIdeaTitle("");
@@ -756,14 +756,14 @@ export default function TasksClient() {
       setNewIdeaProjectId("");
       await fetchData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create epic");
+      alert(err instanceof Error ? err.message : "Failed to create initiative");
     } finally {
       setCreatingIdea(false);
     }
   };
 
   const deleteIdea = async (idea: Idea) => {
-    if (!confirm(`Delete epic "${idea.title}" and all its tasks?`)) return;
+    if (!confirm(`Delete initiative "${idea.title}" and all its tasks?`)) return;
 
     try {
       const res = await fetch(`/api/admin/tasks/ideas?id=${idea.id}`, {
@@ -772,12 +772,12 @@ export default function TasksClient() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to delete epic");
+        throw new Error(data.error || "Failed to delete initiative");
       }
 
       await fetchData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete epic");
+      alert(err instanceof Error ? err.message : "Failed to delete initiative");
     }
   };
 
@@ -1174,7 +1174,7 @@ export default function TasksClient() {
         <div>
           <h1 className="text-2xl font-semibold leading-snug text-balance text-neutral-900 dark:text-neutral-100">Tasks</h1>
           <div className="flex items-center gap-3 mt-1 text-sm text-neutral-600 dark:text-neutral-400 flex-wrap">
-            <span>{ideas.filter((i) => i.status === "active").length} active epics</span>
+            <span>{ideas.filter((i) => i.status === "active").length} active initiatives</span>
             {ideas.filter((i) => i.status === "backburner").length > 0 && (
               <span className="text-orange-600 dark:text-orange-400">
                 · {ideas.filter((i) => i.status === "backburner").length} backburner
@@ -1216,7 +1216,7 @@ export default function TasksClient() {
                   : "border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
               }`}
             >
-              {showArchived ? "Hide" : "Show"} Archived Epics ({ideas.filter((i) => i.status === "archived").length})
+              {showArchived ? "Hide" : "Show"} Archived Initiatives ({ideas.filter((i) => i.status === "archived").length})
             </button>
           )}
           <Link
@@ -1400,14 +1400,14 @@ export default function TasksClient() {
         onSubmit={createIdea}
         className="p-4 border border-neutral-200 dark:border-neutral-700 rounded-md bg-neutral-50 dark:bg-neutral-800"
       >
-        <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-3">New Epic</h3>
+        <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-3">New Initiative</h3>
         <div className="flex flex-col md:flex-row gap-3">
           <input
             type="text"
             value={newIdeaTitle}
             onChange={(e) => setNewIdeaTitle(e.target.value)}
-            placeholder="Epic title..."
-            aria-label="Epic title"
+            placeholder="Initiative title..."
+            aria-label="Initiative title"
             className="flex-1 h-10 px-3 text-sm border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:ring-blue-400"
             disabled={creatingIdea}
           />
@@ -1416,7 +1416,7 @@ export default function TasksClient() {
             value={newIdeaSummary}
             onChange={(e) => setNewIdeaSummary(e.target.value)}
             placeholder="Summary (optional)"
-            aria-label="Epic summary"
+            aria-label="Initiative summary"
             className="flex-1 h-10 px-3 text-sm border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:ring-blue-400"
             disabled={creatingIdea}
           />
@@ -1439,7 +1439,7 @@ export default function TasksClient() {
             disabled={creatingIdea || !newIdeaTitle.trim()}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            {creatingIdea ? "Creating..." : "Create Epic"}
+            {creatingIdea ? "Creating..." : "Create Initiative"}
           </button>
         </div>
       </form>}
@@ -1447,8 +1447,8 @@ export default function TasksClient() {
       {/* Ideas List */}
       {viewMode === "list" && (ideas.length === 0 ? (
         <div className="text-center py-12 text-neutral-500 dark:text-neutral-500">
-          <p className="text-lg font-normal leading-relaxed text-pretty">No epics yet</p>
-          <p className="text-sm font-normal leading-normal mt-1">Create your first epic above to get started</p>
+          <p className="text-lg font-normal leading-relaxed text-pretty">No initiatives yet</p>
+          <p className="text-sm font-normal leading-normal mt-1">Create your first initiative above to get started</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -1977,7 +1977,7 @@ export default function TasksClient() {
                   href={`/dashboard/tasks/${detailTask.idea_id}`}
                   className="px-4 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 rounded transition"
                 >
-                  Open Epic →
+                  Open Initiative →
                 </Link>
                 <button
                   onClick={() => setDetailTask(null)}

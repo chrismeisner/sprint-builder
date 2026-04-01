@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Countdown from "../components/Countdown";
 import {
@@ -541,6 +542,7 @@ function SortableTaskItem({
 }
 
 export default function IdeaDetailClient({ ideaId }: Props) {
+  const router = useRouter();
   const [idea, setIdea] = useState<Idea | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
@@ -585,8 +587,31 @@ export default function IdeaDetailClient({ ideaId }: Props) {
   // File upload
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null);
 
+  // Delete initiative
+  const [deletingIdea, setDeletingIdea] = useState(false);
+
   // Refs
   const newTaskInputRef = useRef<HTMLInputElement>(null);
+
+  const deleteIdea = async () => {
+    if (!idea) return;
+    if (!confirm(`Delete initiative "${idea.title}" and all its tasks? This cannot be undone.`)) return;
+
+    try {
+      setDeletingIdea(true);
+      const res = await fetch(`/api/admin/tasks/ideas?id=${idea.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete initiative");
+      }
+      router.push("/dashboard/tasks");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete initiative");
+      setDeletingIdea(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -1244,7 +1269,7 @@ export default function IdeaDetailClient({ ideaId }: Props) {
           ← Back to Tasks
         </Link>
         <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md p-4 mt-4">
-          <p className="text-sm text-red-700 dark:text-red-400">{error || "Epic not found"}</p>
+          <p className="text-sm text-red-700 dark:text-red-400">{error || "Initiative not found"}</p>
         </div>
       </div>
     );
@@ -1306,9 +1331,9 @@ export default function IdeaDetailClient({ ideaId }: Props) {
       {showIdeaMilestoneModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-neutral-900 rounded-md p-6 max-w-md w-full mx-4 shadow-xl dark:shadow-none dark:border dark:border-neutral-600">
-            <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-4">Link Epic to Milestone</h3>
+            <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-4">Link Initiative to Milestone</h3>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-              Epic: {idea.title}
+              Initiative: {idea.title}
             </p>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               <button
@@ -1356,9 +1381,9 @@ export default function IdeaDetailClient({ ideaId }: Props) {
       {showIdeaProjectModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-neutral-900 rounded-md p-6 max-w-md w-full mx-4 shadow-xl dark:shadow-none dark:border dark:border-neutral-600">
-            <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-4">Link Epic to Project</h3>
+            <h3 className="text-lg font-medium leading-snug text-neutral-900 dark:text-neutral-100 mb-4">Link Initiative to Project</h3>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-              Epic: {idea.title}
+              Initiative: {idea.title}
             </p>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               <button
@@ -1408,9 +1433,18 @@ export default function IdeaDetailClient({ ideaId }: Props) {
 
       {/* Header */}
       <div>
-        <Link href="/dashboard/tasks" className="text-blue-600 hover:underline text-sm">
-          ← Back to Tasks
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/dashboard/tasks" className="text-blue-600 hover:underline text-sm">
+            ← Back to Tasks
+          </Link>
+          <button
+            onClick={deleteIdea}
+            disabled={deletingIdea}
+            className="px-3 py-1.5 text-sm rounded-md border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {deletingIdea ? "Deleting..." : "Delete initiative"}
+          </button>
+        </div>
         
         {/* Editable Title */}
         {editingIdeaTitle ? (
