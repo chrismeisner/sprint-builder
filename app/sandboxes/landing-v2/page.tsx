@@ -307,7 +307,9 @@ export default function LandingV2() {
                       <th
                         key={col.label}
                         className={`py-3 px-4 text-left text-xs font-medium uppercase tracking-wide leading-none ${
-                          col.highlight ? "text-text-primary" : "text-text-muted"
+                          "highlight" in col && col.highlight
+                            ? "text-text-primary"
+                            : "text-text-muted"
                         }`}
                       >
                         {col.label}
@@ -325,7 +327,7 @@ export default function LandingV2() {
                         <td
                           key={i}
                           className={`py-4 px-4 text-sm font-normal leading-normal align-top ${
-                            comparisonColumns[i].highlight
+                            "highlight" in comparisonColumns[i] && comparisonColumns[i].highlight
                               ? "text-text-primary font-medium"
                               : "text-text-secondary"
                           }`}
