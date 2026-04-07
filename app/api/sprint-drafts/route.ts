@@ -321,7 +321,7 @@ export async function POST(request: Request) {
               const pkgPricing =
                 sourcePackageIdValue != null ? packagePricingById.get(sourcePackageIdValue) : undefined;
               if (pkgPricing?.pricingMode === "flat" && pkgPricing.flatFee != null) {
-                if (!appliedFlatPackages.has(sourcePackageIdValue)) {
+                if (sourcePackageIdValue != null && !appliedFlatPackages.has(sourcePackageIdValue)) {
                   appliedFlatPackages.add(sourcePackageIdValue);
                   flatPackageTotal += pkgPricing.flatFee;
                 }
