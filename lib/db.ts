@@ -13,6 +13,8 @@ declare global {
   var _projectEmojiPatched: boolean | undefined;
   // eslint-disable-next-line no-var
   var _deliverableCategoriesPatched: boolean | undefined;
+  // eslint-disable-next-line no-var
+  var _sourcePackageIdPatched: boolean | undefined;
 }
 
 function createPool(): Pool {
@@ -128,6 +130,20 @@ export async function ensureSchema(): Promise<void> {
       global._deliverableCategoriesPatched = true;
     } catch {
       global._deliverableCategoriesPatched = true;
+    }
+  }
+
+  // Hotfix: add source_package_id to sprint_deliverables for package grouping
+  if (!global._sourcePackageIdPatched) {
+    try {
+      const pool = getPool();
+      await pool.query(`
+        ALTER TABLE sprint_deliverables
+        ADD COLUMN IF NOT EXISTS source_package_id text
+      `);
+      global._sourcePackageIdPatched = true;
+    } catch {
+      global._sourcePackageIdPatched = true;
     }
   }
 
@@ -327,7 +343,8 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS attachments jsonb,
     ADD COLUMN IF NOT EXISTS type_data jsonb,
     ADD COLUMN IF NOT EXISTS current_version text DEFAULT '0.0',
-    ADD COLUMN IF NOT EXISTS delivery_url text
+    ADD COLUMN IF NOT EXISTS delivery_url text,
+    ADD COLUMN IF NOT EXISTS source_package_id text
   `);
 
   // Create sprint_deliverable_versions table for version history
@@ -893,11 +910,25 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     ALTER TABLE sprint_packages
     ADD COLUMN IF NOT EXISTS category text,
+    ADD COLUMN IF NOT EXISTS pricing_mode text NOT NULL DEFAULT 'calculated',
     ADD COLUMN IF NOT EXISTS flat_fee numeric(12,2),
     ADD COLUMN IF NOT EXISTS flat_hours numeric(10,2),
+    ADD COLUMN IF NOT EXISTS base_rate numeric(10,2),
     ADD COLUMN IF NOT EXISTS featured boolean NOT NULL DEFAULT false,
     ADD COLUMN IF NOT EXISTS package_type text,
     ADD COLUMN IF NOT EXISTS discount_percentage numeric(5,2)
+  `);
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'sprint_packages_pricing_mode_check'
+      ) THEN
+        ALTER TABLE sprint_packages
+        ADD CONSTRAINT sprint_packages_pricing_mode_check
+        CHECK (pricing_mode IN ('calculated', 'flat'));
+      END IF;
+    END $$;
   `);
   
   // Sprint Package Deliverables: Junction table linking packages to deliverables

@@ -9,8 +9,10 @@ import PackageCard, { type SprintPackage } from "../components/PackageCard";
 import { calculatePricingFromDeliverables } from "@/lib/pricing";
 
 type Package = SprintPackage & {
+  pricing_mode: "calculated" | "flat";
   flat_fee: number | null;
   flat_hours: number | null;
+  base_rate: number | null;
   featured: boolean;
   deliverables: Array<
     SprintPackage["deliverables"][number] & {
@@ -28,12 +30,19 @@ export default function PackagesClient({ packages }: Props) {
   const hasPackages = packages.length > 0;
 
   const displayPackages: Package[] = packages.map((pkg) => {
-    const { price, hours } = calculatePricingFromDeliverables(pkg.deliverables);
+    const { price, hours } = calculatePricingFromDeliverables(pkg.deliverables, pkg.base_rate);
+    const effectivePrice =
+      pkg.pricing_mode === "flat" && pkg.flat_fee != null ? pkg.flat_fee : price;
+    const effectiveHours =
+      pkg.pricing_mode === "flat" && pkg.flat_hours != null ? pkg.flat_hours : hours;
 
     return {
       ...pkg,
-      priceLabel: `$${Math.round(price).toLocaleString()}`,
-      priceSuffix: `${Math.round(hours)} hours · 2-week sprint`,
+      priceLabel: `$${Math.round(effectivePrice).toLocaleString()}`,
+      priceSuffix:
+        pkg.pricing_mode === "flat"
+          ? `${Math.round(effectiveHours)} hours · 2-week sprint · flat package fee`
+          : `${Math.round(effectiveHours)} hours · 2-week sprint`,
     };
   });
 

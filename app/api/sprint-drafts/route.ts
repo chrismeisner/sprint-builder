@@ -47,6 +47,7 @@ export async function POST(request: Request) {
 
     const baseRateNum = Number(baseRateRaw);
     const baseRateValue = Number.isFinite(baseRateNum) && baseRateNum > 0 ? baseRateNum : null;
+    let effectiveBaseRate: number | null = baseRateValue;
 
     // Validate
     if (typeof title !== "string" || !title.trim()) {
@@ -130,15 +131,25 @@ export async function POST(request: Request) {
     // Package snapshot (optional)
     let packageNameSnapshot: string | null = null;
     let packageDescriptionSnapshot: string | null = null;
+    let packagePricingModeSnapshot: "calculated" | "flat" = "calculated";
+    let packageFlatFeeSnapshot: number | null = null;
     if (packageId) {
       const pkgRes = await pool.query(
-        `SELECT name, description FROM sprint_packages WHERE id = $1`,
+        `SELECT name, description, base_rate, pricing_mode, flat_fee FROM sprint_packages WHERE id = $1`,
         [packageId]
       );
       const pkgRowCount = pkgRes.rowCount ?? 0;
       if (pkgRowCount > 0) {
         packageNameSnapshot = (pkgRes.rows[0] as { name: string | null }).name ?? null;
         packageDescriptionSnapshot = (pkgRes.rows[0] as { description: string | null }).description ?? null;
+        packagePricingModeSnapshot =
+          (pkgRes.rows[0] as { pricing_mode?: unknown }).pricing_mode === "flat" ? "flat" : "calculated";
+        const flatFeeRaw = Number((pkgRes.rows[0] as { flat_fee?: unknown }).flat_fee);
+        packageFlatFeeSnapshot = Number.isFinite(flatFeeRaw) && flatFeeRaw > 0 ? flatFeeRaw : null;
+        const packageRate = Number((pkgRes.rows[0] as { base_rate?: unknown }).base_rate);
+        if (effectiveBaseRate == null && Number.isFinite(packageRate) && packageRate > 0) {
+          effectiveBaseRate = packageRate;
+        }
       }
     }
 
@@ -174,13 +185,14 @@ export async function POST(request: Request) {
         packageNameSnapshot,
         packageDescriptionSnapshot,
         shareToken,
-        baseRateValue,
+        effectiveBaseRate,
       ]
     );
 
     let totalComplexity = 0;
     let totalPrice = POINT_BASE_FEE; // base fee
     let deliverablesCount = 0;
+    let flatPackageTotal = 0;
 
     // If package specified, use its deliverables
     if (packageId) {
@@ -208,16 +220,18 @@ export async function POST(request: Request) {
         const basePoints = parseFloat((row.points as number | string | null)?.toString() || "0");
         const complexity = basePoints * quantity;
 
-        totalComplexity += complexity;
+        if (packagePricingModeSnapshot !== "flat" || packageFlatFeeSnapshot == null) {
+          totalComplexity += complexity;
+        }
         deliverablesCount += quantity;
 
         const junctionId = randomUUID();
         await pool.query(
           `INSERT INTO sprint_deliverables (
              id, sprint_draft_id, deliverable_id, quantity,
-             deliverable_name, deliverable_description, deliverable_category, deliverable_categories, deliverable_scope, base_points
+             deliverable_name, deliverable_description, deliverable_category, deliverable_categories, deliverable_scope, base_points, source_package_id
            )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[], $9, $10)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[], $9, $10, $11)
            ON CONFLICT (sprint_draft_id, deliverable_id) DO NOTHING`,
           [
             junctionId,
@@ -230,12 +244,42 @@ export async function POST(request: Request) {
             Array.isArray(row.categories) ? row.categories : (row.category ? [row.category] : []),
             row.scope ?? null,
             basePoints,
+            packageId,
           ]
         );
+      }
+      if (packagePricingModeSnapshot === "flat" && packageFlatFeeSnapshot != null) {
+        flatPackageTotal += packageFlatFeeSnapshot;
       }
     }
     // Otherwise use provided deliverables
     else if (Array.isArray(deliverables) && deliverables.length > 0) {
+      const sourcePackageIds = Array.from(
+        new Set(
+          deliverables
+            .map((d) => (d && typeof d === "object" && "sourcePackageId" in d
+              ? (d as { sourcePackageId?: unknown }).sourcePackageId
+              : null))
+            .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+            .map((id) => id.trim())
+        )
+      );
+      const packagePricingById = new Map<string, { pricingMode: "calculated" | "flat"; flatFee: number | null }>();
+      if (sourcePackageIds.length > 0) {
+        const pkgPricingRes = await pool.query(
+          `SELECT id, pricing_mode, flat_fee FROM sprint_packages WHERE id = ANY($1::text[])`,
+          [sourcePackageIds]
+        );
+        for (const row of pkgPricingRes.rows) {
+          const id = row.id as string;
+          const mode = (row.pricing_mode as string) === "flat" ? "flat" : "calculated";
+          const feeRaw = Number(row.flat_fee);
+          const fee = Number.isFinite(feeRaw) && feeRaw > 0 ? feeRaw : null;
+          packagePricingById.set(id, { pricingMode: mode, flatFee: fee });
+        }
+      }
+      const appliedFlatPackages = new Set<string>();
+
       for (const d of deliverables) {
         if (d && typeof d === "object" && "deliverableId" in d) {
           const deliverableId = (d as { deliverableId?: unknown }).deliverableId;
@@ -244,6 +288,8 @@ export async function POST(request: Request) {
           const multiplier = Number.isFinite(multiplierNumber) && multiplierNumber > 0 ? multiplierNumber : 1;
           const noteRaw = (d as { note?: unknown }).note;
           const noteValue = typeof noteRaw === "string" && noteRaw.trim() ? noteRaw.trim() : null;
+          const sourcePackageIdRaw = (d as { sourcePackageId?: unknown }).sourcePackageId;
+          const sourcePackageIdValue = typeof sourcePackageIdRaw === "string" && sourcePackageIdRaw.trim() ? sourcePackageIdRaw.trim() : null;
           
           if (typeof deliverableId === "string" && deliverableId.trim()) {
             // Fetch deliverable details
@@ -272,16 +318,25 @@ export async function POST(request: Request) {
                 ? Math.round(adjustedPointsRaw * 100) / 100
                 : 0;
 
-              totalComplexity += adjustedPoints;
+              const pkgPricing =
+                sourcePackageIdValue != null ? packagePricingById.get(sourcePackageIdValue) : undefined;
+              if (pkgPricing?.pricingMode === "flat" && pkgPricing.flatFee != null) {
+                if (!appliedFlatPackages.has(sourcePackageIdValue)) {
+                  appliedFlatPackages.add(sourcePackageIdValue);
+                  flatPackageTotal += pkgPricing.flatFee;
+                }
+              } else {
+                totalComplexity += adjustedPoints;
+              }
               deliverablesCount += 1;
 
               const junctionId = randomUUID();
               await pool.query(
                 `INSERT INTO sprint_deliverables (
                    id, sprint_draft_id, deliverable_id, quantity,
-                   deliverable_name, deliverable_description, deliverable_category, deliverable_categories, deliverable_scope, base_points, custom_estimate_points, notes
+                   deliverable_name, deliverable_description, deliverable_category, deliverable_categories, deliverable_scope, base_points, custom_estimate_points, notes, source_package_id
                  )
-                 VALUES ($1, $2, $3, 1, $4, $5, $6, $7::text[], $8, $9::numeric(10,2), $10::numeric(10,2), $11)
+                 VALUES ($1, $2, $3, 1, $4, $5, $6, $7::text[], $8, $9::numeric(10,2), $10::numeric(10,2), $11, $12)
                  ON CONFLICT (sprint_draft_id, deliverable_id) DO NOTHING`,
                 [
                   junctionId,
@@ -295,6 +350,7 @@ export async function POST(request: Request) {
                   basePoints,
                   adjustedPoints,
                   noteValue,
+                  sourcePackageIdValue,
                 ]
               );
             }
@@ -305,7 +361,7 @@ export async function POST(request: Request) {
 
     // Final pricing via shared pricing helper
     if (deliverablesCount > 0) {
-      totalPrice = priceFromPoints(totalComplexity, baseRateValue);
+      totalPrice = priceFromPoints(totalComplexity, effectiveBaseRate) + flatPackageTotal;
     }
 
     // Update sprint with totals

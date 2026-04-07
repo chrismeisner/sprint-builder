@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { priceFromPoints, pricingFormulaText } from "@/lib/pricing";
+import { DEFAULT_HOURLY_RATE, priceFromPoints, pricingFormulaText } from "@/lib/pricing";
 
 type Deliverable = {
   id: string;
@@ -26,6 +26,9 @@ type Package = {
   description: string | null;
   tagline: string | null;
   emoji: string | null;
+  pricing_mode: "calculated" | "flat";
+  flat_fee: number | null;
+  base_rate: number | null;
   active: boolean;
   sort_order: number;
   deliverables: Array<{
@@ -51,6 +54,15 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
   const [description, setDescription] = useState(existingPackage?.description || "");
   const [emoji, setEmoji] = useState(existingPackage?.emoji || "");
   const [active, setActive] = useState(existingPackage?.active ?? true);
+  const [pricingMode, setPricingMode] = useState<"calculated" | "flat">(
+    existingPackage?.pricing_mode === "flat" ? "flat" : "calculated"
+  );
+  const [flatFee, setFlatFee] = useState(
+    existingPackage?.flat_fee != null ? String(existingPackage.flat_fee) : ""
+  );
+  const [baseRate, setBaseRate] = useState(
+    existingPackage?.base_rate != null ? String(existingPackage.base_rate) : String(DEFAULT_HOURLY_RATE)
+  );
   const [sortOrder, setSortOrder] = useState(existingPackage?.sort_order?.toString() || "0");
   const [availableSearch, setAvailableSearch] = useState("");
 
@@ -128,7 +140,13 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
         totalComplexity += (d.points ?? 0) * sd.quantity;
       }
     });
-    const totalPrice = priceFromPoints(totalComplexity);
+    const parsedRate = Number(baseRate);
+    const rate = Number.isFinite(parsedRate) && parsedRate > 0 ? parsedRate : null;
+    const parsedFlatFee = Number(flatFee);
+    const totalPrice =
+      pricingMode === "flat" && Number.isFinite(parsedFlatFee) && parsedFlatFee > 0
+        ? parsedFlatFee
+        : priceFromPoints(totalComplexity, rate);
     return { totalComplexity, totalPrice };
   }
 
@@ -138,6 +156,13 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
     setError(null);
 
     try {
+      if (pricingMode === "flat") {
+        const parsedFlatFee = Number(flatFee);
+        if (!Number.isFinite(parsedFlatFee) || parsedFlatFee <= 0) {
+          throw new Error("Flat fee must be a positive number when pricing mode is flat");
+        }
+      }
+
       const body = {
         name,
         slug,
@@ -145,6 +170,9 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
         description: description || null,
         emoji: emoji || null,
         active,
+        pricingMode,
+        flatFee: pricingMode === "flat" ? Number(flatFee) : null,
+        baseRate: Number.isFinite(Number(baseRate)) && Number(baseRate) > 0 ? Number(baseRate) : null,
         sortOrder: sortOrder ? Number(sortOrder) : 0,
         deliverables: selectedDeliverables,
       };
@@ -417,7 +445,7 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
           {selectedDeliverables.length > 0 && (
             <div className="rounded bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3">
               <div className="text-xs font-medium mb-2 opacity-70">
-                Calculated from deliverables:
+                {pricingMode === "flat" ? "Flat package price:" : "Calculated from deliverables:"}
               </div>
               <div className="flex gap-4 text-sm flex-wrap">
                 <div>
@@ -430,7 +458,12 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
                 </div>
               </div>
               <div className="text-[11px] opacity-70 mt-2">
-                {pricingFormulaText()}
+                {pricingMode === "flat"
+                  ? "Formula: flat package fee (deliverable complexity/rate do not change total)"
+                  : pricingFormulaText(
+                      "Formula:",
+                      Number.isFinite(Number(baseRate)) && Number(baseRate) > 0 ? Number(baseRate) : null
+                    )}
               </div>
             </div>
           )}
@@ -451,6 +484,62 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
               <span className="text-sm">Active (visible to clients)</span>
             </label>
           </div>
+
+          <div className="max-w-sm">
+            <label className="block text-xs font-medium mb-1" htmlFor="pricingMode">
+              Pricing Mode
+            </label>
+            <select
+              id="pricingMode"
+              value={pricingMode}
+              onChange={(e) => setPricingMode(e.target.value === "flat" ? "flat" : "calculated")}
+              className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
+            >
+              <option value="calculated">Calculated from deliverables</option>
+              <option value="flat">Flat package fee</option>
+            </select>
+            <p className="text-[11px] opacity-60 mt-1">
+              In flat mode, deliverable complexity and rates do not affect total package budget.
+            </p>
+          </div>
+
+          {pricingMode === "flat" && (
+            <div className="w-40">
+              <label className="block text-xs font-medium mb-1" htmlFor="flatFee">
+                Flat Fee ($)
+              </label>
+              <input
+                id="flatFee"
+                type="number"
+                min="1"
+                step="1"
+                required={pricingMode === "flat"}
+                value={flatFee}
+                onChange={(e) => setFlatFee(e.target.value)}
+                className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
+              />
+            </div>
+          )}
+
+          {pricingMode === "calculated" && (
+          <div className="w-32">
+            <label className="block text-xs font-medium mb-1" htmlFor="baseRate">
+              Base Rate ($/hr)
+            </label>
+            <input
+              id="baseRate"
+              type="number"
+              min="1"
+              step="1"
+              value={baseRate}
+              onChange={(e) => setBaseRate(e.target.value)}
+              className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
+            />
+            <p className="text-[11px] opacity-60 mt-1">
+              Package-specific pricing rate. Defaults to ${DEFAULT_HOURLY_RATE}/hr.
+            </p>
+          </div>
+          )}
 
           <div className="w-32">
             <label className="block text-xs font-medium mb-1" htmlFor="sortOrder">

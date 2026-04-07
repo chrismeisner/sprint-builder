@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import PurchaseButton from "./PurchaseButton";
 import { SPRINT_WEEKS, ENGAGEMENT_BADGES } from "@/lib/sprintProcess";
-import { calculatePricingFromDeliverables, POINT_PRICE_PER_POINT, POINT_BASE_FEE, hoursFromPoints } from "@/lib/pricing";
+import { calculatePricingFromDeliverables, POINT_BASE_FEE, hoursFromPoints, pointPriceFromRate } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +18,12 @@ type Package = {
   slug: string;
   description: string | null;
   package_type: "foundation" | "extend";
+  pricing_mode: "calculated" | "flat";
   tagline: string | null;
   emoji: string | null;
   flat_fee: number | null;      // NULL = dynamic pricing (most packages)
   flat_hours: number | null;    // NULL = dynamic hours (most packages)
+  base_rate: number | null;
   featured: boolean;
   deliverables: Array<{
     deliverableId: string;
@@ -51,10 +53,12 @@ export default async function PackageDetailPage({ params }: PageProps) {
       sp.slug,
       sp.description,
       sp.package_type,
+      sp.pricing_mode,
       sp.tagline,
       sp.emoji,
       sp.flat_fee,
       sp.flat_hours,
+      sp.base_rate,
       sp.featured,
       COALESCE(
         json_agg(
@@ -88,9 +92,17 @@ export default async function PackageDetailPage({ params }: PageProps) {
 
   const pkg: Package = result.rows[0];
 
+  const packageRateRaw = Number(pkg.base_rate);
+  const packageRate = Number.isFinite(packageRateRaw) && packageRateRaw > 0 ? packageRateRaw : null;
+  const pointPrice = pointPriceFromRate(packageRate);
   const { price: finalPrice, hours: finalHours, points: totalPoints } = calculatePricingFromDeliverables(
-    pkg.deliverables
+    pkg.deliverables,
+    packageRate
   );
+  const effectivePrice =
+    pkg.pricing_mode === "flat" && pkg.flat_fee != null ? Number(pkg.flat_fee) : finalPrice;
+  const effectiveHours =
+    pkg.pricing_mode === "flat" && pkg.flat_hours != null ? Number(pkg.flat_hours) : finalHours;
 
   return (
     <main className="min-h-screen">
@@ -127,13 +139,21 @@ export default async function PackageDetailPage({ params }: PageProps) {
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
           <div>
             <div className="flex items-baseline gap-3 mb-2">
-              <span className="text-5xl font-bold">${finalPrice.toLocaleString()}</span>
-              <span className="text-lg opacity-70">calculated from deliverables</span>
+              <span className="text-5xl font-bold">${effectivePrice.toLocaleString()}</span>
+              <span className="text-lg opacity-70">
+                {pkg.pricing_mode === "flat" ? "flat package fee" : "calculated from deliverables"}
+              </span>
             </div>
             <div className="flex items-center gap-4 text-sm opacity-80">
-              <span>{finalHours} hours</span>
+              <span>{effectiveHours} hours</span>
               <span>•</span>
               <span>2-week sprint</span>
+              {packageRate != null && (
+                <>
+                  <span>•</span>
+                  <span>${packageRate}/hr package rate</span>
+                </>
+              )}
               {totalPoints > 0 && (
                 <>
                   <span>•</span>
@@ -160,7 +180,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
               const qty = d.quantity ?? 1;
               const complexityMultiplier = d.complexityScore ?? 1.0;
               const hours = hoursFromPoints(basePoints * complexityMultiplier);
-              const pointPriceValue = basePoints * POINT_PRICE_PER_POINT * complexityMultiplier * qty;
+              const pointPriceValue = basePoints * pointPrice * complexityMultiplier * qty;
 
               return (
               <div
@@ -243,7 +263,10 @@ export default async function PackageDetailPage({ params }: PageProps) {
                   const basePoints = d.defaultEstimatePoints ?? 0;
                   const qty = d.quantity ?? 1;
                   const adjustedHours = hoursFromPoints(basePoints * complexityMultiplier * qty);
-                  const adjustedPrice = basePoints * POINT_PRICE_PER_POINT * complexityMultiplier * qty;
+                  const adjustedPrice =
+                    pkg.pricing_mode === "flat" && pkg.flat_fee != null
+                      ? 0
+                      : basePoints * pointPrice * complexityMultiplier * qty;
                   
                   return (
                     <tr key={`${d.deliverableId}-${i}`} className="border-t border-black/10 dark:border-white/10">
@@ -260,7 +283,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
                         {adjustedHours.toFixed(1)}h
                       </td>
                       <td className="px-4 py-3 text-right">
-                        ${adjustedPrice.toLocaleString()}
+                        {pkg.pricing_mode === "flat" ? "Included" : `$${adjustedPrice.toLocaleString()}`}
                       </td>
                     </tr>
                   );
@@ -274,8 +297,8 @@ export default async function PackageDetailPage({ params }: PageProps) {
                 <tr className="border-t-2 border-black/20 dark:border-white/20 font-bold text-lg">
                   <td className="px-4 py-3">Package Total</td>
                   <td className="px-4 py-3"></td>
-                  <td className="px-4 py-3 text-right">{finalHours.toFixed(1)}h</td>
-                  <td className="px-4 py-3 text-right">${finalPrice.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right">{effectiveHours.toFixed(1)}h</td>
+                  <td className="px-4 py-3 text-right">${effectivePrice.toLocaleString()}</td>
                 </tr>
               </tbody>
             </table>

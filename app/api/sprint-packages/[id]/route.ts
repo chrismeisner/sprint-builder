@@ -24,6 +24,8 @@ export async function GET(request: Request, { params }: Params) {
         sp.description,
         sp.tagline,
         sp.emoji,
+        sp.pricing_mode,
+        sp.base_rate,
         sp.flat_fee,
         sp.flat_hours,
         sp.active,
@@ -93,8 +95,10 @@ export async function PATCH(request: Request, { params }: Params) {
       description,
       tagline,
       emoji,
+      pricingMode,
       flatFee,
       flatHours,
+      baseRate,
       active,
       featured,
       sortOrder,
@@ -105,8 +109,10 @@ export async function PATCH(request: Request, { params }: Params) {
       description?: unknown;
       tagline?: unknown;
       emoji?: unknown;
+      pricingMode?: unknown;
       flatFee?: unknown;
       flatHours?: unknown;
+      baseRate?: unknown;
       active?: unknown;
       featured?: unknown;
       sortOrder?: unknown;
@@ -138,16 +144,52 @@ export async function PATCH(request: Request, { params }: Params) {
       updates.push(`emoji = $${paramIndex++}`);
       values.push(emoji.trim() || null);
     }
-    if (flatFee !== undefined) {
-      let fee: number | null = null;
-      if (typeof flatFee === "number") {
-        fee = flatFee;
-      } else if (typeof flatFee === "string" && flatFee.trim()) {
-        const parsed = Number(flatFee);
-        if (!Number.isNaN(parsed)) fee = parsed;
+    const parsedFlatFee =
+      typeof flatFee === "number"
+        ? flatFee
+        : typeof flatFee === "string" && flatFee.trim()
+          ? Number(flatFee)
+          : null;
+    const normalizedFlatFee =
+      parsedFlatFee != null && Number.isFinite(parsedFlatFee) && parsedFlatFee > 0
+        ? parsedFlatFee
+        : null;
+    if (pricingMode !== undefined) {
+      const mode =
+        pricingMode === "flat" || pricingMode === "calculated" ? pricingMode : null;
+      if (!mode) {
+        return NextResponse.json(
+          { error: "pricingMode must be 'calculated' or 'flat'" },
+          { status: 400 }
+        );
       }
+      if (mode === "flat") {
+        if (flatFee !== undefined && normalizedFlatFee == null) {
+          return NextResponse.json(
+            { error: "Flat fee must be a positive number in flat pricing mode" },
+            { status: 400 }
+          );
+        }
+        if (flatFee === undefined) {
+          const existingFeeRes = await pool.query(
+            `SELECT flat_fee FROM sprint_packages WHERE id = $1`,
+            [params.id]
+          );
+          const existingFee = Number(existingFeeRes.rows[0]?.flat_fee);
+          if (!Number.isFinite(existingFee) || existingFee <= 0) {
+            return NextResponse.json(
+              { error: "Flat fee is required when switching to flat pricing mode" },
+              { status: 400 }
+            );
+          }
+        }
+      }
+      updates.push(`pricing_mode = $${paramIndex++}`);
+      values.push(mode);
+    }
+    if (flatFee !== undefined) {
       updates.push(`flat_fee = $${paramIndex++}`);
-      values.push(fee);
+      values.push(normalizedFlatFee);
     }
     if (flatHours !== undefined) {
       let hours: number | null = null;
@@ -159,6 +201,17 @@ export async function PATCH(request: Request, { params }: Params) {
       }
       updates.push(`flat_hours = $${paramIndex++}`);
       values.push(hours);
+    }
+    if (baseRate !== undefined) {
+      let rate: number | null = null;
+      if (typeof baseRate === "number" && Number.isFinite(baseRate) && baseRate > 0) {
+        rate = baseRate;
+      } else if (typeof baseRate === "string" && baseRate.trim()) {
+        const parsed = Number(baseRate);
+        if (Number.isFinite(parsed) && parsed > 0) rate = parsed;
+      }
+      updates.push(`base_rate = $${paramIndex++}`);
+      values.push(rate);
     }
     if (typeof active === "boolean") {
       updates.push(`active = $${paramIndex++}`);

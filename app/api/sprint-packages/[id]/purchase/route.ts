@@ -58,8 +58,10 @@ export async function POST(request: Request, { params }: Params) {
         sp.description,
         sp.tagline,
         sp.category,
+        sp.pricing_mode,
         sp.flat_fee,
         sp.flat_hours,
+        sp.base_rate,
         COALESCE(
           json_agg(
             json_build_object(
@@ -100,8 +102,10 @@ export async function POST(request: Request, { params }: Params) {
       description: string | null;
       tagline: string | null;
       category: string | null;
+      pricing_mode: "calculated" | "flat";
       flat_fee: number | null;
       flat_hours: number | null;
+      base_rate: number | null;
       deliverables: Array<{
         deliverableId: string;
         name: string;
@@ -116,14 +120,26 @@ export async function POST(request: Request, { params }: Params) {
       }>;
     };
 
+    const packageRateRaw = Number(pkg.base_rate);
+    const packageRate = Number.isFinite(packageRateRaw) && packageRateRaw > 0 ? packageRateRaw : null;
+
     // Calculate totals with complexity adjustments (points-based only)
-    const { price: totalPrice, hours: totalHours, points: totalPoints } = calculatePricingFromDeliverables(
+    const { price: calculatedPrice, hours: calculatedHours, points: totalPoints } = calculatePricingFromDeliverables(
       pkg.deliverables.map((d) => ({
         defaultEstimatePoints: d.defaultEstimatePoints,
         quantity: d.quantity,
         complexityScore: d.complexityScore ? (d.complexityScore / 2.5) * 1.0 : 1.0, // normalize using existing 2.5 default baseline
-      }))
+      })),
+      packageRate
     );
+    const finalPrice =
+      pkg.pricing_mode === "flat" && pkg.flat_fee != null
+        ? Number(pkg.flat_fee)
+        : calculatedPrice;
+    const finalHours =
+      pkg.pricing_mode === "flat" && pkg.flat_hours != null
+        ? Number(pkg.flat_hours)
+        : calculatedHours;
 
     const deliverablesList: Array<{
       deliverableId: string;
@@ -138,9 +154,6 @@ export async function POST(request: Request, { params }: Params) {
         reason: `Included in ${pkg.name} package`,
       });
     });
-
-    const finalPrice = totalPrice;
-    const finalHours = totalHours;
 
     // Create a minimal document record (package-based, not from Typeform)
     const documentId = `doc-${randomBytes(12).toString("hex")}`;
@@ -336,8 +349,8 @@ export async function POST(request: Request, { params }: Params) {
     await pool.query(
       `INSERT INTO sprint_drafts 
        (id, document_id, sprint_package_id, draft, status, title, deliverable_count, 
-        total_estimate_points, total_fixed_hours, total_fixed_price, project_id, weeks, start_date, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, now())`,
+        total_estimate_points, total_fixed_hours, total_fixed_price, base_rate, project_id, weeks, start_date, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, now())`,
       [
         sprintDraftId,
         documentId,
@@ -349,6 +362,7 @@ export async function POST(request: Request, { params }: Params) {
         totalPoints,
         finalHours,
         finalPrice,
+        packageRate,
         projectId,
         2,
         startDate,
@@ -368,8 +382,8 @@ export async function POST(request: Request, { params }: Params) {
 
       await pool.query(
         `INSERT INTO sprint_deliverables 
-         (id, sprint_draft_id, deliverable_id, quantity, complexity_score, custom_hours, custom_estimate_points, custom_scope, deliverable_name, deliverable_description, deliverable_category, deliverable_scope, base_points)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+         (id, sprint_draft_id, deliverable_id, quantity, complexity_score, custom_hours, custom_estimate_points, custom_scope, deliverable_name, deliverable_description, deliverable_category, deliverable_scope, base_points, source_package_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
         [
           junctionId,
           sprintDraftId,
@@ -384,6 +398,7 @@ export async function POST(request: Request, { params }: Params) {
           del.category ?? null,
           del.scope,
           del.defaultEstimatePoints ?? null,
+          pkg.id,
         ]
       );
     }

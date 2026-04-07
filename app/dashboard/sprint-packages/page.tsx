@@ -10,6 +10,9 @@ type Row = {
   description: string | null;
   tagline: string | null;
   emoji: string | null;
+  pricing_mode: "calculated" | "flat";
+  flat_fee: number | null;
+  base_rate: number | null;
   active: boolean;
   sort_order: number;
   created_at: string | Date;
@@ -34,6 +37,9 @@ export default async function SprintPackagesPage() {
       sp.description,
       sp.tagline,
       sp.emoji,
+      sp.pricing_mode,
+      sp.flat_fee,
+      sp.base_rate,
       sp.active,
       sp.sort_order,
       sp.created_at,
@@ -56,7 +62,12 @@ export default async function SprintPackagesPage() {
     ORDER BY sp.sort_order ASC, sp.name ASC
   `);
 
-  const rows: Row[] = result.rows;
+  const rows: Row[] = result.rows.map((row) => ({
+    ...row,
+    pricing_mode: row.pricing_mode === "flat" ? "flat" : "calculated",
+    flat_fee: row.flat_fee != null ? Number(row.flat_fee) : null,
+    base_rate: row.base_rate != null ? Number(row.base_rate) : null,
+  })) as Row[];
 
   return <SprintPackagesClient rows={rows} />;
 }

@@ -29,6 +29,10 @@ export async function GET(request: Request) {
         sp.description,
         sp.tagline,
         sp.emoji,
+        sp.pricing_mode,
+        sp.flat_fee,
+        sp.flat_hours,
+        sp.base_rate,
         sp.active,
         sp.sort_order,
         sp.created_at,
@@ -97,6 +101,9 @@ export async function POST(request: Request) {
       emoji,
       active,
       sortOrder,
+      pricingMode,
+      flatFee,
+      baseRate,
       deliverables,
     } = body as {
       name?: unknown;
@@ -106,6 +113,9 @@ export async function POST(request: Request) {
       emoji?: unknown;
       active?: unknown;
       sortOrder?: unknown;
+      pricingMode?: unknown;
+      flatFee?: unknown;
+      baseRate?: unknown;
       deliverables?: unknown;
     };
 
@@ -127,6 +137,15 @@ export async function POST(request: Request) {
 
     const id = crypto.randomUUID();
     const activeValue = typeof active === "boolean" ? active : true;
+    const pricingModeValue =
+      pricingMode === "flat" || pricingMode === "calculated" ? pricingMode : "calculated";
+    const flatFeeNum = Number(flatFee);
+    const flatFeeValue = Number.isFinite(flatFeeNum) && flatFeeNum > 0 ? flatFeeNum : null;
+    if (pricingModeValue === "flat" && flatFeeValue == null) {
+      return NextResponse.json({ error: "Flat fee is required in flat pricing mode" }, { status: 400 });
+    }
+    const baseRateNum = Number(baseRate);
+    const baseRateValue = Number.isFinite(baseRateNum) && baseRateNum > 0 ? baseRateNum : null;
     const emojiValue =
       typeof emoji === "string" && emoji.trim().length > 0 ? emoji.trim() : null;
     // Insert package
@@ -134,9 +153,9 @@ export async function POST(request: Request) {
       `
       INSERT INTO sprint_packages (
         id, name, slug, description, tagline, emoji,
-        active, sort_order
+        active, sort_order, pricing_mode, flat_fee, base_rate
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     `,
       [
         id,
@@ -147,6 +166,9 @@ export async function POST(request: Request) {
         emojiValue,
         activeValue,
         order,
+        pricingModeValue,
+        flatFeeValue,
+        baseRateValue,
       ]
     );
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { priceFromPoints } from "@/lib/pricing";
+import { priceFromPoints, DEFAULT_HOURLY_RATE } from "@/lib/pricing";
 
 type Row = {
   id: string;
@@ -11,6 +11,9 @@ type Row = {
   description: string | null;
   tagline: string | null;
   emoji: string | null;
+  pricing_mode: "calculated" | "flat";
+  flat_fee: number | null;
+  base_rate: number | null;
   active: boolean;
   featured?: boolean | null;
   sort_order: number;
@@ -77,7 +80,10 @@ export default function SprintPackagesClient({ rows }: Props) {
       const qty = d.quantity ?? 1;
       totalComplexity += (d.points ?? 0) * qty;
     });
-    const totalPrice = priceFromPoints(totalComplexity);
+    const totalPrice =
+      pkg.pricing_mode === "flat" && pkg.flat_fee != null
+        ? pkg.flat_fee
+        : priceFromPoints(totalComplexity, pkg.base_rate);
     return { totalComplexity, totalPrice };
   }
 
@@ -166,6 +172,11 @@ export default function SprintPackagesClient({ rows }: Props) {
                       <div className="text-xs opacity-70 mb-1">Total Price</div>
                       <div className="font-semibold text-lg">
                         ${totalPrice.toLocaleString()}
+                      </div>
+                      <div className="text-[11px] opacity-60 mt-1">
+                        {item.pricing_mode === "flat"
+                          ? `Flat package fee${item.flat_fee != null ? `: $${item.flat_fee.toLocaleString()}` : ""}`
+                          : `Rate: $${item.base_rate ?? DEFAULT_HOURLY_RATE}/hr`}
                       </div>
                     </div>
                     <div className="rounded bg-black/5 dark:bg-white/5 p-2">

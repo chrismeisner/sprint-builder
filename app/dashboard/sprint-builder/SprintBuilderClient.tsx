@@ -21,9 +21,38 @@ type Project = {
   name: string;
 };
 
+type PackageDeliverable = {
+  deliverableId: string;
+  name: string;
+  points: number | null;
+  quantity: number;
+  complexityScore: number | null;
+};
+
+type Package = {
+  id: string;
+  name: string;
+  description: string | null;
+  emoji: string | null;
+  category: string | null;
+  pricingMode: "calculated" | "flat";
+  flatFee: number | null;
+  baseRate: number | null;
+  active: boolean;
+  deliverables: PackageDeliverable[];
+};
+
+type SelectedDeliverable = {
+  deliverableId: string;
+  multiplier: number;
+  note: string;
+  sourcePackageId: string | null;
+};
+
 type Props = {
   deliverables: Deliverable[];
   projects: Project[];
+  packages?: Package[];
   isAuthenticated?: boolean;
   loginRedirectPath?: string;
 };
@@ -33,6 +62,7 @@ const PRESET_MULTIPLIERS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 export default function SprintBuilderClient({
   deliverables,
   projects,
+  packages = [],
   isAuthenticated = true,
   loginRedirectPath = "/dashboard/sprint-builder",
 }: Props) {
@@ -78,9 +108,8 @@ export default function SprintBuilderClient({
     return Number(value).toFixed(1).replace(/\.0$/, "");
   }
 
-  const [selectedDeliverables, setSelectedDeliverables] = useState<
-    { deliverableId: string; multiplier: number; note: string }[]
-  >([]);
+  const [selectedDeliverables, setSelectedDeliverables] = useState<SelectedDeliverable[]>([]);
+  const [pickerTab, setPickerTab] = useState<"deliverables" | "packages">("deliverables");
   function getUpcomingMondays(count = 6): string[] {
     const today = new Date();
     const day = today.getDay(); // 0 = Sun, 1 = Mon
@@ -234,10 +263,11 @@ export default function SprintBuilderClient({
 
         // Map deliverables to builder state
         setSelectedDeliverables(
-          delivs.map((d: { deliverableId: unknown; multiplier?: unknown; note?: unknown }) => ({
+          delivs.map((d: { deliverableId: unknown; multiplier?: unknown; note?: unknown; sourcePackageId?: unknown }) => ({
             deliverableId: String(d.deliverableId),
             multiplier: Number.isFinite(Number(d.multiplier)) ? Number(d.multiplier) : 1,
             note: typeof d.note === "string" ? d.note : "",
+            sourcePackageId: typeof d.sourcePackageId === "string" ? d.sourcePackageId : null,
           }))
         );
 
@@ -267,8 +297,8 @@ export default function SprintBuilderClient({
   }, [sprintIdFromQuery]);
 
   function addDeliverable(deliverableId: string) {
-    if (selectedDeliverables.some((d) => d.deliverableId === deliverableId)) return; // Already added
-    setSelectedDeliverables([...selectedDeliverables, { deliverableId, multiplier: 1, note: "" }]);
+    if (selectedDeliverables.some((d) => d.deliverableId === deliverableId)) return;
+    setSelectedDeliverables([...selectedDeliverables, { deliverableId, multiplier: 1, note: "", sourcePackageId: null }]);
   }
 
   function removeDeliverable(deliverableId: string) {
@@ -278,10 +308,57 @@ export default function SprintBuilderClient({
     }
   }
 
+  function addPackage(pkg: Package) {
+    const toAdd = pkg.deliverables
+      .filter((pd) => !selectedDeliverables.some((sd) => sd.deliverableId === pd.deliverableId))
+      .map((pd) => ({
+        deliverableId: pd.deliverableId,
+        multiplier: pd.complexityScore ?? 1,
+        note: "",
+        sourcePackageId: pkg.id,
+      }));
+    if (toAdd.length > 0) {
+      setSelectedDeliverables((prev) => [...prev, ...toAdd]);
+      // Package rate becomes the sprint rate when starting from package scope.
+      if (
+        pkg.pricingMode === "calculated" &&
+        pkg.baseRate != null &&
+        Number.isFinite(pkg.baseRate) &&
+        pkg.baseRate > 0
+      ) {
+        const hasAnyItems = selectedDeliverables.length > 0;
+        if (!hasAnyItems) {
+          setBaseRate(pkg.baseRate);
+        }
+      }
+    }
+  }
+
+  function removePackage(packageId: string) {
+    setSelectedDeliverables((prev) => prev.filter((d) => d.sourcePackageId !== packageId));
+  }
+
+  function isPackageAdded(packageId: string) {
+    return selectedDeliverables.some((d) => d.sourcePackageId === packageId);
+  }
+
   function calculateTotals() {
     let totalComplexity = 0;
+    let flatPackageTotal = 0;
+    const appliedFlatPackages = new Set<string>();
 
-    selectedDeliverables.forEach(({ deliverableId, multiplier }) => {
+    selectedDeliverables.forEach(({ deliverableId, multiplier, sourcePackageId }) => {
+      if (sourcePackageId) {
+        const pkg = packages.find((p) => p.id === sourcePackageId);
+        const isFlat = pkg?.pricingMode === "flat" && pkg.flatFee != null;
+        if (isFlat) {
+          if (!appliedFlatPackages.has(sourcePackageId)) {
+            flatPackageTotal += Number(pkg.flatFee);
+            appliedFlatPackages.add(sourcePackageId);
+          }
+          return; // Deliverable complexity/rates do not affect price in flat mode.
+        }
+      }
       const d = deliverables.find((del) => del.id === deliverableId);
       if (d) {
         const pts = Number(d.points ?? 0);
@@ -292,9 +369,10 @@ export default function SprintBuilderClient({
       }
     });
 
-    const totalPrice = priceFromPoints(totalComplexity, baseRate);
+    const calculatedPrice = priceFromPoints(totalComplexity, baseRate);
+    const totalPrice = calculatedPrice + flatPackageTotal;
     const totalHours = hoursFromPoints(totalComplexity);
-    return { totalComplexity, totalPrice, totalHours };
+    return { totalComplexity, totalPrice, totalHours, flatPackageTotal, calculatedPrice };
   }
 
   function calculateEndDate(start: string, wks: number): string | null {
@@ -465,6 +543,7 @@ export default function SprintBuilderClient({
           deliverableId: item.deliverableId,
           complexityMultiplier: item.multiplier,
           note: item.note?.trim() ? item.note.trim() : null,
+          sourcePackageId: item.sourcePackageId ?? null,
         })),
         startDate: startDate?.trim() || null,
         weeks: Number.isFinite(weeks) && weeks > 0 ? Math.round(weeks) : 2,
@@ -573,6 +652,7 @@ export default function SprintBuilderClient({
           deliverableId: item.deliverableId,
           complexityMultiplier: item.multiplier,
           note: item.note?.trim() ? item.note.trim() : null,
+          sourcePackageId: item.sourcePackageId ?? null,
         })),
         startDate: startDate?.trim() || null,
         weeks: Number.isFinite(weeks) && weeks > 0 ? Math.round(weeks) : 2,
@@ -652,7 +732,7 @@ export default function SprintBuilderClient({
     }
   }
 
-  const { totalComplexity, totalPrice, totalHours } = calculateTotals();
+  const { totalComplexity, totalPrice, totalHours, flatPackageTotal, calculatedPrice } = calculateTotals();
   const hoursPerDay = totalDays > 0 ? Number(totalHours || 0) / totalDays : 0;
   const totalPriceCents = Math.max(0, Math.round(Number(totalPrice || 0) * 100));
   const resolvedSprintId = savedSprintId || sprintIdFromQuery || "";
@@ -751,6 +831,33 @@ export default function SprintBuilderClient({
       return Number(aPts) - Number(bPts);
     });
   });
+
+  // Group selected deliverables: package groups first (in order added), then individuals
+  type PackageGroup = { type: "package"; packageId: string; packageName: string; emoji: string | null; items: SelectedDeliverable[] };
+  type IndividualGroup = { type: "individual"; items: SelectedDeliverable[] };
+  const groupedSelected = useMemo<(PackageGroup | IndividualGroup)[]>(() => {
+    const seenPackageIds: string[] = [];
+    for (const d of selectedDeliverables) {
+      if (d.sourcePackageId && !seenPackageIds.includes(d.sourcePackageId)) {
+        seenPackageIds.push(d.sourcePackageId);
+      }
+    }
+    const groups: (PackageGroup | IndividualGroup)[] = seenPackageIds.map((pkgId) => {
+      const pkg = packages.find((p) => p.id === pkgId);
+      return {
+        type: "package" as const,
+        packageId: pkgId,
+        packageName: pkg?.name ?? "Package",
+        emoji: pkg?.emoji ?? null,
+        items: selectedDeliverables.filter((d) => d.sourcePackageId === pkgId),
+      };
+    });
+    const individuals = selectedDeliverables.filter((d) => !d.sourcePackageId);
+    if (individuals.length > 0) {
+      groups.push({ type: "individual" as const, items: individuals });
+    }
+    return groups;
+  }, [selectedDeliverables, packages]);
 
   return (
     <div className="container max-w-7xl py-6 text-foreground">
@@ -913,44 +1020,70 @@ export default function SprintBuilderClient({
 
           {/* Deliverables layout and totals */}
           <div className="grid gap-6 lg:grid-cols-3 items-start">
-            {/* Available Deliverables */}
+            {/* Available Deliverables / Packages picker */}
             <section className="rounded-md border border-black/10 dark:border-white/15 bg-white dark:bg-black p-4 space-y-4">
-              <h2 className={sectionHeadingClass}>Add Deliverables</h2>
-              <div className="space-y-2">
-                <p className={sectionHelperClass}>Show categories</p>
-                <div className="flex flex-wrap gap-2">
-                  {Object.keys(deliverablesByCategory).map((cat) => {
-                    const isChecked = visibleCategories.has(cat);
-                    return (
-                      <label
-                        key={cat}
-                        className={`${bodySmClass} inline-flex items-center gap-2 rounded-md border border-black/10 dark:border-white/15 px-2 py-1 cursor-pointer`}
-                      >
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            setVisibleCategories((prev) => {
-                              const next = new Set(prev);
-                              if (e.target.checked) {
-                                next.add(cat);
-                              } else {
-                                next.delete(cat);
-                              }
-                              return next;
-                            });
-                          }}
-                        />
-                        {cat}
-                      </label>
-                    );
-                  })}
-                </div>
+              <div className="flex items-center justify-between">
+                <h2 className={sectionHeadingClass}>Add Deliverables</h2>
               </div>
-              
-              <div className="space-y-4">
-                {Object.entries(deliverablesByCategory).map(([category, items]) =>
+
+              {/* Picker tabs — only show Packages tab if there are packages to select */}
+              {packages.length > 0 && (
+                <div className="flex border-b border-black/10 dark:border-white/10 -mx-4 px-4">
+                  {(["deliverables", "packages"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setPickerTab(tab)}
+                      className={`${bodySmClass} pb-2 mr-4 capitalize border-b-2 transition-colors duration-100 ${
+                        pickerTab === tab
+                          ? "border-black dark:border-white font-medium"
+                          : "border-transparent text-text-secondary hover:text-text-primary"
+                      }`}
+                    >
+                      {tab === "packages" ? `Packages (${packages.length})` : "Deliverables"}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Deliverables tab */}
+              {pickerTab === "deliverables" && (
+                <>
+                  <div className="space-y-2">
+                    <p className={sectionHelperClass}>Show categories</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.keys(deliverablesByCategory).map((cat) => {
+                        const isChecked = visibleCategories.has(cat);
+                        return (
+                          <label
+                            key={cat}
+                            className={`${bodySmClass} inline-flex items-center gap-2 rounded-md border border-black/10 dark:border-white/15 px-2 py-1 cursor-pointer`}
+                          >
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                setVisibleCategories((prev) => {
+                                  const next = new Set(prev);
+                                  if (e.target.checked) {
+                                    next.add(cat);
+                                  } else {
+                                    next.delete(cat);
+                                  }
+                                  return next;
+                                });
+                              }}
+                            />
+                            {cat}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {Object.entries(deliverablesByCategory).map(([category, items]) =>
                   visibleCategories.has(category) ? (
                     <div key={category}>
                       <h3 className={`${badgeClass} mb-2`}>{category}</h3>
@@ -1011,9 +1144,90 @@ export default function SprintBuilderClient({
                         })}
                       </div>
                     </div>
-                  ) : null
-                )}
-              </div>
+                    ) : null
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Packages tab */}
+              {pickerTab === "packages" && (
+                <div className="space-y-3">
+                  {packages.length === 0 ? (
+                    <p className={sectionHelperClass}>No packages defined yet. Create packages from the <Link href="/dashboard/sprint-packages" className="underline">Packages admin</Link> page.</p>
+                  ) : (
+                    packages.map((pkg) => {
+                      const added = isPackageAdded(pkg.id);
+                      const pkgPoints = pkg.deliverables.reduce((sum, pd) => {
+                        const pts = Number(pd.points ?? 0);
+                        const qty = pd.quantity ?? 1;
+                        const cs = pd.complexityScore ?? 1;
+                        return sum + pts * qty * cs;
+                      }, 0);
+                      const pkgPrice =
+                        pkg.pricingMode === "flat" && pkg.flatFee != null
+                          ? Number(pkg.flatFee)
+                          : priceFromPoints(pkgPoints, pkg.baseRate);
+                      return (
+                        <div
+                          key={pkg.id}
+                          className={`rounded-md border p-3 space-y-2 ${
+                            added
+                              ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950"
+                              : "border-black/10 dark:border-white/15"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 space-y-0.5">
+                              <div className={`${bodyClass} font-semibold`}>
+                                {pkg.emoji && <span className="mr-1.5">{pkg.emoji}</span>}
+                                {pkg.name}
+                              </div>
+                              {pkg.description && (
+                                <p className={`${sectionHelperClass}`}>{pkg.description}</p>
+                              )}
+                              <p className={`${sectionHelperClass}`}>
+                                {pkg.deliverables.length} deliverable{pkg.deliverables.length !== 1 ? "s" : ""} · ${Math.round(pkgPrice).toLocaleString()}
+                              </p>
+                              {pkg.pricingMode === "flat" ? (
+                                <p className={sectionHelperClass}>Pricing: flat package fee</p>
+                              ) : (
+                              pkg.baseRate != null && Number.isFinite(pkg.baseRate) && pkg.baseRate > 0 && (
+                                <p className={`${sectionHelperClass}`}>Rate: ${pkg.baseRate}/hr</p>
+                              )
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => added ? removePackage(pkg.id) : addPackage(pkg)}
+                              className={`${bodySmClass} shrink-0 inline-flex items-center rounded-md px-3 py-1.5 border transition-colors duration-150 ${
+                                added
+                                  ? "border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900"
+                                  : "border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10"
+                              }`}
+                            >
+                              {added ? "Remove" : "Add package"}
+                            </button>
+                          </div>
+                          {pkg.deliverables.length > 0 && (
+                            <div className="space-y-1 pt-1 border-t border-black/5 dark:border-white/5">
+                              {pkg.deliverables.map((pd) => (
+                                <div key={pd.deliverableId} className={`${bodySmClass} flex items-center justify-between gap-2 text-text-secondary`}>
+                                  <span>{pd.name}</span>
+                                  <span className="whitespace-nowrap">
+                                    {pd.points != null ? `${Number(pd.points).toFixed(1).replace(/\.0$/, "")} pts` : "—"}
+                                    {pd.complexityScore != null && pd.complexityScore !== 1 ? ` · ${pd.complexityScore}x` : ""}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
             </section>
 
             {/* Selected Deliverables */}
@@ -1023,87 +1237,163 @@ export default function SprintBuilderClient({
               {selectedDeliverables.length === 0 ? (
                 <p className={sectionHelperClass}>No deliverables selected yet.</p>
               ) : (
-                <div className="space-y-2">
-                  {selectedDeliverables.map((item) => {
-                    const d = deliverables.find((del) => del.id === item.deliverableId);
-                    if (!d) return null;
-                    
-                    const adjustedPoints =
-                      d.points != null && Number.isFinite(Number(d.points))
-                        ? Number(d.points) * (Number.isFinite(item.multiplier) ? item.multiplier : 1)
-                        : null;
+                <div className="space-y-4">
+                  {groupedSelected.map((group, gi) => {
+                    if (group.type === "package") {
+                      const pkgSubtotalPts = group.items.reduce((sum, item) => {
+                        const d = deliverables.find((del) => del.id === item.deliverableId);
+                        const pts = d?.points != null ? Number(d.points) * (Number.isFinite(item.multiplier) ? item.multiplier : 1) : 0;
+                        return sum + pts;
+                      }, 0);
+                      const pkgSubtotalPrice = priceFromPoints(pkgSubtotalPts);
+                      return (
+                        <div key={group.packageId} className="rounded-md border border-black/10 dark:border-white/15 overflow-hidden">
+                          {/* Package header */}
+                          <div className="flex items-center justify-between gap-3 px-3 py-2 bg-black/[0.03] dark:bg-white/[0.03] border-b border-black/10 dark:border-white/10">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {group.emoji && <span>{group.emoji}</span>}
+                              <span className={`${bodySmClass} font-semibold`}>{group.packageName}</span>
+                              <span className={`${badgeClass} inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 px-2 py-0.5`}>package</span>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className={`${bodySmClass} font-semibold`}>${Math.round(pkgSubtotalPrice).toLocaleString()}</span>
+                              <button
+                                type="button"
+                                onClick={() => removePackage(group.packageId)}
+                                className={`${bodySmClass} text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300`}
+                              >
+                                Remove all
+                              </button>
+                            </div>
+                          </div>
+                          {/* Package deliverables */}
+                          <div className="divide-y divide-black/5 dark:divide-white/5">
+                            {group.items.map((item) => {
+                              const d = deliverables.find((del) => del.id === item.deliverableId);
+                              if (!d) return null;
+                              const adjustedPoints =
+                                d.points != null && Number.isFinite(Number(d.points))
+                                  ? Number(d.points) * (Number.isFinite(item.multiplier) ? item.multiplier : 1)
+                                  : null;
+                              return (
+                                <div key={item.deliverableId} className="px-3 py-2.5 flex items-start justify-between gap-3">
+                                  <div className="flex-1 space-y-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <Link href={`/dashboard/deliverables/${d.id}`} className={`${bodySmClass} font-medium hover:underline`}>{d.name}</Link>
+                                      {item.multiplier !== 1 && (
+                                        <span className={`${badgeClass} inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 px-2 py-0.5`}>{item.multiplier}x</span>
+                                      )}
+                                    </div>
+                                    {item.note && <div className={`${sectionHelperClass} whitespace-pre-line`}>{item.note}</div>}
+                                    <div className="flex items-center gap-3">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const isPresetMultiplier = PRESET_MULTIPLIERS.includes(item.multiplier as (typeof PRESET_MULTIPLIERS)[number]);
+                                          const safeCustomValue = item.multiplier ?? 1;
+                                          const del = deliverables.find((d) => d.id === item.deliverableId);
+                                          const baseHrs = del?.points != null ? hoursFromPoints(Number(del.points)) : 0;
+                                          setEditingDeliverableId(item.deliverableId);
+                                          setEditingMultiplier(item.multiplier);
+                                          setIsCustomMultiplier(!isPresetMultiplier);
+                                          setCustomMultiplierInput(String(safeCustomValue));
+                                          setEditingMode("multiplier");
+                                          setEditingHoursInput(String(Math.round(safeCustomValue * baseHrs * 100) / 100));
+                                          setEditingNote(item.note || "");
+                                        }}
+                                        className={`${bodySmClass} underline`}
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => removeDeliverable(item.deliverableId)}
+                                        className={`${bodySmClass} text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300`}
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className={`${bodySmClass} font-semibold whitespace-nowrap text-right`}>
+                                    {adjustedPoints != null ? `${Number(adjustedPoints).toFixed(1).replace(/\.0$/, "")} pts` : "—"}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    }
 
+                    // Individual deliverables (no package)
                     return (
-                      <div
-                        key={item.deliverableId}
-                        className="rounded border border-black/10 dark:border-white/15 p-3 flex items-start justify-between gap-3"
-                      >
-                        <div className="flex-1 space-y-1.5">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Link
-                              href={`/dashboard/deliverables/${d.id}`}
-                              className={`${bodyClass} font-semibold hover:underline`}
+                      <div key={`individual-${gi}`} className="space-y-2">
+                        {group.items.map((item) => {
+                          const d = deliverables.find((del) => del.id === item.deliverableId);
+                          if (!d) return null;
+                          const adjustedPoints =
+                            d.points != null && Number.isFinite(Number(d.points))
+                              ? Number(d.points) * (Number.isFinite(item.multiplier) ? item.multiplier : 1)
+                              : null;
+                          return (
+                            <div
+                              key={item.deliverableId}
+                              className="rounded border border-black/10 dark:border-white/15 p-3 flex items-start justify-between gap-3"
                             >
-                              {d.name}
-                            </Link>
-                            <button
-                              type="button"
-                              onClick={() => setInfoDeliverable(d)}
-                              className="inline-flex items-center justify-center rounded-full border border-black/15 dark:border-white/20 size-8 min-w-[44px] min-h-[44px] text-xs hover:bg-black/5 dark:hover:bg-white/10 hover:border-black/25 dark:hover:border-white/30"
-                              aria-label={`View details for ${d.name}`}
-                            >
-                              i
-                            </button>
-                            {d.categories && d.categories.length > 0 && (
-                              <span className={`${badgeClass} inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 px-2 py-0.5`}>
-                                {d.categories.join(", ")}
-                              </span>
-                            )}
-                            {item.multiplier !== 1 && (
-                              <span className={`${badgeClass} inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 px-2 py-0.5`}>
-                                {item.multiplier}x
-                              </span>
-                            )}
-                          </div>
-                          {item.note && (
-                            <div className={`${sectionHelperClass} whitespace-pre-line`}>{item.note}</div>
-                          )}
-                          <div className="flex items-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const isPresetMultiplier = PRESET_MULTIPLIERS.includes(
-                                  item.multiplier as (typeof PRESET_MULTIPLIERS)[number]
-                                );
-                                const safeCustomValue = item.multiplier ?? 1;
-                                const deliverable = deliverables.find((d) => d.id === item.deliverableId);
-                                const baseHrs = deliverable?.points != null ? hoursFromPoints(Number(deliverable.points)) : 0;
-                                setEditingDeliverableId(item.deliverableId);
-                                setEditingMultiplier(item.multiplier);
-                                setIsCustomMultiplier(!isPresetMultiplier);
-                                setCustomMultiplierInput(String(safeCustomValue));
-                                setEditingMode("multiplier");
-                                setEditingHoursInput(String(Math.round(safeCustomValue * baseHrs * 100) / 100));
-                                setEditingNote(item.note || "");
-                              }}
-                              className={`${bodySmClass} underline`}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => removeDeliverable(item.deliverableId)}
-                              className={`${bodySmClass} text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300`}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                        <div className={`${bodySmClass} font-semibold whitespace-nowrap text-right`}>
-                          {adjustedPoints != null
-                            ? `${Number(adjustedPoints).toFixed(1).replace(/\.0$/, "")} pts`
-                            : "—"}
-                        </div>
+                              <div className="flex-1 space-y-1.5">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Link href={`/dashboard/deliverables/${d.id}`} className={`${bodyClass} font-semibold hover:underline`}>{d.name}</Link>
+                                  <button
+                                    type="button"
+                                    onClick={() => setInfoDeliverable(d)}
+                                    className="inline-flex items-center justify-center rounded-full border border-black/15 dark:border-white/20 size-8 min-w-[44px] min-h-[44px] text-xs hover:bg-black/5 dark:hover:bg-white/10 hover:border-black/25 dark:hover:border-white/30"
+                                    aria-label={`View details for ${d.name}`}
+                                  >
+                                    i
+                                  </button>
+                                  {d.categories && d.categories.length > 0 && (
+                                    <span className={`${badgeClass} inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 px-2 py-0.5`}>{d.categories.join(", ")}</span>
+                                  )}
+                                  {item.multiplier !== 1 && (
+                                    <span className={`${badgeClass} inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 px-2 py-0.5`}>{item.multiplier}x</span>
+                                  )}
+                                </div>
+                                {item.note && <div className={`${sectionHelperClass} whitespace-pre-line`}>{item.note}</div>}
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const isPresetMultiplier = PRESET_MULTIPLIERS.includes(item.multiplier as (typeof PRESET_MULTIPLIERS)[number]);
+                                      const safeCustomValue = item.multiplier ?? 1;
+                                      const del = deliverables.find((d) => d.id === item.deliverableId);
+                                      const baseHrs = del?.points != null ? hoursFromPoints(Number(del.points)) : 0;
+                                      setEditingDeliverableId(item.deliverableId);
+                                      setEditingMultiplier(item.multiplier);
+                                      setIsCustomMultiplier(!isPresetMultiplier);
+                                      setCustomMultiplierInput(String(safeCustomValue));
+                                      setEditingMode("multiplier");
+                                      setEditingHoursInput(String(Math.round(safeCustomValue * baseHrs * 100) / 100));
+                                      setEditingNote(item.note || "");
+                                    }}
+                                    className={`${bodySmClass} underline`}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeDeliverable(item.deliverableId)}
+                                    className={`${bodySmClass} text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300`}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                              <div className={`${bodySmClass} font-semibold whitespace-nowrap text-right`}>
+                                {adjustedPoints != null ? `${Number(adjustedPoints).toFixed(1).replace(/\.0$/, "")} pts` : "—"}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })}
@@ -1132,6 +1422,11 @@ export default function SprintBuilderClient({
                     <div className={`${totalValueClass} tabular-nums`}>
                       ${totalPrice.toLocaleString()}
                     </div>
+                    {flatPackageTotal > 0 && (
+                      <div className={`${labelClass} mt-2 inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 px-2.5 py-1`}>
+                        Flat packages: ${flatPackageTotal.toLocaleString()} + Calculated scope: ${Math.round(calculatedPrice).toLocaleString()}
+                      </div>
+                    )}
                   </div>
 
                   {showExtras && (

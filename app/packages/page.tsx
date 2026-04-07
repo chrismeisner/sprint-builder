@@ -7,8 +7,10 @@ export const dynamic = "force-dynamic";
 type Package = SprintPackage & {
   category: string | null;
   package_type?: "foundation" | "extend";
+  pricing_mode: "calculated" | "flat";
   flat_fee: number | null;
   flat_hours: number | null;
+  base_rate: number | null;
   featured: boolean;
   deliverables: Array<{
     deliverableId: string;
@@ -36,10 +38,12 @@ export default async function PackagesPage() {
       sp.description,
       sp.category,
       sp.package_type,
+      sp.pricing_mode,
       sp.tagline,
       sp.emoji,
       sp.flat_fee,
       sp.flat_hours,
+      sp.base_rate,
       sp.featured,
       COALESCE(
         json_agg(
@@ -68,6 +72,8 @@ export default async function PackagesPage() {
 
   const packages: Package[] = result.rows.map((row) => ({
     ...row,
+    pricing_mode: row.pricing_mode === "flat" ? "flat" : "calculated",
+    base_rate: row.base_rate != null ? Number(row.base_rate) : null,
     package_type: row.package_type ?? undefined,
   }));
 

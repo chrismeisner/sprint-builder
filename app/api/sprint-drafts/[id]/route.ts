@@ -15,10 +15,28 @@ async function recalcTotals(pool: ReturnType<typeof getPool>, sprintId: string, 
   const result = await pool.query(
     `SELECT 
        COUNT(*)::int as deliverable_count,
-       COALESCE(SUM(COALESCE(sd.custom_estimate_points, sd.base_points, d.points, 0) * sd.quantity), 0)::numeric as total_points
+       COALESCE(SUM(
+         CASE
+           WHEN sp.pricing_mode = 'flat' AND sp.flat_fee IS NOT NULL THEN 0
+           ELSE COALESCE(sd.custom_estimate_points, sd.base_points, d.points, 0) * sd.quantity
+         END
+       ), 0)::numeric as total_points
      FROM sprint_deliverables sd
      LEFT JOIN deliverables d ON sd.deliverable_id = d.id
+     LEFT JOIN sprint_packages sp ON sd.source_package_id = sp.id
      WHERE sd.sprint_draft_id = $1`,
+    [sprintId]
+  );
+  const flatResult = await pool.query(
+    `SELECT COALESCE(SUM(sp.flat_fee), 0)::numeric AS flat_total
+     FROM (
+       SELECT DISTINCT source_package_id
+       FROM sprint_deliverables
+       WHERE sprint_draft_id = $1
+         AND source_package_id IS NOT NULL
+     ) used
+     JOIN sprint_packages sp ON sp.id = used.source_package_id
+     WHERE sp.pricing_mode = 'flat' AND sp.flat_fee IS NOT NULL`,
     [sprintId]
   );
 
@@ -32,8 +50,9 @@ async function recalcTotals(pool: ReturnType<typeof getPool>, sprintId: string, 
 
   const totals = result.rows[0] as { deliverable_count: number; total_points: number };
   const totalPoints = Number(totals.total_points);
+  const flatTotal = Number((flatResult.rows[0] as { flat_total: number }).flat_total);
   const totalHours = hoursFromPoints(totalPoints);
-  const totalPrice = priceFromPoints(totalPoints, rateToUse);
+  const totalPrice = priceFromPoints(totalPoints, rateToUse) + flatTotal;
 
   await pool.query(
     `UPDATE sprint_drafts 
@@ -135,12 +154,13 @@ export async function GET(request: Request, { params }: Params) {
          sd.complexity_score,
          sd.quantity,
          sd.deliverable_name,
-       sd.deliverable_category,
-       sd.deliverable_categories,
+         sd.deliverable_category,
+         sd.deliverable_categories,
+         sd.source_package_id,
          d.points,
          d.name,
-       d.category,
-       d.categories
+         d.category,
+         d.categories
        FROM sprint_deliverables sd
        LEFT JOIN deliverables d ON sd.deliverable_id = d.id
        WHERE sd.sprint_draft_id = $1
@@ -174,6 +194,7 @@ export async function GET(request: Request, { params }: Params) {
         multiplier,
         note: (row.notes as string | null) ?? null,
         customScope: (row.custom_scope as string | null) ?? null,
+        sourcePackageId: (row.source_package_id as string | null) ?? null,
       };
     });
 
@@ -223,7 +244,7 @@ export async function PATCH(request: Request, { params }: Params) {
       startDate?: string | null;
       weeks?: number | null;
       dueDate?: string | null;
-      deliverables?: Array<{ deliverableId: string; complexityMultiplier?: number; note?: string | null; customScope?: string | null }>;
+      deliverables?: Array<{ deliverableId: string; complexityMultiplier?: number; note?: string | null; customScope?: string | null; sourcePackageId?: string | null }>;
       customContent?: Record<string, unknown>;
       contract_url?: string | null;
       contract_status?: string | null;
@@ -597,6 +618,9 @@ export async function PATCH(request: Request, { params }: Params) {
         const multiplier = Number.isFinite(multiplierRaw) && multiplierRaw > 0 ? multiplierRaw : 1;
         const noteVal = typeof item.note === "string" && item.note.trim() ? item.note.trim() : null;
         const scopeVal = typeof item.customScope === "string" && item.customScope.trim() ? item.customScope.trim() : null;
+        const sourcePackageIdVal = typeof item.sourcePackageId === "string" && item.sourcePackageId.trim()
+          ? item.sourcePackageId.trim()
+          : null;
 
         const delRes = await pool.query(
           `SELECT id, name, description, category, categories, scope, points
@@ -622,9 +646,9 @@ export async function PATCH(request: Request, { params }: Params) {
           `INSERT INTO sprint_deliverables (
              id, sprint_draft_id, deliverable_id, quantity,
              deliverable_name, deliverable_description, deliverable_category, deliverable_categories, deliverable_scope,
-             base_points, custom_estimate_points, custom_hours, complexity_score, notes, custom_scope
+             base_points, custom_estimate_points, custom_hours, complexity_score, notes, custom_scope, source_package_id
            )
-           VALUES ($1, $2, $3, 1, $4, $5, $6, $7::text[], $8, $9, $10, $11, $12, $13, $14)
+           VALUES ($1, $2, $3, 1, $4, $5, $6, $7::text[], $8, $9, $10, $11, $12, $13, $14, $15)
            ON CONFLICT (sprint_draft_id, deliverable_id) DO NOTHING`,
           [
             randomUUID(),
@@ -641,6 +665,7 @@ export async function PATCH(request: Request, { params }: Params) {
             multiplier,
             noteVal,
             scopeVal,
+            sourcePackageIdVal,
           ]
         );
       }

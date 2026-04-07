@@ -30,6 +30,9 @@ export default async function EditSprintPackagePage({ params }: PageProps) {
       sp.description,
       sp.tagline,
       sp.emoji,
+      sp.pricing_mode,
+      sp.flat_fee,
+      sp.base_rate,
       sp.active,
       sp.sort_order,
       COALESCE(

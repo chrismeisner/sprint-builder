@@ -20,6 +20,27 @@ type Project = {
   name: string;
 };
 
+type PackageDeliverable = {
+  deliverableId: string;
+  name: string;
+  points: number | null;
+  quantity: number;
+  complexityScore: number | null;
+};
+
+type Package = {
+  id: string;
+  name: string;
+  description: string | null;
+  emoji: string | null;
+  category: string | null;
+  pricingMode: "calculated" | "flat";
+  flatFee: number | null;
+  baseRate: number | null;
+  active: boolean;
+  deliverables: PackageDeliverable[];
+};
+
 export default async function SprintBuilderPage() {
   await ensureSchema();
   const pool = getPool();
@@ -82,6 +103,58 @@ export default async function SprintBuilderPage() {
     name: row.name as string,
   }));
 
-  return <SprintBuilderClient deliverables={deliverables} projects={projects} />;
+  // Fetch active packages with their deliverables
+  const packagesResult = await pool.query(`
+    SELECT
+      sp.id,
+      sp.name,
+      sp.description,
+      sp.emoji,
+      sp.category,
+      sp.pricing_mode,
+      sp.flat_fee,
+      sp.base_rate,
+      sp.active,
+      sp.sort_order,
+      COALESCE(
+        json_agg(
+          json_build_object(
+            'deliverableId', d.id,
+            'name', d.name,
+            'points', d.points,
+            'quantity', spd.quantity,
+            'complexityScore', spd.complexity_score
+          ) ORDER BY spd.sort_order ASC, d.name ASC
+        ) FILTER (WHERE d.id IS NOT NULL),
+        '[]'
+      ) AS deliverables
+    FROM sprint_packages sp
+    LEFT JOIN sprint_package_deliverables spd ON sp.id = spd.sprint_package_id
+    LEFT JOIN deliverables d ON spd.deliverable_id = d.id
+    WHERE sp.active = true
+    GROUP BY sp.id
+    ORDER BY sp.sort_order ASC, sp.name ASC
+  `);
+
+  const packages: Package[] = packagesResult.rows.map((row) => ({
+    id: row.id as string,
+    name: row.name as string,
+    description: row.description as string | null,
+    emoji: row.emoji as string | null,
+    category: row.category as string | null,
+    pricingMode: row.pricing_mode === "flat" ? "flat" : "calculated",
+    flatFee: row.flat_fee != null ? Number(row.flat_fee) : null,
+    baseRate: row.base_rate != null ? Number(row.base_rate) : null,
+    active: row.active as boolean,
+    deliverables: (row.deliverables as PackageDeliverable[]) ?? [],
+  }));
+
+  return (
+    <SprintBuilderClient
+      deliverables={deliverables}
+      projects={projects}
+      packages={packages}
+    />
+  );
 }
 
