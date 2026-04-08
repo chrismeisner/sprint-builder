@@ -34,6 +34,9 @@ type Package = {
   description: string | null;
   emoji: string | null;
   category: string | null;
+  packageType: string | null;
+  durationWeeks: number;
+  requiresPackageType: string | null;
   pricingMode: "calculated" | "flat";
   flatFee: number | null;
   baseRate: number | null;
@@ -111,6 +114,9 @@ export default async function SprintBuilderPage() {
       sp.description,
       sp.emoji,
       sp.category,
+      sp.package_type,
+      sp.duration_weeks,
+      sp.requires_package_type,
       sp.pricing_mode,
       sp.flat_fee,
       sp.base_rate,
@@ -142,6 +148,9 @@ export default async function SprintBuilderPage() {
     description: row.description as string | null,
     emoji: row.emoji as string | null,
     category: row.category as string | null,
+    packageType: (row.package_type as string | null) ?? null,
+    durationWeeks: Number(row.duration_weeks ?? 2),
+    requiresPackageType: (row.requires_package_type as string | null) ?? null,
     pricingMode: row.pricing_mode === "flat" ? "flat" : "calculated",
     flatFee: row.flat_fee != null ? Number(row.flat_fee) : null,
     baseRate: row.base_rate != null ? Number(row.base_rate) : null,

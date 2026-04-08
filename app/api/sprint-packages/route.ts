@@ -33,6 +33,10 @@ export async function GET(request: Request) {
         sp.flat_fee,
         sp.flat_hours,
         sp.base_rate,
+        sp.package_type,
+        sp.duration_weeks,
+        sp.requires_package_type,
+        sp.requires_package_id,
         sp.active,
         sp.sort_order,
         sp.created_at,
@@ -102,6 +106,10 @@ export async function POST(request: Request) {
       active,
       sortOrder,
       pricingMode,
+      packageType,
+      durationWeeks,
+      requiresPackageType,
+      requiresPackageId,
       flatFee,
       baseRate,
       deliverables,
@@ -114,6 +122,10 @@ export async function POST(request: Request) {
       active?: unknown;
       sortOrder?: unknown;
       pricingMode?: unknown;
+      packageType?: unknown;
+      durationWeeks?: unknown;
+      requiresPackageType?: unknown;
+      requiresPackageId?: unknown;
       flatFee?: unknown;
       baseRate?: unknown;
       deliverables?: unknown;
@@ -146,6 +158,34 @@ export async function POST(request: Request) {
     }
     const baseRateNum = Number(baseRate);
     const baseRateValue = Number.isFinite(baseRateNum) && baseRateNum > 0 ? baseRateNum : null;
+    const packageTypeValue =
+      packageType === "expansion_cycle" ||
+      packageType === "standard_sprint" ||
+      packageType === "foundation" ||
+      packageType === "extend"
+        ? packageType
+        : "standard_sprint";
+    if (packageTypeValue === "expansion_cycle" && pricingModeValue !== "flat") {
+      return NextResponse.json(
+        { error: "Expansion cycles must use flat pricing mode" },
+        { status: 400 }
+      );
+    }
+    const durationWeeksNum = Number(durationWeeks);
+    const durationWeeksValue =
+      packageTypeValue === "expansion_cycle"
+        ? 1
+        : (Number.isFinite(durationWeeksNum) && durationWeeksNum >= 1 && durationWeeksNum <= 52
+            ? Math.round(durationWeeksNum)
+            : 2);
+    const requiresPackageTypeValue =
+      typeof requiresPackageType === "string" && requiresPackageType.trim().length > 0
+        ? requiresPackageType.trim()
+        : null;
+    const requiresPackageIdValue =
+      typeof requiresPackageId === "string" && requiresPackageId.trim().length > 0
+        ? requiresPackageId.trim()
+        : null;
     const emojiValue =
       typeof emoji === "string" && emoji.trim().length > 0 ? emoji.trim() : null;
     // Insert package
@@ -153,9 +193,9 @@ export async function POST(request: Request) {
       `
       INSERT INTO sprint_packages (
         id, name, slug, description, tagline, emoji,
-        active, sort_order, pricing_mode, flat_fee, base_rate
+        active, sort_order, pricing_mode, package_type, duration_weeks, requires_package_type, requires_package_id, flat_fee, base_rate
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
     `,
       [
         id,
@@ -167,6 +207,10 @@ export async function POST(request: Request) {
         activeValue,
         order,
         pricingModeValue,
+        packageTypeValue,
+        durationWeeksValue,
+        requiresPackageTypeValue,
+        requiresPackageIdValue,
         flatFeeValue,
         baseRateValue,
       ]

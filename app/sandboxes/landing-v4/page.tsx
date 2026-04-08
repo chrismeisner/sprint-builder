@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import FadeInSection from "@/app/components/FadeInSection";
-import SelectedWorkCarousel from "@/app/sandboxes/landing-v2/_components/SelectedWorkCarousel";
+import SelectedWorkCarousel from "@/app/sandboxes/landing-v4/_components/SelectedWorkCarousel";
 
 const JAM_SESSION = "https://cal.com/chrismeisner/jam-session";
 const INTAKE_FORM = "/intake";
@@ -128,7 +128,7 @@ const comparisonColumns = [
   { label: "Design Agency" },
   { label: "Full-Time Hire" },
   { label: "Freelancer" },
-  { label: "Chris Meisner Studio", highlight: true },
+  { label: "Single Source", highlight: true },
 ] as const;
 
 const comparisonRows = [
@@ -169,7 +169,7 @@ const comparisonRows = [
       "Account manager, creative director, junior team — 4–8 people",
       "One employee",
       "One freelancer",
-      "Chris — one senior practitioner, start to finish",
+      "Single Source — one senior practitioner, start to finish",
     ],
   },
   {
@@ -244,7 +244,7 @@ function PlaceholderPanel({ label, className = "" }: { label: string; className?
 function PrimaryCta({ className = "" }: { className?: string }) {
   return (
     <Link href={JAM_SESSION} target="_blank" rel="noreferrer" className={`${PRIMARY_CTA_CLASS} ${className}`}>
-      Book a Jam Session →
+      Book a Jam Session
     </Link>
   );
 }
@@ -252,7 +252,7 @@ function PrimaryCta({ className = "" }: { className?: string }) {
 function IntakeCta({ className = "" }: { className?: string }) {
   return (
     <Link href={INTAKE_FORM} className={`${SECONDARY_CTA_CLASS} ${className}`}>
-      Start with the intake form →
+      Start with intake form
     </Link>
   );
 }
@@ -290,32 +290,39 @@ function ExpansionCard({ expansion }: { expansion: ExpansionOption }) {
   );
 }
 
-export default function LandingV2() {
+export default function LandingV4() {
   const nextAvailableKickoff = getNextAvailableKickoffLabel();
 
   return (
-    <main className="min-h-dvh bg-background">
-      <div className="border-b border-amber-200 bg-amber-50 py-2 text-center dark:border-amber-800 dark:bg-amber-950">
-        <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-          Sandbox draft —{" "}
-          <Link href="/" className="underline">
-            back to live site
-          </Link>
-        </p>
-      </div>
+    <div className="min-h-dvh bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-stroke-muted bg-background/90 backdrop-blur-sm">
+        <div className="container max-w-6xl flex h-14 items-center justify-between">
+          <p className="text-sm font-semibold text-text-primary">Single Source</p>
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="text-sm font-medium text-text-secondary transition-colors duration-150 hover:text-text-primary">
+              Client Login
+            </Link>
+            <Link href={JAM_SESSION} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center justify-center rounded-md bg-text-primary px-4 text-sm font-semibold text-background transition-opacity duration-150 hover:opacity-90">
+              Book a Jam Session
+            </Link>
+          </div>
+        </div>
+      </header>
 
+      <main>
       {/* Above the Fold */}
       <FadeInSection triggerOnMount>
         <section className="container max-w-6xl py-16 md:py-20 space-y-10">
           <div className="max-w-4xl space-y-8">
-            <SectionOverline>Chris Meisner Studio</SectionOverline>
+            <SectionOverline>Single Source</SectionOverline>
             <h1 className="text-5xl font-bold leading-tight text-balance text-text-primary">
               From direction to deliverable in ten days.
             </h1>
             <p className={`${SECTION_INTRO_CLASS} max-w-3xl`}>
               Two-week sprints for teams that need to move from direction to something buildable.
-              Every sprint is run by Chris directly. No handoffs. No account managers. The person
-              you talk to is the person who builds.
+              Every sprint is run by a single senior practitioner. No handoffs. No account managers.
+              The person you talk to is the person who builds.
             </p>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -370,10 +377,10 @@ export default function LandingV2() {
                   Not a presentation about the work. The work.
                 </p>
                 <p className={BODY_CLASS}>
-                  Every sprint is run by Chris directly. No handoffs. No account managers. The person
-                  you talk to is the person who builds. Because of that the studio runs a small number
-                  of sprints at a time — if you have something coming up it&apos;s worth getting a Jam
-                  Session on the calendar early.
+                  Every sprint is run by a single senior practitioner. No handoffs. No account
+                  managers. The person you talk to is the person who builds. Because of that Single
+                  Source runs a small number of sprints at a time — if you have something coming up
+                  it&apos;s worth getting a Jam Session on the calendar early.
                 </p>
               </div>
             </div>
@@ -481,11 +488,7 @@ export default function LandingV2() {
               </h2>
               <p className="w-full border-t border-stroke-muted pt-4 text-sm font-normal leading-normal text-text-muted">
                 <span className="font-medium text-text-primary">Next available kickoff:</span> Week of{" "}
-                {nextAvailableKickoff} —{" "}
-                <Link href={JAM_SESSION} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-                  Book a Jam Session
-                </Link>{" "}
-                to hold your spot.
+                {nextAvailableKickoff}.
               </p>
             </div>
 
@@ -553,53 +556,48 @@ export default function LandingV2() {
         </section>
       </FadeInSection>
 
-      {/* Section 8 — Chris, The Studio, and How to Start */}
+      {/* Section 8 — Single Source, and How to Start */}
       <FadeInSection>
         <section className={`bg-surface-subtle ${SECTION_SPACING}`}>
           <div className="container max-w-6xl grid gap-10 lg:grid-cols-2 lg:items-start">
             <PlaceholderPanel
-              label="Photo — Chris at work"
+              label="Photo — Chris Meisner"
               className="h-96 lg:order-2"
             />
 
             <div className="space-y-5 lg:order-1">
-              <SectionOverline>Chris, The Studio, and How to Start</SectionOverline>
+              <SectionOverline>Single Source, and How to Start</SectionOverline>
               <p className={BODY_CLASS}>
-                I&apos;ve led sprints for pre-seed teams and public companies alike. In past lives —
-                in-house design teams, new ventures inside enterprise orgs, founders sharpening the
-                story behind their next raise.
+                Single Source is run by Chris Meisner. Chris has led sprints for pre-seed teams and
+                public companies alike — in-house design teams, new ventures inside enterprise orgs,
+                founders sharpening the story behind their next raise.
               </p>
               <p className={BODY_CLASS}>
-                The sprint model is how I took the best of those experiences and built something
-                repeatable, honest, and actually useful — instead of open-ended and hard to measure.
+                The sprint model is how those experiences became something repeatable, honest, and
+                actually useful — instead of open-ended and hard to measure.
               </p>
               <p className={BODY_CLASS}>
-                Also available directly — embedded with your team on an ad hoc basis for work that
-                falls outside the sprint model. More at{" "}
+                Chris is also available directly — embedded with your team on an ad hoc basis for
+                work that falls outside the sprint model. More at{" "}
                 <Link href="https://chrismeisner.com" target="_blank" rel="noreferrer" className="underline">
                   chrismeisner.com
                 </Link>
                 .
               </p>
 
-              <div className="space-y-3 border-t border-stroke-muted pt-6">
-                <p className={SECTION_INTRO_CLASS}>
-                  Book a Jam Session. Bring what you&apos;re building. We&apos;ll map where a sprint
-                  fits and what you&apos;d walk away with. One conversation — then a proposal if it
-                  makes sense.
-                </p>
-                <p className={BODY_CLASS}>
-                  Or start with the intake form if you&apos;d rather come prepared.
-                </p>
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                  <PrimaryCta />
-                  <IntakeCta />
-                </div>
-              </div>
             </div>
           </div>
         </section>
       </FadeInSection>
-    </main>
+
+      {/* Footer */}
+      <footer className="border-t border-stroke-muted">
+        <div className="container max-w-6xl flex items-center justify-between py-8">
+          <p className="text-sm font-medium text-text-primary">Single Source</p>
+          <p className="text-sm text-text-muted">© {new Date().getFullYear()}</p>
+        </div>
+      </footer>
+      </main>
+    </div>
   );
 }

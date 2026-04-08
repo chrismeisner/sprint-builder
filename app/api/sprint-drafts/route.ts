@@ -360,12 +360,14 @@ export async function POST(request: Request) {
     }
 
     // Final pricing via shared pricing helper
-    if (deliverablesCount > 0) {
-      totalPrice = priceFromPoints(totalComplexity, effectiveBaseRate) + flatPackageTotal;
+    const hasPricedScope = deliverablesCount > 0 || flatPackageTotal > 0;
+    if (hasPricedScope) {
+      const calculatedScopePrice = deliverablesCount > 0 ? priceFromPoints(totalComplexity, effectiveBaseRate) : 0;
+      totalPrice = calculatedScopePrice + flatPackageTotal;
     }
 
     // Update sprint with totals
-    if (deliverablesCount > 0) {
+    if (hasPricedScope) {
       await pool.query(
         `UPDATE sprint_drafts
          SET total_estimate_points = $1,

@@ -916,6 +916,9 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS base_rate numeric(10,2),
     ADD COLUMN IF NOT EXISTS featured boolean NOT NULL DEFAULT false,
     ADD COLUMN IF NOT EXISTS package_type text,
+    ADD COLUMN IF NOT EXISTS duration_weeks integer NOT NULL DEFAULT 2,
+    ADD COLUMN IF NOT EXISTS requires_package_type text,
+    ADD COLUMN IF NOT EXISTS requires_package_id text,
     ADD COLUMN IF NOT EXISTS discount_percentage numeric(5,2)
   `);
   await pool.query(`
@@ -927,6 +930,62 @@ export async function ensureSchema(): Promise<void> {
         ALTER TABLE sprint_packages
         ADD CONSTRAINT sprint_packages_pricing_mode_check
         CHECK (pricing_mode IN ('calculated', 'flat'));
+      END IF;
+    END $$;
+  `);
+  await pool.query(`
+    UPDATE sprint_packages
+    SET package_type = 'standard_sprint'
+    WHERE package_type IN ('standard', 'sprint');
+  `);
+  await pool.query(`
+    UPDATE sprint_packages
+    SET package_type = NULL
+    WHERE package_type IS NOT NULL
+      AND package_type NOT IN ('foundation', 'extend', 'standard_sprint', 'expansion_cycle');
+  `);
+  await pool.query(`
+    DO $$
+    BEGIN
+      -- If an older version of this constraint exists, replace it with the current allowed set.
+      IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'sprint_packages_package_type_check'
+          AND conrelid = 'sprint_packages'::regclass
+      ) THEN
+        ALTER TABLE sprint_packages
+        DROP CONSTRAINT sprint_packages_package_type_check;
+      END IF;
+      ALTER TABLE sprint_packages
+      ADD CONSTRAINT sprint_packages_package_type_check
+      CHECK (
+        package_type IS NULL OR
+        package_type IN ('foundation', 'extend', 'standard_sprint', 'expansion_cycle')
+      );
+    END $$;
+  `);
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'sprint_packages_duration_weeks_check'
+      ) THEN
+        ALTER TABLE sprint_packages
+        ADD CONSTRAINT sprint_packages_duration_weeks_check
+        CHECK (duration_weeks >= 1 AND duration_weeks <= 52);
+      END IF;
+    END $$;
+  `);
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'sprint_packages_requires_package_fk'
+      ) THEN
+        ALTER TABLE sprint_packages
+        ADD CONSTRAINT sprint_packages_requires_package_fk
+        FOREIGN KEY (requires_package_id) REFERENCES sprint_packages(id) ON DELETE SET NULL;
       END IF;
     END $$;
   `);

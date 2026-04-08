@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { priceFromPoints, DEFAULT_HOURLY_RATE } from "@/lib/pricing";
+import { priceFromPoints } from "@/lib/pricing";
 
 type Row = {
   id: string;
@@ -12,6 +12,10 @@ type Row = {
   tagline: string | null;
   emoji: string | null;
   pricing_mode: "calculated" | "flat";
+  package_type: string | null;
+  duration_weeks: number;
+  requires_package_type: string | null;
+  requires_package_id: string | null;
   flat_fee: number | null;
   base_rate: number | null;
   active: boolean;
@@ -33,6 +37,7 @@ type Props = {
 
 export default function SprintPackagesClient({ rows }: Props) {
   const [items, setItems] = useState<Row[]>(rows);
+  const [typeFilter, setTypeFilter] = useState<"all" | "sprints" | "expansion">("all");
 
   async function toggleActive(item: Row) {
     try {
@@ -74,18 +79,24 @@ export default function SprintPackagesClient({ rows }: Props) {
     }
   }
 
-  function calculatePackageTotals(pkg: Row): { totalComplexity: number; totalPrice: number } {
-    let totalComplexity = 0;
-    pkg.deliverables.forEach((d) => {
+  function calculatePackageTotals(pkg: Row): { totalPrice: number } {
+    const scopePoints = pkg.deliverables.reduce((sum, d) => {
       const qty = d.quantity ?? 1;
-      totalComplexity += (d.points ?? 0) * qty;
-    });
+      return sum + (d.points ?? 0) * qty;
+    }, 0);
     const totalPrice =
       pkg.pricing_mode === "flat" && pkg.flat_fee != null
         ? pkg.flat_fee
-        : priceFromPoints(totalComplexity, pkg.base_rate);
-    return { totalComplexity, totalPrice };
+        : priceFromPoints(scopePoints, pkg.base_rate);
+    return { totalPrice };
   }
+
+  const filteredItems = items.filter((item) => {
+    if (typeFilter === "all") return true;
+    const isExpansion = item.package_type === "expansion_cycle";
+    if (typeFilter === "expansion") return isExpansion;
+    return !isExpansion;
+  });
 
   return (
     <main className="container min-h-screen max-w-6xl space-y-6 py-6">
@@ -109,12 +120,47 @@ export default function SprintPackagesClient({ rows }: Props) {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">All Packages ({items.length})</h2>
+          <h2 className="text-lg font-semibold">
+            {typeFilter === "all"
+              ? `All Packages (${filteredItems.length})`
+              : typeFilter === "sprints"
+                ? `Sprint Packages (${filteredItems.length})`
+                : `Expansion Cycles (${filteredItems.length})`}
+          </h2>
+          <div className="flex items-center gap-2">
+            <label htmlFor="packageTypeFilter" className="text-xs opacity-70">
+              Filter
+            </label>
+            <select
+              id="packageTypeFilter"
+              value={typeFilter}
+              onChange={(e) =>
+                setTypeFilter(
+                  e.target.value === "sprints"
+                    ? "sprints"
+                    : e.target.value === "expansion"
+                      ? "expansion"
+                      : "all"
+                )
+              }
+              className="rounded-md border border-black/15 px-2 py-1 text-sm bg-white text-black"
+            >
+              <option value="all">All</option>
+              <option value="sprints">Sprints</option>
+              <option value="expansion">Expansion cycles</option>
+            </select>
+          </div>
         </div>
         
-        {items.length === 0 ? (
+        {filteredItems.length === 0 ? (
           <div className="rounded-lg border border-black/10 dark:border-white/15 p-8 text-center">
-            <p className="text-sm opacity-70 mb-4">No sprint packages yet.</p>
+            <p className="text-sm opacity-70 mb-4">
+              {typeFilter === "all"
+                ? "No sprint packages yet."
+                : typeFilter === "sprints"
+                  ? "No sprint packages match this filter."
+                  : "No expansion cycles match this filter."}
+            </p>
             <Link
               href="/dashboard/sprint-packages/new"
               className="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm hover:bg-black/80 transition"
@@ -124,8 +170,8 @@ export default function SprintPackagesClient({ rows }: Props) {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            {items.map((item) => {
-              const { totalComplexity, totalPrice } = calculatePackageTotals(item);
+            {filteredItems.map((item) => {
+              const { totalPrice } = calculatePackageTotals(item);
 
               return (
                 <div
@@ -159,6 +205,17 @@ export default function SprintPackagesClient({ rows }: Props) {
                         <span className="inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 text-xs px-2 py-0.5 text-black/80 dark:text-white/80">
                           Sort: {item.sort_order}
                         </span>
+                        <span className="inline-flex items-center rounded-full bg-indigo-100 text-indigo-800 px-2 py-0.5 text-xs">
+                          {item.package_type === "expansion_cycle" ? "Expansion cycle" : "Standard sprint"}
+                        </span>
+                        <span className="inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 text-xs px-2 py-0.5 text-black/80 dark:text-white/80">
+                          {item.duration_weeks} week{item.duration_weeks === 1 ? "" : "s"}
+                        </span>
+                        {item.requires_package_type && (
+                          <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-xs">
+                            Requires: {item.requires_package_type}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -167,56 +224,45 @@ export default function SprintPackagesClient({ rows }: Props) {
                     <p className="text-sm opacity-70 line-clamp-2">{item.description}</p>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 gap-3 text-sm">
                     <div className="rounded bg-black/5 dark:bg-white/5 p-2">
                       <div className="text-xs opacity-70 mb-1">Total Price</div>
                       <div className="font-semibold text-lg">
                         ${totalPrice.toLocaleString()}
                       </div>
-                      <div className="text-[11px] opacity-60 mt-1">
-                        {item.pricing_mode === "flat"
-                          ? `Flat package fee${item.flat_fee != null ? `: $${item.flat_fee.toLocaleString()}` : ""}`
-                          : `Rate: $${item.base_rate ?? DEFAULT_HOURLY_RATE}/hr`}
-                      </div>
-                    </div>
-                    <div className="rounded bg-black/5 dark:bg-white/5 p-2">
-                      <div className="text-xs opacity-70 mb-1">Total Complexity</div>
-                      <div className="font-semibold text-lg">{totalComplexity.toFixed(1)}</div>
                     </div>
                   </div>
 
-                  <div>
-                    <div className="text-xs opacity-70 mb-2">
-                      Deliverables ({item.deliverables.length})
-                    </div>
-                    {item.deliverables.length === 0 ? (
-                      <span className="text-xs opacity-50">No deliverables</span>
-                    ) : (
-                      <div className="rounded-md border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 overflow-hidden">
-                        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-2 text-[11px] uppercase tracking-[0.02em] text-black/60 dark:text-white/60 bg-black/5 dark:bg-white/10">
-                          <span>Deliverable</span>
-                          <span className="text-right">Points</span>
-                        </div>
-                        <div className="divide-y divide-black/10 dark:divide-white/10 max-h-48 overflow-auto">
-                          {item.deliverables.map((d, i) => {
-                            const qty = d.quantity ?? 1;
-                            const points = d.points ?? 0;
-                            return (
-                              <div
-                                key={`${d.deliverableId}-${i}`}
-                                className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-1.5 text-xs items-center"
-                              >
-                                <span className="truncate" title={d.name}>
-                                  {d.name}
-                                </span>
-                                <span className="text-right font-mono font-semibold">{(points * qty).toFixed(1)}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
+                  {item.package_type !== "expansion_cycle" && (
+                    <div>
+                      <div className="text-xs opacity-70 mb-2">
+                        Deliverables ({item.deliverables.length})
                       </div>
-                    )}
-                  </div>
+                      {item.deliverables.length === 0 ? (
+                        <span className="text-xs opacity-50">No deliverables</span>
+                      ) : (
+                        <div className="rounded-md border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 overflow-hidden">
+                          <div className="px-3 py-2 text-[11px] uppercase tracking-[0.02em] text-black/60 dark:text-white/60 bg-black/5 dark:bg-white/10">
+                            <span>Deliverable</span>
+                          </div>
+                          <div className="divide-y divide-black/10 dark:divide-white/10 max-h-48 overflow-auto">
+                            {item.deliverables.map((d, i) => {
+                              return (
+                                <div
+                                  key={`${d.deliverableId}-${i}`}
+                                  className="px-3 py-1.5 text-xs items-center"
+                                >
+                                  <span className="truncate" title={d.name}>
+                                    {d.name}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-2 pt-2 border-t border-black/10 dark:border-white/10">
                     <Link
@@ -239,10 +285,6 @@ export default function SprintPackagesClient({ rows }: Props) {
                     >
                       Delete
                     </button>
-                  </div>
-
-                  <div className="text-[10px] font-mono opacity-50">
-                    slug: {item.slug}
                   </div>
                 </div>
               );

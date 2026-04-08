@@ -35,6 +35,9 @@ type Package = {
   description: string | null;
   emoji: string | null;
   category: string | null;
+  packageType: string | null;
+  durationWeeks: number;
+  requiresPackageType: string | null;
   pricingMode: "calculated" | "flat";
   flatFee: number | null;
   baseRate: number | null;
@@ -109,6 +112,7 @@ export default function SprintBuilderClient({
   }
 
   const [selectedDeliverables, setSelectedDeliverables] = useState<SelectedDeliverable[]>([]);
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [pickerTab, setPickerTab] = useState<"deliverables" | "packages">("deliverables");
   function getUpcomingMondays(count = 6): string[] {
     const today = new Date();
@@ -200,6 +204,7 @@ export default function SprintBuilderClient({
   const metricValueClass = `${getTypographyClassName("h3")} text-text-primary`;
   const totalValueClass = `${getTypographyClassName("h2")} text-text-primary`;
   const canQuickCreate = isAuthenticated && Boolean(title.trim() && projectId);
+  const hasSelectedScope = selectedDeliverables.length > 0 || selectedPackageId != null;
   // showSprintDetailsSection removed — replaced by Sprint Outline section
 
   // Prefill from existing sprint
@@ -319,6 +324,7 @@ export default function SprintBuilderClient({
       }));
     if (toAdd.length > 0) {
       setSelectedDeliverables((prev) => [...prev, ...toAdd]);
+      setSelectedPackageId(null);
       // Package rate becomes the sprint rate when starting from package scope.
       if (
         pkg.pricingMode === "calculated" &&
@@ -331,15 +337,26 @@ export default function SprintBuilderClient({
           setBaseRate(pkg.baseRate);
         }
       }
+      if (pkg.packageType === "expansion_cycle" && Number.isFinite(pkg.durationWeeks) && pkg.durationWeeks > 0) {
+        setWeeks(Math.round(pkg.durationWeeks));
+      }
+    } else if (pkg.packageType === "expansion_cycle") {
+      setSelectedPackageId(pkg.id);
+      if (Number.isFinite(pkg.durationWeeks) && pkg.durationWeeks > 0) {
+        setWeeks(Math.round(pkg.durationWeeks));
+      }
     }
   }
 
   function removePackage(packageId: string) {
     setSelectedDeliverables((prev) => prev.filter((d) => d.sourcePackageId !== packageId));
+    if (selectedPackageId === packageId) {
+      setSelectedPackageId(null);
+    }
   }
 
   function isPackageAdded(packageId: string) {
-    return selectedDeliverables.some((d) => d.sourcePackageId === packageId);
+    return selectedPackageId === packageId || selectedDeliverables.some((d) => d.sourcePackageId === packageId);
   }
 
   function calculateTotals() {
@@ -368,6 +385,12 @@ export default function SprintBuilderClient({
         }
       }
     });
+    if (selectedPackageId && !selectedDeliverables.some((d) => d.sourcePackageId === selectedPackageId)) {
+      const selectedPkg = packages.find((p) => p.id === selectedPackageId);
+      if (selectedPkg?.pricingMode === "flat" && selectedPkg.flatFee != null) {
+        flatPackageTotal += Number(selectedPkg.flatFee);
+      }
+    }
 
     const calculatedPrice = priceFromPoints(totalComplexity, baseRate);
     const totalPrice = calculatedPrice + flatPackageTotal;
@@ -476,8 +499,8 @@ export default function SprintBuilderClient({
       return;
     }
 
-    if (selectedDeliverables.length === 0) {
-      setError("Please select at least one deliverable");
+    if (!hasSelectedScope) {
+      setError("Please select at least one deliverable or package");
       return;
     }
 
@@ -538,7 +561,7 @@ export default function SprintBuilderClient({
       
       const body = {
         title,
-        sprintPackageId: null,
+        sprintPackageId: selectedPackageId,
         deliverables: selectedDeliverables.map((item) => ({
           deliverableId: item.deliverableId,
           complexityMultiplier: item.multiplier,
@@ -584,8 +607,8 @@ export default function SprintBuilderClient({
       return;
     }
 
-    if (selectedDeliverables.length === 0) {
-      setError("Please select at least one deliverable");
+    if (!hasSelectedScope) {
+      setError("Please select at least one deliverable or package");
       return;
     }
 
@@ -647,7 +670,7 @@ export default function SprintBuilderClient({
 
       const body = {
         title,
-        sprintPackageId: null,
+        sprintPackageId: selectedPackageId,
         deliverables: selectedDeliverables.map((item) => ({
           deliverableId: item.deliverableId,
           complexityMultiplier: item.multiplier,
@@ -736,7 +759,7 @@ export default function SprintBuilderClient({
   const hoursPerDay = totalDays > 0 ? Number(totalHours || 0) / totalDays : 0;
   const totalPriceCents = Math.max(0, Math.round(Number(totalPrice || 0) * 100));
   const resolvedSprintId = savedSprintId || sprintIdFromQuery || "";
-  const canBudget = selectedDeliverables.length > 0 && totalPriceCents > 0 && Boolean(resolvedSprintId);
+  const canBudget = hasSelectedScope && totalPriceCents > 0 && Boolean(resolvedSprintId);
   const budgetHref = canBudget
     ? `/budget?amountCents=${totalPriceCents}&sprintId=${resolvedSprintId}`
     : "#";
@@ -1189,6 +1212,12 @@ export default function SprintBuilderClient({
                               <p className={`${sectionHelperClass}`}>
                                 {pkg.deliverables.length} deliverable{pkg.deliverables.length !== 1 ? "s" : ""} · ${Math.round(pkgPrice).toLocaleString()}
                               </p>
+                              <p className={sectionHelperClass}>
+                                {pkg.packageType === "expansion_cycle" ? "Expansion cycle" : "Standard sprint"} · {pkg.durationWeeks} week{pkg.durationWeeks === 1 ? "" : "s"}
+                              </p>
+                              {pkg.requiresPackageType && (
+                                <p className={sectionHelperClass}>Requires: {pkg.requiresPackageType}</p>
+                              )}
                               {pkg.pricingMode === "flat" ? (
                                 <p className={sectionHelperClass}>Pricing: flat package fee</p>
                               ) : (
@@ -1485,7 +1514,7 @@ export default function SprintBuilderClient({
                       <button
                         type="button"
                         onClick={handleSaveDraft}
-                        disabled={savingDraft || selectedDeliverables.length === 0 || !title.trim() || loadingExisting}
+                        disabled={savingDraft || !hasSelectedScope || !title.trim() || loadingExisting}
                         className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-3 disabled:opacity-60 hover:bg-black/80 dark:hover:bg-white/80 transition-colors duration-150`}
                       >
                         {savingDraft ? "Saving..." : "Update"}
@@ -1494,7 +1523,7 @@ export default function SprintBuilderClient({
                       <>
                         <button
                           type="submit"
-                          disabled={submitting || selectedDeliverables.length === 0 || loadingExisting}
+                          disabled={submitting || !hasSelectedScope || loadingExisting}
                           className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md bg-black dark:bg-white text-white dark:text-black px-4 py-3 disabled:opacity-60 hover:bg-black/80 dark:hover:bg-white/80 transition-colors duration-150`}
                         >
                           {submitting ? "Creating..." : "Create sprint"}
@@ -1503,7 +1532,7 @@ export default function SprintBuilderClient({
                         <button
                           type="button"
                           onClick={handleSaveDraft}
-                          disabled={savingDraft || submitting || selectedDeliverables.length === 0 || !title.trim() || loadingExisting}
+                          disabled={savingDraft || submitting || !hasSelectedScope || !title.trim() || loadingExisting}
                           className={`${bodySmClass} w-full inline-flex items-center justify-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-60 transition-colors duration-150`}
                         >
                           {savingDraft ? "Saving..." : "Save draft"}
@@ -1594,9 +1623,9 @@ export default function SprintBuilderClient({
                 </section>
               )}
 
-              {selectedDeliverables.length === 0 && (
+              {!hasSelectedScope && (
                 <p className={`${sectionHelperClass} text-center`}>
-                  Select deliverables to see calculated totals
+                  Select deliverables or a package to see calculated totals
                 </p>
               )}
             </div>

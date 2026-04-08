@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { DEFAULT_HOURLY_RATE, priceFromPoints, pricingFormulaText } from "@/lib/pricing";
 
@@ -26,6 +25,10 @@ type Package = {
   description: string | null;
   tagline: string | null;
   emoji: string | null;
+  package_type: string | null;
+  duration_weeks: number | null;
+  requires_package_type: string | null;
+  requires_package_id: string | null;
   pricing_mode: "calculated" | "flat";
   flat_fee: number | null;
   base_rate: number | null;
@@ -44,7 +47,6 @@ type Props = {
 };
 
 export default function SprintPackageFormClient({ deliverables, existingPackage }: Props) {
-  const router = useRouter();
   const isEdit = !!existingPackage;
 
   // Form fields
@@ -53,6 +55,19 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
   const [tagline, setTagline] = useState(existingPackage?.tagline || "");
   const [description, setDescription] = useState(existingPackage?.description || "");
   const [emoji, setEmoji] = useState(existingPackage?.emoji || "");
+  const [packageType, setPackageType] = useState<"standard_sprint" | "expansion_cycle">(
+    existingPackage?.package_type === "expansion_cycle" ? "expansion_cycle" : "standard_sprint"
+  );
+  const [durationWeeks, setDurationWeeks] = useState(
+    existingPackage?.duration_weeks != null
+      ? String(existingPackage.duration_weeks)
+      : existingPackage?.package_type === "expansion_cycle"
+        ? "1"
+        : "2"
+  );
+  const [requiresPackageType, setRequiresPackageType] = useState(
+    existingPackage?.requires_package_type || ""
+  );
   const [active, setActive] = useState(existingPackage?.active ?? true);
   const [pricingMode, setPricingMode] = useState<"calculated" | "flat">(
     existingPackage?.pricing_mode === "flat" ? "flat" : "calculated"
@@ -85,6 +100,14 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
       setSlug(autoSlug);
     }
   }, [name, slug, isEdit]);
+  useEffect(() => {
+    if (packageType === "expansion_cycle") {
+      setDurationWeeks("1");
+      if (pricingMode !== "flat") {
+        setPricingMode("flat");
+      }
+    }
+  }, [packageType, pricingMode]);
 
   function addDeliverable(deliverableId: string) {
     if (selectedDeliverables.some((d) => d.deliverableId === deliverableId)) {
@@ -162,6 +185,9 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
           throw new Error("Flat fee must be a positive number when pricing mode is flat");
         }
       }
+      if (packageType === "expansion_cycle" && pricingMode !== "flat") {
+        throw new Error("Expansion cycles must use flat pricing mode");
+      }
 
       const body = {
         name,
@@ -169,12 +195,15 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
         tagline: tagline || null,
         description: description || null,
         emoji: emoji || null,
+        packageType,
+        durationWeeks: packageType === "expansion_cycle" ? 1 : Number(durationWeeks) || 2,
+        requiresPackageType: requiresPackageType || null,
         active,
         pricingMode,
         flatFee: pricingMode === "flat" ? Number(flatFee) : null,
         baseRate: Number.isFinite(Number(baseRate)) && Number(baseRate) > 0 ? Number(baseRate) : null,
         sortOrder: sortOrder ? Number(sortOrder) : 0,
-        deliverables: selectedDeliverables,
+        deliverables: packageType === "expansion_cycle" ? [] : selectedDeliverables,
       };
 
       const url = isEdit
@@ -193,7 +222,8 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
         throw new Error(data?.error || `Failed to ${isEdit ? "update" : "create"} package`);
       }
 
-      router.push("/dashboard/sprint-packages");
+      // Use a full navigation so the package list always reloads fresh after save.
+      window.location.assign("/dashboard/sprint-packages");
     } catch (e) {
       setError((e as Error).message || `Failed to ${isEdit ? "update" : "create"} package`);
       setSubmitting(false);
@@ -278,6 +308,57 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
             />
           </div>
 
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <label className="block text-xs font-medium mb-1" htmlFor="packageType">
+                Package Type
+              </label>
+              <select
+                id="packageType"
+                value={packageType}
+                onChange={(e) =>
+                  setPackageType(e.target.value === "expansion_cycle" ? "expansion_cycle" : "standard_sprint")
+                }
+                className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
+              >
+                <option value="standard_sprint">Standard sprint</option>
+                <option value="expansion_cycle">Expansion cycle (1 week)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1" htmlFor="durationWeeks">
+                Duration (weeks)
+              </label>
+              <input
+                id="durationWeeks"
+                type="number"
+                min="1"
+                max="52"
+                value={durationWeeks}
+                disabled={packageType === "expansion_cycle"}
+                onChange={(e) => setDurationWeeks(e.target.value)}
+                className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black disabled:opacity-60"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1" htmlFor="requiresPackageType">
+                Requires
+              </label>
+              <select
+                id="requiresPackageType"
+                value={requiresPackageType}
+                onChange={(e) => setRequiresPackageType(e.target.value)}
+                className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
+              >
+                <option value="">None</option>
+                <option value="Strategy Sprint">Strategy Sprint</option>
+                <option value="Brand Sprint">Brand Sprint</option>
+                <option value="Prototype Sprint">Prototype Sprint</option>
+                <option value="Build Sprint">Build Sprint</option>
+              </select>
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-medium mb-1" htmlFor="description">
               Description
@@ -313,7 +394,11 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
             <h2 className="text-lg font-semibold">Deliverables</h2>
             <div className="text-xs opacity-70">Drag order with arrows; edit qty on right</div>
           </div>
-
+          {packageType === "expansion_cycle" ? (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              Expansion cycles are not tied to fixed deliverables. Scope is defined week-by-week based on the parent sprint.
+            </div>
+          ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {/* Available */}
             <div className="rounded-md border border-black/10 dark:border-white/15 p-3 space-y-2 bg-white/60 dark:bg-white/5">
@@ -440,9 +525,10 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
               )}
             </div>
           </div>
+          )}
 
           {/* Calculated totals */}
-          {selectedDeliverables.length > 0 && (
+          {packageType !== "expansion_cycle" && selectedDeliverables.length > 0 && (
             <div className="rounded bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3">
               <div className="text-xs font-medium mb-2 opacity-70">
                 {pricingMode === "flat" ? "Flat package price:" : "Calculated from deliverables:"}
@@ -495,7 +581,9 @@ export default function SprintPackageFormClient({ deliverables, existingPackage 
               onChange={(e) => setPricingMode(e.target.value === "flat" ? "flat" : "calculated")}
               className="w-full rounded-md border border-black/15 px-2 py-1.5 text-sm bg-white text-black"
             >
-              <option value="calculated">Calculated from deliverables</option>
+              <option value="calculated" disabled={packageType === "expansion_cycle"}>
+                Calculated from deliverables
+              </option>
               <option value="flat">Flat package fee</option>
             </select>
             <p className="text-[11px] opacity-60 mt-1">

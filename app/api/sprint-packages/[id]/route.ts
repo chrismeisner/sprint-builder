@@ -25,6 +25,10 @@ export async function GET(request: Request, { params }: Params) {
         sp.tagline,
         sp.emoji,
         sp.pricing_mode,
+        sp.package_type,
+        sp.duration_weeks,
+        sp.requires_package_type,
+        sp.requires_package_id,
         sp.base_rate,
         sp.flat_fee,
         sp.flat_hours,
@@ -96,6 +100,10 @@ export async function PATCH(request: Request, { params }: Params) {
       tagline,
       emoji,
       pricingMode,
+      packageType,
+      durationWeeks,
+      requiresPackageType,
+      requiresPackageId,
       flatFee,
       flatHours,
       baseRate,
@@ -110,6 +118,10 @@ export async function PATCH(request: Request, { params }: Params) {
       tagline?: unknown;
       emoji?: unknown;
       pricingMode?: unknown;
+      packageType?: unknown;
+      durationWeeks?: unknown;
+      requiresPackageType?: unknown;
+      requiresPackageId?: unknown;
       flatFee?: unknown;
       flatHours?: unknown;
       baseRate?: unknown;
@@ -118,6 +130,15 @@ export async function PATCH(request: Request, { params }: Params) {
       sortOrder?: unknown;
       deliverables?: unknown;
     };
+    const existingPackageRes = await pool.query(
+      `SELECT pricing_mode, package_type FROM sprint_packages WHERE id = $1`,
+      [params.id]
+    );
+    if (existingPackageRes.rowCount === 0) {
+      return NextResponse.json({ error: "Package not found" }, { status: 404 });
+    }
+    const existingPricingMode = existingPackageRes.rows[0]?.pricing_mode as string | null;
+    const existingPackageType = existingPackageRes.rows[0]?.package_type as string | null;
 
     // Build update query dynamically
     const updates: string[] = [];
@@ -143,6 +164,56 @@ export async function PATCH(request: Request, { params }: Params) {
     if (typeof emoji === "string") {
       updates.push(`emoji = $${paramIndex++}`);
       values.push(emoji.trim() || null);
+    }
+    if (packageType !== undefined) {
+      const pkgType =
+        packageType === "expansion_cycle" ||
+        packageType === "standard_sprint" ||
+        packageType === "foundation" ||
+        packageType === "extend"
+          ? packageType
+          : null;
+      if (!pkgType) {
+        return NextResponse.json(
+          { error: "packageType must be one of: standard_sprint, expansion_cycle, foundation, extend" },
+          { status: 400 }
+        );
+      }
+      updates.push(`package_type = $${paramIndex++}`);
+      values.push(pkgType);
+      if (pkgType === "expansion_cycle" && durationWeeks === undefined) {
+        updates.push(`duration_weeks = $${paramIndex++}`);
+        values.push(1);
+      }
+    }
+    if (durationWeeks !== undefined) {
+      const parsed = Number(durationWeeks);
+      let weeks = Number.isFinite(parsed) && parsed >= 1 && parsed <= 52 ? Math.round(parsed) : null;
+      if (weeks == null) {
+        return NextResponse.json(
+          { error: "durationWeeks must be a number between 1 and 52" },
+          { status: 400 }
+        );
+      }
+      if (packageType === "expansion_cycle") weeks = 1;
+      updates.push(`duration_weeks = $${paramIndex++}`);
+      values.push(weeks);
+    }
+    if (requiresPackageType !== undefined) {
+      const reqType =
+        typeof requiresPackageType === "string" && requiresPackageType.trim().length > 0
+          ? requiresPackageType.trim()
+          : null;
+      updates.push(`requires_package_type = $${paramIndex++}`);
+      values.push(reqType);
+    }
+    if (requiresPackageId !== undefined) {
+      const reqId =
+        typeof requiresPackageId === "string" && requiresPackageId.trim().length > 0
+          ? requiresPackageId.trim()
+          : null;
+      updates.push(`requires_package_id = $${paramIndex++}`);
+      values.push(reqId);
     }
     const parsedFlatFee =
       typeof flatFee === "number"
@@ -186,6 +257,27 @@ export async function PATCH(request: Request, { params }: Params) {
       }
       updates.push(`pricing_mode = $${paramIndex++}`);
       values.push(mode);
+    }
+    const nextPackageType =
+      packageType === "expansion_cycle" ||
+      packageType === "standard_sprint" ||
+      packageType === "foundation" ||
+      packageType === "extend"
+        ? packageType
+        : packageType === undefined
+          ? existingPackageType
+          : null;
+    const nextPricingMode =
+      pricingMode === "flat" || pricingMode === "calculated"
+        ? pricingMode
+        : pricingMode === undefined
+          ? existingPricingMode
+          : null;
+    if (nextPackageType === "expansion_cycle" && nextPricingMode !== "flat") {
+      return NextResponse.json(
+        { error: "Expansion cycles must use flat pricing mode" },
+        { status: 400 }
+      );
     }
     if (flatFee !== undefined) {
       updates.push(`flat_fee = $${paramIndex++}`);
