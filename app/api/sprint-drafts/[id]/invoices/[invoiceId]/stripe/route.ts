@@ -461,6 +461,8 @@ export async function POST(request: Request, { params }: Params) {
             subject: emailContent.subject,
             text: emailContent.text,
             html: emailContent.html,
+            category: "transactional",
+            tag: "invoice-sent-admin",
           });
         } catch (err) {
           // Non-blocking — don't fail the send if CC email fails
@@ -508,6 +510,8 @@ export async function POST(request: Request, { params }: Params) {
               subject: emailContent.subject,
               text: emailContent.text,
               html: emailContent.html,
+              category: "transactional",
+              tag: "invoice-sent-client",
             });
           } catch (err) {
             // Non-blocking — don't fail the overall send if one studio email fails
@@ -566,6 +570,8 @@ export async function POST(request: Request, { params }: Params) {
         subject: emailContent.subject,
         text: emailContent.text,
         html: emailContent.html,
+        category: "transactional",
+        tag: "invoice-draft-preview",
       });
 
       if (!result.success) {
@@ -703,7 +709,12 @@ export async function POST(request: Request, { params }: Params) {
               sprintUrl,
               customMessage: cancelMessage,
             });
-            await sendEmail({ to: recipientEmail, ...content });
+            await sendEmail({
+              to: recipientEmail,
+              ...content,
+              category: "transactional",
+              tag: "invoice-cancelled-client",
+            });
           } catch (err) {
             console.error(`[Cancel action] Client cancellation email failed for ${recipientEmail}:`, err);
           }
@@ -722,7 +733,12 @@ export async function POST(request: Request, { params }: Params) {
           sprintUrl,
           notifiedClient: wasSent && cancelClientEmails.length > 0,
         });
-        await sendEmail({ to: user.email, ...content });
+        await sendEmail({
+          to: user.email,
+          ...content,
+          category: "transactional",
+          tag: "invoice-cancelled-admin",
+        });
       } catch (err) {
         console.error("[Cancel action] Admin cancellation email failed:", err);
       }

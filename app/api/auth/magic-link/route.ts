@@ -1,6 +1,32 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool, isEmailBlocked } from "@/lib/db";
 import { createLoginToken, SUPERADMIN_EMAIL } from "@/lib/auth";
+import { sendEmail, generateMagicLinkEmail } from "@/lib/email";
+
+const MAGIC_LINK_EXPIRES_MINUTES = 15;
+
+function resolveOrigin(request: Request): string {
+  if (process.env.BASE_URL) {
+    return process.env.BASE_URL.replace(/\/$/, "");
+  }
+  const url = new URL(request.url);
+  return `${url.protocol}//${url.host}`;
+}
+
+async function sendMagicLink(email: string, magicLink: string) {
+  const content = generateMagicLinkEmail({
+    magicLink,
+    expiresInMinutes: MAGIC_LINK_EXPIRES_MINUTES,
+  });
+  return sendEmail({
+    to: email,
+    subject: content.subject,
+    text: content.text,
+    html: content.html,
+    category: "transactional",
+    tag: "magic-link",
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -15,163 +41,90 @@ export async function POST(request: Request) {
     if (typeof email !== "string" || !email.includes("@")) {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
     }
-    
+
     const normalizedEmail = email.trim().toLowerCase();
-    
+    const defaultRedirect = "/projects?from=magic-email";
+    const redirect =
+      typeof redirectUrl === "string" && redirectUrl.trim()
+        ? redirectUrl.trim()
+        : defaultRedirect;
+    const origin = resolveOrigin(request);
+
     // Superadmin bypass: Always allow login and auto-create/update as admin
     if (normalizedEmail === SUPERADMIN_EMAIL) {
       const superadminResult = await pool.query(
         `INSERT INTO accounts (id, email, email_verified_at, is_admin)
          VALUES ($1, $2, NOW(), true)
-         ON CONFLICT (email) DO UPDATE 
+         ON CONFLICT (email) DO UPDATE
          SET email_verified_at = COALESCE(accounts.email_verified_at, NOW()),
              is_admin = true
          RETURNING id`,
         [crypto.randomUUID(), normalizedEmail]
       );
       const accountId = (superadminResult.rows[0] as { id: string }).id;
-      
-      // Continue to send magic link below
-      const defaultRedirect = "/projects?from=magic-email";
-      const redirect = typeof redirectUrl === "string" && redirectUrl.trim() ? redirectUrl.trim() : defaultRedirect;
       const token = createLoginToken(accountId);
-      
-      let origin: string;
-      if (process.env.BASE_URL) {
-        origin = process.env.BASE_URL.replace(/\/$/, '');
-      } else {
-        const url = new URL(request.url);
-        origin = `${url.protocol}//${url.host}`;
-      }
-      
       const magicLink = `${origin}/api/auth/callback?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(redirect)}`;
-      
-      // Send magic link
-      const mailgunApiKey = process.env.MAILGUN_API_KEY;
-      const mailgunDomain = process.env.MAILGUN_DOMAIN;
-      const mailgunFrom = process.env.MAILGUN_FROM_EMAIL || `no-reply@${mailgunDomain || "example.com"}`;
 
-      if (mailgunApiKey && mailgunDomain) {
-        try {
-          const authHeader = `Basic ${Buffer.from(`api:${mailgunApiKey}`).toString("base64")}`;
-          const mailgunRes = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
-            method: "POST",
-            headers: {
-              Authorization: authHeader,
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: new URLSearchParams({
-              from: mailgunFrom,
-              to: normalizedEmail,
-              subject: "Your magic link",
-              text: `Click this link to sign in:\n\n${magicLink}\n\nThis link will expire in 15 minutes.`,
-            }),
-          });
-          if (mailgunRes.ok) {
-            console.log("[Auth] Superadmin magic link email sent", { email: normalizedEmail });
-          }
-        } catch (err) {
-          console.error("[Auth] Mailgun request error", { message: (err as Error)?.message });
-        }
-      } else {
-        console.log("[Auth] Superadmin magic link:", { email: normalizedEmail, magicLink });
+      const result = await sendMagicLink(normalizedEmail, magicLink);
+      if (!result.success) {
+        console.log("[Auth] Superadmin magic link fallback:", { email: normalizedEmail, magicLink });
       }
-
       return NextResponse.json({ ok: true });
     }
 
     // Check if email is blocked
     if (await isEmailBlocked(normalizedEmail)) {
-      return NextResponse.json({ 
-        error: "This email has been blocked from accessing this service. Please contact support if you believe this is an error."
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          error:
+            "This email has been blocked from accessing this service. Please contact support if you believe this is an error.",
+        },
+        { status: 403 }
+      );
     }
-    
+
     // Check if this email has been verified
     const existingAccount = await pool.query(
       `SELECT id, email_verified_at FROM accounts WHERE email = $1`,
       [normalizedEmail]
     );
-    
+
     // If no account exists or email not verified, they need to use verification code flow
     if (!existingAccount.rowCount || existingAccount.rowCount === 0) {
-      return NextResponse.json({ 
-        error: "Email not verified. Please sign up first.",
-        needsVerification: true
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "Email not verified. Please sign up first.",
+          needsVerification: true,
+        },
+        { status: 400 }
+      );
     }
-    
-    const account = existingAccount.rows[0] as { id: string; email_verified_at: Date | null };
-    
-    if (!account.email_verified_at) {
-      return NextResponse.json({ 
-        error: "Email not verified. Please complete verification first.",
-        needsVerification: true
-      }, { status: 400 });
-    }
-    
-    // Email is verified - proceed with magic link
-    const accountId = account.id;
-    
-    // Default to projects with flag so UI can show a welcome toast
-    const defaultRedirect = "/projects?from=magic-email";
-    const redirect = typeof redirectUrl === "string" && redirectUrl.trim() ? redirectUrl.trim() : defaultRedirect;
 
-    const token = createLoginToken(accountId);
-    
-    // Use BASE_URL from env if set, otherwise fall back to request origin
-    let origin: string;
-    if (process.env.BASE_URL) {
-      origin = process.env.BASE_URL.replace(/\/$/, ''); // Remove trailing slash if present
-    } else {
-      const url = new URL(request.url);
-      origin = `${url.protocol}//${url.host}`;
+    const account = existingAccount.rows[0] as {
+      id: string;
+      email_verified_at: Date | null;
+    };
+
+    if (!account.email_verified_at) {
+      return NextResponse.json(
+        {
+          error: "Email not verified. Please complete verification first.",
+          needsVerification: true,
+        },
+        { status: 400 }
+      );
     }
-    
-    // Always include redirect so we land on profile (or custom redirect) after login
+
+    const accountId = account.id;
+    const token = createLoginToken(accountId);
     const magicLink = `${origin}/api/auth/callback?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(redirect)}`;
 
-    // Send magic link via Mailgun
-    const mailgunApiKey = process.env.MAILGUN_API_KEY;
-    const mailgunDomain = process.env.MAILGUN_DOMAIN;
-    const mailgunFrom = process.env.MAILGUN_FROM_EMAIL || `no-reply@${mailgunDomain || "example.com"}`;
-
-    if (mailgunApiKey && mailgunDomain) {
-      try {
-        const authHeader = `Basic ${Buffer.from(`api:${mailgunApiKey}`).toString("base64")}`;
-        const mailgunRes = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
-          method: "POST",
-          headers: {
-            Authorization: authHeader,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            from: mailgunFrom,
-            to: normalizedEmail,
-            subject: "Your magic link",
-            text: `Click this link to sign in:\n\n${magicLink}\n\nThis link will expire in 15 minutes.`,
-          }),
-        });
-        if (!mailgunRes.ok) {
-          const errText = await mailgunRes.text().catch(() => "");
-          console.error("[Auth] Mailgun send failed", {
-            status: mailgunRes.status,
-            body: errText.slice(0, 500),
-          });
-        } else {
-          console.log("[Auth] Magic link email sent via Mailgun", {
-            email: normalizedEmail,
-          });
-        }
-      } catch (err: unknown) {
-        console.error("[Auth] Mailgun request error", {
-          message: (err as Error)?.message,
-        });
-      }
-    } else {
-      // Dev fallback: log the magic link to console
-      console.log("[Auth] Mailgun not configured; magic link:", {
+    const result = await sendMagicLink(normalizedEmail, magicLink);
+    if (!result.success) {
+      // Dev fallback: log the magic link so local testing without Mailgun still works.
+      console.log("[Auth] Magic link send failed; fallback log:", {
         email: normalizedEmail,
+        error: result.error,
         magicLink,
       });
     }
@@ -184,5 +137,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
-

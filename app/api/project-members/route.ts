@@ -165,6 +165,8 @@ export async function POST(request: NextRequest) {
           subject: welcomeEmail.subject,
           text: welcomeEmail.text,
           html: welcomeEmail.html,
+          category: "transactional",
+          tag: "member-welcome",
         });
         console.log("[ProjectMembersAPI] Welcome email sent to new member", { email });
       } catch (emailErr) {
@@ -197,6 +199,8 @@ export async function POST(request: NextRequest) {
                 subject: adminNotification.subject,
                 text: adminNotification.text,
                 html: adminNotification.html,
+                category: "notification",
+                tag: "member-add-admin",
               })
             )
           );
@@ -371,6 +375,8 @@ export async function DELETE(request: NextRequest) {
                 subject: removalNotification.subject,
                 text: removalNotification.text,
                 html: removalNotification.html,
+                category: "notification",
+                tag: "member-removed-admin",
               })
             )
           );

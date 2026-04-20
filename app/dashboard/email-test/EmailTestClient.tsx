@@ -10,6 +10,9 @@ type EmailStatus = {
   apiKey: string | null;
   domain: string | null;
   fromEmail: string | null;
+  fromName: string | null;
+  fromHeader: string | null;
+  replyTo: string | null;
 };
 
 type SendResult = {
@@ -153,12 +156,23 @@ export default function EmailTestClient() {
                   {status.domain || "Not set"}
                 </code>
               </div>
+              <div className="pt-2 border-t border-black/10 dark:border-white/15">
+                <span className="opacity-70 text-xs uppercase tracking-wide font-medium">What recipients see</span>
+              </div>
               <div>
-                <span className="opacity-70">From Email:</span>{" "}
+                <span className="opacity-70">From:</span>{" "}
                 <code className="bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
-                  {status.fromEmail || "Not set"}
+                  {status.fromHeader || "Not set"}
                 </code>
               </div>
+              {status.replyTo && (
+                <div>
+                  <span className="opacity-70">Reply-To:</span>{" "}
+                  <code className="bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
+                    {status.replyTo}
+                  </code>
+                </div>
+              )}
             </div>
 
             {!status.configured && (
@@ -312,8 +326,13 @@ export default function EmailTestClient() {
           <div>
             <strong className="block mb-1">Currently used for:</strong>
             <ul className="list-disc pl-5 mt-1 opacity-80 space-y-1">
-              <li>Magic link authentication emails</li>
-              <li>User notifications (future)</li>
+              <li>Magic link + verification code emails</li>
+              <li>Intake form confirmations</li>
+              <li>Project member welcome + admin notifications</li>
+              <li>Sprint daily summaries</li>
+              <li>Invoice draft previews, sends, and cancellations</li>
+              <li>Stripe payment confirmations (paid, processing)</li>
+              <li>Support form submissions</li>
             </ul>
           </div>
         </div>

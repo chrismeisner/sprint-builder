@@ -125,6 +125,8 @@ export async function POST(request: Request) {
         subject: emailContent.subject,
         text: emailContent.text,
         html: emailContent.html,
+        category: "transactional",
+        tag: "intake-confirmation",
       }).catch((error) => {
         console.error("[Documents] Failed to send intake confirmation email:", error);
       });

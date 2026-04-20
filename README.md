@@ -40,8 +40,9 @@ Optional variables:
 - `MAILGUN_API_KEY` — Mailgun API key for sending emails (sprint notifications, magic links)
 - `MAILGUN_DOMAIN` — Mailgun sending domain (e.g. mg.yourdomain.com)
 - `MAILGUN_FROM_EMAIL` — From address for emails (defaults to no-reply@MAILGUN_DOMAIN)
+- `MAILGUN_FROM_NAME` — Display name for the From header (defaults to "Meisner Design")
 - `MAILGUN_REPLY_TO` — Reply-To address for outbound email (e.g. your admin inbox)
-- `BASE_URL` — Base URL for email links (auto-detected if not set, e.g. https://yourdomain.com)
+- `BASE_URL` — Base URL for email links and unsubscribe URLs (auto-detected if not set, e.g. https://yourdomain.com). Required in production for one-click unsubscribe to resolve correctly.
 - `GCS_PROJECT_ID` — Google Cloud project ID (for image uploads)
 - `GCS_BUCKET_NAME` — Google Cloud Storage bucket name
 - `GCS_CREDENTIALS_JSON` — Service account credentials JSON (inline)

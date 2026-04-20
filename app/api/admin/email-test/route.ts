@@ -8,22 +8,35 @@ type EmailStatus = {
   apiKey: string | null;
   domain: string | null;
   fromEmail: string | null;
+  fromName: string | null;
+  fromHeader: string | null;
+  replyTo: string | null;
 };
 
 export async function GET() {
   try {
     const mailgunApiKey = process.env.MAILGUN_API_KEY;
     const mailgunDomain = process.env.MAILGUN_DOMAIN;
-    const mailgunFrom = process.env.MAILGUN_FROM_EMAIL;
+    const mailgunFromEmail = process.env.MAILGUN_FROM_EMAIL;
+    const mailgunFromName = process.env.MAILGUN_FROM_NAME || "Meisner Design";
+    const mailgunReplyTo = process.env.MAILGUN_REPLY_TO || null;
+
+    const resolvedFromEmail = mailgunFromEmail || `no-reply@${mailgunDomain || "example.com"}`;
+    const fromHeader = mailgunFromName
+      ? `${mailgunFromName} <${resolvedFromEmail}>`
+      : resolvedFromEmail;
 
     const status: EmailStatus = {
       configured: !!(mailgunApiKey && mailgunDomain),
       apiKeyPresent: !!mailgunApiKey,
       domainPresent: !!mailgunDomain,
-      fromEmailPresent: !!mailgunFrom,
+      fromEmailPresent: !!mailgunFromEmail,
       apiKey: mailgunApiKey ? `${mailgunApiKey.slice(0, 8)}...` : null,
       domain: mailgunDomain || null,
-      fromEmail: mailgunFrom || `no-reply@${mailgunDomain || "example.com"}`,
+      fromEmail: resolvedFromEmail,
+      fromName: mailgunFromName,
+      fromHeader,
+      replyTo: mailgunReplyTo,
     };
 
     return NextResponse.json(status);

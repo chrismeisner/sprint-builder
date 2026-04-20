@@ -1349,6 +1349,24 @@ export async function ensureSchema(): Promise<void> {
     WHERE stripe_invoice_id IS NOT NULL;
   `);
 
+  // Email unsubscribes: honored for `notification`-class mail only.
+  // `category` holds either a specific tag ("daily-summary", "member-add-admin", ...)
+  // or the special value `all` to opt out of every notification category.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_unsubscribes (
+      id text PRIMARY KEY,
+      email text NOT NULL,
+      category text NOT NULL,
+      source text,
+      ip text,
+      user_agent text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE (email, category)
+    );
+    CREATE INDEX IF NOT EXISTS idx_email_unsubscribes_email ON email_unsubscribes(lower(email));
+    CREATE INDEX IF NOT EXISTS idx_email_unsubscribes_category ON email_unsubscribes(category);
+  `);
+
   global._schemaInitialized = true;
 }
 

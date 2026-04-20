@@ -2,6 +2,23 @@
  * Email utility functions using Mailgun
  */
 
+import { createHmac, timingSafeEqual } from "crypto";
+import { getPool } from "@/lib/db";
+
+/**
+ * Classification for deliverability handling.
+ *
+ * - `transactional` — user-initiated, required communication (magic link, verification
+ *   code, support reply, intake confirmation, invoice sent/receipt). Never suppressed,
+ *   no List-Unsubscribe header added, tracking disabled by default.
+ *
+ * - `notification` — system-generated updates where the recipient should be able to
+ *   opt out (admin alerts on member adds, daily summaries, reminder-class messages).
+ *   Honors the `email_unsubscribes` table and adds `List-Unsubscribe` +
+ *   `List-Unsubscribe-Post` headers so Gmail/Yahoo one-click unsubscribe works.
+ */
+export type EmailCategory = "transactional" | "notification";
+
 export interface SendEmailParams {
   to: string;
   subject: string;
@@ -9,13 +26,88 @@ export interface SendEmailParams {
   html?: string;
   replyTo?: string;
   cc?: string;
+  /** See {@link EmailCategory}. Defaults to `"transactional"` so legacy callers are safe. */
+  category?: EmailCategory;
+  /** Optional Mailgun tag (`o:tag`) for per-type analytics, e.g. "magic-link". */
+  tag?: string;
+  /** Override open/click tracking. Defaults depend on category. */
+  tracking?: { clicks?: boolean; opens?: boolean };
 }
 
-export async function sendEmail(params: SendEmailParams): Promise<{
+export type SendEmailResult = {
   success: boolean;
   messageId?: string;
   error?: string;
-}> {
+  /** True when the send was skipped because the recipient is on the suppression list. */
+  suppressed?: boolean;
+};
+
+// ---------------------------------------------------------------------------
+// Unsubscribe token + suppression helpers
+// ---------------------------------------------------------------------------
+
+const UNSUB_SECRET = process.env.SESSION_SECRET || "dev-secret-change-me";
+
+function getBaseUrl(): string {
+  return (
+    (process.env.BASE_URL || "").replace(/\/$/, "") ||
+    "https://meisner.design"
+  );
+}
+
+function makeUnsubToken(email: string, category: string): string {
+  const h = createHmac("sha256", UNSUB_SECRET);
+  h.update(`unsub:${email.trim().toLowerCase()}:${category}`);
+  return h.digest("hex").slice(0, 32);
+}
+
+export function verifyUnsubToken(email: string, category: string, token: string): boolean {
+  const expected = makeUnsubToken(email, category);
+  if (expected.length !== token.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(token, "hex"));
+  } catch {
+    return false;
+  }
+}
+
+export function buildUnsubscribeUrl(email: string, category: string): string {
+  const token = makeUnsubToken(email, category);
+  const qs = new URLSearchParams({ e: email.toLowerCase(), c: category, t: token });
+  return `${getBaseUrl()}/api/unsubscribe?${qs.toString()}`;
+}
+
+/** Check whether this recipient has opted out of the given category (or all mail). */
+export async function isUnsubscribed(email: string, category: string): Promise<boolean> {
+  try {
+    const pool = getPool();
+    const result = await pool.query(
+      `SELECT 1 FROM email_unsubscribes
+       WHERE lower(email) = lower($1)
+         AND (category = $2 OR category = 'all')
+       LIMIT 1`,
+      [email, category]
+    );
+    return (result.rowCount ?? 0) > 0;
+  } catch (err) {
+    // Table may not exist yet in very fresh installs — fail-open so transactional
+    // mail still flows. Notification mail is also still sent; risk is minimal because
+    // ensureSchema() is called on nearly every route before sendEmail.
+    console.warn("[Email] Suppression lookup failed; proceeding with send", {
+      error: (err as Error).message,
+    });
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// sendEmail
+// ---------------------------------------------------------------------------
+
+export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
+  const category: EmailCategory = params.category ?? "transactional";
+  const tag = params.tag;
+
   try {
     const mailgunApiKey = process.env.MAILGUN_API_KEY;
     const mailgunDomain = process.env.MAILGUN_DOMAIN;
@@ -34,8 +126,23 @@ export async function sendEmail(params: SendEmailParams): Promise<{
       };
     }
 
+    // Suppression check: only for notification-class messages. Transactional mail
+    // (magic links, receipts, invoices) is always sent.
+    if (category === "notification" && (await isUnsubscribed(params.to, tag || category))) {
+      console.log("[Email] Skipping send — recipient unsubscribed", {
+        to: params.to,
+        category,
+        tag,
+      });
+      return {
+        success: false,
+        suppressed: true,
+        error: "Recipient has unsubscribed",
+      };
+    }
+
     const authHeader = `Basic ${Buffer.from(`api:${mailgunApiKey}`).toString("base64")}`;
-    
+
     const requestParams: Record<string, string> = {
       from: mailgunFrom,
       to: params.to,
@@ -54,6 +161,37 @@ export async function sendEmail(params: SendEmailParams): Promise<{
       requestParams.cc = params.cc;
     }
 
+    // Per-send tracking controls.
+    //
+    // Default: transactional sends disable open + click tracking. Click-tracking
+    // rewrites URLs through the Mailgun tracking CNAME, which (a) reduces trust on
+    // the visible link and (b) occasionally trips Gmail heuristics for auth-style
+    // mail. Notifications inherit the Mailgun dashboard defaults unless overridden.
+    const clicks = params.tracking?.clicks ?? (category === "transactional" ? false : undefined);
+    const opens = params.tracking?.opens ?? (category === "transactional" ? false : undefined);
+    if (clicks === false) requestParams["o:tracking-clicks"] = "no";
+    if (clicks === true) requestParams["o:tracking-clicks"] = "htmlonly";
+    if (opens === false) requestParams["o:tracking-opens"] = "no";
+    if (opens === true) requestParams["o:tracking-opens"] = "yes";
+    if (category === "transactional") {
+      // Belt and suspenders: also disable the parent "tracking" flag so nothing is
+      // rewritten on auth/verification mail.
+      requestParams["o:tracking"] = "no";
+    }
+
+    if (tag) {
+      requestParams["o:tag"] = tag;
+    }
+
+    // One-click unsubscribe headers — required by Gmail/Yahoo 2024 bulk sender
+    // rules for any mail that isn't purely transactional. We only add these for
+    // notifications so recipients can't "unsubscribe" from security-critical mail.
+    if (category === "notification") {
+      const unsubUrl = buildUnsubscribeUrl(params.to, tag || category);
+      requestParams["h:List-Unsubscribe"] = `<${unsubUrl}>, <mailto:unsubscribe@${mailgunDomain}?subject=unsubscribe>`;
+      requestParams["h:List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+    }
+
     const mailgunRes = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
       method: "POST",
       headers: {
@@ -68,6 +206,8 @@ export async function sendEmail(params: SendEmailParams): Promise<{
       console.error("[Email] Mailgun send failed", {
         status: mailgunRes.status,
         to: params.to,
+        category,
+        tag,
         body: errText.slice(0, 500),
       });
       return {
@@ -80,6 +220,8 @@ export async function sendEmail(params: SendEmailParams): Promise<{
     console.log("[Email] Email sent successfully", {
       to: params.to,
       subject: params.subject,
+      category,
+      tag,
       messageId: responseData.id,
     });
 
@@ -798,6 +940,79 @@ ${sprintUrl ? `\nView sprint: ${sprintUrl}\n` : ""}
 ${sprintUrl ? secondaryLink(sprintUrl, "View sprint →") : ""}
 ${divider()}
 ${muted("Meisner Design")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
+ * Magic-link login email (transactional)
+ */
+export function generateMagicLinkEmail(params: {
+  magicLink: string;
+  expiresInMinutes?: number;
+}): { subject: string; text: string; html: string } {
+  const expiresInMinutes = params.expiresInMinutes ?? 15;
+
+  const subject = "Your sign-in link";
+
+  const text = `Hi there,
+
+Click the link below to sign in to Meisner Design:
+
+${params.magicLink}
+
+This link expires in ${expiresInMinutes} minutes and can only be used once.
+
+If you didn't request this, you can safely ignore this email — no one can access your account without the link.
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">Hi there,</p>
+<p style="margin:0 0 16px;">Click the button below to sign in to Meisner Design.</p>
+${linkButton(params.magicLink, "Sign in")}
+<p style="margin:16px 0 0;font-size:13px;color:#71717a;">Or copy and paste this link into your browser:<br><span style="color:#52525b;word-break:break-all;">${params.magicLink}</span></p>
+<p style="margin:16px 0 0;font-size:13px;color:#71717a;">This link expires in ${expiresInMinutes} minutes and can only be used once.</p>
+${divider()}
+${muted("If you didn&rsquo;t request this, you can safely ignore this email&nbsp;&mdash; no one can access your account without the link.")}
+`);
+
+  return { subject, text, html };
+}
+
+/**
+ * Verification code email (transactional)
+ */
+export function generateVerificationCodeEmail(params: {
+  code: string;
+  expiresInMinutes?: number;
+}): { subject: string; text: string; html: string } {
+  const expiresInMinutes = params.expiresInMinutes ?? 10;
+
+  const subject = "Your verification code";
+
+  const text = `Hi there,
+
+Your Meisner Design verification code is:
+
+${params.code}
+
+Enter this code to verify your email address and create your account. It expires in ${expiresInMinutes} minutes.
+
+If you didn't request this code, you can safely ignore this email.
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">Hi there,</p>
+<p style="margin:0 0 16px;">Enter this code to verify your email address and finish creating your account:</p>
+<div style="text-align:center;background-color:#f4f4f5;border:1px solid #e4e4e7;border-radius:8px;padding:24px;margin:8px 0 16px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:8px;color:#18181b;">${params.code}</div>
+<p style="margin:0;font-size:13px;color:#71717a;text-align:center;">This code expires in ${expiresInMinutes} minutes.</p>
+${divider()}
+${muted("If you didn&rsquo;t request this code, you can safely ignore this email.")}
 `);
 
   return { subject, text, html };

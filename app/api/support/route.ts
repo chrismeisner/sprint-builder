@@ -65,6 +65,9 @@ Reply directly to this email to respond.
       subject: emailSubject,
       text,
       html,
+      category: "transactional",
+      tag: "support-request",
+      replyTo: email,
     });
 
     if (!result.success) {

@@ -159,6 +159,8 @@ ${milestoneLines}
       subject,
       text,
       html,
+      category: "notification",
+      tag: "deferred-comp",
     });
 
     if (!sendResult.success) {

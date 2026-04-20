@@ -430,7 +430,12 @@ async function sendInvoiceProcessingNotifications(
             clientName: recipient.name,
             sprintUrl,
           });
-          await sendEmail({ to: recipient.email, ...content });
+          await sendEmail({
+            to: recipient.email,
+            ...content,
+            category: "transactional",
+            tag: "invoice-processing-client",
+          });
         } catch (err) {
           console.error(`[StripeWebhook] Processing client email failed for ${recipient.email}:`, err);
         }
@@ -452,7 +457,12 @@ async function sendInvoiceProcessingNotifications(
             sprintTitle: info.sprint_title,
             sprintUrl,
           });
-          await sendEmail({ to: admin.email, ...content });
+          await sendEmail({
+            to: admin.email,
+            ...content,
+            category: "transactional",
+            tag: "invoice-processing-admin",
+          });
         } catch (err) {
           console.error(`[StripeWebhook] Processing admin email failed for ${admin.email}:`, err);
         }
@@ -547,7 +557,12 @@ async function sendInvoicePaidNotifications(
             clientName: recipient.name,
             sprintUrl,
           });
-          await sendEmail({ to: recipient.email, ...clientContent });
+          await sendEmail({
+            to: recipient.email,
+            ...clientContent,
+            category: "transactional",
+            tag: "invoice-paid-client",
+          });
         } catch (err) {
           console.error(
             `[StripeWebhook] Failed to send paid confirmation to ${recipient.email}:`,
@@ -578,7 +593,12 @@ async function sendInvoicePaidNotifications(
           adminName,
         });
         try {
-          await sendEmail({ to: admin.email, ...adminContent });
+          await sendEmail({
+            to: admin.email,
+            ...adminContent,
+            category: "transactional",
+            tag: "invoice-paid-admin",
+          });
         } catch (err) {
           console.error(`[StripeWebhook] Failed to send admin notification to ${admin.email}:`, err);
         }

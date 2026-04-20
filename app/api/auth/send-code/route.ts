@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomInt } from "crypto";
 import { ensureSchema, getPool, isEmailBlocked } from "@/lib/db";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, generateVerificationCodeEmail } from "@/lib/email";
 import { SUPERADMIN_EMAIL } from "@/lib/auth";
 
 // Generate a 6-digit numeric code
@@ -82,72 +82,15 @@ export async function POST(request: Request) {
       [crypto.randomUUID(), normalizedEmail, code, expiresAt]
     );
 
-    // Send the verification email
+    // Send the verification email (transactional — no tracking, no unsubscribe)
+    const emailContent = generateVerificationCodeEmail({ code, expiresInMinutes: 10 });
     const emailResult = await sendEmail({
       to: normalizedEmail,
-      subject: "Your verification code",
-      text: `Your verification code is: ${code}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this code, you can safely ignore this email.`,
-      html: `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your Verification Code</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #f5f5f5;
-    }
-    .container {
-      background-color: white;
-      border-radius: 8px;
-      padding: 40px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .code {
-      font-size: 32px;
-      font-weight: bold;
-      letter-spacing: 8px;
-      text-align: center;
-      background-color: #f8f9fa;
-      padding: 20px;
-      border-radius: 8px;
-      margin: 24px 0;
-      font-family: monospace;
-    }
-    .expiry {
-      text-align: center;
-      color: #666;
-      font-size: 14px;
-    }
-    .footer {
-      margin-top: 32px;
-      padding-top: 24px;
-      border-top: 1px solid #e5e7eb;
-      font-size: 14px;
-      color: #6b7280;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1 style="margin-top: 0;">Verify your email</h1>
-    <p>Enter this code to verify your email address and create your account:</p>
-    <div class="code">${code}</div>
-    <p class="expiry">This code expires in 10 minutes.</p>
-    <div class="footer">
-      <p>If you didn't request this code, you can safely ignore this email.</p>
-    </div>
-  </div>
-</body>
-</html>
-      `,
+      subject: emailContent.subject,
+      text: emailContent.text,
+      html: emailContent.html,
+      category: "transactional",
+      tag: "verification-code",
     });
 
     if (!emailResult.success) {

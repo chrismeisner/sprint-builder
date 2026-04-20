@@ -436,6 +436,8 @@ ${allUpdateLinks.map((l) => `<tr><td style="padding:4px 0;">
       subject: draftSubject,
       text: emailBody,
       html,
+      category: "transactional",
+      tag: "daily-summary-draft",
     });
     return NextResponse.json({
       sent: true,
@@ -469,6 +471,8 @@ ${allUpdateLinks.map((l) => `<tr><td style="padding:4px 0;">
       html,
       replyTo: adminEmail,
       cc: ccAdmin,
+      category: "notification",
+      tag: "daily-summary",
     });
     results.push({ email, success: result.success, error: result.error });
   }
