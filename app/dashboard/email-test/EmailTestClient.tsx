@@ -55,6 +55,9 @@ export default function EmailTestClient() {
         apiKey: null,
         domain: null,
         fromEmail: null,
+        fromName: null,
+        fromHeader: null,
+        replyTo: null,
       });
     } finally {
       setLoading(false);
