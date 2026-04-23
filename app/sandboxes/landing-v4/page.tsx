@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import FadeInSection from "@/app/components/FadeInSection";
 import SelectedWorkCarousel from "@/app/sandboxes/landing-v4/_components/SelectedWorkCarousel";
 
-const JAM_SESSION = "https://cal.com/chrismeisner/jam-session";
+const JAM_SESSION = "/intake";
 const INTAKE_FORM = "/intake";
 const OVERLINE_CLASS = "text-xs font-medium uppercase tracking-wide leading-none text-text-muted";
 const HEADING_CLASS = "text-4xl font-semibold leading-tight text-balance text-text-primary";
@@ -24,6 +24,7 @@ const BACKEND_KICKOFF_DATE = process.env.NEXT_AVAILABLE_KICKOFF_DATE;
 
 type SprintOption = {
   name: string;
+  tagline: string;
   description: string;
   price: string;
   dependency?: string;
@@ -33,13 +34,15 @@ type SprintOption = {
 const sprints: SprintOption[] = [
   {
     name: "Foundation: Core User, Journey & Competitive Positioning",
+    tagline: "Know exactly who you're building for — and where you fit.",
     description:
       "Who your core user is, what they're carrying, and what motivates them. The story of where your product enters their life. A competitive landscape map showing where you fit.",
     price: "$12,000",
-    note: "This sprint unlocks Brand Foundations and Prototype Sprint.",
+    note: "Start here — validate the idea before you build.",
   },
   {
     name: "Foundation: Brand",
+    tagline: "Color, typography, wordmark, logo, and style guide.",
     description:
       "Color palette, typography system, wordmark logo, image direction, and color primitive tokens — the complete visual foundation delivered as a Figma file with style guide.",
     price: "$15,000",
@@ -48,6 +51,7 @@ const sprints: SprintOption[] = [
   },
   {
     name: "Prototype Sprint",
+    tagline: "Web app, landing page, or iOS app at prototype fidelity.",
     description:
       "A working interactive prototype built in Next.js / Tailwind or Figma — enough to validate direction, test with users, or present to stakeholders before committing to a full build.",
     price: "$15,000",
@@ -56,6 +60,7 @@ const sprints: SprintOption[] = [
   },
   {
     name: "UI Build",
+    tagline: "High-fidelity branded UI, tokens, and engineering handoff.",
     description:
       "A production-ready Figma file with a complete component library, token architecture, style guide, and symbols — built to hand directly to an engineering team and start building from.",
     price: "$20,000",
@@ -190,6 +195,15 @@ const comparisonRows = [
       "Fixed price per sprint — defined before work begins",
     ],
   },
+  {
+    label: "Fit for early stage",
+    values: [
+      "Poor — built for larger budgets",
+      "Too early — you're not ready to hire",
+      "Risky — quality and reliability vary",
+      "Built for this — validate before you commit",
+    ],
+  },
 ];
 
 function parseIsoDate(value: string | undefined): Date | null {
@@ -244,7 +258,7 @@ function PlaceholderPanel({ label, className = "" }: { label: string; className?
 function PrimaryCta({ className = "" }: { className?: string }) {
   return (
     <Link href={JAM_SESSION} target="_blank" rel="noreferrer" className={`${PRIMARY_CTA_CLASS} ${className}`}>
-      Book a Jam Session
+      Start the intake
     </Link>
   );
 }
@@ -262,6 +276,7 @@ function SprintCard({ sprint }: { sprint: SprintOption }) {
     <div className="rounded-md border border-stroke-muted bg-surface-subtle p-6 space-y-4">
       <div className="space-y-2">
         <h3 className={CARD_TITLE_CLASS}>{sprint.name}</h3>
+        <p className="text-sm font-medium leading-normal text-text-muted">{sprint.tagline}</p>
         <p className={CARD_BODY_CLASS}>{sprint.description}</p>
         {sprint.dependency ? <p className={CARD_META_CLASS}>{sprint.dependency}</p> : null}
         {sprint.note ? <p className={CARD_META_CLASS}>{sprint.note}</p> : null}
@@ -304,7 +319,7 @@ export default function LandingV4() {
               Client Login
             </Link>
             <Link href={JAM_SESSION} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center justify-center rounded-md bg-text-primary px-4 text-sm font-semibold text-background transition-opacity duration-150 hover:opacity-90">
-              Book a Jam Session
+              Start the intake
             </Link>
           </div>
         </div>
@@ -320,9 +335,9 @@ export default function LandingV4() {
               From direction to deliverable in ten days.
             </h1>
             <p className={`${SECTION_INTRO_CLASS} max-w-3xl`}>
-              Two-week sprints for teams that need to move from direction to something buildable.
+              Design sprints for early-stage founders who need to validate direction,
+              show something real, and move fast — without hiring full-time.
               Every sprint is run by a single senior practitioner. No handoffs. No account managers.
-              The person you talk to is the person who builds.
             </p>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -339,11 +354,13 @@ export default function LandingV4() {
           <div className="max-w-3xl space-y-6">
             <SectionOverline>The Problem</SectionOverline>
             <h2 className={HEADING_CLASS}>
-              Most design engagements are slow, open-ended, and misaligned.
+              You need design help, but your options don&apos;t fit your stage.
             </h2>
             <p className={SECTION_INTRO_CLASS}>
-              You&apos;re paying for exploration with no guarantee of direction. By the time
-              something buildable exists, the moment has passed.
+              Agencies want $50K+ and eight weeks before anything starts. A full-time hire
+              is a three-month search and $120K+/yr commitment. Freelancers vary wildly and
+              you end up managing the project yourself. You&apos;re not ready for any of that —
+              you&apos;re trying to figure out what to build.
             </p>
             <p className={SUBHEADING_CLASS}>
               There&apos;s a better cadence.
@@ -380,7 +397,7 @@ export default function LandingV4() {
                   Every sprint is run by a single senior practitioner. No handoffs. No account
                   managers. The person you talk to is the person who builds. Because of that Single
                   Source runs a small number of sprints at a time — if you have something coming up
-                  it&apos;s worth getting a Jam Session on the calendar early.
+                  it&apos;s worth starting the intake early to lock a kickoff date.
                 </p>
               </div>
             </div>
@@ -568,13 +585,10 @@ export default function LandingV4() {
             <div className="space-y-5 lg:order-1">
               <SectionOverline>Single Source, and How to Start</SectionOverline>
               <p className={BODY_CLASS}>
-                Single Source is run by Chris Meisner. Chris has led sprints for pre-seed teams and
-                public companies alike — in-house design teams, new ventures inside enterprise orgs,
-                founders sharpening the story behind their next raise.
-              </p>
-              <p className={BODY_CLASS}>
-                The sprint model is how those experiences became something repeatable, honest, and
-                actually useful — instead of open-ended and hard to measure.
+                Single Source is run by Chris Meisner — sprints for pre-seed teams, new ventures,
+                and founders sharpening the story behind their next raise. Start the intake —
+                30 minutes, no commitment, no pitch. We&apos;ll talk through what you&apos;re
+                building and whether a sprint makes sense.
               </p>
               <p className={BODY_CLASS}>
                 Chris is also available directly — embedded with your team on an ad hoc basis for

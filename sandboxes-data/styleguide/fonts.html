@@ -6,7 +6,7 @@
   <title>Typography – Type Scale</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inter+Tight:wght@100..900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inter+Tight:wght@100..900&family=Overpass+Mono:wght@300..700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="tokens.css" />
   <link rel="stylesheet" href="base.css" />
   <link rel="stylesheet" href="typography-styles.css" />
@@ -417,7 +417,7 @@
                 <option value="var(--font-family-acme)">Acme Gothic Condensed</option>
                 <option value="var(--font-family-tight)">Inter Tight</option>
                 <option value="var(--font-family-sans)">Inter</option>
-                <option value="var(--font-family-mono)">Mono</option>
+                <option value="var(--font-family-mono)">Overpass Mono</option>
               </select>
             </div>
             <div>
@@ -554,6 +554,17 @@
         references: "Google Fonts: Inter Tight.",
         bestFor: "Hero headlines, section titles, and compact headings.",
         resourceUrl: "https://fonts.google.com/specimen/Inter+Tight"
+      },
+      {
+        name: "Overpass Mono",
+        css: "var(--font-family-mono)",
+        variable: "--font-family-mono",
+        weights: [500],
+        sample: "MILES AI: JACK TOOK THE RAV4 OUT 12 MINS AGO...",
+        blurb: "Technical, legible mono face for AI summaries and utility labels.",
+        references: "Google Fonts: Overpass Mono.",
+        bestFor: "AI body copy, AI labels, and compact technical metadata.",
+        resourceUrl: "https://fonts.google.com/specimen/Overpass+Mono"
       }
     ];
 
@@ -594,7 +605,9 @@
       },
       {
         title: "Technical",
-        items: []
+        items: [
+          { name: "AI Body", sizeDesktop: "12px", sizeMobile: "12px", lineHeight: 1.5, lineHeightMobile: 1.5, weight: 500, letterSpacing: "0em", sample: "JACK TOOK THE RAV4 OUT 12 MINS AGO, AND THE CIVIC IS PARKED AT HOME.", usage: "AI-generated summaries and system-style assistant copy.", fontFamily: "var(--font-family-mono)" }
+        ]
       }
     ];
 
@@ -604,7 +617,7 @@
     const finalFamilyLabels = familyLabels || new Map([
       ["var(--font-family-acme)", "Acme Gothic Condensed"],
       ["var(--font-family-tight)", "Inter Tight"],
-      ["var(--font-family-mono)", "Mono"],
+      ["var(--font-family-mono)", "Overpass Mono"],
       ["var(--font-family-sans)", "Inter"]
     ]);
 
@@ -612,7 +625,7 @@
       ["var(--font-family-acme)", `"Acme Gothic Condensed","Inter Tight","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`],
       ["var(--font-family-tight)", `"Inter Tight","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`],
       ["var(--font-family-sans)", `"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`],
-      ["var(--font-family-mono)", `ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace`]
+      ["var(--font-family-mono)", `"Overpass Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace`]
     ]);
 
     const finalGoogleSlidesAlternatives = googleSlidesAlternatives || new Map([
@@ -620,7 +633,7 @@
       ["var(--font-family-special)", { name: "Special Gothic Condensed One", css: "'Special Gothic Condensed One', sans-serif", notes: "Condensed display font available in Google Slides", weight: 400 }],
       ["var(--font-family-tight)", { name: "Inter", css: "'Inter', sans-serif", notes: "Available in Google Slides" }],
       ["var(--font-family-sans)", { name: "Inter", css: "'Inter', sans-serif", notes: "Available in Google Slides" }],
-      ["var(--font-family-mono)", { name: "Roboto Mono", css: "'Roboto Mono', monospace", notes: "Monospace font available in Google Slides" }]
+      ["var(--font-family-mono)", { name: "Roboto Mono", css: "'Roboto Mono', monospace", notes: "Google Slides-safe fallback for Overpass Mono" }]
     ]);
 
     function getDisplayFamily(fontFamily, mode = typeMode) {
@@ -1104,7 +1117,7 @@
   <title>${source.name} sample</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inter+Tight:wght@100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inter+Tight:wght@100..900&family=Overpass+Mono:wght@300..700&display=swap" rel="stylesheet">
   <style>
     @font-face {
       font-family: "Acme Gothic Condensed";

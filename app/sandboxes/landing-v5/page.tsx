@@ -77,12 +77,12 @@ export default function LandingV5() {
               </p>
               <div>
                 <Link
-                  href="https://cal.com/chrismeisner/jam-session"
+                  href="/intake"
                   target="_blank"
                   rel="noreferrer"
                   className={SECONDARY_CTA_CLASS}
                 >
-                  Book a jam session →
+                  Start the intake →
                 </Link>
               </div>
             </div>

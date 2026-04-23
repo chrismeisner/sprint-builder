@@ -9,7 +9,7 @@
  * 2. Run: node generate-typography-css.js
  * 3. Changes will automatically apply to all pages that link to this file
  * 
- * Last generated: 2026-01-27T18:27:01.640Z
+ * Last generated: 2026-04-23T15:04:54.549Z
  */
 
 /* =============================================================================
@@ -37,6 +37,10 @@
 [data-style="Label"],
 [data-style="Button"] {
   font-family: var(--font-family-sans);
+}
+
+[data-style="AI Body"] {
+  font-family: var(--font-family-mono);
 }
 
 /* =============================================================================
@@ -234,6 +238,17 @@
   [data-style="Button"] {
     font-size: 15px;
   }
+}
+
+/* =============================================================================
+   TECHNICAL
+   ============================================================================= */
+
+[data-style="AI Body"] {
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 500;
+  letter-spacing: 0em;
 }
 
 /* =============================================================================

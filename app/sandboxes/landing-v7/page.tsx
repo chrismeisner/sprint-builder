@@ -1,24 +1,21 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import FadeInSection from "@/app/components/FadeInSection";
-import SelectedWorkCarousel from "@/app/sandboxes/landing-v2/_components/SelectedWorkCarousel";
+import SelectedWorkCarousel from "@/app/sandboxes/landing-v7/_components/SelectedWorkCarousel";
 
 const JAM_SESSION = "/intake";
-const INTAKE_FORM = "/intake";
 const OVERLINE_CLASS = "text-xs font-medium uppercase tracking-wide leading-none text-text-muted";
 const HEADING_CLASS = "text-4xl font-semibold leading-tight text-balance text-text-primary";
 const SUBHEADING_CLASS = "text-2xl font-semibold leading-snug text-balance text-text-primary";
 const SECTION_INTRO_CLASS = "text-lg font-normal leading-relaxed text-pretty text-text-secondary";
 const BODY_CLASS = "text-base font-normal leading-normal text-pretty text-text-secondary";
 const CARD_TITLE_CLASS = "text-lg font-medium leading-snug text-balance text-text-primary";
-const CARD_BODY_CLASS = "text-sm font-normal leading-normal text-text-secondary";
+const CARD_BODY_CLASS = "text-sm font-normal leading-normal text-pretty text-text-secondary";
 const CARD_META_CLASS = "text-sm font-medium leading-normal text-text-primary";
 const CARD_PRICE_CLASS = "text-lg font-semibold leading-snug tabular-nums text-text-primary";
 const SECTION_SPACING = "py-20";
 const PRIMARY_CTA_CLASS =
   "inline-flex h-12 items-center justify-center rounded-md bg-text-primary px-6 text-base font-semibold text-background transition-opacity duration-150 hover:opacity-90";
-const SECONDARY_CTA_CLASS =
-  "inline-flex h-12 items-center justify-center rounded-md border border-stroke-muted bg-surface-subtle px-6 text-base font-semibold text-text-primary transition-colors duration-150 hover:bg-surface-strong";
 const KICKOFF_MIN_LEAD_DAYS = 10;
 const BACKEND_KICKOFF_DATE = process.env.NEXT_AVAILABLE_KICKOFF_DATE;
 
@@ -128,7 +125,7 @@ const comparisonColumns = [
   { label: "Design Agency" },
   { label: "Full-Time Hire" },
   { label: "Freelancer" },
-  { label: "Chris Meisner Studio", highlight: true },
+  { label: "Single Source", highlight: true },
 ] as const;
 
 const comparisonRows = [
@@ -169,7 +166,7 @@ const comparisonRows = [
       "Account manager, creative director, junior team — 4–8 people",
       "One employee",
       "One freelancer",
-      "Chris — one senior practitioner, start to finish",
+      "Single Source — one senior practitioner, start to finish",
     ],
   },
   {
@@ -243,16 +240,8 @@ function PlaceholderPanel({ label, className = "" }: { label: string; className?
 
 function PrimaryCta({ className = "" }: { className?: string }) {
   return (
-    <Link href={JAM_SESSION} target="_blank" rel="noreferrer" className={`${PRIMARY_CTA_CLASS} ${className}`}>
-      Start the intake →
-    </Link>
-  );
-}
-
-function IntakeCta({ className = "" }: { className?: string }) {
-  return (
-    <Link href={INTAKE_FORM} className={`${SECONDARY_CTA_CLASS} ${className}`}>
-      Start with the intake form →
+    <Link href={JAM_SESSION} className={`${PRIMARY_CTA_CLASS} ${className}`}>
+      Start the intake
     </Link>
   );
 }
@@ -290,98 +279,108 @@ function ExpansionCard({ expansion }: { expansion: ExpansionOption }) {
   );
 }
 
-export default function LandingV2() {
+export default function LandingV7() {
   const nextAvailableKickoff = getNextAvailableKickoffLabel();
 
   return (
-    <main className="min-h-dvh bg-background">
-      <div className="border-b border-amber-200 bg-amber-50 py-2 text-center dark:border-amber-800 dark:bg-amber-950">
-        <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-          Sandbox draft —{" "}
-          <Link href="/" className="underline">
-            back to live site
-          </Link>
-        </p>
-      </div>
+    <div className="min-h-dvh bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-stroke-muted bg-background/90 backdrop-blur-sm">
+        <div className="container max-w-6xl flex h-14 items-center justify-between">
+          <p className="text-sm font-semibold text-text-primary">Single Source</p>
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="text-sm font-medium text-text-secondary transition-colors duration-150 hover:text-text-primary">
+              Client Login
+            </Link>
+          </div>
+        </div>
+      </header>
 
+      <main>
       {/* Above the Fold */}
       <FadeInSection triggerOnMount>
         <section className="container max-w-6xl py-16 md:py-20 space-y-10">
           <div className="max-w-4xl space-y-8">
-            <SectionOverline>Chris Meisner Studio</SectionOverline>
             <h1 className="text-5xl font-bold leading-tight text-balance text-text-primary">
               From direction to deliverable in ten days.
             </h1>
             <p className={`${SECTION_INTRO_CLASS} max-w-3xl`}>
-              Two-week sprints for teams that need to move from direction to something buildable.
-              Every sprint is run by Chris directly. No handoffs. No account managers. The person
-              you talk to is the person who builds.
+              Two-week sprints for teams that need to move fast without sacrificing quality. Defined
+              scope. Fixed price. One senior practitioner start to finish — no handoffs, no account
+              managers, no surprises.
             </p>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <PrimaryCta />
-                <IntakeCta />
-              </div>
+            <PrimaryCta />
           </div>
         </section>
       </FadeInSection>
 
-      {/* Section 1 — The Problem */}
-      <FadeInSection>
-        <section className={`container max-w-6xl ${SECTION_SPACING}`}>
-          <div className="max-w-3xl space-y-6">
-            <SectionOverline>The Problem</SectionOverline>
-            <h2 className={HEADING_CLASS}>
-              Most design engagements are slow, open-ended, and misaligned.
-            </h2>
-            <p className={SECTION_INTRO_CLASS}>
-              You&apos;re paying for exploration with no guarantee of direction. By the time
-              something buildable exists, the moment has passed.
-            </p>
-            <p className={SUBHEADING_CLASS}>
-              There&apos;s a better cadence.
-            </p>
-          </div>
-        </section>
-      </FadeInSection>
-
-      {/* Section 2 — The Sprint Model */}
+      {/* Section 2 — How It Works */}
       <FadeInSection>
         <section className={`bg-surface-subtle ${SECTION_SPACING}`}>
-          <div className="container max-w-6xl grid gap-10 lg:grid-cols-2 lg:items-start">
-            <div className="space-y-5">
-              <SectionOverline>The Sprint Model</SectionOverline>
+          <div className="container max-w-6xl space-y-10">
+            <div className="max-w-3xl space-y-4">
+              <SectionOverline>How It Works</SectionOverline>
               <h2 className={HEADING_CLASS}>
-                Every engagement runs the same 10-day arc.
+                Three steps. Ten days. Real files at the end.
               </h2>
-              <div className="space-y-4">
-                <p className={BODY_CLASS}>
-                  <span className="font-semibold text-text-primary">Week 1 — Uphill</span>
-                  <br />
-                  Explore options, pressure-test direction, align on a single path forward.
-                </p>
-                <p className={BODY_CLASS}>
-                  <span className="font-semibold text-text-primary">Week 2 — Downhill</span>
-                  <br />
-                  Build. Review. Deliver.
-                </p>
-                <p className={BODY_CLASS}>
-                  Four live moments. Everything else async. You walk away with real files on Day 10.
-                  Not a presentation about the work. The work.
-                </p>
-                <p className={BODY_CLASS}>
-                  Every sprint is run by Chris directly. No handoffs. No account managers. The person
-                  you talk to is the person who builds. Because of that the studio runs a small number
-                  of sprints at a time — if you have something coming up it&apos;s worth getting a Jam
-                  Session on the calendar early.
-                </p>
-              </div>
             </div>
 
-            <PlaceholderPanel
-              label="Graphic — Uphill / Downhill arc"
-              className="h-72"
-            />
+            <div className="grid gap-6 sm:grid-cols-3 sm:items-stretch">
+              {/* Step 1 */}
+              <div className="flex flex-col rounded-md border border-stroke-muted bg-background p-6 gap-4">
+                <p className={OVERLINE_CLASS}>Step 1 — Before kickoff</p>
+                <h3 className={SUBHEADING_CLASS}>Align.</h3>
+                <p className={`${CARD_BODY_CLASS} flex-1`}>
+                  A 30-minute call to scope the work, answer questions, and make sure the sprint
+                  format is the right fit. We&apos;ll align on goals, confirm the deliverables, and
+                  lock a kickoff date. No commitment required — just a conversation.
+                </p>
+                <div className="pt-2">
+                  <PrimaryCta className="w-full sm:w-auto" />
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="flex flex-col rounded-md border border-stroke-muted bg-background p-6 gap-4">
+                <p className={OVERLINE_CLASS}>Step 2 — Monday, Week 1</p>
+                <h3 className={SUBHEADING_CLASS}>Kickoff.</h3>
+                <p className={`${CARD_BODY_CLASS} flex-1`}>
+                  Week 1 is uphill — exploring options, pressure-testing direction, and aligning on
+                  a single path forward. It opens with a kickoff workshop on Day 1 and closes on
+                  Friday with direction locked. From Day 1 you get a private client dashboard —
+                  daily updates, working links, Loom walkthroughs, invoices, and deliverables. All
+                  in one place.
+                </p>
+                <div className="pt-2">
+                  <Link href="/process" className={`${PRIMARY_CTA_CLASS} w-full sm:w-auto`}>
+                    See how the two weeks work
+                  </Link>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="flex flex-col rounded-md border border-stroke-muted bg-background p-6 gap-4">
+                <p className={OVERLINE_CLASS}>Step 3 — Friday, Week 2</p>
+                <h3 className={SUBHEADING_CLASS}>Delivery.</h3>
+                <p className={`${CARD_BODY_CLASS} flex-1`}>
+                  Week 2 is downhill — heads-down build with one mid-week check-in, then final
+                  delivery on Day 10. You get the real files: Figma components, working code,
+                  strategy docs — whatever the sprint called for — plus a Loom walkthrough and
+                  optional live demo.
+                </p>
+                <div className="pt-2">
+                  <Link
+                    href="https://www.loom.com/share/miles-sprint-delivery"
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`${PRIMARY_CTA_CLASS} w-full sm:w-auto`}
+                  >
+                    Watch a real sprint delivery
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </FadeInSection>
@@ -447,30 +446,7 @@ export default function LandingV2() {
         </section>
       </FadeInSection>
 
-      {/* Section 4 — Your Project Has a Home */}
-      <FadeInSection>
-        <section className={`container max-w-6xl ${SECTION_SPACING}`}>
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-            <div className="space-y-5">
-              <SectionOverline>Your Project Has a Home</SectionOverline>
-              <h2 className={HEADING_CLASS}>
-                Everything in one place. Nothing lost in threads.
-              </h2>
-              <p className={SECTION_INTRO_CLASS}>
-                From Day 1 you get a private client dashboard — daily updates, working links, Loom
-                walkthroughs, invoices, and deliverables. All in one place.
-              </p>
-            </div>
-
-            <PlaceholderPanel
-              label="Screenshot — client dashboard"
-              className="h-72"
-            />
-          </div>
-        </section>
-      </FadeInSection>
-
-      {/* Section 5 — Sprint Types */}
+      {/* Section 4 — Sprint Types */}
       <FadeInSection>
         <section className={`bg-surface-subtle ${SECTION_SPACING}`}>
           <div className="container max-w-6xl space-y-10">
@@ -481,11 +457,7 @@ export default function LandingV2() {
               </h2>
               <p className="w-full border-t border-stroke-muted pt-4 text-sm font-normal leading-normal text-text-muted">
                 <span className="font-medium text-text-primary">Next available kickoff:</span> Week of{" "}
-                {nextAvailableKickoff} —{" "}
-                <Link href={JAM_SESSION} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-                  Start the intake
-                </Link>{" "}
-                to hold your spot.
+                {nextAvailableKickoff}.
               </p>
             </div>
 
@@ -499,26 +471,69 @@ export default function LandingV2() {
         </section>
       </FadeInSection>
 
-      {/* Section 6 — Expansion Weeks */}
+      {/* Section 6 — Post Sprint */}
       <FadeInSection>
         <section className={`container max-w-6xl ${SECTION_SPACING}`}>
-          <div className="space-y-10">
-            <div className="max-w-4xl space-y-4">
-              <SectionOverline>Expansion Weeks</SectionOverline>
+          <div className="space-y-14">
+
+            {/* Parent header */}
+            <div className="max-w-3xl space-y-4">
+              <SectionOverline>Post Sprint</SectionOverline>
               <h2 className={HEADING_CLASS}>
-                After your sprint wraps, go deeper on what matters most.
+                The sprint delivers a functional v1 on Day 10. What comes next depends on where you want to go.
               </h2>
-              <p className={SECTION_INTRO_CLASS}>
-                Each sprint delivers a functional v1 — complete enough to use, build from, or ship.
-                Expansion weeks are for when you want to go further on something specific. One week.
-                One focus.
-              </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              {expansions.map((expansion) => (
-                <ExpansionCard key={expansion.name} expansion={expansion} />
-              ))}
+            {/* Subsection A — Go Deeper */}
+            <div className="space-y-8 border-t border-stroke-muted pt-10">
+              <div className="max-w-3xl space-y-3">
+                <h3 className={SUBHEADING_CLASS}>Go Deeper — Expansion Weeks</h3>
+                <p className={BODY_CLASS}>
+                  Want to take something further? Expansion weeks build directly on the sprint that
+                  came before. One week, one focus — deeper research, more components, additional
+                  flows, or a second direction entirely. No re-onboarding, no spin-up. Just more of
+                  the work, done well.
+                </p>
+              </div>
+
+              <div className="grid gap-6 sm:grid-cols-3">
+                <div className="rounded-md border border-stroke-muted bg-surface-subtle p-6 space-y-4">
+                  <p className={OVERLINE_CLASS}>Step 1 — From your dashboard</p>
+                  <p className={CARD_BODY_CLASS}>
+                    Request an expansion week directly from your client dashboard. Select the sprint
+                    you want to build on and describe what you want to go deeper on.
+                  </p>
+                </div>
+                <div className="rounded-md border border-stroke-muted bg-surface-subtle p-6 space-y-4">
+                  <p className={OVERLINE_CLASS}>Step 2 — Monday</p>
+                  <p className={CARD_BODY_CLASS}>
+                    Kickoff call to confirm scope for the week. One focused direction locked before
+                    any work begins.
+                  </p>
+                </div>
+                <div className="rounded-md border border-stroke-muted bg-surface-subtle p-6 space-y-4">
+                  <p className={OVERLINE_CLASS}>Step 3 — Friday</p>
+                  <p className={CARD_BODY_CLASS}>
+                    Expansion delivered. Same Loom walkthrough, same dashboard update, same handoff
+                    standard as the original sprint.
+                  </p>
+                </div>
+              </div>
+
+              <p className={CARD_META_CLASS}>Starting at $5,000 per week.</p>
+            </div>
+
+            {/* Subsection B — Stay on Track */}
+            <div className="space-y-4 border-t border-stroke-muted pt-10">
+              <h3 className={SUBHEADING_CLASS}>Stay on Track — Sprint Support</h3>
+              <p className={`${BODY_CLASS} max-w-2xl`}>
+                Implementing what was built and want someone in your corner while you do it? Sprint
+                Support is a light monthly engagement — biweekly check-ins and 24-hour email access
+                to keep momentum alive and questions answered.
+              </p>
+              <p className={CARD_META_CLASS}>
+                $2,000 / month. Available for up to three months after any sprint.
+              </p>
             </div>
 
           </div>
@@ -553,53 +568,48 @@ export default function LandingV2() {
         </section>
       </FadeInSection>
 
-      {/* Section 8 — Chris, The Studio, and How to Start */}
+      {/* Section 8 — Single Source, and How to Start */}
       <FadeInSection>
         <section className={`bg-surface-subtle ${SECTION_SPACING}`}>
           <div className="container max-w-6xl grid gap-10 lg:grid-cols-2 lg:items-start">
             <PlaceholderPanel
-              label="Photo — Chris at work"
+              label="Photo — Chris Meisner"
               className="h-96 lg:order-2"
             />
 
-            <div className="space-y-5 lg:order-1">
-              <SectionOverline>Chris, The Studio, and How to Start</SectionOverline>
+            <div className="space-y-4 lg:order-1">
+              <SectionOverline>Single Source, and How to Start</SectionOverline>
               <p className={BODY_CLASS}>
-                I&apos;ve led sprints for pre-seed teams and public companies alike. In past lives —
-                in-house design teams, new ventures inside enterprise orgs, founders sharpening the
-                story behind their next raise.
+                Single Source is run by Chris Meisner. Chris has led sprints for pre-seed teams and
+                public companies alike — in-house design teams, new ventures inside enterprise orgs,
+                founders sharpening the story behind their next raise.
               </p>
               <p className={BODY_CLASS}>
-                The sprint model is how I took the best of those experiences and built something
-                repeatable, honest, and actually useful — instead of open-ended and hard to measure.
+                The sprint model is how those experiences became something repeatable, honest, and
+                actually useful — instead of open-ended and hard to measure.
               </p>
               <p className={BODY_CLASS}>
-                Also available directly — embedded with your team on an ad hoc basis for work that
-                falls outside the sprint model. More at{" "}
+                Chris is also available directly — embedded with your team on an ad hoc basis for
+                work that falls outside the sprint model. More at{" "}
                 <Link href="https://chrismeisner.com" target="_blank" rel="noreferrer" className="underline">
                   chrismeisner.com
                 </Link>
                 .
               </p>
 
-              <div className="space-y-3 border-t border-stroke-muted pt-6">
-                <p className={SECTION_INTRO_CLASS}>
-                  Start the intake. Bring what you&apos;re building. We&apos;ll map where a sprint
-                  fits and what you&apos;d walk away with. One conversation — then a proposal if it
-                  makes sense.
-                </p>
-                <p className={BODY_CLASS}>
-                  Or start with the intake form if you&apos;d rather come prepared.
-                </p>
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                  <PrimaryCta />
-                  <IntakeCta />
-                </div>
-              </div>
             </div>
           </div>
         </section>
       </FadeInSection>
-    </main>
+
+      {/* Footer */}
+      <footer className="border-t border-stroke-muted">
+        <div className="container max-w-6xl flex items-center justify-between py-8">
+          <p className="text-sm font-medium text-text-primary">Single Source</p>
+          <p className="text-sm text-text-muted">© {new Date().getFullYear()}</p>
+        </div>
+      </footer>
+      </main>
+    </div>
   );
 }

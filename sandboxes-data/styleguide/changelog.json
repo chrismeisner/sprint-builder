@@ -1,6 +1,29 @@
 {
   "entries": [
     {
+      "version": "1.0.5",
+      "date": "2026-04-23",
+      "title": "Typography update — Overpass Mono + AI styles",
+      "changes": [
+        {
+          "type": "added",
+          "text": "Added Overpass Mono as a documented font family in the style guide, including usage guidance and resource link."
+        },
+        {
+          "type": "added",
+          "text": "Added new Technical typography style: AI Body (12/18, weight 500)."
+        },
+        {
+          "type": "changed",
+          "text": "Updated mono font mappings and tokens to use Overpass Mono, with Google Slides-safe fallback to Roboto Mono."
+        },
+        {
+          "type": "changed",
+          "text": "Updated typography docs and generated CSS so fonts.html and shared style references reflect the new mono usage."
+        }
+      ]
+    },
+    {
       "version": "1.0.4",
       "date": "2026-02-12",
       "title": "User Personas — content updates from stakeholder feedback",

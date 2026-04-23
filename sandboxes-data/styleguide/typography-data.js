@@ -60,6 +60,17 @@ export const fontFamilies = [
     references: "Google Fonts: Inter Tight.",
     bestFor: "Hero headlines, section titles, and compact headings.",
     resourceUrl: "https://fonts.google.com/specimen/Inter+Tight"
+  },
+  {
+    name: "Overpass Mono",
+    css: "var(--font-family-mono)",
+    variable: "--font-family-mono",
+    weights: [500],
+    sample: "MILES AI: JACK TOOK THE RAV4 OUT 12 MINS AGO...",
+    blurb: "Technical, legible mono face for AI summaries and utility labels.",
+    references: "Google Fonts: Overpass Mono.",
+    bestFor: "AI body copy, AI labels, and compact technical metadata.",
+    resourceUrl: "https://fonts.google.com/specimen/Overpass+Mono"
   }
 ];
 
@@ -257,14 +268,27 @@ export const typeCatalog = [
   },
   {
     title: "Technical",
-    items: []
+    items: [
+      {
+        name: "AI Body",
+        sizeDesktop: "12px",
+        sizeMobile: "12px",
+        lineHeight: 1.5,
+        lineHeightMobile: 1.5,
+        weight: 500,
+        letterSpacing: "0em",
+        sample: "JACK TOOK THE RAV4 OUT 12 MINS AGO, AND THE CIVIC IS PARKED AT HOME.",
+        usage: "AI-generated summaries and system-style assistant copy.",
+        fontFamily: "var(--font-family-mono)"
+      }
+    ]
   }
 ];
 
 export const familyLabels = new Map([
   ["var(--font-family-acme)", "Acme Gothic Condensed"],
   ["var(--font-family-tight)", "Inter Tight"],
-  ["var(--font-family-mono)", "Mono"],
+  ["var(--font-family-mono)", "Overpass Mono"],
   ["var(--font-family-sans)", "Inter"]
 ]);
 
@@ -272,7 +296,7 @@ export const familyValueByVar = new Map([
   ["var(--font-family-acme)", `"Acme Gothic Condensed","Inter Tight","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`],
   ["var(--font-family-tight)", `"Inter Tight","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`],
   ["var(--font-family-sans)", `"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif`],
-  ["var(--font-family-mono)", `ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace`]
+  ["var(--font-family-mono)", `"Overpass Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace`]
 ]);
 
 // Google Slides-safe font alternatives

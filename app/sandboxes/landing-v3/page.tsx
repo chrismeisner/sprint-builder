@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import FadeInSection from "@/app/components/FadeInSection";
 import SelectedWorkCarousel from "@/app/sandboxes/landing-v3/_components/SelectedWorkCarousel";
 
-const JAM_SESSION = "https://cal.com/chrismeisner/jam-session";
+const JAM_SESSION = "/intake";
 const INTAKE_FORM = "/intake";
 const OVERLINE_CLASS = "text-xs font-medium uppercase tracking-wide leading-none text-text-muted";
 const HEADING_CLASS = "text-4xl font-semibold leading-tight text-balance text-text-primary";
@@ -244,7 +244,7 @@ function PlaceholderPanel({ label, className = "" }: { label: string; className?
 function PrimaryCta({ className = "" }: { className?: string }) {
   return (
     <Link href={JAM_SESSION} target="_blank" rel="noreferrer" className={`${PRIMARY_CTA_CLASS} ${className}`}>
-      Book a Jam Session
+      Start the intake
     </Link>
   );
 }
@@ -304,7 +304,7 @@ export default function LandingV3() {
               Client Login
             </Link>
             <Link href={JAM_SESSION} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center justify-center rounded-md bg-text-primary px-4 text-sm font-semibold text-background transition-opacity duration-150 hover:opacity-90">
-              Book a Jam Session
+              Start the intake
             </Link>
           </div>
         </div>
@@ -380,7 +380,7 @@ export default function LandingV3() {
                   Every sprint is run by a single senior practitioner. No handoffs. No account
                   managers. The person you talk to is the person who builds. Because of that Single
                   Source runs a small number of sprints at a time — if you have something coming up
-                  it&apos;s worth getting a Jam Session on the calendar early.
+                  it&apos;s worth starting the intake early to lock a kickoff date.
                 </p>
               </div>
             </div>
