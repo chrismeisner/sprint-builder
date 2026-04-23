@@ -60,44 +60,6 @@ const sprints: SprintOption[] = [
   },
 ];
 
-type ExpansionOption = {
-  name: string;
-  description: string;
-  buildsOn: string;
-  price: string;
-};
-
-const expansions: ExpansionOption[] = [
-  {
-    name: "Strategy Expansion",
-    description:
-      "Deeper user research, additional personas, refined positioning, or a second competitive pass.",
-    buildsOn: "Builds on the Core User, Journey & Competitive Positioning sprint.",
-    price: "$5,000",
-  },
-  {
-    name: "Brand Expansion",
-    description:
-      "Logo exploration, iconography, motion identity, extended collateral, or a deeper type system.",
-    buildsOn: "Builds on the Brand Foundations sprint.",
-    price: "$6,000",
-  },
-  {
-    name: "Prototype Expansion",
-    description:
-      "Additional flows, edge cases, interaction states, or a second prototype direction.",
-    buildsOn: "Builds on the Prototype Sprint.",
-    price: "$6,000",
-  },
-  {
-    name: "UI Expansion",
-    description:
-      "Additional components, extended token system, additional screen states, or platform variants.",
-    buildsOn: "Builds on the UI Build sprint.",
-    price: "$8,000",
-  },
-];
-
 const milesSlides = [
   {
     id: "miles-1",
@@ -258,22 +220,6 @@ function SprintCard({ sprint }: { sprint: SprintOption }) {
       <div className="flex items-end justify-between gap-4 border-t border-stroke-muted pt-4">
         <p className={OVERLINE_CLASS}>2-week sprint</p>
         <p className={CARD_PRICE_CLASS}>{sprint.price}</p>
-      </div>
-    </div>
-  );
-}
-
-function ExpansionCard({ expansion }: { expansion: ExpansionOption }) {
-  return (
-    <div className="rounded-md border border-stroke-muted bg-surface-subtle p-6 space-y-4">
-      <div className="space-y-2">
-        <h3 className={CARD_TITLE_CLASS}>{expansion.name}</h3>
-        <p className={CARD_BODY_CLASS}>{expansion.description}</p>
-        <p className={CARD_META_CLASS}>{expansion.buildsOn}</p>
-      </div>
-      <div className="flex items-end justify-between gap-4 border-t border-stroke-muted pt-4">
-        <p className={OVERLINE_CLASS}>1-week expansion</p>
-        <p className={CARD_PRICE_CLASS}>{expansion.price}</p>
       </div>
     </div>
   );
