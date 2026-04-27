@@ -14,6 +14,30 @@ import { randomUUID } from "crypto";
 
 type DayPlan = { theme: string; notes: string };
 
+type Deliverable = { week: 1 | 2; title: string; description: string };
+
+const MAX_DELIVERABLES = 20;
+
+function normalizeDeliverables(value: unknown): Deliverable[] {
+  if (!Array.isArray(value)) return [];
+  const out: Deliverable[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const obj = raw as Record<string, unknown>;
+    const weekNum = Number(obj.week);
+    const week: 1 | 2 = weekNum === 2 ? 2 : 1;
+    const title = typeof obj.title === "string" ? obj.title.trim().slice(0, 120) : "";
+    const description =
+      typeof obj.description === "string"
+        ? obj.description.trim().slice(0, 2000)
+        : "";
+    if (!title && !description) continue;
+    out.push({ week, title, description });
+    if (out.length >= MAX_DELIVERABLES) break;
+  }
+  return out;
+}
+
 function normalizeDayPlans(value: unknown): DayPlan[] {
   const out: DayPlan[] = [];
   const input = Array.isArray(value) ? value : [];
@@ -147,6 +171,7 @@ export async function POST(request: Request) {
     const confirm = body.confirm === true;
     const status = confirm ? "confirmed" : "draft";
     const dayPlans = normalizeDayPlans(body.dayPlans);
+    const deliverables = normalizeDeliverables(body.deliverables);
 
     await pool.query(
       `INSERT INTO smoke_test_sprints (
@@ -157,7 +182,7 @@ export async function POST(request: Request) {
          browser_prototype_scope, figma_file_scope, implementation_path, implementation_members, existing_assets,
          complexity_tier, complexity_score, hourly_rate, hours_per_complexity_point,
          implied_hours, total_price, proposed_start_date,
-         notes, status, created_by, day_plans
+         notes, status, created_by, day_plans, deliverables
        )
        VALUES (
          $1, $2,
@@ -167,7 +192,7 @@ export async function POST(request: Request) {
          $12, $13, $14, $15, $16,
          $17, $18, $19, $20,
          $21, $22, $23,
-         $24, $26, $25, $27
+         $24, $26, $25, $27, $28
        )`,
       [
         id,
@@ -197,6 +222,7 @@ export async function POST(request: Request) {
         user.accountId ?? null,
         status,
         JSON.stringify(dayPlans),
+        JSON.stringify(deliverables),
       ]
     );
 

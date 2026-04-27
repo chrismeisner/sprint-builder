@@ -28,6 +28,7 @@ type ProjectMember = {
 };
 
 export type DayPlan = { theme: string; notes: string };
+export type Deliverable = { week: 1 | 2; title: string; description: string };
 
 export type InitialDraft = {
   id: string;
@@ -49,8 +50,24 @@ export type InitialDraft = {
   proposedStartDate: string;
   notes: string;
   dayPlans: DayPlan[];
+  deliverables: Deliverable[];
   updatedAt: string;
 };
+
+function hydrateDeliverables(value: unknown): Deliverable[] {
+  if (!Array.isArray(value)) return [];
+  const out: Deliverable[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const obj = raw as Record<string, unknown>;
+    const weekNum = Number(obj.week);
+    const week: 1 | 2 = weekNum === 2 ? 2 : 1;
+    const title = typeof obj.title === "string" ? obj.title : "";
+    const description = typeof obj.description === "string" ? obj.description : "";
+    out.push({ week, title, description });
+  }
+  return out;
+}
 
 function hydrateDayPlans(value: unknown): DayPlan[] {
   const out: DayPlan[] = [];
@@ -151,7 +168,7 @@ export default async function SmokeTestSprintBuilderPage({
               browser_prototype_scope, figma_file_scope,
               implementation_members, existing_assets,
               complexity_score, hourly_rate, proposed_start_date,
-              notes, day_plans, updated_at
+              notes, day_plans, deliverables, updated_at
        FROM smoke_test_sprints
        WHERE id = $1`,
       [draftId]
@@ -181,6 +198,7 @@ export default async function SmokeTestSprintBuilderPage({
             : ((row.proposed_start_date as string | null) ?? ""),
         notes: (row.notes as string | null) ?? "",
         dayPlans: hydrateDayPlans(row.day_plans),
+        deliverables: hydrateDeliverables(row.deliverables),
         updatedAt:
           row.updated_at instanceof Date
             ? row.updated_at.toISOString()

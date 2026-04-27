@@ -29,6 +29,7 @@ type Project = {
 };
 
 type DayPlan = { theme: string; notes: string };
+type Deliverable = { week: 1 | 2; title: string; description: string };
 
 type InitialDraft = {
   id: string;
@@ -50,8 +51,11 @@ type InitialDraft = {
   proposedStartDate: string;
   notes: string;
   dayPlans: DayPlan[];
+  deliverables: Deliverable[];
   updatedAt: string;
 };
+
+const MAX_DELIVERABLES_PER_WEEK = 10;
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
@@ -216,6 +220,15 @@ export default function SmokeTestSprintBuilderClient({
     return defaultDayPlans();
   });
 
+  const [deliverables, setDeliverables] = useState<Deliverable[]>(() => {
+    const incoming = initialDraft?.deliverables ?? [];
+    if (incoming.length > 0) return incoming;
+    return [
+      { week: 1, title: "", description: "" },
+      { week: 2, title: "", description: "" },
+    ];
+  });
+
   const [saving, setSaving] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -289,6 +302,13 @@ export default function SmokeTestSprintBuilderClient({
         theme: p.theme.trim(),
         notes: p.notes.trim(),
       })),
+      deliverables: deliverables
+        .map((d) => ({
+          week: d.week,
+          title: d.title.trim(),
+          description: d.description.trim(),
+        }))
+        .filter((d) => d.title || d.description),
       confirm,
     };
   }
@@ -297,6 +317,30 @@ export default function SmokeTestSprintBuilderClient({
     setDayPlans((prev) =>
       prev.map((p, i) => (i === index ? { ...p, ...patch } : p))
     );
+  }
+
+  function updateDeliverable(index: number, patch: Partial<Deliverable>) {
+    setDeliverables((prev) =>
+      prev.map((d, i) => (i === index ? { ...d, ...patch } : d))
+    );
+  }
+
+  function addDeliverable(week: 1 | 2) {
+    setDeliverables((prev) => {
+      const inWeek = prev.filter((d) => d.week === week).length;
+      if (inWeek >= MAX_DELIVERABLES_PER_WEEK) return prev;
+      return [...prev, { week, title: "", description: "" }];
+    });
+  }
+
+  function removeDeliverable(index: number) {
+    setDeliverables((prev) => {
+      const target = prev[index];
+      if (!target) return prev;
+      const inWeek = prev.filter((d) => d.week === target.week).length;
+      if (inWeek <= 1) return prev;
+      return prev.filter((_, i) => i !== index);
+    });
   }
 
   async function persist(
@@ -682,6 +726,86 @@ export default function SmokeTestSprintBuilderClient({
               className={textareaClasses}
             />
           </div>
+        </section>
+
+        {/* Additional deliverables */}
+        <section className="flex flex-col gap-6">
+          <div>
+            <h2 className={sectionHeaderClasses}>Additional deliverables</h2>
+            <p className={sectionSubClasses}>
+              On top of the browser prototype and Figma file above. At least one per week — add more as
+              needed (deck, write-up, research summary, etc.).
+            </p>
+          </div>
+
+          {[1, 2].map((week) => {
+            const w = week as 1 | 2;
+            const weekHeader = w === 1 ? "⛰️ Week 1 — Uphill" : "🏁 Week 2 — Downhill";
+            const inWeek = deliverables
+              .map((d, idx) => ({ d, idx }))
+              .filter(({ d }) => d.week === w);
+            const canRemove = inWeek.length > 1;
+            const canAdd = inWeek.length < MAX_DELIVERABLES_PER_WEEK;
+            return (
+              <div key={w} className="flex flex-col gap-3">
+                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                  {weekHeader}
+                </div>
+                <div className="flex flex-col gap-3">
+                  {inWeek.map(({ d, idx }, positionInWeek) => (
+                    <div
+                      key={idx}
+                      className="rounded-md border border-neutral-200 dark:border-neutral-700 p-3 flex flex-col gap-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                          Deliverable {positionInWeek + 1}
+                        </span>
+                        {canRemove && (
+                          <button
+                            type="button"
+                            onClick={() => removeDeliverable(idx)}
+                            className="text-xs text-neutral-500 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-150"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={d.title}
+                        onChange={(e) => updateDeliverable(idx, { title: e.target.value })}
+                        placeholder="Title (e.g. Pitch deck v1)"
+                        maxLength={120}
+                        className={`${inputClasses} h-9`}
+                        aria-label={`Week ${w} deliverable ${positionInWeek + 1} title`}
+                      />
+                      <textarea
+                        value={d.description}
+                        onChange={(e) =>
+                          updateDeliverable(idx, { description: e.target.value })
+                        }
+                        rows={2}
+                        placeholder="What this deliverable contains"
+                        className={textareaClasses}
+                        aria-label={`Week ${w} deliverable ${positionInWeek + 1} description`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => addDeliverable(w)}
+                    disabled={!canAdd}
+                    className="h-9 px-3 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 text-neutral-800 dark:text-neutral-200 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    + Add deliverable
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </section>
 
         {/* Effort & Pricing */}

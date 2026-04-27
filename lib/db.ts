@@ -1430,6 +1430,10 @@ export async function ensureSchema(): Promise<void> {
     ALTER TABLE smoke_test_sprints
     ADD COLUMN IF NOT EXISTS day_plans jsonb NOT NULL DEFAULT '[]'::jsonb
   `);
+  await pool.query(`
+    ALTER TABLE smoke_test_sprints
+    ADD COLUMN IF NOT EXISTS deliverables jsonb NOT NULL DEFAULT '[]'::jsonb
+  `);
 
   global._schemaInitialized = true;
 }

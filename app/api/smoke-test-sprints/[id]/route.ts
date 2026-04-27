@@ -12,6 +12,29 @@ import {
 } from "@/lib/pricing";
 
 type DayPlan = { theme: string; notes: string };
+type Deliverable = { week: 1 | 2; title: string; description: string };
+
+const MAX_DELIVERABLES = 20;
+
+function normalizeDeliverables(value: unknown): Deliverable[] {
+  if (!Array.isArray(value)) return [];
+  const out: Deliverable[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const obj = raw as Record<string, unknown>;
+    const weekNum = Number(obj.week);
+    const week: 1 | 2 = weekNum === 2 ? 2 : 1;
+    const title = typeof obj.title === "string" ? obj.title.trim().slice(0, 120) : "";
+    const description =
+      typeof obj.description === "string"
+        ? obj.description.trim().slice(0, 2000)
+        : "";
+    if (!title && !description) continue;
+    out.push({ week, title, description });
+    if (out.length >= MAX_DELIVERABLES) break;
+  }
+  return out;
+}
 
 function normalizeDayPlans(value: unknown): DayPlan[] {
   const out: DayPlan[] = [];
@@ -153,6 +176,7 @@ export async function PATCH(request: Request, { params }: Params) {
     const confirm = body.confirm === true;
     const nextStatus = confirm ? "confirmed" : "draft";
     const dayPlans = normalizeDayPlans(body.dayPlans);
+    const deliverables = normalizeDeliverables(body.deliverables);
 
     await pool.query(
       `UPDATE smoke_test_sprints SET
@@ -178,6 +202,7 @@ export async function PATCH(request: Request, { params }: Params) {
          notes = $21,
          status = $22,
          day_plans = $23,
+         deliverables = $24,
          updated_at = now()
        WHERE id = $1`,
       [
@@ -204,6 +229,7 @@ export async function PATCH(request: Request, { params }: Params) {
         str(body.notes),
         nextStatus,
         JSON.stringify(dayPlans),
+        JSON.stringify(deliverables),
       ]
     );
 
