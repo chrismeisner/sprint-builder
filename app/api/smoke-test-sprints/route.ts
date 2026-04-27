@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import {
+  SMOKE_TEST_DAY_THEMES,
   SMOKE_TEST_DEFAULT_COMPLEXITY,
   SMOKE_TEST_DEFAULT_HOURLY_RATE,
   SMOKE_TEST_TIMELINE_WORKING_DAYS,
@@ -10,6 +11,25 @@ import {
   inferSmokeTestTier,
 } from "@/lib/pricing";
 import { randomUUID } from "crypto";
+
+type DayPlan = { theme: string; notes: string };
+
+function normalizeDayPlans(value: unknown): DayPlan[] {
+  const out: DayPlan[] = [];
+  const input = Array.isArray(value) ? value : [];
+  for (let i = 0; i < SMOKE_TEST_TIMELINE_WORKING_DAYS; i++) {
+    const raw = input[i];
+    const obj =
+      raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+    const themeStr = typeof obj.theme === "string" ? obj.theme.trim() : "";
+    const notesStr = typeof obj.notes === "string" ? obj.notes.trim() : "";
+    out.push({
+      theme: themeStr.slice(0, 60) || SMOKE_TEST_DAY_THEMES[i] || "",
+      notes: notesStr.slice(0, 2000),
+    });
+  }
+  return out;
+}
 
 function str(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -126,6 +146,7 @@ export async function POST(request: Request) {
     const id = randomUUID();
     const confirm = body.confirm === true;
     const status = confirm ? "confirmed" : "draft";
+    const dayPlans = normalizeDayPlans(body.dayPlans);
 
     await pool.query(
       `INSERT INTO smoke_test_sprints (
@@ -136,7 +157,7 @@ export async function POST(request: Request) {
          browser_prototype_scope, figma_file_scope, implementation_path, implementation_members, existing_assets,
          complexity_tier, complexity_score, hourly_rate, hours_per_complexity_point,
          implied_hours, total_price, proposed_start_date,
-         notes, status, created_by
+         notes, status, created_by, day_plans
        )
        VALUES (
          $1, $2,
@@ -146,7 +167,7 @@ export async function POST(request: Request) {
          $12, $13, $14, $15, $16,
          $17, $18, $19, $20,
          $21, $22, $23,
-         $24, $26, $25
+         $24, $26, $25, $27
        )`,
       [
         id,
@@ -175,6 +196,7 @@ export async function POST(request: Request) {
         str(body.notes),
         user.accountId ?? null,
         status,
+        JSON.stringify(dayPlans),
       ]
     );
 

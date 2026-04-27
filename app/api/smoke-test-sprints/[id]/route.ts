@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import {
+  SMOKE_TEST_DAY_THEMES,
   SMOKE_TEST_DEFAULT_COMPLEXITY,
   SMOKE_TEST_DEFAULT_HOURLY_RATE,
   SMOKE_TEST_TIMELINE_WORKING_DAYS,
@@ -9,6 +10,25 @@ import {
   calculateSmokeTestPrice,
   inferSmokeTestTier,
 } from "@/lib/pricing";
+
+type DayPlan = { theme: string; notes: string };
+
+function normalizeDayPlans(value: unknown): DayPlan[] {
+  const out: DayPlan[] = [];
+  const input = Array.isArray(value) ? value : [];
+  for (let i = 0; i < SMOKE_TEST_TIMELINE_WORKING_DAYS; i++) {
+    const raw = input[i];
+    const obj =
+      raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+    const themeStr = typeof obj.theme === "string" ? obj.theme.trim() : "";
+    const notesStr = typeof obj.notes === "string" ? obj.notes.trim() : "";
+    out.push({
+      theme: themeStr.slice(0, 60) || SMOKE_TEST_DAY_THEMES[i] || "",
+      notes: notesStr.slice(0, 2000),
+    });
+  }
+  return out;
+}
 
 type Params = { params: { id: string } };
 
@@ -132,6 +152,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
     const confirm = body.confirm === true;
     const nextStatus = confirm ? "confirmed" : "draft";
+    const dayPlans = normalizeDayPlans(body.dayPlans);
 
     await pool.query(
       `UPDATE smoke_test_sprints SET
@@ -156,6 +177,7 @@ export async function PATCH(request: Request, { params }: Params) {
          proposed_start_date = $20,
          notes = $21,
          status = $22,
+         day_plans = $23,
          updated_at = now()
        WHERE id = $1`,
       [
@@ -181,6 +203,7 @@ export async function PATCH(request: Request, { params }: Params) {
         dateOnly(body.proposedStartDate),
         str(body.notes),
         nextStatus,
+        JSON.stringify(dayPlans),
       ]
     );
 

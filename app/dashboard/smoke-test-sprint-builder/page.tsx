@@ -1,6 +1,10 @@
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import {
+  SMOKE_TEST_DAY_THEMES,
+  SMOKE_TEST_TIMELINE_WORKING_DAYS,
+} from "@/lib/pricing";
 import SmokeTestSprintBuilderClient from "./SmokeTestSprintBuilderClient";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +27,8 @@ type ProjectMember = {
   displayName: string | null;
 };
 
+export type DayPlan = { theme: string; notes: string };
+
 export type InitialDraft = {
   id: string;
   projectId: string;
@@ -42,8 +48,26 @@ export type InitialDraft = {
   hourlyRate: number;
   proposedStartDate: string;
   notes: string;
+  dayPlans: DayPlan[];
   updatedAt: string;
 };
+
+function hydrateDayPlans(value: unknown): DayPlan[] {
+  const out: DayPlan[] = [];
+  const input = Array.isArray(value) ? value : [];
+  for (let i = 0; i < SMOKE_TEST_TIMELINE_WORKING_DAYS; i++) {
+    const raw = input[i];
+    const obj =
+      raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+    const theme =
+      typeof obj.theme === "string" && obj.theme.trim()
+        ? obj.theme.trim()
+        : SMOKE_TEST_DAY_THEMES[i] ?? "";
+    const notes = typeof obj.notes === "string" ? obj.notes : "";
+    out.push({ theme, notes });
+  }
+  return out;
+}
 
 export default async function SmokeTestSprintBuilderPage({
   searchParams,
@@ -127,7 +151,7 @@ export default async function SmokeTestSprintBuilderPage({
               browser_prototype_scope, figma_file_scope,
               implementation_members, existing_assets,
               complexity_score, hourly_rate, proposed_start_date,
-              notes, updated_at
+              notes, day_plans, updated_at
        FROM smoke_test_sprints
        WHERE id = $1`,
       [draftId]
@@ -156,6 +180,7 @@ export default async function SmokeTestSprintBuilderPage({
             ? row.proposed_start_date.toISOString().slice(0, 10)
             : ((row.proposed_start_date as string | null) ?? ""),
         notes: (row.notes as string | null) ?? "",
+        dayPlans: hydrateDayPlans(row.day_plans),
         updatedAt:
           row.updated_at instanceof Date
             ? row.updated_at.toISOString()

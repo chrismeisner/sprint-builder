@@ -21,6 +21,23 @@ export const SMOKE_TEST_DEFAULT_HOURLY_RATE = 250;
 export const SMOKE_TEST_HOURS_PER_COMPLEXITY_POINT = 10;
 export const SMOKE_TEST_TIMELINE_WORKING_DAYS = 10;
 
+/**
+ * Default day-by-day theme labels for the 10-working-day Smoke Test Sprint.
+ * Index 0 = Day 1 (Monday Week 1) … Index 9 = Day 10 (Friday Week 2).
+ */
+export const SMOKE_TEST_DAY_THEMES: readonly string[] = [
+  "Aligned",
+  "Curious",
+  "Excited",
+  "Decisive",
+  "Clear",
+  "Focused",
+  "Inspired",
+  "Confident",
+  "Meticulous",
+  "Satisfied",
+] as const;
+
 export const SMOKE_TEST_COMPLEXITY_TIERS = {
   low: { score: 1, label: "Low" },
   medium: { score: 3, label: "Medium" },

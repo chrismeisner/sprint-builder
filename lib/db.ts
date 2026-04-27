@@ -1426,6 +1426,10 @@ export async function ensureSchema(): Promise<void> {
     ALTER COLUMN implied_hours SET DEFAULT 40,
     ALTER COLUMN hours_per_complexity_point SET DEFAULT 10
   `);
+  await pool.query(`
+    ALTER TABLE smoke_test_sprints
+    ADD COLUMN IF NOT EXISTS day_plans jsonb NOT NULL DEFAULT '[]'::jsonb
+  `);
 
   global._schemaInitialized = true;
 }

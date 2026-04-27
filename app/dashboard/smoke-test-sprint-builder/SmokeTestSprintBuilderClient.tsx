@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   SMOKE_TEST_COMPLEXITY_TIERS,
+  SMOKE_TEST_DAY_THEMES,
   SMOKE_TEST_DEFAULT_COMPLEXITY,
   SMOKE_TEST_DEFAULT_HOURLY_RATE,
   SMOKE_TEST_TIMELINE_WORKING_DAYS,
@@ -27,6 +28,8 @@ type Project = {
   name: string;
 };
 
+type DayPlan = { theme: string; notes: string };
+
 type InitialDraft = {
   id: string;
   projectId: string;
@@ -46,8 +49,33 @@ type InitialDraft = {
   hourlyRate: number;
   proposedStartDate: string;
   notes: string;
+  dayPlans: DayPlan[];
   updatedAt: string;
 };
+
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+
+function defaultDayPlans(): DayPlan[] {
+  return Array.from({ length: SMOKE_TEST_TIMELINE_WORKING_DAYS }, (_, i) => ({
+    theme: SMOKE_TEST_DAY_THEMES[i] ?? "",
+    notes: "",
+  }));
+}
+
+function formatDayDate(startDateIso: string, dayIndex: number): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDateIso)) return null;
+  const [y, m, d] = startDateIso.split("-").map((n) => Number(n));
+  if (!y || !m || !d) return null;
+  const base = new Date(y, m - 1, d);
+  if (Number.isNaN(base.getTime())) return null;
+  // Day 0 -> Mon week 1, Day 5 -> Mon week 2 (skip 2 weekend days)
+  const offset = dayIndex < 5 ? dayIndex : dayIndex + 2;
+  base.setDate(base.getDate() + offset);
+  return base.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
 
 type Props = {
   projects: Project[];
@@ -177,6 +205,16 @@ export default function SmokeTestSprintBuilderClient({
   );
 
   const [notes, setNotes] = useState(initialDraft?.notes ?? "");
+  const [dayPlans, setDayPlans] = useState<DayPlan[]>(() => {
+    const incoming = initialDraft?.dayPlans;
+    if (incoming && incoming.length === SMOKE_TEST_TIMELINE_WORKING_DAYS) {
+      return incoming.map((p, i) => ({
+        theme: p.theme || SMOKE_TEST_DAY_THEMES[i] || "",
+        notes: p.notes ?? "",
+      }));
+    }
+    return defaultDayPlans();
+  });
 
   const [saving, setSaving] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -247,8 +285,18 @@ export default function SmokeTestSprintBuilderClient({
       hourlyRate: normalizedHourlyRate,
       proposedStartDate: proposedStartDate || undefined,
       notes: notes.trim() || undefined,
+      dayPlans: dayPlans.map((p) => ({
+        theme: p.theme.trim(),
+        notes: p.notes.trim(),
+      })),
       confirm,
     };
+  }
+
+  function updateDayPlan(index: number, patch: Partial<DayPlan>) {
+    setDayPlans((prev) =>
+      prev.map((p, i) => (i === index ? { ...p, ...patch } : p))
+    );
   }
 
   async function persist(
@@ -753,6 +801,81 @@ export default function SmokeTestSprintBuilderClient({
               Four live moments — Kickoff, Ingredient Review, Direction Check, Delivery. Everything else async via your client dashboard.
             </div>
           </div>
+        </section>
+
+        {/* Day-by-day plan */}
+        <section className="flex flex-col gap-6">
+          <div>
+            <h2 className={sectionHeaderClasses}>Day-by-day plan</h2>
+            <p className={sectionSubClasses}>
+              One row per working day. Themes are pre-filled but editable. Notes are optional —
+              fill in only the days where you want to capture intent.
+            </p>
+          </div>
+
+          {[0, 1].map((weekIdx) => {
+            const isUphill = weekIdx === 0;
+            const weekHeader = isUphill
+              ? "⛰️ Week 1 — Uphill"
+              : "🏁 Week 2 — Downhill";
+            const startIdx = weekIdx * 5;
+            return (
+              <div key={weekIdx} className="flex flex-col gap-3">
+                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                  {weekHeader}
+                </div>
+                <div className="rounded-md border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-200 dark:divide-neutral-700">
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const dayIdx = startIdx + i;
+                    const dayNumber = dayIdx + 1;
+                    const weekdayLabel = DAY_LABELS[i];
+                    const dateLabel = formatDayDate(proposedStartDate, dayIdx);
+                    const plan = dayPlans[dayIdx] ?? { theme: "", notes: "" };
+                    return (
+                      <div
+                        key={dayIdx}
+                        className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:gap-4 sm:items-start"
+                      >
+                        <div className="sm:w-32 shrink-0">
+                          <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                            Day {dayNumber} · {weekdayLabel}
+                          </div>
+                          {dateLabel && (
+                            <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                              {dateLabel}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 flex flex-col gap-2">
+                          <input
+                            type="text"
+                            value={plan.theme}
+                            onChange={(e) =>
+                              updateDayPlan(dayIdx, { theme: e.target.value })
+                            }
+                            placeholder="Theme"
+                            maxLength={60}
+                            className={`${inputClasses} h-9`}
+                            aria-label={`Day ${dayNumber} theme`}
+                          />
+                          <textarea
+                            value={plan.notes}
+                            onChange={(e) =>
+                              updateDayPlan(dayIdx, { notes: e.target.value })
+                            }
+                            rows={2}
+                            placeholder="What we'll get done this day (optional)"
+                            className={textareaClasses}
+                            aria-label={`Day ${dayNumber} notes`}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </section>
 
         {/* Scope Output */}
