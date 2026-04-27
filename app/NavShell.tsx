@@ -25,6 +25,7 @@ export default async function NavShell({ children }: { children: ReactNode }) {
     { href: "/dashboard/sprint-packages", label: "📦 Sprint Packages" },
     { href: "/dashboard/sprint-drafts", label: "📝 Sprint Drafts" },
     { href: "/dashboard/sprint-builder", label: "🛠️ Sprint Builder" },
+    { href: "/dashboard/smoke-test-sprint-builder", label: "🧪 Smoke Test Sprint Builder" },
     { href: "/dashboard/users", label: "👥 User Management" },
     { href: "/dashboard/intake-forms", label: "📄 Intake Forms" },
     { href: "/dashboard/theme", label: "🌗 Theme Controls" },

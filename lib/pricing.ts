@@ -6,6 +6,58 @@ export const DEFAULT_HOURLY_RATE = POINT_PRICE_PER_POINT / HOURS_PER_POINT; // 1
 export const UPDATE_CYCLE_WEEKLY_RATE = 2000;
 
 /**
+ * Smoke Test Sprint pricing
+ * Formula: hourly_rate × mapped_hours_per_day(complexity) × working_days
+ * Complexity mapping:
+ * 1 => 2 hrs/day
+ * 2 => 3 hrs/day
+ * 3 => 4 hrs/day
+ * 4 => 6 hrs/day
+ * 5 => 8 hrs/day
+ * Default: complexity 3 => 4 hrs/day; 250 × 4 × 10 = $10,000
+ */
+export const SMOKE_TEST_DEFAULT_COMPLEXITY = 3;
+export const SMOKE_TEST_DEFAULT_HOURLY_RATE = 250;
+export const SMOKE_TEST_HOURS_PER_COMPLEXITY_POINT = 10;
+export const SMOKE_TEST_TIMELINE_WORKING_DAYS = 10;
+
+export const SMOKE_TEST_COMPLEXITY_TIERS = {
+  low: { score: 1, label: "Low" },
+  medium: { score: 3, label: "Medium" },
+  high: { score: 5, label: "High" },
+} as const;
+
+export type SmokeTestComplexityTier = keyof typeof SMOKE_TEST_COMPLEXITY_TIERS;
+
+const SMOKE_TEST_COMPLEXITY_TO_HOURS_PER_DAY: Record<number, number> = {
+  1: 2,
+  2: 3,
+  3: 4,
+  4: 6,
+  5: 8,
+};
+
+export function smokeTestHoursPerDayFromComplexity(complexity: number): number {
+  const normalized = Math.min(5, Math.max(1, Math.round(complexity)));
+  return SMOKE_TEST_COMPLEXITY_TO_HOURS_PER_DAY[normalized] ?? 4;
+}
+
+export function calculateSmokeTestHours(complexity: number): number {
+  return smokeTestHoursPerDayFromComplexity(complexity) * SMOKE_TEST_TIMELINE_WORKING_DAYS;
+}
+
+export function calculateSmokeTestPrice(complexity: number, hourlyRate: number): number {
+  return hourlyRate * smokeTestHoursPerDayFromComplexity(complexity) * SMOKE_TEST_TIMELINE_WORKING_DAYS;
+}
+
+export function inferSmokeTestTier(complexity: number): SmokeTestComplexityTier | "custom" {
+  for (const key of Object.keys(SMOKE_TEST_COMPLEXITY_TIERS) as SmokeTestComplexityTier[]) {
+    if (SMOKE_TEST_COMPLEXITY_TIERS[key].score === complexity) return key;
+  }
+  return "custom";
+}
+
+/**
  * Derive the per-point price from an hourly rate.
  * Default: 175 $/hr × 10 hrs/pt = $1,750/pt
  */

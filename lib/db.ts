@@ -1367,6 +1367,66 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_email_unsubscribes_category ON email_unsubscribes(category);
   `);
 
+  // Smoke Test Sprint scoping records — a structured intake artifact created
+  // during or before a Jam Session. Distinct from sprint_drafts: this is a
+  // pre-sprint scoping document, not a live sprint.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS smoke_test_sprints (
+      id text PRIMARY KEY,
+      project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+
+      project_name_snapshot text,
+      building_from_sprint_ids text[] NOT NULL DEFAULT '{}',
+      building_from_other text,
+      no_prior_sprint boolean NOT NULL DEFAULT false,
+      current_state text,
+
+      whats_next text,
+      why_now text,
+      good_looks_like text,
+      how_we_know text,
+
+      browser_prototype_scope text,
+      figma_file_scope text,
+      implementation_path text,
+      implementation_members text[] NOT NULL DEFAULT '{}',
+      existing_assets text,
+
+      complexity_tier text,
+      complexity_score numeric(10,2) NOT NULL DEFAULT 3,
+      hourly_rate numeric(10,2) NOT NULL DEFAULT 250,
+      hours_per_complexity_point numeric(10,2) NOT NULL DEFAULT 10,
+      implied_hours numeric(10,2) NOT NULL DEFAULT 40,
+      total_price numeric(12,2) NOT NULL DEFAULT 10000,
+      proposed_start_date date,
+
+      notes text,
+
+      status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'confirmed', 'archived')),
+      created_by text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_smoke_test_sprints_project ON smoke_test_sprints(project_id);
+    CREATE INDEX IF NOT EXISTS idx_smoke_test_sprints_created ON smoke_test_sprints(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_smoke_test_sprints_status ON smoke_test_sprints(status);
+  `);
+  await pool.query(`
+    ALTER TABLE smoke_test_sprints
+    ADD COLUMN IF NOT EXISTS proposed_start_date date
+  `);
+  await pool.query(`
+    ALTER TABLE smoke_test_sprints
+    ADD COLUMN IF NOT EXISTS implementation_members text[] NOT NULL DEFAULT '{}'
+  `);
+  await pool.query(`
+    ALTER TABLE smoke_test_sprints
+    ALTER COLUMN complexity_score SET DEFAULT 3,
+    ALTER COLUMN hourly_rate SET DEFAULT 250,
+    ALTER COLUMN implied_hours SET DEFAULT 40,
+    ALTER COLUMN hours_per_complexity_point SET DEFAULT 10
+  `);
+
   global._schemaInitialized = true;
 }
 

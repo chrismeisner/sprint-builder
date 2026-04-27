@@ -220,6 +220,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   New update cycle
                 </Link>
               )}
+              <Link
+                href={`/dashboard/smoke-test-sprint-builder?projectId=${project.id}`}
+                className="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1.5 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150"
+              >
+                New smoke test sprint
+              </Link>
             </div>
           )}
         </div>
