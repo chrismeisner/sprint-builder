@@ -27,10 +27,33 @@ type Project = {
   name: string;
 };
 
+type InitialDraft = {
+  id: string;
+  projectId: string;
+  status: string;
+  buildingFromSprintIds: string[];
+  noPriorSprint: boolean;
+  currentState: string;
+  whatsNext: string;
+  whyNow: string;
+  goodLooksLike: string;
+  howWeKnow: string;
+  browserPrototypeScope: string;
+  figmaFileScope: string;
+  implementationMembers: string[];
+  existingAssets: string;
+  complexityScore: number;
+  hourlyRate: number;
+  proposedStartDate: string;
+  notes: string;
+  updatedAt: string;
+};
+
 type Props = {
   projects: Project[];
   sprintsByProject: Record<string, Sprint[]>;
   projectMembersByProject: Record<string, { email: string; displayName: string | null }[]>;
+  initialDraft?: InitialDraft | null;
 };
 
 const SPRINT_TYPE_LABELS: Record<string, string> = {
@@ -106,39 +129,57 @@ export default function SmokeTestSprintBuilderClient({
   projects,
   sprintsByProject,
   projectMembersByProject,
+  initialDraft,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedProjectId = searchParams.get("projectId");
 
-  const [projectId, setProjectId] = useState(
-    preselectedProjectId && projects.some((p) => p.id === preselectedProjectId)
-      ? preselectedProjectId
-      : projects[0]?.id ?? ""
+  const [draftId, setDraftId] = useState<string | null>(initialDraft?.id ?? null);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(
+    initialDraft?.updatedAt ?? null
   );
 
-  const [buildingFromIds, setBuildingFromIds] = useState<string[]>([]);
-  const [currentState, setCurrentState] = useState("");
+  const [projectId, setProjectId] = useState(
+    initialDraft?.projectId ??
+      (preselectedProjectId && projects.some((p) => p.id === preselectedProjectId)
+        ? preselectedProjectId
+        : projects[0]?.id ?? "")
+  );
 
-  const [whatsNext, setWhatsNext] = useState("");
-  const [whyNow, setWhyNow] = useState("");
-  const [goodLooksLike, setGoodLooksLike] = useState("");
-  const [howWeKnow, setHowWeKnow] = useState("");
+  const [buildingFromIds, setBuildingFromIds] = useState<string[]>(
+    initialDraft?.buildingFromSprintIds ?? []
+  );
+  const [currentState, setCurrentState] = useState(initialDraft?.currentState ?? "");
 
-  const [browserPrototypeScope, setBrowserPrototypeScope] = useState("");
-  const [figmaFileScope, setFigmaFileScope] = useState("");
-  const [implementationMembers, setImplementationMembers] = useState<string[]>([]);
-  const [existingAssets, setExistingAssets] = useState("");
+  const [whatsNext, setWhatsNext] = useState(initialDraft?.whatsNext ?? "");
+  const [whyNow, setWhyNow] = useState(initialDraft?.whyNow ?? "");
+  const [goodLooksLike, setGoodLooksLike] = useState(initialDraft?.goodLooksLike ?? "");
+  const [howWeKnow, setHowWeKnow] = useState(initialDraft?.howWeKnow ?? "");
+
+  const [browserPrototypeScope, setBrowserPrototypeScope] = useState(
+    initialDraft?.browserPrototypeScope ?? ""
+  );
+  const [figmaFileScope, setFigmaFileScope] = useState(initialDraft?.figmaFileScope ?? "");
+  const [implementationMembers, setImplementationMembers] = useState<string[]>(
+    initialDraft?.implementationMembers ?? []
+  );
+  const [existingAssets, setExistingAssets] = useState(initialDraft?.existingAssets ?? "");
 
   const [complexityScore, setComplexityScore] = useState<number>(
-    SMOKE_TEST_DEFAULT_COMPLEXITY
+    initialDraft?.complexityScore ?? SMOKE_TEST_DEFAULT_COMPLEXITY
   );
-  const [hourlyRate, setHourlyRate] = useState<number>(SMOKE_TEST_DEFAULT_HOURLY_RATE);
-  const [proposedStartDate, setProposedStartDate] = useState("");
+  const [hourlyRate, setHourlyRate] = useState<number>(
+    initialDraft?.hourlyRate ?? SMOKE_TEST_DEFAULT_HOURLY_RATE
+  );
+  const [proposedStartDate, setProposedStartDate] = useState(
+    initialDraft?.proposedStartDate ?? ""
+  );
 
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(initialDraft?.notes ?? "");
 
   const [saving, setSaving] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const availableSprints = useMemo(
@@ -187,40 +228,83 @@ export default function SmokeTestSprintBuilderClient({
     );
   }
 
+  function buildPayload(confirm: boolean) {
+    return {
+      projectId,
+      buildingFromSprintIds: buildingFromIds,
+      currentState: currentState.trim() || undefined,
+      whatsNext: whatsNext.trim() || undefined,
+      whyNow: whyNow.trim() || undefined,
+      goodLooksLike: goodLooksLike.trim() || undefined,
+      howWeKnow: howWeKnow.trim() || undefined,
+      browserPrototypeScope: browserPrototypeScope.trim() || undefined,
+      figmaFileScope: figmaFileScope.trim() || undefined,
+      implementationMembers:
+        implementationMembers.length > 0 ? implementationMembers : undefined,
+      existingAssets: existingAssets.trim() || undefined,
+      complexityTier: tier,
+      complexityScore: normalizedComplexity,
+      hourlyRate: normalizedHourlyRate,
+      proposedStartDate: proposedStartDate || undefined,
+      notes: notes.trim() || undefined,
+      confirm,
+    };
+  }
+
+  async function persist(
+    confirm: boolean
+  ): Promise<{ id: string; status: string } | null> {
+    const payload = buildPayload(confirm);
+    const url = draftId
+      ? `/api/smoke-test-sprints/${draftId}`
+      : "/api/smoke-test-sprints";
+    const method = draftId ? "PATCH" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `Request failed (${res.status})`);
+    }
+
+    const data = (await res.json()) as { id: string; status: string };
+    return data;
+  }
+
+  async function handleSaveDraft() {
+    if (!projectId || saving || savingDraft) return;
+    setError(null);
+    setSavingDraft(true);
+    try {
+      const result = await persist(false);
+      if (result) {
+        if (!draftId) {
+          setDraftId(result.id);
+          const params = new URLSearchParams(searchParams.toString());
+          params.set("draftId", result.id);
+          router.replace(`/dashboard/smoke-test-sprint-builder?${params.toString()}`);
+        }
+        setLastSavedAt(new Date().toISOString());
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setSavingDraft(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (saving || savingDraft) return;
     setError(null);
     setSaving(true);
 
     try {
-      const res = await fetch("/api/smoke-test-sprints", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId,
-          buildingFromSprintIds: buildingFromIds,
-          currentState: currentState.trim() || undefined,
-          whatsNext: whatsNext.trim() || undefined,
-          whyNow: whyNow.trim() || undefined,
-          goodLooksLike: goodLooksLike.trim() || undefined,
-          howWeKnow: howWeKnow.trim() || undefined,
-          browserPrototypeScope: browserPrototypeScope.trim() || undefined,
-          figmaFileScope: figmaFileScope.trim() || undefined,
-          implementationMembers: implementationMembers.length > 0 ? implementationMembers : undefined,
-          existingAssets: existingAssets.trim() || undefined,
-          complexityTier: tier,
-          complexityScore: normalizedComplexity,
-          hourlyRate: normalizedHourlyRate,
-          proposedStartDate: proposedStartDate || undefined,
-          notes: notes.trim() || undefined,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `Request failed (${res.status})`);
-      }
-
+      await persist(true);
       router.push(`/projects/${projectId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -228,7 +312,22 @@ export default function SmokeTestSprintBuilderClient({
     }
   }
 
-  const canSubmit = Boolean(projectId) && !saving;
+  const canSubmit = Boolean(projectId) && !saving && !savingDraft;
+  const canSaveDraft = Boolean(projectId) && !saving && !savingDraft;
+  const lastSavedLabel = useMemo(() => {
+    if (!lastSavedAt) return null;
+    try {
+      const d = new Date(lastSavedAt);
+      return d.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    } catch {
+      return null;
+    }
+  }, [lastSavedAt]);
 
   return (
     <main className="min-h-screen max-w-3xl mx-auto px-4 py-12">
@@ -245,6 +344,12 @@ export default function SmokeTestSprintBuilderClient({
         <p className="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 mt-1">
           Single source — used during or before your Jam Session.
         </p>
+        {draftId && (
+          <p className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-400 mt-2">
+            Editing draft
+            {lastSavedLabel ? ` · last saved ${lastSavedLabel}` : ""}
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-12">
@@ -271,6 +376,7 @@ export default function SmokeTestSprintBuilderClient({
               }}
               className={inputClasses}
               required
+              disabled={Boolean(draftId)}
             >
               {projects.length === 0 && <option value="">No projects found</option>}
               {projects.map((p) => (
@@ -279,6 +385,11 @@ export default function SmokeTestSprintBuilderClient({
                 </option>
               ))}
             </select>
+            {draftId && (
+              <p className={helpTextClasses}>
+                Project is locked while editing a saved draft.
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -764,7 +875,7 @@ export default function SmokeTestSprintBuilderClient({
             </div>
           )}
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="submit"
               disabled={!canSubmit}
@@ -772,12 +883,25 @@ export default function SmokeTestSprintBuilderClient({
             >
               {saving ? "Saving…" : "Confirm scope and schedule kickoff →"}
             </button>
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              disabled={!canSaveDraft}
+              className="h-11 px-4 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 text-neutral-800 dark:text-neutral-200 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {savingDraft ? "Saving…" : draftId ? "Save draft" : "Save as draft"}
+            </button>
             <Link
               href={projectId ? `/projects/${projectId}` : "/dashboard"}
               className="h-11 px-4 text-sm rounded-md border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150"
             >
               Cancel
             </Link>
+            {lastSavedLabel && (
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                Last saved {lastSavedLabel}
+              </span>
+            )}
           </div>
         </section>
       </form>

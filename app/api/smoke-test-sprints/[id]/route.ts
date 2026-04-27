@@ -9,7 +9,8 @@ import {
   calculateSmokeTestPrice,
   inferSmokeTestTier,
 } from "@/lib/pricing";
-import { randomUUID } from "crypto";
+
+type Params = { params: { id: string } };
 
 function str(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -40,7 +41,7 @@ function dateOnly(value: unknown): string | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
 }
 
-export async function POST(request: Request) {
+export async function PATCH(request: Request, { params }: Params) {
   try {
     await ensureSchema();
     const pool = getPool();
@@ -53,28 +54,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
+    const { id } = params;
+    if (!id) {
+      return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    }
+
+    const existing = await pool.query(
+      `SELECT id, project_id, status FROM smoke_test_sprints WHERE id = $1`,
+      [id]
+    );
+    if (existing.rowCount === 0) {
+      return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+    }
+    const currentStatus = existing.rows[0].status as string;
+    const projectId = existing.rows[0].project_id as string;
+    if (currentStatus !== "draft") {
+      return NextResponse.json(
+        { error: `Cannot edit a sprint with status '${currentStatus}'` },
+        { status: 409 }
+      );
+    }
+
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const projectId = str(body.projectId);
-    if (!projectId) {
-      return NextResponse.json({ error: "Project is required" }, { status: 400 });
-    }
-
-    const projectRes = await pool.query(
-      `SELECT id, name FROM projects WHERE id = $1`,
-      [projectId]
-    );
-    if (projectRes.rowCount === 0) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    }
-    const projectNameSnapshot = (projectRes.rows[0].name as string | null) ?? null;
-
     const noPriorSprint = Boolean(body.noPriorSprint);
     const buildingFromIds = noPriorSprint ? [] : stringArray(body.buildingFromSprintIds);
-
     if (buildingFromIds.length > 0) {
       const check = await pool.query(
         `SELECT id FROM sprint_drafts WHERE project_id = $1 AND id = ANY($2::text[])`,
@@ -123,35 +130,36 @@ export async function POST(request: Request) {
     const impliedHours = calculateSmokeTestHours(normalizedComplexityScore);
     const totalPrice = calculateSmokeTestPrice(normalizedComplexityScore, hourlyRate);
 
-    const id = randomUUID();
     const confirm = body.confirm === true;
-    const status = confirm ? "confirmed" : "draft";
+    const nextStatus = confirm ? "confirmed" : "draft";
 
     await pool.query(
-      `INSERT INTO smoke_test_sprints (
-         id, project_id,
-         project_name_snapshot, building_from_sprint_ids, building_from_other, no_prior_sprint,
-         current_state,
-         whats_next, why_now, good_looks_like, how_we_know,
-         browser_prototype_scope, figma_file_scope, implementation_path, implementation_members, existing_assets,
-         complexity_tier, complexity_score, hourly_rate, hours_per_complexity_point,
-         implied_hours, total_price, proposed_start_date,
-         notes, status, created_by
-       )
-       VALUES (
-         $1, $2,
-         $3, $4, $5, $6,
-         $7,
-         $8, $9, $10, $11,
-         $12, $13, $14, $15, $16,
-         $17, $18, $19, $20,
-         $21, $22, $23,
-         $24, $26, $25
-       )`,
+      `UPDATE smoke_test_sprints SET
+         building_from_sprint_ids = $2,
+         building_from_other = $3,
+         no_prior_sprint = $4,
+         current_state = $5,
+         whats_next = $6,
+         why_now = $7,
+         good_looks_like = $8,
+         how_we_know = $9,
+         browser_prototype_scope = $10,
+         figma_file_scope = $11,
+         implementation_members = $12,
+         existing_assets = $13,
+         complexity_tier = $14,
+         complexity_score = $15,
+         hourly_rate = $16,
+         hours_per_complexity_point = $17,
+         implied_hours = $18,
+         total_price = $19,
+         proposed_start_date = $20,
+         notes = $21,
+         status = $22,
+         updated_at = now()
+       WHERE id = $1`,
       [
         id,
-        projectId,
-        projectNameSnapshot,
         buildingFromIds,
         str(body.buildingFromOther),
         noPriorSprint,
@@ -162,7 +170,6 @@ export async function POST(request: Request) {
         str(body.howWeKnow),
         str(body.browserPrototypeScope),
         str(body.figmaFileScope),
-        null, // legacy field; kept for backwards compatibility with existing schema.
         implementationMembers,
         str(body.existingAssets),
         complexityTier,
@@ -173,17 +180,16 @@ export async function POST(request: Request) {
         totalPrice,
         dateOnly(body.proposedStartDate),
         str(body.notes),
-        user.accountId ?? null,
-        status,
+        nextStatus,
       ]
     );
 
     return NextResponse.json(
-      { id, projectId, totalPrice, impliedHours, status },
-      { status: 201 }
+      { id, projectId, totalPrice, impliedHours, status: nextStatus },
+      { status: 200 }
     );
   } catch (error: unknown) {
-    console.error("[SmokeTestSprintsAPI] POST error:", error);
+    console.error("[SmokeTestSprintsAPI] PATCH error:", error);
     return NextResponse.json(
       { error: (error as Error).message ?? "Unknown error" },
       { status: 500 }
