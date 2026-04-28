@@ -1435,6 +1435,17 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS deliverables jsonb NOT NULL DEFAULT '[]'::jsonb
   `);
 
+  // Miles Proto 3 — persisted scenario state (overrides + custom order)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS miles_proto3_scenario_state (
+      key text PRIMARY KEY,
+      scenario_overrides jsonb NOT NULL DEFAULT '{}'::jsonb,
+      scenario_order jsonb NOT NULL DEFAULT '[]'::jsonb,
+      screen_overrides jsonb NOT NULL DEFAULT '{}'::jsonb,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+
   // Miles Proto 3 — widget attachments (screenshots for visual reference)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS miles_proto3_widget_attachments (

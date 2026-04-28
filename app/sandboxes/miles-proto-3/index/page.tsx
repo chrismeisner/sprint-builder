@@ -80,9 +80,36 @@ interface WidgetOverride {
   purpose?: string;
 }
 
-const SCREEN_STORAGE_KEY = "miles-proto-3-screen-overrides";
-const SCENARIO_STORAGE_KEY = "miles-proto-3-scenario-overrides";
 const WIDGET_STORAGE_KEY = "miles-proto-3-widget-overrides";
+
+const SCENARIO_STATE_API = "/api/sandboxes/miles-proto-3/scenario-state";
+
+async function loadScenarioState(): Promise<{ scenarioOverrides: Record<string, ScenarioOverride>; scenarioOrder: number[]; screenOverrides: Record<string, ScreenOverride>; updatedAt: string | null }> {
+  try {
+    const res = await fetch(SCENARIO_STATE_API);
+    if (res.ok) return res.json();
+  } catch {}
+  return { scenarioOverrides: {}, scenarioOrder: [], screenOverrides: {}, updatedAt: null };
+}
+
+async function saveScenarioState(
+  scenarioOverrides: Record<string, ScenarioOverride>,
+  scenarioOrder: number[],
+  screenOverrides: Record<string, ScreenOverride>
+): Promise<string | null> {
+  try {
+    const res = await fetch(SCENARIO_STATE_API, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scenarioOverrides, scenarioOrder, screenOverrides }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.updatedAt ?? null;
+    }
+  } catch {}
+  return null;
+}
 
 // ── Attachments (server-backed via /api/sandboxes/miles-proto-3/widget-attachments) ──
 const ATTACHMENTS_API = "/api/sandboxes/miles-proto-3/widget-attachments";
@@ -1101,7 +1128,7 @@ function EditScenarioModal({
               </select>
             </label>
             <label className="block space-y-1">
-              <span className={labelCls}>Entry</span>
+              <span className={labelCls}>Primary Entry</span>
               <select value={draft.surface} onChange={(e) => patch("surface", e.target.value as Surface)} className={inputCls}>
                 {SURFACE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -1177,6 +1204,7 @@ export default function IndexPage() {
 
   const [sortKey, setSortKey] = useState<SortKey>("id");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [scenarioOrder, setScenarioOrder] = useState<number[]>([]);
 
   const [widgetModeFilter, setWidgetModeFilter] = useState<Set<WidgetMode>>(new Set());
   const [widgetStatusFilter, setWidgetStatusFilter] = useState<Set<WidgetStatus>>(new Set());
@@ -1189,6 +1217,9 @@ export default function IndexPage() {
   const [widgetOverrides, setWidgetOverrides] = useState<Record<string, WidgetOverride>>({});
   const [editingWidgetName, setEditingWidgetName] = useState<string | null>(null);
   const [attachmentCounts, setAttachmentCounts] = useState<Map<string, number>>(new Map());
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
   const refreshAttachmentCounts = async () => {
     try {
@@ -1200,14 +1231,12 @@ export default function IndexPage() {
   };
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SCREEN_STORAGE_KEY);
-      if (raw) setScreenOverrides(JSON.parse(raw));
-    } catch {}
-    try {
-      const raw = localStorage.getItem(SCENARIO_STORAGE_KEY);
-      if (raw) setScenarioOverrides(JSON.parse(raw));
-    } catch {}
+    loadScenarioState().then(({ scenarioOverrides, scenarioOrder, screenOverrides, updatedAt }) => {
+      if (Object.keys(scenarioOverrides).length > 0) setScenarioOverrides(scenarioOverrides);
+      if (scenarioOrder.length > 0) setScenarioOrder(scenarioOrder);
+      if (Object.keys(screenOverrides).length > 0) setScreenOverrides(screenOverrides);
+      if (updatedAt) setLastSavedAt(updatedAt);
+    });
     try {
       const raw = localStorage.getItem(WIDGET_STORAGE_KEY);
       if (raw) setWidgetOverrides(JSON.parse(raw));
@@ -1238,11 +1267,8 @@ export default function IndexPage() {
   }
 
   function updateScreenOverride(href: string, patch: Partial<ScreenOverride>) {
-    setScreenOverrides((prev) => {
-      const next = { ...prev, [href]: { ...prev[href], ...patch } };
-      try { localStorage.setItem(SCREEN_STORAGE_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
+    setScreenOverrides((prev) => ({ ...prev, [href]: { ...prev[href], ...patch } }));
+    setIsDirty(true);
   }
 
   function saveScenarioFromModal(id: number, draft: Scenario) {
@@ -1251,31 +1277,46 @@ export default function IndexPage() {
     const patch = diffScenarioOverride(source, draft);
     setScenarioOverrides((prev) => {
       const next = { ...prev };
-      if (Object.keys(patch).length === 0) {
-        delete next[id];
-      } else {
-        next[id] = patch;
-      }
-      try { localStorage.setItem(SCENARIO_STORAGE_KEY, JSON.stringify(next)); } catch {}
+      if (Object.keys(patch).length === 0) delete next[id];
+      else next[id] = patch;
       return next;
     });
+    setIsDirty(true);
   }
 
   function resetScenarioOverride(id: number) {
-    setScenarioOverrides((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      try { localStorage.setItem(SCENARIO_STORAGE_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
+    setScenarioOverrides((prev) => { const next = { ...prev }; delete next[id]; return next; });
+    setIsDirty(true);
   }
 
   function updateScenarioOverride(id: number, patch: Partial<ScenarioOverride>) {
-    setScenarioOverrides((prev) => {
-      const next = { ...prev, [id]: { ...prev[id], ...patch } };
-      try { localStorage.setItem(SCENARIO_STORAGE_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
+    setScenarioOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+    setIsDirty(true);
+  }
+
+  function moveScenario(id: number, dir: -1 | 1) {
+    const currentIds = filteredScenarios.map((s) => s.id);
+    const from = currentIds.indexOf(id);
+    const to = from + dir;
+    if (to < 0 || to >= currentIds.length) return;
+    const next = [...currentIds];
+    next.splice(from, 1);
+    next.splice(to, 0, id);
+    setScenarioOrder(next);
+    setIsDirty(true);
+  }
+
+  function resetOrder() {
+    setScenarioOrder([]);
+    setIsDirty(true);
+  }
+
+  async function handleSave() {
+    setIsSaving(true);
+    const ts = await saveScenarioState(scenarioOverrides, scenarioOrder, screenOverrides);
+    setLastSavedAt(ts ?? new Date().toISOString());
+    setIsDirty(false);
+    setIsSaving(false);
   }
 
   function handleSort(key: SortKey) {
@@ -1323,9 +1364,15 @@ export default function IndexPage() {
     const sorted = [...result].sort((a, b) => {
       let cmp = 0;
       switch (sortKey) {
-        case "id":
-          cmp = a.id - b.id;
+        case "id": {
+          if (scenarioOrder.length > 0) {
+            const pos = (id: number) => { const i = scenarioOrder.indexOf(id); return i === -1 ? 9999 : i; };
+            cmp = pos(a.id) - pos(b.id);
+          } else {
+            cmp = a.id - b.id;
+          }
           break;
+        }
         case "name": {
           const an = scenarioOverrides[a.id]?.name ?? a.name;
           const bn = scenarioOverrides[b.id]?.name ?? b.name;
@@ -1366,7 +1413,7 @@ export default function IndexPage() {
     });
 
     return sorted;
-  }, [query, sortKey, sortDir, scenarioOverrides]);
+  }, [query, sortKey, sortDir, scenarioOverrides, scenarioOrder]);
 
   const filteredTotal = filtered.reduce((sum, s) => sum + s.pages.length, 0);
 
@@ -1527,6 +1574,22 @@ export default function IndexPage() {
           >
             Design hub
           </a>
+
+          <div className="flex shrink-0 items-center gap-2">
+            {lastSavedAt && !isDirty && (
+              <span className="text-xs text-neutral-400">
+                Saved {new Date(lastSavedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!isDirty || isSaving}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isSaving ? "Saving…" : "Save"}
+            </button>
+          </div>
 
           <a
             href={BASE}
@@ -2031,16 +2094,29 @@ export default function IndexPage() {
               </button>
             </div>
           ) : (
-            <table className="w-full border-collapse">
+            <table className="w-full table-fixed border-collapse">
               <thead>
                 <tr className="border-b border-neutral-200">
+                  <th style={{ width: "2rem", minWidth: "2rem", maxWidth: "2rem" }} className="pb-2" />
                   <th className="w-10 pb-2 pr-4 text-left">
-                    <button type="button" onClick={() => handleSort("id")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
-                      #
-                      <SortIcon active={sortKey === "id"} dir={sortDir} />
-                    </button>
+                    <div className="inline-flex items-center gap-2">
+                      <button type="button" onClick={() => handleSort("id")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
+                        #
+                        <SortIcon active={sortKey === "id"} dir={sortDir} />
+                      </button>
+                      {sortKey === "id" && scenarioOrder.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={resetOrder}
+                          className="text-xs text-neutral-300 hover:text-neutral-500 transition-colors"
+                          title="Reset to default order"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
                   </th>
-                  <th className="pb-2 pr-4 text-left">
+                  <th className="w-52 pb-2 pr-4 text-left">
                     <button type="button" onClick={() => handleSort("name")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
                       Scenario
                       <SortIcon active={sortKey === "name"} dir={sortDir} />
@@ -2055,7 +2131,7 @@ export default function IndexPage() {
                   </th>
                   <th className="w-32 pb-2 pr-4 text-left">
                     <button type="button" onClick={() => handleSort("surface")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
-                      Entry
+                      Primary Entry
                       <SortIcon active={sortKey === "surface"} dir={sortDir} />
                     </button>
                   </th>
@@ -2071,20 +2147,48 @@ export default function IndexPage() {
                       <SortIcon active={sortKey === "inSprint"} dir={sortDir} />
                     </button>
                   </th>
-                  <th className="min-w-[200px] pb-2 pr-4 text-left text-xs font-medium text-neutral-400">Widgets</th>
+                  <th className="w-[200px] pb-2 pr-4 text-left text-xs font-medium text-neutral-400">Widgets</th>
                   <th className="w-28 pb-2 text-left text-xs font-medium text-neutral-400">Prototype</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredScenarios.map((scenario) => {
+                {filteredScenarios.map((scenario, rowIdx) => {
                   const eff = effectiveScenario(scenario, scenarioOverrides[scenario.id]);
+                  const isFirst = rowIdx === 0;
+                  const isLast = rowIdx === filteredScenarios.length - 1;
                   return (
                   <tr
                     key={scenario.id}
                     className="group border-b border-neutral-100 transition-colors hover:bg-neutral-50"
                   >
+                    <td style={{ width: "2rem", minWidth: "2rem", maxWidth: "2rem" }} className="py-3">
+                      <div className={`flex w-5 flex-col gap-0.5 transition-opacity ${sortKey === "id" ? "opacity-0 group-hover:opacity-100" : "invisible"}`}>
+                          <button
+                            type="button"
+                            disabled={isFirst}
+                            onClick={() => moveScenario(scenario.id, -1)}
+                            className="flex size-5 items-center justify-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-20 disabled:cursor-not-allowed"
+                            aria-label="Move up"
+                          >
+                            <svg className="size-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isLast}
+                            onClick={() => moveScenario(scenario.id, 1)}
+                            className="flex size-5 items-center justify-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-20 disabled:cursor-not-allowed"
+                            aria-label="Move down"
+                          >
+                            <svg className="size-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                            </svg>
+                          </button>
+                        </div>
+                    </td>
                     <td className="py-3 pr-4 text-right text-xs tabular-nums text-neutral-300 group-hover:text-neutral-400">
-                      {scenario.id}
+                      {rowIdx + 1}
                     </td>
                     <td className="py-3 pr-4">
                       <div className="flex items-start gap-2">
