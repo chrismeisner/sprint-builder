@@ -4,10 +4,11 @@ import { useState, useMemo, useEffect } from "react";
 import { BASE } from "@/app/sandboxes/miles-proto-3/_lib/nav";
 
 type Priority = "p0" | "p1" | "p2" | "p3";
+type SprintPriority = "p1" | "p2" | "p3";
 type DesignStatus = "scoping" | "wireframe" | "design";
 type DevStatus = "scoping" | "prototype" | "implementing";
 type ScenarioMode = "agent" | "hybrid" | "screen";
-type Surface = "push" | "ask-miles" | "tab" | "onboarding" | "none";
+type Surface = "push" | "ask-miles" | "tab" | "onboarding";
 type Persona = "all" | "admin" | "driver" | "teen" | "solo";
 
 interface PageEntry {
@@ -49,13 +50,13 @@ interface Scenario {
   name: string;
   overview: string;
   mode: ScenarioMode;
-  surface: Surface;
+  surfaces: Surface[];
   persona: Persona;
   components: string[];
   designStatus: DesignStatus;
   devStatus: DevStatus;
   priority: Priority;
-  inSprint?: boolean;
+  sprintPriority?: SprintPriority;
   constraint?: string;
   href?: string;
 }
@@ -67,12 +68,12 @@ interface ScenarioOverride {
   href?: string;
   constraint?: string;
   mode?: ScenarioMode;
-  surface?: Surface;
+  surfaces?: Surface[];
   persona?: Persona;
   components?: string[];
   designStatus?: DesignStatus;
   devStatus?: DevStatus;
-  inSprint?: boolean;
+  sprintPriority?: SprintPriority;
 }
 interface WidgetOverride {
   mode?: WidgetMode;
@@ -171,34 +172,34 @@ const COMPONENT_SUGGESTIONS = [
 ] as const;
 
 const scenarios: Scenario[] = [
-  { id: 1,  name: "Kid Starts Driving / Trip in Progress",    overview: "Prove that both parents receive, view, and trust a live trip as it happens and after it ends.",                                                                                                                                           designStatus: "design", devStatus: "scoping",     priority: "p1", mode: "hybrid", surface: "push", persona: "all", href: "/notification?context=kid-trip", components: ["trip_status", "quick_reply_group", "driver_picker"] },
-  { id: 2,  name: "Kid Speeding",                             overview: "Show the agent interrupting an active trip thread with a driving behavior alert and parent response options.",                                                                                                                         designStatus: "design", devStatus: "scoping",     priority: "p1", mode: "hybrid", surface: "push", persona: "all", href: "/notification?context=kid-speeding", components: ["coaching_alert", "quick_reply_group", "trip_status"] },
-  { id: 3,  name: "Hard Braking (Real-Time Alert)",           overview: "Same as speeding but for a deceleration event, proving the mid-trip alert pattern repeats cleanly.",                                                                                                                                 designStatus: "design", devStatus: "scoping",     priority: "p2", mode: "hybrid", surface: "push", persona: "all", href: "/notification?context=coaching-braking", components: ["coaching_alert", "quick_reply_group"] },
-  { id: 4,  name: "Fuel Low After a Trip",                    overview: "Establish the baseline reminder pattern: agent surfaces a low-stakes issue, user picks how to handle it, done.",                                                                                                                     designStatus: "design", devStatus: "scoping", priority: "p2", mode: "hybrid", surface: "push", persona: "all", href: "/notification?context=fuel", components: ["fuel_alert", "quick_reply_group"] },
-  { id: 5,  name: "Low Tire Pressure",                        overview: "Prove the full card anatomy works end-to-end: data visualization, coaching layer, action set, and resolution.",                                                                                                                     designStatus: "design", devStatus: "scoping",     priority: "p1", mode: "hybrid", surface: "push", persona: "all", href: "/notification?context=tire-pressure", components: ["vehicle_health_alert", "quick_reply_group", "maintenance_todo"] },
-  { id: 6,  name: "Oil Change Due",                           overview: "Show the reminder pattern with more action variety (time-based, mileage-based, already done) and the \"don't badger\" behavior.",                                                                                                   designStatus: "design", devStatus: "scoping", priority: "p2", mode: "hybrid", surface: "push", persona: "all", href: "/notification?context=oil", components: ["maintenance_todo", "quick_reply_group"] },
-  { id: 7,  name: "Severe Crash — Emergency",                 overview: "Define the boundary where the agent pattern stops and a full-screen, red-button emergency UI takes over. Send push alert to trusted contact with details of incident; tell primary driver we've dispatched first responder; monitoring center calls them.",                                                                                                                           designStatus: "scoping", devStatus: "scoping",     priority: "p0", mode: "screen", surface: "push", persona: "all", components: ["incident_status"] },
-  { id: 8,  name: "Less Severe Crash / Vehicle Breakdown",    overview: "Show the second tier of crash response where the user is conscious and choosing between tow or ambulance. Push notification to trusted contact; ask primary user if they need help. Two buttons: roadside, emergency services.",                                                                                                                          designStatus: "scoping", devStatus: "scoping",     priority: "p0", mode: "screen", surface: "push", persona: "all", components: ["incident_status", "roadside_request"] },
-  { id: 9,  name: "Maintenance Intake / Source of Truth Setup", overview: "Walk through the onboarding moment where the agent builds the vehicle's maintenance baseline item by item.",                                                                                                                      designStatus: "scoping", devStatus: "scoping",     priority: "p2", mode: "hybrid", surface: "onboarding", persona: "admin", components: ["maintenance_history_builder", "quick_reply_group", "document_upload"] },
-  { id: 10, name: "Check Engine Light",                       overview: "Test the alert → chat flow with a higher-anxiety vehicle issue that needs calm explanation. Surface context on the issue, severity, and cost range. CTAs: get reminder in 2–3 days; send email/documentation to mechanic.",                                                                                                                                       designStatus: "design", devStatus: "scoping",     priority: "p1", mode: "hybrid", surface: "push", persona: "all", href: "/notification?context=check-engine", components: ["mechanic_explainer", "quick_reply_group"] },
-  { id: 11, name: "Trip Summary — Contextual Q&A",            overview: "Prove the agent can be user-initiated from a screen, not just alert-driven, with suggested prompts scoped to a completed trip.",                                                                                                    designStatus: "design", devStatus: "scoping", priority: "p2", mode: "hybrid", surface: "ask-miles", persona: "all", href: "/miles?context=trip-detail", components: ["trip_summary", "insight_card", "quick_reply_group"] },
-  { id: 12, name: "Hard Braking (Post-Trip Review)",          overview: "Show braking events as markers on a completed trip route inside the trip summary view.",                                                                                                                                            designStatus: "design", devStatus: "scoping",     priority: "p2", mode: "hybrid", surface: "ask-miles", persona: "all", href: "/miles?context=coaching-braking", components: ["trip_event_markers", "insight_card", "quick_reply_group"] },
-  { id: 13, name: "Insurance Photo Intake",                   overview: "Demonstrate the agent asking the user to contribute a document and following up months later with insight from it. Future: share insights on their rates vs others or market trends; prompt to get a quote from our partner when rates look high or near renewal.",                                                                                                                 designStatus: "scoping", devStatus: "scoping",     priority: "p3", mode: "hybrid", surface: "ask-miles", persona: "all", components: ["document_upload", "quick_reply_group"] },
-  { id: 14, name: "Registration Expiring",                    overview: "Show the passive badge entry point for a time-based reminder that's handled in seconds and backgrounded.",                                                                                                                          designStatus: "design", devStatus: "scoping",     priority: "p2", mode: "hybrid", surface: "ask-miles", persona: "all", href: "/notification?context=registration", components: ["reminder_card", "quick_reply_group", "document_upload"] },
-  { id: 15, name: "Post-Incident Follow-Up",                  overview: "Prove the agent can re-open a closed loop days after an emergency with a human-touch check-in.",                                                                                                                                    designStatus: "scoping", devStatus: "scoping",     priority: "p3", mode: "hybrid", surface: "push", persona: "all", components: ["insight_card", "quick_reply_group"] },
-  { id: 16, name: "Service Receipt Photo",                    overview: "Show the agent prompting for a photo after a maintenance item is marked done to keep the log accurate. Store image in \"digital glovebox\" for reference; parse info to show in records; set behind-the-scenes reminders for future service milestones. (Glovebox concept could extend to insurance, service records, todo list, etc.)",                                                                                                                            designStatus: "scoping", devStatus: "scoping",     priority: "p3", mode: "hybrid", surface: "push", persona: "all", components: ["document_upload", "maintenance_todo", "quick_reply_group"] },
-  { id: 17, name: "Major Maintenance Early Warning",          overview: "Surface a future maintenance milestone from the vehicle's schedule before it becomes urgent. In future, we'll pull in info about the recommended service: anticipated cost range, how long service takes, etc. Also can ask to book an appointment.", designStatus: "scoping", devStatus: "scoping", priority: "p3", mode: "hybrid", surface: "ask-miles", persona: "all", components: ["maintenance_todo", "insight_card", "quick_reply_group"] },
-  { id: 18, name: "Model-Specific Known Issue",               overview: "Proactively flag a common problem for this make/model/mileage that the user may not know about.",                                                                                                                                   designStatus: "scoping", devStatus: "scoping",     priority: "p3", mode: "hybrid", surface: "ask-miles", persona: "all", components: ["insight_card", "quick_reply_group"] },
-  { id: 19, name: "Pre-Service Appointment Briefing",         overview: "Arm the user with what their car actually needs before they walk into the shop. Prepare people before they go in based on recommended services for their mileage, what's coming up in future, and cost ranges.",                                                                                  designStatus: "design", devStatus: "scoping", priority: "p2", mode: "hybrid", surface: "ask-miles", persona: "all", components: ["service_briefing", "maintenance_todo", "quick_reply_group"] },
-  { id: 20, name: "Trip Detail — Save Destination",           overview: "Show the agent offering to name a location based on where the user is in the app, replacing a settings screen.",                                                                                                                    designStatus: "scoping", devStatus: "scoping",     priority: "p3", mode: "hybrid", surface: "ask-miles", persona: "all", components: ["place_naming", "quick_reply_group"] },
-  { id: 21, name: "Inspection Due",                           overview: "Same pattern as registration expiring: passive badge for a time-based reminder (state/safety inspection due), handled in seconds and backgrounded.",                                                                                 designStatus: "scoping", devStatus: "scoping",     priority: "p3", mode: "hybrid", surface: "ask-miles", persona: "all", components: ["reminder_card", "quick_reply_group", "document_upload"] },
-  { id: 22, name: "Navigation Concierge / 'Where do I…?'",    overview: "Agent answers wayfinding questions and routes the user to the correct screen — turns the chat into an in-app GPS for the product itself.",                                                                                              designStatus: "scoping", devStatus: "scoping",     priority: "p2", mode: "agent", surface: "tab", persona: "all",  components: ["nav_card", "quick_reply_group"] },
-  { id: 23, name: "Add a Driver / Invite Family Member",      overview: "Guide an admin through inviting a driver, including the COPPA branch when the invitee is a minor. Email + role pick + optional consent capture.",                                                                                       designStatus: "scoping", devStatus: "scoping",     priority: "p1", mode: "hybrid", surface: "tab", persona: "admin", components: ["email_invite_input", "quick_reply_group", "role_pills"] },
-  { id: 24, name: "Update Profile",                           overview: "Scope-routed agent flow for editing profile fields (display name, avatar, timezone, phone, email). Display name is shipped; the rest follow the same template.",                                                                       designStatus: "design", devStatus: "prototype",     priority: "p2", mode: "agent", surface: "ask-miles", persona: "all",  components: ["profile_displayname_input", "quick_reply_group"] },
-  { id: 25, name: "First-Run Setup / Pair Your Miles Plug",   overview: "Full-screen onboarding FSM: welcome → scan QR → pair device → confirm. The agent's onboarding home; everything else hangs off this entry.",                                                                                              designStatus: "design",  devStatus: "implementing",         priority: "p1", mode: "hybrid", surface: "onboarding", persona: "admin", components: ["welcome_with_scan", "qr_scanner", "confirm_action", "accept_invite"] },
-  { id: 26, name: "Add a Vehicle (VIN Scan → Confirm → Pair)", overview: "Multi-step FSM: VIN capture (scan or type) → server decode → review year/make/model → optional device pair. ~4–5 turns end to end.",                                                                                                    designStatus: "scoping", devStatus: "scoping",     priority: "p1", mode: "hybrid", surface: "tab", persona: "admin", components: ["vin_input", "vin_review", "qr_scanner", "confirm_action", "quick_reply_group"] },
-  { id: 27, name: "Configure Alert Preferences",              overview: "Agent-driven builder for alert prefs per driver-per-watcher. Possibly recommended bundles up front, drill-down toggles for power users.",                                                                                                designStatus: "scoping", devStatus: "scoping",     priority: "p2", mode: "agent", surface: "ask-miles", persona: "admin",  components: ["alert_prefs_builder", "quick_reply_group"] },
-  { id: 28, name: "'I Need Help Now' — Manual Incident Trigger", overview: "User-initiated emergency from the Help button. Same full-screen overlay as auto-detected crash — shares the incident_status surface, bypasses chat.",                                                                                designStatus: "scoping", devStatus: "scoping",     priority: "p0", mode: "screen", surface: "none", persona: "all", components: ["incident_status"] },
+  { id: 1,  name: "Kid Starts Driving / Trip in Progress",    overview: "Prove that both parents receive, view, and trust a live trip as it happens and after it ends.",                                                                                                                                           designStatus: "design", devStatus: "scoping",     priority: "p1", mode: "hybrid", surfaces: ["push"], persona: "all", href: "/notification?context=kid-trip", components: ["trip_status", "quick_reply_group", "driver_picker"] },
+  { id: 2,  name: "Kid Speeding",                             overview: "Show the agent interrupting an active trip thread with a driving behavior alert and parent response options.",                                                                                                                         designStatus: "design", devStatus: "scoping",     priority: "p1", mode: "hybrid", surfaces: ["push"], persona: "all", href: "/notification?context=kid-speeding", components: ["coaching_alert", "quick_reply_group", "trip_status"] },
+  { id: 3,  name: "Hard Braking (Real-Time Alert)",           overview: "Same as speeding but for a deceleration event, proving the mid-trip alert pattern repeats cleanly.",                                                                                                                                 designStatus: "design", devStatus: "scoping",     priority: "p2", mode: "hybrid", surfaces: ["push"], persona: "all", href: "/notification?context=coaching-braking", components: ["coaching_alert", "quick_reply_group"] },
+  { id: 4,  name: "Fuel Low After a Trip",                    overview: "Establish the baseline reminder pattern: agent surfaces a low-stakes issue, user picks how to handle it, done.",                                                                                                                     designStatus: "design", devStatus: "scoping", priority: "p2", mode: "hybrid", surfaces: ["push"], persona: "all", href: "/notification?context=fuel", components: ["fuel_alert", "quick_reply_group"] },
+  { id: 5,  name: "Low Tire Pressure",                        overview: "Prove the full card anatomy works end-to-end: data visualization, coaching layer, action set, and resolution.",                                                                                                                     designStatus: "design", devStatus: "scoping",     priority: "p1", mode: "hybrid", surfaces: ["push"], persona: "all", href: "/notification?context=tire-pressure", components: ["vehicle_health_alert", "quick_reply_group", "maintenance_todo"] },
+  { id: 6,  name: "Oil Change Due",                           overview: "Show the reminder pattern with more action variety (time-based, mileage-based, already done) and the \"don't badger\" behavior.",                                                                                                   designStatus: "design", devStatus: "scoping", priority: "p2", mode: "hybrid", surfaces: ["push"], persona: "all", href: "/notification?context=oil", components: ["maintenance_todo", "quick_reply_group"] },
+  { id: 7,  name: "Severe Crash — Emergency",                 overview: "Define the boundary where the agent pattern stops and a full-screen, red-button emergency UI takes over. Send push alert to trusted contact with details of incident; tell primary driver we've dispatched first responder; monitoring center calls them.",                                                                                                                           designStatus: "scoping", devStatus: "scoping",     priority: "p0", mode: "screen", surfaces: ["push"], persona: "all", components: ["incident_status"] },
+  { id: 8,  name: "Less Severe Crash / Vehicle Breakdown",    overview: "Show the second tier of crash response where the user is conscious and choosing between tow or ambulance. Push notification to trusted contact; ask primary user if they need help. Two buttons: roadside, emergency services.",                                                                                                                          designStatus: "scoping", devStatus: "scoping",     priority: "p0", mode: "screen", surfaces: ["push"], persona: "all", components: ["incident_status", "roadside_request"] },
+  { id: 9,  name: "Maintenance Intake / Source of Truth Setup", overview: "Walk through the onboarding moment where the agent builds the vehicle's maintenance baseline item by item.",                                                                                                                      designStatus: "scoping", devStatus: "scoping",     priority: "p2", mode: "hybrid", surfaces: ["onboarding"], persona: "admin", components: ["maintenance_history_builder", "quick_reply_group", "document_upload"] },
+  { id: 10, name: "Check Engine Light",                       overview: "Test the alert → chat flow with a higher-anxiety vehicle issue that needs calm explanation. Surface context on the issue, severity, and cost range. CTAs: get reminder in 2–3 days; send email/documentation to mechanic.",                                                                                                                                       designStatus: "design", devStatus: "scoping",     priority: "p1", mode: "hybrid", surfaces: ["push"], persona: "all", href: "/notification?context=check-engine", components: ["mechanic_explainer", "quick_reply_group"] },
+  { id: 11, name: "Trip Summary — Contextual Q&A",            overview: "Prove the agent can be user-initiated from a screen, not just alert-driven, with suggested prompts scoped to a completed trip.",                                                                                                    designStatus: "design", devStatus: "scoping", priority: "p2", mode: "hybrid", surfaces: ["ask-miles"], persona: "all", href: "/miles?context=trip-detail", components: ["trip_summary", "insight_card", "quick_reply_group"] },
+  { id: 12, name: "Hard Braking (Post-Trip Review)",          overview: "Show braking events as markers on a completed trip route inside the trip summary view.",                                                                                                                                            designStatus: "design", devStatus: "scoping",     priority: "p2", mode: "hybrid", surfaces: ["ask-miles"], persona: "all", href: "/miles?context=coaching-braking", components: ["trip_event_markers", "insight_card", "quick_reply_group"] },
+  { id: 13, name: "Insurance Photo Intake",                   overview: "Demonstrate the agent asking the user to contribute a document and following up months later with insight from it. Future: share insights on their rates vs others or market trends; prompt to get a quote from our partner when rates look high or near renewal.",                                                                                                                 designStatus: "scoping", devStatus: "scoping",     priority: "p3", mode: "hybrid", surfaces: ["ask-miles"], persona: "all", components: ["document_upload", "quick_reply_group"] },
+  { id: 14, name: "Registration Expiring",                    overview: "Show the passive badge entry point for a time-based reminder that's handled in seconds and backgrounded.",                                                                                                                          designStatus: "design", devStatus: "scoping",     priority: "p2", mode: "hybrid", surfaces: ["ask-miles"], persona: "all", href: "/notification?context=registration", components: ["reminder_card", "quick_reply_group", "document_upload"] },
+  { id: 15, name: "Post-Incident Follow-Up",                  overview: "Prove the agent can re-open a closed loop days after an emergency with a human-touch check-in.",                                                                                                                                    designStatus: "scoping", devStatus: "scoping",     priority: "p3", mode: "hybrid", surfaces: ["push"], persona: "all", components: ["insight_card", "quick_reply_group"] },
+  { id: 16, name: "Service Receipt Photo",                    overview: "Show the agent prompting for a photo after a maintenance item is marked done to keep the log accurate. Store image in \"digital glovebox\" for reference; parse info to show in records; set behind-the-scenes reminders for future service milestones. (Glovebox concept could extend to insurance, service records, todo list, etc.)",                                                                                                                            designStatus: "scoping", devStatus: "scoping",     priority: "p3", mode: "hybrid", surfaces: ["push"], persona: "all", components: ["document_upload", "maintenance_todo", "quick_reply_group"] },
+  { id: 17, name: "Major Maintenance Early Warning",          overview: "Surface a future maintenance milestone from the vehicle's schedule before it becomes urgent. In future, we'll pull in info about the recommended service: anticipated cost range, how long service takes, etc. Also can ask to book an appointment.", designStatus: "scoping", devStatus: "scoping", priority: "p3", mode: "hybrid", surfaces: ["ask-miles"], persona: "all", components: ["maintenance_todo", "insight_card", "quick_reply_group"] },
+  { id: 18, name: "Model-Specific Known Issue",               overview: "Proactively flag a common problem for this make/model/mileage that the user may not know about.",                                                                                                                                   designStatus: "scoping", devStatus: "scoping",     priority: "p3", mode: "hybrid", surfaces: ["ask-miles"], persona: "all", components: ["insight_card", "quick_reply_group"] },
+  { id: 19, name: "Pre-Service Appointment Briefing",         overview: "Arm the user with what their car actually needs before they walk into the shop. Prepare people before they go in based on recommended services for their mileage, what's coming up in future, and cost ranges.",                                                                                  designStatus: "design", devStatus: "scoping", priority: "p2", mode: "hybrid", surfaces: ["ask-miles"], persona: "all", components: ["service_briefing", "maintenance_todo", "quick_reply_group"] },
+  { id: 20, name: "Trip Detail — Save Destination",           overview: "Show the agent offering to name a location based on where the user is in the app, replacing a settings screen.",                                                                                                                    designStatus: "scoping", devStatus: "scoping",     priority: "p3", mode: "hybrid", surfaces: ["ask-miles"], persona: "all", components: ["place_naming", "quick_reply_group"] },
+  { id: 21, name: "Inspection Due",                           overview: "Same pattern as registration expiring: passive badge for a time-based reminder (state/safety inspection due), handled in seconds and backgrounded.",                                                                                 designStatus: "scoping", devStatus: "scoping",     priority: "p3", mode: "hybrid", surfaces: ["ask-miles"], persona: "all", components: ["reminder_card", "quick_reply_group", "document_upload"] },
+  { id: 22, name: "Navigation Concierge / 'Where do I…?'",    overview: "Agent answers wayfinding questions and routes the user to the correct screen — turns the chat into an in-app GPS for the product itself.",                                                                                              designStatus: "scoping", devStatus: "scoping",     priority: "p2", mode: "agent", surfaces: ["tab"], persona: "all",  components: ["nav_card", "quick_reply_group"] },
+  { id: 23, name: "Add a Driver / Invite Family Member",      overview: "Guide an admin through inviting a driver, including the COPPA branch when the invitee is a minor. Email + role pick + optional consent capture.",                                                                                       designStatus: "scoping", devStatus: "scoping",     priority: "p1", mode: "hybrid", surfaces: ["tab"], persona: "admin", components: ["email_invite_input", "quick_reply_group", "role_pills"] },
+  { id: 24, name: "Update Profile",                           overview: "Scope-routed agent flow for editing profile fields (display name, avatar, timezone, phone, email). Display name is shipped; the rest follow the same template.",                                                                       designStatus: "design", devStatus: "prototype",     priority: "p2", mode: "agent", surfaces: ["ask-miles"], persona: "all",  components: ["profile_displayname_input", "quick_reply_group"] },
+  { id: 25, name: "First-Run Setup / Pair Your Miles Plug",   overview: "Full-screen onboarding FSM: welcome → scan QR → pair device → confirm. The agent's onboarding home; everything else hangs off this entry.",                                                                                              designStatus: "design",  devStatus: "implementing",         priority: "p1", mode: "hybrid", surfaces: ["onboarding"], persona: "admin", components: ["welcome_with_scan", "qr_scanner", "confirm_action", "accept_invite"] },
+  { id: 26, name: "Add a Vehicle (VIN Scan → Confirm → Pair)", overview: "Multi-step FSM: VIN capture (scan or type) → server decode → review year/make/model → optional device pair. ~4–5 turns end to end.",                                                                                                    designStatus: "scoping", devStatus: "scoping",     priority: "p1", mode: "hybrid", surfaces: ["tab"], persona: "admin", components: ["vin_input", "vin_review", "qr_scanner", "confirm_action", "quick_reply_group"] },
+  { id: 27, name: "Configure Alert Preferences",              overview: "Agent-driven builder for alert prefs per driver-per-watcher. Possibly recommended bundles up front, drill-down toggles for power users.",                                                                                                designStatus: "scoping", devStatus: "scoping",     priority: "p2", mode: "agent", surfaces: ["ask-miles"], persona: "admin",  components: ["alert_prefs_builder", "quick_reply_group"] },
+  { id: 28, name: "'I Need Help Now' — Manual Incident Trigger", overview: "User-initiated emergency from the Help button. Same full-screen overlay as auto-detected crash — shares the incident_status surface, bypasses chat.",                                                                                designStatus: "scoping", devStatus: "scoping",     priority: "p0", mode: "screen", surfaces: [], persona: "all", components: ["incident_status"] },
 ];
 
 const widgets: Widget[] = [
@@ -538,7 +539,6 @@ function surfaceBadgeClass(s: Surface) {
     "ask-miles": "bg-indigo-50 text-indigo-700 border-indigo-200",
     tab:         "bg-emerald-50 text-emerald-700 border-emerald-200",
     onboarding:  "bg-teal-50 text-teal-700 border-teal-200",
-    none:        "bg-neutral-100 text-neutral-500 border-neutral-200",
   };
   return map[s];
 }
@@ -567,10 +567,40 @@ function widgetStatusBadgeClass(status: WidgetStatus) {
 const ALL_WIDGET_MODES: WidgetMode[] = ["free-form", "scope-routed", "FSM", "locally-injected", "fallback"];
 const ALL_WIDGET_STATUSES: WidgetStatus[] = ["shipped", "partial", "planned", "future"];
 
-function sprintBadgeClass(inSprint: boolean) {
-  return inSprint
-    ? "bg-green-50 text-green-700 border-green-200"
-    : "bg-neutral-100 text-neutral-400 border-neutral-200";
+function sprintBadgeClass(p: SprintPriority | undefined) {
+  if (p === "p1") return "bg-yellow-100 text-yellow-800 border-yellow-300";
+  if (p === "p2") return "bg-blue-50 text-blue-700 border-blue-200";
+  return "bg-neutral-100 text-neutral-400 border-neutral-200";
+}
+
+function SurfaceMultiSelect({
+  value,
+  onChange,
+}: {
+  value: Surface[];
+  onChange: (next: Surface[]) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {SURFACE_OPTIONS.map((o) => {
+        const on = value.includes(o.value);
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() =>
+              onChange(on ? value.filter((v) => v !== o.value) : [...value, o.value])
+            }
+            className={`rounded border px-1.5 py-0.5 text-xs font-medium leading-none transition-opacity hover:opacity-80 ${
+              on ? surfaceBadgeClass(o.value) : "border-neutral-200 bg-white text-neutral-300"
+            }`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 function InlineSelect<T extends string>({
@@ -627,7 +657,6 @@ const SURFACE_OPTIONS: { value: Surface; label: string }[] = [
   { value: "ask-miles", label: "Ask Miles" },
   { value: "tab", label: "Miles tab" },
   { value: "onboarding", label: "Onboarding" },
-  { value: "none", label: "None" },
 ];
 
 const DEV_STATUS_OPTIONS: { value: DevStatus; label: string }[] = [
@@ -637,7 +666,13 @@ const DEV_STATUS_OPTIONS: { value: DevStatus; label: string }[] = [
 ];
 
 
-type SortKey = "id" | "name" | "mode" | "surface" | "persona" | "inSprint";
+type SortKey = "id" | "name" | "mode" | "surface" | "persona" | "sprintPriority";
+
+const SPRINT_PRIORITY_OPTIONS: { value: SprintPriority; label: string }[] = [
+  { value: "p1", label: "P1 — this sprint" },
+  { value: "p2", label: "P2 — next / soon" },
+  { value: "p3", label: "P3 — later" },
+];
 type SortDir = "asc" | "desc";
 
 function effectiveScenario(s: Scenario, override?: ScenarioOverride): Scenario {
@@ -652,10 +687,10 @@ function diffScenarioOverride(source: Scenario, draft: Scenario): ScenarioOverri
   if (draft.href !== source.href) patch.href = draft.href;
   if (draft.constraint !== source.constraint) patch.constraint = draft.constraint;
   if (draft.mode !== source.mode) patch.mode = draft.mode;
-  if (draft.surface !== source.surface) patch.surface = draft.surface;
+  if (draft.surfaces.join(" ") !== source.surfaces.join(" ")) patch.surfaces = draft.surfaces;
   if (draft.persona !== source.persona) patch.persona = draft.persona;
   if (draft.components.join(" ") !== source.components.join(" ")) patch.components = draft.components;
-  if ((draft.inSprint ?? false) !== (source.inSprint ?? false)) patch.inSprint = draft.inSprint;
+  if ((draft.sprintPriority ?? "p3") !== (source.sprintPriority ?? "p3")) patch.sprintPriority = draft.sprintPriority;
   if (draft.designStatus !== source.designStatus) patch.designStatus = draft.designStatus;
   if (draft.devStatus !== source.devStatus) patch.devStatus = draft.devStatus;
   return patch;
@@ -1065,20 +1100,20 @@ function EditScenarioModal({
 
           <div className="grid grid-cols-3 gap-3">
             <div className="block space-y-1">
-              <span className={labelCls}>This sprint</span>
+              <span className={labelCls}>Priority</span>
               <div className="flex gap-2 pt-0.5">
-                {[true, false].map((val) => (
+                {SPRINT_PRIORITY_OPTIONS.map((o) => (
                   <button
-                    key={String(val)}
+                    key={o.value}
                     type="button"
-                    onClick={() => patch("inSprint", val)}
+                    onClick={() => patch("sprintPriority", o.value)}
                     className={`rounded border px-2.5 py-1 text-xs font-medium transition-colors ${
-                      (draft.inSprint ?? false) === val
-                        ? sprintBadgeClass(val)
+                      (draft.sprintPriority ?? "p3") === o.value
+                        ? sprintBadgeClass(o.value)
                         : "border-neutral-200 bg-white text-neutral-400"
                     }`}
                   >
-                    {val ? "In" : "Out"}
+                    {o.value.toUpperCase()}
                   </button>
                 ))}
               </div>
@@ -1127,12 +1162,24 @@ function EditScenarioModal({
                 {MODE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </label>
-            <label className="block space-y-1">
-              <span className={labelCls}>Primary Entry</span>
-              <select value={draft.surface} onChange={(e) => patch("surface", e.target.value as Surface)} className={inputCls}>
-                {SURFACE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </label>
+            <div className="block space-y-1">
+              <span className={labelCls}>Entry Points</span>
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {SURFACE_OPTIONS.map((o) => {
+                  const on = draft.surfaces.includes(o.value);
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => patch("surfaces", on ? draft.surfaces.filter((v) => v !== o.value) : [...draft.surfaces, o.value])}
+                      className={`rounded border px-2.5 py-1 text-xs font-medium transition-colors ${on ? surfaceBadgeClass(o.value) : "border-neutral-200 bg-white text-neutral-400"}`}
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <label className="block space-y-1">
               <span className={labelCls}>Persona</span>
               <select value={draft.persona} onChange={(e) => patch("persona", e.target.value as Persona)} className={inputCls}>
@@ -1207,6 +1254,7 @@ export default function IndexPage() {
   const [scenarioOrder, setScenarioOrder] = useState<number[]>([]);
 
   const [widgetModeFilter, setWidgetModeFilter] = useState<Set<WidgetMode>>(new Set());
+  const [showModeSummaries, setShowModeSummaries] = useState(false);
   const [widgetStatusFilter, setWidgetStatusFilter] = useState<Set<WidgetStatus>>(new Set());
   const [widgetSortKey, setWidgetSortKey] = useState<"name" | "mode" | "status" | "usedIn">("status");
   const [widgetSortDir, setWidgetSortDir] = useState<SortDir>("asc");
@@ -1388,10 +1436,10 @@ export default function IndexPage() {
         }
         case "surface": {
           const order: Record<Surface, number> = {
-            push: 0, "ask-miles": 1, tab: 2, onboarding: 3, none: 4,
+            push: 0, "ask-miles": 1, tab: 2, onboarding: 3,
           };
-          const as_ = scenarioOverrides[a.id]?.surface ?? a.surface;
-          const bs_ = scenarioOverrides[b.id]?.surface ?? b.surface;
+          const as_ = (scenarioOverrides[a.id]?.surfaces ?? a.surfaces)[0] ?? "push";
+          const bs_ = (scenarioOverrides[b.id]?.surfaces ?? b.surfaces)[0] ?? "push";
           cmp = order[as_] - order[bs_];
           break;
         }
@@ -1402,10 +1450,11 @@ export default function IndexPage() {
           cmp = order[ap] - order[bp];
           break;
         }
-        case "inSprint": {
-          const ai = (scenarioOverrides[a.id]?.inSprint ?? a.inSprint ?? false) ? 0 : 1;
-          const bi = (scenarioOverrides[b.id]?.inSprint ?? b.inSprint ?? false) ? 0 : 1;
-          cmp = ai - bi;
+        case "sprintPriority": {
+          const order: Record<SprintPriority, number> = { p1: 0, p2: 1, p3: 2 };
+          const ap = scenarioOverrides[a.id]?.sprintPriority ?? a.sprintPriority ?? "p3";
+          const bp = scenarioOverrides[b.id]?.sprintPriority ?? b.sprintPriority ?? "p3";
+          cmp = order[ap] - order[bp];
           break;
         }
       }
@@ -1870,6 +1919,33 @@ export default function IndexPage() {
               )}
             </div>
 
+            {/* Mode key */}
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => setShowModeSummaries((v) => !v)}
+                className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
+              >
+                {showModeSummaries ? "Hide mode summaries" : "Show mode summaries"}
+              </button>
+              {showModeSummaries && (
+                <div className="mt-2 space-y-1.5 rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-3">
+                  {([
+                    { mode: "free-form"        as WidgetMode, desc: "The AI decides when to show it — can appear in any conversation where it fits." },
+                    { mode: "scope-routed"     as WidgetMode, desc: "Triggered when the user asks to do something specific, like \"update my name.\"" },
+                    { mode: "FSM"              as WidgetMode, desc: "A guided multi-step flow the app walks through one question at a time." },
+                    { mode: "locally-injected" as WidgetMode, desc: "The mobile app adds it directly, no server round-trip needed." },
+                    { mode: "fallback"         as WidgetMode, desc: "A safety net shown automatically when the app doesn't know what else to display." },
+                  ] as { mode: WidgetMode; desc: string }[]).map(({ mode, desc }) => (
+                    <div key={mode} className="flex items-baseline gap-2">
+                      <span className={`shrink-0 rounded border px-1.5 py-0.5 text-xs font-medium leading-none ${widgetModeBadgeClass(mode)}`}>{mode}</span>
+                      <span className="text-xs text-neutral-500">{desc}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {filteredWidgets.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-20 text-center">
                 <p className="text-sm font-medium text-neutral-500">No widgets match your filters</p>
@@ -2099,22 +2175,10 @@ export default function IndexPage() {
                 <tr className="border-b border-neutral-200">
                   <th style={{ width: "2rem", minWidth: "2rem", maxWidth: "2rem" }} className="pb-2" />
                   <th className="w-10 pb-2 pr-4 text-left">
-                    <div className="inline-flex items-center gap-2">
-                      <button type="button" onClick={() => handleSort("id")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
-                        #
-                        <SortIcon active={sortKey === "id"} dir={sortDir} />
-                      </button>
-                      {sortKey === "id" && scenarioOrder.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={resetOrder}
-                          className="text-xs text-neutral-300 hover:text-neutral-500 transition-colors"
-                          title="Reset to default order"
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
+                    <button type="button" onClick={() => handleSort("id")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
+                      #
+                      <SortIcon active={sortKey === "id"} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="w-52 pb-2 pr-4 text-left">
                     <button type="button" onClick={() => handleSort("name")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
@@ -2129,9 +2193,9 @@ export default function IndexPage() {
                       <SortIcon active={sortKey === "mode"} dir={sortDir} />
                     </button>
                   </th>
-                  <th className="w-32 pb-2 pr-4 text-left">
+                  <th className="w-40 pb-2 pr-4 text-left">
                     <button type="button" onClick={() => handleSort("surface")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
-                      Primary Entry
+                      Entry Points
                       <SortIcon active={sortKey === "surface"} dir={sortDir} />
                     </button>
                   </th>
@@ -2142,9 +2206,9 @@ export default function IndexPage() {
                     </button>
                   </th>
                   <th className="w-28 pb-2 pr-4 text-left">
-                    <button type="button" onClick={() => handleSort("inSprint")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
-                      This sprint
-                      <SortIcon active={sortKey === "inSprint"} dir={sortDir} />
+                    <button type="button" onClick={() => handleSort("sprintPriority")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
+                      Priority
+                      <SortIcon active={sortKey === "sprintPriority"} dir={sortDir} />
                     </button>
                   </th>
                   <th className="w-[200px] pb-2 pr-4 text-left text-xs font-medium text-neutral-400">Widgets</th>
@@ -2159,7 +2223,11 @@ export default function IndexPage() {
                   return (
                   <tr
                     key={scenario.id}
-                    className="group border-b border-neutral-100 transition-colors hover:bg-neutral-50"
+                    className={`group border-b border-neutral-100 transition-colors ${
+                      (scenarioOverrides[scenario.id]?.sprintPriority ?? scenario.sprintPriority ?? "p3") === "p1"
+                        ? "bg-yellow-50 hover:bg-yellow-100"
+                        : "hover:bg-neutral-50"
+                    }`}
                   >
                     <td style={{ width: "2rem", minWidth: "2rem", maxWidth: "2rem" }} className="py-3">
                       <div className={`flex w-5 flex-col gap-0.5 transition-opacity ${sortKey === "id" ? "opacity-0 group-hover:opacity-100" : "invisible"}`}>
@@ -2228,17 +2296,10 @@ export default function IndexPage() {
                       })()}
                     </td>
                     <td className="py-3 pr-4 align-top">
-                      {(() => {
-                        const sf = scenarioOverrides[scenario.id]?.surface ?? scenario.surface;
-                        return (
-                          <InlineSelect
-                            value={sf}
-                            options={SURFACE_OPTIONS}
-                            onChange={(v) => updateScenarioOverride(scenario.id, { surface: v })}
-                            badgeClass={surfaceBadgeClass(sf)}
-                          />
-                        );
-                      })()}
+                      <SurfaceMultiSelect
+                        value={scenarioOverrides[scenario.id]?.surfaces ?? scenario.surfaces}
+                        onChange={(v) => updateScenarioOverride(scenario.id, { surfaces: v })}
+                      />
                     </td>
                     <td className="py-3 pr-4 align-top">
                       {(() => {
@@ -2255,15 +2316,14 @@ export default function IndexPage() {
                     </td>
                     <td className="py-3 pr-4 align-top">
                       {(() => {
-                        const inSprint = scenarioOverrides[scenario.id]?.inSprint ?? scenario.inSprint ?? false;
+                        const sp = scenarioOverrides[scenario.id]?.sprintPriority ?? scenario.sprintPriority ?? "p3";
                         return (
-                          <button
-                            type="button"
-                            onClick={() => updateScenarioOverride(scenario.id, { inSprint: !inSprint })}
-                            className={`inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium leading-none transition-opacity hover:opacity-70 ${sprintBadgeClass(inSprint)}`}
-                          >
-                            {inSprint ? "In" : "Out"}
-                          </button>
+                          <InlineSelect
+                            value={sp}
+                            options={SPRINT_PRIORITY_OPTIONS.map((o) => ({ value: o.value, label: o.value.toUpperCase() }))}
+                            onChange={(v) => updateScenarioOverride(scenario.id, { sprintPriority: v })}
+                            badgeClass={sprintBadgeClass(sp)}
+                          />
                         );
                       })()}
                     </td>
