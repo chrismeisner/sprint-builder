@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -31,6 +31,19 @@ type Project = {
 type DayPlan = { theme: string; notes: string };
 type Deliverable = { week: 1 | 2; title: string; description: string };
 
+type Attachment = {
+  id: string;
+  name: string;
+  linkType: "url" | "file";
+  url: string | null;
+  fileUrl: string | null;
+  fileName: string | null;
+  fileSizeBytes: number | null;
+  mimetype: string | null;
+  description: string | null;
+  createdAt: string;
+};
+
 type InitialDraft = {
   id: string;
   projectId: string;
@@ -52,6 +65,7 @@ type InitialDraft = {
   notes: string;
   dayPlans: DayPlan[];
   deliverables: Deliverable[];
+  attachments: Attachment[];
   updatedAt: string;
 };
 
@@ -228,6 +242,16 @@ export default function SmokeTestSprintBuilderClient({
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [attachments, setAttachments] = useState<Attachment[]>(
+    initialDraft?.attachments ?? []
+  );
+  const [attachmentUrl, setAttachmentUrl] = useState("");
+  const [attachmentName, setAttachmentName] = useState("");
+  const [addingUrl, setAddingUrl] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const availableSprints = useMemo(
     () => sprintsByProject[projectId] ?? [],
     [projectId, sprintsByProject]
@@ -353,6 +377,123 @@ export default function SmokeTestSprintBuilderClient({
 
     const data = (await res.json()) as { id: string; status: string };
     return data;
+  }
+
+  async function ensureDraftId(): Promise<string | null> {
+    if (draftId) return draftId;
+    if (!projectId) {
+      setAttachmentError("Pick a project before adding attachments.");
+      return null;
+    }
+    const result = await persist(false);
+    if (!result) return null;
+    setDraftId(result.id);
+    setLastSavedAt(new Date().toISOString());
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("draftId", result.id);
+    router.replace(`/dashboard/smoke-test-sprint-builder?${params.toString()}`);
+    return result.id;
+  }
+
+  async function handleAddUrl() {
+    if (addingUrl || uploadingFile) return;
+    setAttachmentError(null);
+    const trimmedUrl = attachmentUrl.trim();
+    if (!trimmedUrl) {
+      setAttachmentError("Enter a URL.");
+      return;
+    }
+    try {
+      new URL(trimmedUrl);
+    } catch {
+      setAttachmentError("Enter a valid URL (including https://).");
+      return;
+    }
+    setAddingUrl(true);
+    try {
+      const id = await ensureDraftId();
+      if (!id) return;
+      const res = await fetch(`/api/smoke-test-sprints/${id}/links`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: trimmedUrl,
+          name: attachmentName.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Request failed (${res.status})`);
+      }
+      const data = (await res.json()) as { link: Attachment };
+      setAttachments((prev) => [data.link, ...prev]);
+      setAttachmentUrl("");
+      setAttachmentName("");
+    } catch (err) {
+      setAttachmentError(
+        err instanceof Error ? err.message : "Failed to add link"
+      );
+    } finally {
+      setAddingUrl(false);
+    }
+  }
+
+  async function handleUploadFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (addingUrl || uploadingFile) return;
+    setAttachmentError(null);
+    setUploadingFile(true);
+    try {
+      const id = await ensureDraftId();
+      if (!id) return;
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/smoke-test-sprints/${id}/links/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Upload failed (${res.status})`);
+      }
+      const data = (await res.json()) as { link: Attachment };
+      setAttachments((prev) => [data.link, ...prev]);
+    } catch (err) {
+      setAttachmentError(
+        err instanceof Error ? err.message : "Failed to upload file"
+      );
+    } finally {
+      setUploadingFile(false);
+    }
+  }
+
+  async function handleDeleteAttachment(id: string) {
+    if (!draftId) return;
+    if (!confirm("Remove this attachment?")) return;
+    try {
+      const res = await fetch(
+        `/api/smoke-test-sprints/${draftId}/links?linkId=${encodeURIComponent(id)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Request failed (${res.status})`);
+      }
+      setAttachments((prev) => prev.filter((a) => a.id !== id));
+    } catch (err) {
+      setAttachmentError(
+        err instanceof Error ? err.message : "Failed to remove attachment"
+      );
+    }
+  }
+
+  function formatFileSize(bytes: number | null): string | null {
+    if (!bytes) return null;
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   async function handleSaveDraft() {
@@ -703,16 +844,118 @@ export default function SmokeTestSprintBuilderClient({
               Existing assets or context to bring in
             </label>
             <p className={helpTextClasses}>
-              Figma links, live URLs, prior sprint deliverables, GitHub repos, references, anything relevant.
+              Notes about Figma links, live URLs, prior sprint deliverables, GitHub repos, references, anything relevant. Attach files or URLs below.
             </p>
             <textarea
               id="sts-assets"
               value={existingAssets}
               onChange={(e) => setExistingAssets(e.target.value)}
               rows={3}
-              placeholder="Links or notes"
+              placeholder="Notes"
               className={textareaClasses}
             />
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <span className={labelClasses}>Attachments</span>
+            <p className={helpTextClasses}>
+              Add a URL or upload a file (PDF, image, Word, Excel, txt, csv — max 50MB). The draft will be saved automatically on the first attachment.
+            </p>
+
+            <div className="flex flex-col gap-2 rounded-md border border-neutral-200 dark:border-neutral-700 p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <input
+                  type="url"
+                  value={attachmentUrl}
+                  onChange={(e) => setAttachmentUrl(e.target.value)}
+                  placeholder="https://..."
+                  className={`${inputClasses} sm:flex-1`}
+                  disabled={addingUrl || uploadingFile}
+                />
+                <input
+                  type="text"
+                  value={attachmentName}
+                  onChange={(e) => setAttachmentName(e.target.value)}
+                  placeholder="Label (optional)"
+                  className={`${inputClasses} sm:w-48`}
+                  disabled={addingUrl || uploadingFile}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddUrl}
+                  disabled={addingUrl || uploadingFile || !attachmentUrl.trim()}
+                  className="h-10 px-4 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 text-neutral-800 dark:text-neutral-200 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {addingUrl ? "Adding…" : "Add URL"}
+                </button>
+              </div>
+              <div className="flex items-center gap-3">
+                <label
+                  className={`h-10 px-4 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 text-neutral-800 dark:text-neutral-200 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150 inline-flex items-center cursor-pointer ${
+                    uploadingFile || addingUrl ? "opacity-40 pointer-events-none" : ""
+                  }`}
+                >
+                  {uploadingFile ? "Uploading…" : "Upload file"}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    onChange={handleUploadFile}
+                    disabled={uploadingFile || addingUrl}
+                    className="hidden"
+                    accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.xls,.xlsx,.txt,.csv"
+                  />
+                </label>
+              </div>
+              {attachmentError && (
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  {attachmentError}
+                </p>
+              )}
+            </div>
+
+            {attachments.length > 0 && (
+              <ul className="flex flex-col divide-y divide-neutral-200 dark:divide-neutral-700 rounded-md border border-neutral-200 dark:border-neutral-700">
+                {attachments.map((att) => {
+                  const href = att.linkType === "url" ? att.url : att.fileUrl;
+                  const sizeLabel = formatFileSize(att.fileSizeBytes);
+                  return (
+                    <li
+                      key={att.id}
+                      className="flex items-center justify-between gap-3 px-3 py-2"
+                    >
+                      <div className="flex flex-col min-w-0">
+                        {href ? (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate"
+                          >
+                            {att.name}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-neutral-800 dark:text-neutral-200 truncate">
+                            {att.name}
+                          </span>
+                        )}
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                          {att.linkType === "url"
+                            ? "URL"
+                            : `File${sizeLabel ? ` · ${sizeLabel}` : ""}`}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAttachment(att.id)}
+                        className="text-xs text-neutral-400 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-150"
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </section>
 

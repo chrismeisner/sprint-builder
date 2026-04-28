@@ -30,6 +30,19 @@ type ProjectMember = {
 export type DayPlan = { theme: string; notes: string };
 export type Deliverable = { week: 1 | 2; title: string; description: string };
 
+export type Attachment = {
+  id: string;
+  name: string;
+  linkType: "url" | "file";
+  url: string | null;
+  fileUrl: string | null;
+  fileName: string | null;
+  fileSizeBytes: number | null;
+  mimetype: string | null;
+  description: string | null;
+  createdAt: string;
+};
+
 export type InitialDraft = {
   id: string;
   projectId: string;
@@ -51,6 +64,7 @@ export type InitialDraft = {
   notes: string;
   dayPlans: DayPlan[];
   deliverables: Deliverable[];
+  attachments: Attachment[];
   updatedAt: string;
 };
 
@@ -175,6 +189,29 @@ export default async function SmokeTestSprintBuilderPage({
     );
     if (draftRes.rowCount && draftRes.rowCount > 0) {
       const row = draftRes.rows[0];
+      const attachmentsRes = await pool.query(
+        `SELECT id, name, link_type, url, file_url, file_name,
+                file_size_bytes, mimetype, description, created_at
+         FROM smoke_test_sprint_links
+         WHERE smoke_test_sprint_id = $1
+         ORDER BY created_at DESC`,
+        [draftId]
+      );
+      const attachments: Attachment[] = attachmentsRes.rows.map((r) => ({
+        id: r.id as string,
+        name: r.name as string,
+        linkType: r.link_type as "url" | "file",
+        url: (r.url as string | null) ?? null,
+        fileUrl: (r.file_url as string | null) ?? null,
+        fileName: (r.file_name as string | null) ?? null,
+        fileSizeBytes: r.file_size_bytes ? Number(r.file_size_bytes) : null,
+        mimetype: (r.mimetype as string | null) ?? null,
+        description: (r.description as string | null) ?? null,
+        createdAt:
+          r.created_at instanceof Date
+            ? r.created_at.toISOString()
+            : (r.created_at as string),
+      }));
       initialDraft = {
         id: row.id as string,
         projectId: row.project_id as string,
@@ -199,6 +236,7 @@ export default async function SmokeTestSprintBuilderPage({
         notes: (row.notes as string | null) ?? "",
         dayPlans: hydrateDayPlans(row.day_plans),
         deliverables: hydrateDeliverables(row.deliverables),
+        attachments,
         updatedAt:
           row.updated_at instanceof Date
             ? row.updated_at.toISOString()

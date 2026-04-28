@@ -1435,6 +1435,28 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS deliverables jsonb NOT NULL DEFAULT '[]'::jsonb
   `);
 
+  // Smoke Test Sprint Links: URLs and file attachments for scoping artifacts
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS smoke_test_sprint_links (
+      id text PRIMARY KEY,
+      smoke_test_sprint_id text NOT NULL REFERENCES smoke_test_sprints(id) ON DELETE CASCADE,
+      name text NOT NULL,
+      link_type text NOT NULL DEFAULT 'url',
+      url text,
+      file_url text,
+      file_name text,
+      file_size_bytes bigint,
+      mimetype text,
+      description text,
+      created_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT smoke_test_sprint_links_type_check CHECK (link_type IN ('url', 'file'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_smoke_test_sprint_links_sprint
+      ON smoke_test_sprint_links(smoke_test_sprint_id);
+  `);
+
   // Miles Proto 3 — persisted scenario state (overrides + custom order)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS miles_proto3_scenario_state (
