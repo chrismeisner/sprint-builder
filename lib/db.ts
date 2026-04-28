@@ -1412,13 +1412,22 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_smoke_test_sprints_status ON smoke_test_sprints(status);
   `);
   // Align smoke test status vocabulary with sprint_drafts (draft/scheduled/in_progress/complete).
+  // Drop the old CHECK constraint first so the data migration can update rows freely,
+  // then re-add the new one. Each statement in its own pool.query so a no-op on a
+  // re-run cannot abort a transaction with the rest still pending.
+  await pool.query(
+    `ALTER TABLE smoke_test_sprints DROP CONSTRAINT IF EXISTS smoke_test_sprints_status_check`
+  );
+  await pool.query(
+    `UPDATE smoke_test_sprints SET status = 'scheduled' WHERE status = 'confirmed'`
+  );
+  await pool.query(
+    `UPDATE smoke_test_sprints SET status = 'complete' WHERE status = 'archived'`
+  );
   await pool.query(`
-    UPDATE smoke_test_sprints SET status = 'scheduled' WHERE status = 'confirmed';
-    UPDATE smoke_test_sprints SET status = 'complete' WHERE status = 'archived';
-    ALTER TABLE smoke_test_sprints DROP CONSTRAINT IF EXISTS smoke_test_sprints_status_check;
     ALTER TABLE smoke_test_sprints
       ADD CONSTRAINT smoke_test_sprints_status_check
-      CHECK (status IN ('draft', 'scheduled', 'in_progress', 'complete'));
+      CHECK (status IN ('draft', 'scheduled', 'in_progress', 'complete'))
   `);
   await pool.query(`
     ALTER TABLE smoke_test_sprints
