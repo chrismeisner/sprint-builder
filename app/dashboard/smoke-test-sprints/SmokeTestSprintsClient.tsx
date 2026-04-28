@@ -9,21 +9,24 @@ type Props = {
   rows: SmokeTestSprintRow[];
 };
 
-type FilterStatus = "all" | "draft" | "confirmed" | "archived";
+type FilterStatus = "all" | "draft" | "scheduled" | "in_progress" | "complete";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Draft",
-  confirmed: "Confirmed",
-  archived: "Archived",
+  scheduled: "Scheduled",
+  in_progress: "In Progress",
+  complete: "Complete",
 };
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
   draft:
     "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700",
-  confirmed:
+  scheduled:
+    "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
+  in_progress:
     "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800",
-  archived:
-    "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700",
+  complete:
+    "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800",
 };
 
 function formatCurrency(n: number | null): string {
@@ -63,6 +66,7 @@ export default function SmokeTestSprintsClient({ rows }: Props) {
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
         return (
+          row.title?.toLowerCase().includes(search) ||
           row.projectName?.toLowerCase().includes(search) ||
           row.whatsNext?.toLowerCase().includes(search) ||
           row.id.toLowerCase().includes(search)
@@ -76,8 +80,9 @@ export default function SmokeTestSprintsClient({ rows }: Props) {
     () => ({
       total: rows.length,
       draft: rows.filter((r) => r.status === "draft").length,
-      confirmed: rows.filter((r) => r.status === "confirmed").length,
-      archived: rows.filter((r) => r.status === "archived").length,
+      scheduled: rows.filter((r) => r.status === "scheduled").length,
+      in_progress: rows.filter((r) => r.status === "in_progress").length,
+      complete: rows.filter((r) => r.status === "complete").length,
     }),
     [rows]
   );
@@ -104,7 +109,7 @@ export default function SmokeTestSprintsClient({ rows }: Props) {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <button
           type="button"
           onClick={() => setFilterStatus("all")}
@@ -131,27 +136,39 @@ export default function SmokeTestSprintsClient({ rows }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => setFilterStatus("confirmed")}
+          onClick={() => setFilterStatus("scheduled")}
           className={`text-left rounded-lg border p-4 transition ${
-            filterStatus === "confirmed"
+            filterStatus === "scheduled"
+              ? "border-black dark:border-white"
+              : "border-blue-300 dark:border-blue-700 hover:border-blue-500"
+          }`}
+        >
+          <div className="text-2xl font-bold">{stats.scheduled}</div>
+          <div className="text-xs opacity-70">Scheduled</div>
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilterStatus("in_progress")}
+          className={`text-left rounded-lg border p-4 transition ${
+            filterStatus === "in_progress"
               ? "border-black dark:border-white"
               : "border-green-300 dark:border-green-700 hover:border-green-500"
           }`}
         >
-          <div className="text-2xl font-bold">{stats.confirmed}</div>
-          <div className="text-xs opacity-70">Confirmed</div>
+          <div className="text-2xl font-bold">{stats.in_progress}</div>
+          <div className="text-xs opacity-70">In Progress</div>
         </button>
         <button
           type="button"
-          onClick={() => setFilterStatus("archived")}
+          onClick={() => setFilterStatus("complete")}
           className={`text-left rounded-lg border p-4 transition ${
-            filterStatus === "archived"
+            filterStatus === "complete"
               ? "border-black dark:border-white"
-              : "border-neutral-300 dark:border-neutral-700 hover:border-neutral-500"
+              : "border-purple-300 dark:border-purple-700 hover:border-purple-500"
           }`}
         >
-          <div className="text-2xl font-bold">{stats.archived}</div>
-          <div className="text-xs opacity-70">Archived</div>
+          <div className="text-2xl font-bold">{stats.complete}</div>
+          <div className="text-xs opacity-70">Complete</div>
         </button>
       </div>
 
@@ -184,7 +201,7 @@ export default function SmokeTestSprintsClient({ rows }: Props) {
           <table className="min-w-full text-sm">
             <thead className="bg-black/5 dark:bg-white/5 text-xs uppercase tracking-wide text-text-muted">
               <tr>
-                <th className="text-left px-4 py-3">Project</th>
+                <th className="text-left px-4 py-3">Title / Project</th>
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-left px-4 py-3">Scope</th>
                 <th className="text-right px-4 py-3">Price</th>
@@ -202,16 +219,23 @@ export default function SmokeTestSprintsClient({ rows }: Props) {
                   className="border-t border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5"
                 >
                   <td className="px-4 py-3">
-                    {row.projectName ? (
-                      <Link
-                        href={`/projects/${row.projectId}`}
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        {row.projectName}
-                      </Link>
-                    ) : (
-                      <span className="opacity-60">—</span>
-                    )}
+                    <div className="flex flex-col">
+                      <span className="font-medium text-text-primary">
+                        {row.title?.trim() || (
+                          <span className="opacity-60 italic">Untitled</span>
+                        )}
+                      </span>
+                      {row.projectName ? (
+                        <Link
+                          href={`/projects/${row.projectId}`}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          {row.projectName}
+                        </Link>
+                      ) : (
+                        <span className="text-xs opacity-60">—</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -247,7 +271,12 @@ export default function SmokeTestSprintsClient({ rows }: Props) {
                     )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-text-muted">
-                    {formatDateTime(row.updatedAt)}
+                    <div>{formatDateTime(row.updatedAt)}</div>
+                    {row.updatedByLabel && (
+                      <div className="text-xs opacity-70">
+                        by {row.updatedByLabel}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-3">

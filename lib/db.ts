@@ -1402,7 +1402,7 @@ export async function ensureSchema(): Promise<void> {
 
       notes text,
 
-      status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'confirmed', 'archived')),
+      status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'in_progress', 'complete')),
       created_by text,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
@@ -1410,6 +1410,15 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_smoke_test_sprints_project ON smoke_test_sprints(project_id);
     CREATE INDEX IF NOT EXISTS idx_smoke_test_sprints_created ON smoke_test_sprints(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_smoke_test_sprints_status ON smoke_test_sprints(status);
+  `);
+  // Align smoke test status vocabulary with sprint_drafts (draft/scheduled/in_progress/complete).
+  await pool.query(`
+    UPDATE smoke_test_sprints SET status = 'scheduled' WHERE status = 'confirmed';
+    UPDATE smoke_test_sprints SET status = 'complete' WHERE status = 'archived';
+    ALTER TABLE smoke_test_sprints DROP CONSTRAINT IF EXISTS smoke_test_sprints_status_check;
+    ALTER TABLE smoke_test_sprints
+      ADD CONSTRAINT smoke_test_sprints_status_check
+      CHECK (status IN ('draft', 'scheduled', 'in_progress', 'complete'));
   `);
   await pool.query(`
     ALTER TABLE smoke_test_sprints
@@ -1433,6 +1442,14 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     ALTER TABLE smoke_test_sprints
     ADD COLUMN IF NOT EXISTS deliverables jsonb NOT NULL DEFAULT '[]'::jsonb
+  `);
+  await pool.query(`
+    ALTER TABLE smoke_test_sprints
+    ADD COLUMN IF NOT EXISTS updated_by text REFERENCES accounts(id) ON DELETE SET NULL
+  `);
+  await pool.query(`
+    ALTER TABLE smoke_test_sprints
+    ADD COLUMN IF NOT EXISTS title text
   `);
 
   // Smoke Test Sprint Links: URLs and file attachments for scoping artifacts

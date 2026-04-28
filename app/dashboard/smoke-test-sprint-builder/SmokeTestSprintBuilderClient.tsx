@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import AdminSprintStatusDropdown from "@/app/components/AdminSprintStatusDropdown";
 import {
   SMOKE_TEST_COMPLEXITY_TIERS,
   SMOKE_TEST_DAY_THEMES,
@@ -48,6 +49,7 @@ type InitialDraft = {
   id: string;
   projectId: string;
   status: string;
+  title: string;
   buildingFromSprintIds: string[];
   noPriorSprint: boolean;
   currentState: string;
@@ -185,6 +187,10 @@ export default function SmokeTestSprintBuilderClient({
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(
     initialDraft?.updatedAt ?? null
   );
+  const [title, setTitle] = useState(initialDraft?.title ?? "");
+  const [draftStatus, setDraftStatus] = useState<string>(
+    initialDraft?.status ?? "draft"
+  );
 
   const [projectId, setProjectId] = useState(
     initialDraft?.projectId ??
@@ -301,6 +307,7 @@ export default function SmokeTestSprintBuilderClient({
   function buildPayload(confirm: boolean) {
     return {
       projectId,
+      title: title.trim() || undefined,
       buildingFromSprintIds: buildingFromIds,
       currentState: currentState.trim() || undefined,
       whatsNext: whatsNext.trim() || undefined,
@@ -566,10 +573,22 @@ export default function SmokeTestSprintBuilderClient({
           Single source — used during or before your Jam Session.
         </p>
         {draftId && (
-          <p className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-400 mt-2">
-            Editing draft
-            {lastSavedLabel ? ` · last saved ${lastSavedLabel}` : ""}
-          </p>
+          <div className="flex flex-wrap items-center gap-3 mt-2">
+            <p className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-400">
+              Editing draft
+              {lastSavedLabel ? ` · last saved ${lastSavedLabel}` : ""}
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">Status:</span>
+              <AdminSprintStatusDropdown
+                sprintId={draftId}
+                currentStatus={draftStatus}
+                endpoint={`/api/smoke-test-sprints/${draftId}/status`}
+                onSuccess={(newStatus) => setDraftStatus(newStatus)}
+                compact
+              />
+            </div>
+          </div>
         )}
       </div>
 
@@ -581,6 +600,24 @@ export default function SmokeTestSprintBuilderClient({
             <p className={sectionSubClasses}>
               Auto-populated for existing clients. Filled manually for new clients during the Jam Session.
             </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="sts-title" className={labelClasses}>
+              Title
+            </label>
+            <p className={helpTextClasses}>
+              A short label for this sprint (e.g. &ldquo;Onboarding redesign smoke test&rdquo;).
+            </p>
+            <input
+              id="sts-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={120}
+              placeholder="Untitled smoke test sprint"
+              className={inputClasses}
+            />
           </div>
 
           <div className="flex flex-col gap-2">

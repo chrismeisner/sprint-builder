@@ -174,7 +174,7 @@ export async function PATCH(request: Request, { params }: Params) {
     const totalPrice = calculateSmokeTestPrice(normalizedComplexityScore, hourlyRate);
 
     const confirm = body.confirm === true;
-    const nextStatus = confirm ? "confirmed" : "draft";
+    const nextStatus = confirm ? "scheduled" : "draft";
     const dayPlans = normalizeDayPlans(body.dayPlans);
     const deliverables = normalizeDeliverables(body.deliverables);
 
@@ -203,6 +203,8 @@ export async function PATCH(request: Request, { params }: Params) {
          status = $22,
          day_plans = $23,
          deliverables = $24,
+         updated_by = $25,
+         title = $26,
          updated_at = now()
        WHERE id = $1`,
       [
@@ -230,6 +232,8 @@ export async function PATCH(request: Request, { params }: Params) {
         nextStatus,
         JSON.stringify(dayPlans),
         JSON.stringify(deliverables),
+        user.accountId ?? null,
+        str(body.title),
       ]
     );
 

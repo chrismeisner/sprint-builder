@@ -68,7 +68,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     [project.id]
   );
 
-  const sprints = sprintsResult.rows as Array<{
+  type SprintRow = {
     id: string;
     title: string | null;
     status: string | null;
@@ -80,7 +80,40 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     share_token: string | null;
     type: string | null;
     parent_sprint_id: string | null;
-  }>;
+  };
+
+  const draftSprints = sprintsResult.rows as Array<SprintRow>;
+
+  const smokeSprintsResult = await pool.query(
+    `SELECT id, status, title, whats_next, total_price, implied_hours, created_at
+     FROM smoke_test_sprints
+     WHERE project_id = $1
+     ORDER BY created_at DESC`,
+    [project.id]
+  );
+
+  const smokeSprints: Array<SprintRow> = smokeSprintsResult.rows.map((row) => ({
+    id: row.id as string,
+    title:
+      (row.title as string | null) ??
+      (row.whats_next as string | null) ??
+      null,
+    status: (row.status as string | null) ?? "draft",
+    total_estimate_points: null,
+    total_fixed_hours: row.implied_hours != null ? Number(row.implied_hours) : null,
+    total_fixed_price: row.total_price != null ? Number(row.total_price) : null,
+    deliverable_count: null,
+    created_at: row.created_at as string | Date,
+    share_token: null,
+    type: "smoke_test",
+    parent_sprint_id: null,
+  }));
+
+  const sprints: Array<SprintRow> = [...draftSprints, ...smokeSprints].sort((a, b) => {
+    const aTs = a.created_at instanceof Date ? a.created_at.getTime() : new Date(a.created_at).getTime();
+    const bTs = b.created_at instanceof Date ? b.created_at.getTime() : new Date(b.created_at).getTime();
+    return bTs - aTs;
+  });
 
   const hasAnySprints = sprints.some((s) => (s.type ?? "sprint") === "sprint");
 
@@ -250,18 +283,29 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
                 {sprints.map((s) => {
-                  const isUpdateCycle = (s.type ?? "sprint") === "update_cycle";
+                  const sprintType = s.type ?? "sprint";
+                  const isUpdateCycle = sprintType === "update_cycle";
+                  const isSmokeTest = sprintType === "smoke_test";
+                  const titleFallback = isUpdateCycle
+                    ? "Untitled update cycle"
+                    : isSmokeTest
+                    ? "Untitled smoke test sprint"
+                    : "Untitled sprint";
                   return (
-                    <tr key={s.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150">
+                    <tr key={`${sprintType}-${s.id}`} className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150">
                       <td className="px-4 py-2">
                         <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                          {s.title || (isUpdateCycle ? "Untitled update cycle" : "Untitled sprint")}
+                          {s.title || titleFallback}
                         </span>
                       </td>
                       <td className="px-4 py-2">
                         {isUpdateCycle ? (
                           <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-2 py-0.5 text-xs font-medium">
                             Update
+                          </span>
+                        ) : isSmokeTest ? (
+                          <span className="inline-flex items-center rounded-full bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 px-2 py-0.5 text-xs font-medium">
+                            Smoke test
                           </span>
                         ) : (
                           <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
@@ -270,7 +314,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                         )}
                       </td>
                       <td className="px-4 py-2">
-                        {isAdmin ? (
+                        {isAdmin && !isSmokeTest ? (
                           <AdminSprintStatusDropdown
                             sprintId={s.id}
                             currentStatus={s.status || "draft"}
@@ -289,12 +333,21 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                         {new Date(s.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-2">
-                        <SprintShareLink sprintId={s.id} shareToken={s.share_token} status={s.status} isAdmin={isAdmin} />
+                        {isSmokeTest ? (
+                          <Link
+                            href={`/dashboard/smoke-test-sprint-builder?draftId=${s.id}`}
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            Open
+                          </Link>
+                        ) : (
+                          <SprintShareLink sprintId={s.id} shareToken={s.share_token} status={s.status} isAdmin={isAdmin} />
+                        )}
                       </td>
                       {isAdmin && (
                         <td className="px-4 py-2">
                           <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-                            <DeleteSprintButton sprintId={s.id} />
+                            {!isSmokeTest && <DeleteSprintButton sprintId={s.id} />}
                           </div>
                         </td>
                       )}

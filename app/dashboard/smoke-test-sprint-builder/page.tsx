@@ -47,6 +47,7 @@ export type InitialDraft = {
   id: string;
   projectId: string;
   status: string;
+  title: string;
   buildingFromSprintIds: string[];
   noPriorSprint: boolean;
   currentState: string;
@@ -175,7 +176,7 @@ export default async function SmokeTestSprintBuilderPage({
   const draftId = searchParams?.draftId;
   if (draftId) {
     const draftRes = await pool.query(
-      `SELECT id, project_id, status,
+      `SELECT id, project_id, status, title,
               building_from_sprint_ids, no_prior_sprint,
               current_state,
               whats_next, why_now, good_looks_like, how_we_know,
@@ -216,6 +217,7 @@ export default async function SmokeTestSprintBuilderPage({
         id: row.id as string,
         projectId: row.project_id as string,
         status: row.status as string,
+        title: (row.title as string | null) ?? "",
         buildingFromSprintIds: (row.building_from_sprint_ids as string[]) ?? [],
         noPriorSprint: Boolean(row.no_prior_sprint),
         currentState: (row.current_state as string | null) ?? "",

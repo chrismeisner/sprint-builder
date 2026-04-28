@@ -10,6 +10,7 @@ export type SmokeTestSprintRow = {
   status: string;
   projectId: string;
   projectName: string | null;
+  title: string | null;
   whatsNext: string | null;
   complexityScore: number | null;
   hourlyRate: number | null;
@@ -19,6 +20,7 @@ export type SmokeTestSprintRow = {
   attachmentCount: number;
   createdAt: string;
   updatedAt: string;
+  updatedByLabel: string | null;
 };
 
 export default async function SmokeTestSprintsAdminPage() {
@@ -37,6 +39,7 @@ export default async function SmokeTestSprintsAdminPage() {
       sts.project_id,
       sts.project_name_snapshot,
       p.name AS project_name,
+      sts.title,
       sts.whats_next,
       sts.complexity_score,
       sts.hourly_rate,
@@ -45,9 +48,15 @@ export default async function SmokeTestSprintsAdminPage() {
       sts.proposed_start_date,
       sts.created_at,
       sts.updated_at,
-      COALESCE(att.cnt, 0)::int AS attachment_count
+      COALESCE(att.cnt, 0)::int AS attachment_count,
+      COALESCE(
+        NULLIF(au.name, ''),
+        NULLIF(CONCAT_WS(' ', NULLIF(au.first_name, ''), NULLIF(au.last_name, '')), ''),
+        au.email
+      ) AS updated_by_label
     FROM smoke_test_sprints sts
     LEFT JOIN projects p ON p.id = sts.project_id
+    LEFT JOIN accounts au ON au.id = COALESCE(sts.updated_by, sts.created_by)
     LEFT JOIN (
       SELECT smoke_test_sprint_id, COUNT(*)::int AS cnt
       FROM smoke_test_sprint_links
@@ -64,6 +73,7 @@ export default async function SmokeTestSprintsAdminPage() {
       (row.project_name as string | null) ??
       (row.project_name_snapshot as string | null) ??
       null,
+    title: (row.title as string | null) ?? null,
     whatsNext: (row.whats_next as string | null) ?? null,
     complexityScore: row.complexity_score != null ? Number(row.complexity_score) : null,
     hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
@@ -82,6 +92,7 @@ export default async function SmokeTestSprintsAdminPage() {
       row.updated_at instanceof Date
         ? row.updated_at.toISOString()
         : (row.updated_at as string),
+    updatedByLabel: (row.updated_by_label as string | null) ?? null,
   }));
 
   return (

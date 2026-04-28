@@ -169,7 +169,7 @@ export async function POST(request: Request) {
 
     const id = randomUUID();
     const confirm = body.confirm === true;
-    const status = confirm ? "confirmed" : "draft";
+    const status = confirm ? "scheduled" : "draft";
     const dayPlans = normalizeDayPlans(body.dayPlans);
     const deliverables = normalizeDeliverables(body.deliverables);
 
@@ -182,7 +182,7 @@ export async function POST(request: Request) {
          browser_prototype_scope, figma_file_scope, implementation_path, implementation_members, existing_assets,
          complexity_tier, complexity_score, hourly_rate, hours_per_complexity_point,
          implied_hours, total_price, proposed_start_date,
-         notes, status, created_by, day_plans, deliverables
+         notes, status, created_by, day_plans, deliverables, updated_by, title
        )
        VALUES (
          $1, $2,
@@ -192,7 +192,7 @@ export async function POST(request: Request) {
          $12, $13, $14, $15, $16,
          $17, $18, $19, $20,
          $21, $22, $23,
-         $24, $26, $25, $27, $28
+         $24, $26, $25, $27, $28, $25, $29
        )`,
       [
         id,
@@ -223,6 +223,7 @@ export async function POST(request: Request) {
         status,
         JSON.stringify(dayPlans),
         JSON.stringify(deliverables),
+        str(body.title),
       ]
     );
 

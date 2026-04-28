@@ -15,7 +15,11 @@ type Props = {
   /** Compact styling for table cells */
   compact?: boolean;
   /** Callback after successful change; if not provided, page reloads */
-  onSuccess?: () => void;
+  onSuccess?: (newStatus: string) => void;
+  /** Override the PATCH endpoint (defaults to sprint_drafts admin status route) */
+  endpoint?: string;
+  /** Skip the confirm dialog */
+  skipConfirm?: boolean;
 };
 
 export default function AdminSprintStatusDropdown({
@@ -23,6 +27,8 @@ export default function AdminSprintStatusDropdown({
   currentStatus,
   compact = true,
   onSuccess,
+  endpoint,
+  skipConfirm = false,
 }: Props) {
   const [status, setStatus] = useState(currentStatus);
   const [isChanging, setIsChanging] = useState(false);
@@ -31,14 +37,17 @@ export default function AdminSprintStatusDropdown({
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === status) return;
 
-    const confirmed = confirm(`Change status from "${status.replace("_", " ")}" to "${newStatus.replace("_", " ")}"?`);
-    if (!confirmed) return;
+    if (!skipConfirm) {
+      const confirmed = confirm(`Change status from "${status.replace("_", " ")}" to "${newStatus.replace("_", " ")}"?`);
+      if (!confirmed) return;
+    }
 
     setIsChanging(true);
     setError(null);
 
     try {
-      const res = await fetch(`/api/admin/sprint-drafts/${sprintId}/status`, {
+      const url = endpoint ?? `/api/admin/sprint-drafts/${sprintId}/status`;
+      const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
@@ -52,7 +61,7 @@ export default function AdminSprintStatusDropdown({
 
       setStatus(newStatus);
       if (onSuccess) {
-        onSuccess();
+        onSuccess(newStatus);
       } else {
         setTimeout(() => window.location.reload(), 800);
       }
