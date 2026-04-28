@@ -835,9 +835,6 @@ export default function SmokeTestSprintBuilderClient({
                   </option>
                 ))}
               </select>
-              <p className={helpTextClasses}>
-                Default complexity 3 (maps to 4 hours/day).
-              </p>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -858,7 +855,7 @@ export default function SmokeTestSprintBuilderClient({
                 }}
                 className={`${inputClasses} tabular-nums`}
               />
-              <p className={helpTextClasses}>Default ${SMOKE_TEST_DEFAULT_HOURLY_RATE}/hr.</p>
+              <p className={helpTextClasses}>Studio hourly rate.</p>
             </div>
           </div>
 
