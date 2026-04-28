@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 const STATE_KEY = "main";
 
 export async function GET() {
