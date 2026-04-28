@@ -303,10 +303,6 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                           <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-2 py-0.5 text-xs font-medium">
                             Update
                           </span>
-                        ) : isSmokeTest ? (
-                          <span className="inline-flex items-center rounded-full bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 px-2 py-0.5 text-xs font-medium">
-                            Smoke test
-                          </span>
                         ) : (
                           <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
                             Sprint
