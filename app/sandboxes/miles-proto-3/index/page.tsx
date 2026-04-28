@@ -1091,13 +1091,13 @@ function EditScenarioModal({
 
           <div className="grid grid-cols-3 gap-3">
             <label className="block space-y-1">
-              <span className={labelCls}>Mode</span>
+              <span className={labelCls}>UI split</span>
               <select value={draft.mode} onChange={(e) => patch("mode", e.target.value as ScenarioMode)} className={inputCls}>
                 {MODE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </label>
             <label className="block space-y-1">
-              <span className={labelCls}>Surface</span>
+              <span className={labelCls}>Entry</span>
               <select value={draft.surface} onChange={(e) => patch("surface", e.target.value as Surface)} className={inputCls}>
                 {SURFACE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -1111,7 +1111,7 @@ function EditScenarioModal({
           </div>
 
           <div className="block space-y-1">
-            <span className={labelCls}>Components</span>
+            <span className={labelCls}>Widgets</span>
             <ComponentTagInput
               value={draft.components}
               onChange={(next) => patch("components", next)}
@@ -2060,13 +2060,13 @@ export default function IndexPage() {
                   <th className="pb-2 pr-4 text-left text-xs font-medium text-neutral-400">Overview</th>
                   <th className="w-28 pb-2 pr-4 text-left">
                     <button type="button" onClick={() => handleSort("mode")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
-                      Mode
+                      UI split
                       <SortIcon active={sortKey === "mode"} dir={sortDir} />
                     </button>
                   </th>
                   <th className="w-32 pb-2 pr-4 text-left">
                     <button type="button" onClick={() => handleSort("surface")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
-                      Surface
+                      Entry
                       <SortIcon active={sortKey === "surface"} dir={sortDir} />
                     </button>
                   </th>
@@ -2094,7 +2094,7 @@ export default function IndexPage() {
                       <SortIcon active={sortKey === "devStatus"} dir={sortDir} />
                     </button>
                   </th>
-                  <th className="min-w-[200px] pb-2 pr-4 text-left text-xs font-medium text-neutral-400">Components</th>
+                  <th className="min-w-[200px] pb-2 pr-4 text-left text-xs font-medium text-neutral-400">Widgets</th>
                   <th className="w-28 pb-2 text-left text-xs font-medium text-neutral-400">Prototype</th>
                 </tr>
               </thead>
