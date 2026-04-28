@@ -55,6 +55,7 @@ interface Scenario {
   designStatus: DesignStatus;
   devStatus: DevStatus;
   priority: Priority;
+  inSprint?: boolean;
   constraint?: string;
   href?: string;
 }
@@ -71,7 +72,7 @@ interface ScenarioOverride {
   components?: string[];
   designStatus?: DesignStatus;
   devStatus?: DevStatus;
-  priority?: Priority;
+  inSprint?: boolean;
 }
 interface WidgetOverride {
   mode?: WidgetMode;
@@ -539,14 +540,10 @@ function widgetStatusBadgeClass(status: WidgetStatus) {
 const ALL_WIDGET_MODES: WidgetMode[] = ["free-form", "scope-routed", "FSM", "locally-injected", "fallback"];
 const ALL_WIDGET_STATUSES: WidgetStatus[] = ["shipped", "partial", "planned", "future"];
 
-function priorityBadgeClass(p: Priority) {
-  const map: Record<Priority, string> = {
-    p0: "bg-red-50 text-red-700 border-red-200",
-    p1: "bg-orange-50 text-orange-700 border-orange-200",
-    p2: "bg-blue-50 text-blue-700 border-blue-200",
-    p3: "bg-neutral-100 text-neutral-500 border-neutral-200",
-  };
-  return map[p];
+function sprintBadgeClass(inSprint: boolean) {
+  return inSprint
+    ? "bg-green-50 text-green-700 border-green-200"
+    : "bg-neutral-100 text-neutral-400 border-neutral-200";
 }
 
 function InlineSelect<T extends string>({
@@ -612,14 +609,8 @@ const DEV_STATUS_OPTIONS: { value: DevStatus; label: string }[] = [
   { value: "implementing", label: "implementing" },
 ];
 
-const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
-  { value: "p0", label: "P0 Critical" },
-  { value: "p1", label: "P1 High" },
-  { value: "p2", label: "P2 Medium" },
-  { value: "p3", label: "P3 Low" },
-];
 
-type SortKey = "id" | "name" | "mode" | "surface" | "persona" | "designStatus" | "devStatus" | "priority";
+type SortKey = "id" | "name" | "mode" | "surface" | "persona" | "inSprint";
 type SortDir = "asc" | "desc";
 
 function effectiveScenario(s: Scenario, override?: ScenarioOverride): Scenario {
@@ -637,7 +628,7 @@ function diffScenarioOverride(source: Scenario, draft: Scenario): ScenarioOverri
   if (draft.surface !== source.surface) patch.surface = draft.surface;
   if (draft.persona !== source.persona) patch.persona = draft.persona;
   if (draft.components.join(" ") !== source.components.join(" ")) patch.components = draft.components;
-  if (draft.priority !== source.priority) patch.priority = draft.priority;
+  if ((draft.inSprint ?? false) !== (source.inSprint ?? false)) patch.inSprint = draft.inSprint;
   if (draft.designStatus !== source.designStatus) patch.designStatus = draft.designStatus;
   if (draft.devStatus !== source.devStatus) patch.devStatus = draft.devStatus;
   return patch;
@@ -1046,12 +1037,25 @@ function EditScenarioModal({
           </label>
 
           <div className="grid grid-cols-3 gap-3">
-            <label className="block space-y-1">
-              <span className={labelCls}>Priority</span>
-              <select value={draft.priority} onChange={(e) => patch("priority", e.target.value as Priority)} className={inputCls}>
-                {PRIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </label>
+            <div className="block space-y-1">
+              <span className={labelCls}>This sprint</span>
+              <div className="flex gap-2 pt-0.5">
+                {[true, false].map((val) => (
+                  <button
+                    key={String(val)}
+                    type="button"
+                    onClick={() => patch("inSprint", val)}
+                    className={`rounded border px-2.5 py-1 text-xs font-medium transition-colors ${
+                      (draft.inSprint ?? false) === val
+                        ? sprintBadgeClass(val)
+                        : "border-neutral-200 bg-white text-neutral-400"
+                    }`}
+                  >
+                    {val ? "In" : "Out"}
+                  </button>
+                ))}
+              </div>
+            </div>
             <label className="block space-y-1">
               <span className={labelCls}>Design status</span>
               <select value={draft.designStatus} onChange={(e) => patch("designStatus", e.target.value as DesignStatus)} className={inputCls}>
@@ -1351,25 +1355,10 @@ export default function IndexPage() {
           cmp = order[ap] - order[bp];
           break;
         }
-        case "designStatus": {
-          const order: Record<DesignStatus, number> = { scoping: 0, wireframe: 1, design: 2 };
-          const ad = scenarioOverrides[a.id]?.designStatus ?? a.designStatus;
-          const bd = scenarioOverrides[b.id]?.designStatus ?? b.designStatus;
-          cmp = order[ad] - order[bd];
-          break;
-        }
-        case "devStatus": {
-          const order: Record<DevStatus, number> = { scoping: 0, prototype: 1, implementing: 2 };
-          const av = scenarioOverrides[a.id]?.devStatus ?? a.devStatus;
-          const bv = scenarioOverrides[b.id]?.devStatus ?? b.devStatus;
-          cmp = order[av] - order[bv];
-          break;
-        }
-        case "priority": {
-          const order: Record<Priority, number> = { p0: 0, p1: 1, p2: 2, p3: 3 };
-          const ap = scenarioOverrides[a.id]?.priority ?? a.priority;
-          const bp = scenarioOverrides[b.id]?.priority ?? b.priority;
-          cmp = order[ap] - order[bp];
+        case "inSprint": {
+          const ai = (scenarioOverrides[a.id]?.inSprint ?? a.inSprint ?? false) ? 0 : 1;
+          const bi = (scenarioOverrides[b.id]?.inSprint ?? b.inSprint ?? false) ? 0 : 1;
+          cmp = ai - bi;
           break;
         }
       }
@@ -2077,21 +2066,9 @@ export default function IndexPage() {
                     </button>
                   </th>
                   <th className="w-28 pb-2 pr-4 text-left">
-                    <button type="button" onClick={() => handleSort("priority")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
-                      Priority
-                      <SortIcon active={sortKey === "priority"} dir={sortDir} />
-                    </button>
-                  </th>
-                  <th className="w-28 pb-2 pr-4 text-left">
-                    <button type="button" onClick={() => handleSort("designStatus")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
-                      Design status
-                      <SortIcon active={sortKey === "designStatus"} dir={sortDir} />
-                    </button>
-                  </th>
-                  <th className="w-28 pb-2 pr-4 text-left">
-                    <button type="button" onClick={() => handleSort("devStatus")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
-                      Dev status
-                      <SortIcon active={sortKey === "devStatus"} dir={sortDir} />
+                    <button type="button" onClick={() => handleSort("inSprint")} className="inline-flex items-center text-xs font-medium text-neutral-400 hover:text-neutral-600">
+                      This sprint
+                      <SortIcon active={sortKey === "inSprint"} dir={sortDir} />
                     </button>
                   </th>
                   <th className="min-w-[200px] pb-2 pr-4 text-left text-xs font-medium text-neutral-400">Widgets</th>
@@ -2174,40 +2151,15 @@ export default function IndexPage() {
                     </td>
                     <td className="py-3 pr-4 align-top">
                       {(() => {
-                        const prio = scenarioOverrides[scenario.id]?.priority ?? scenario.priority;
+                        const inSprint = scenarioOverrides[scenario.id]?.inSprint ?? scenario.inSprint ?? false;
                         return (
-                          <InlineSelect
-                            value={prio}
-                            options={PRIORITY_OPTIONS}
-                            onChange={(v) => updateScenarioOverride(scenario.id, { priority: v })}
-                            badgeClass={priorityBadgeClass(prio)}
-                          />
-                        );
-                      })()}
-                    </td>
-                    <td className="py-3 pr-4 align-top">
-                      {(() => {
-                        const st = scenarioOverrides[scenario.id]?.designStatus ?? scenario.designStatus;
-                        return (
-                          <InlineSelect
-                            value={st}
-                            options={DESIGN_STATUS_OPTIONS}
-                            onChange={(v) => updateScenarioOverride(scenario.id, { designStatus: v })}
-                            badgeClass={designStatusBadgeClass(st)}
-                          />
-                        );
-                      })()}
-                    </td>
-                    <td className="py-3 pr-4 align-top">
-                      {(() => {
-                        const st = scenarioOverrides[scenario.id]?.devStatus ?? scenario.devStatus;
-                        return (
-                          <InlineSelect
-                            value={st}
-                            options={DEV_STATUS_OPTIONS}
-                            onChange={(v) => updateScenarioOverride(scenario.id, { devStatus: v })}
-                            badgeClass={devStatusBadgeClass(st)}
-                          />
+                          <button
+                            type="button"
+                            onClick={() => updateScenarioOverride(scenario.id, { inSprint: !inSprint })}
+                            className={`inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium leading-none transition-opacity hover:opacity-70 ${sprintBadgeClass(inSprint)}`}
+                          >
+                            {inSprint ? "In" : "Out"}
+                          </button>
                         );
                       })()}
                     </td>
