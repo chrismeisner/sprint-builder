@@ -1435,6 +1435,23 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS deliverables jsonb NOT NULL DEFAULT '[]'::jsonb
   `);
 
+  // Miles Proto 3 — widget attachments (screenshots for visual reference)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS miles_proto3_widget_attachments (
+      id text PRIMARY KEY,
+      widget_name text NOT NULL,
+      filename text NOT NULL,
+      mimetype text,
+      file_url text NOT NULL,
+      object_path text NOT NULL,
+      size_bytes bigint,
+      uploaded_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_miles_proto3_widget_attachments_widget
+      ON miles_proto3_widget_attachments(widget_name);
+  `);
+
   global._schemaInitialized = true;
 }
 
