@@ -245,3 +245,39 @@ export async function PATCH(request: Request, { params }: Params) {
     );
   }
 }
+
+export async function DELETE(_request: Request, { params }: Params) {
+  try {
+    await ensureSchema();
+    const pool = getPool();
+
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+    if (!user.isAdmin) {
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    }
+
+    const { id } = params;
+    if (!id) {
+      return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    }
+
+    const res = await pool.query(
+      `DELETE FROM smoke_test_sprints WHERE id = $1`,
+      [id]
+    );
+    if (res.rowCount === 0) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    console.error("[SmokeTestSprintsAPI] DELETE error:", error);
+    return NextResponse.json(
+      { error: (error as Error).message ?? "Unknown error" },
+      { status: 500 }
+    );
+  }
+}
