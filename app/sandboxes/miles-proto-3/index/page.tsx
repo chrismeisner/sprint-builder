@@ -1354,10 +1354,6 @@ export default function IndexPage() {
     setIsDirty(true);
   }
 
-  function resetOrder() {
-    setScenarioOrder([]);
-    setIsDirty(true);
-  }
 
   async function handleSave() {
     setIsSaving(true);
