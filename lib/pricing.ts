@@ -27,12 +27,12 @@ export const SMOKE_TEST_TIMELINE_WORKING_DAYS = 10;
  */
 export const SMOKE_TEST_DAY_THEMES: readonly string[] = [
   "Aligned",
-  "Curious",
-  "Excited",
+  "Generative",
+  "Opinionated",
   "Decisive",
   "Clear",
   "Focused",
-  "Inspired",
+  "Excited",
   "Confident",
   "Meticulous",
   "Satisfied",

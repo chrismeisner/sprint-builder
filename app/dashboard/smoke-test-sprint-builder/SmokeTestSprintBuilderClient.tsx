@@ -220,14 +220,9 @@ export default function SmokeTestSprintBuilderClient({
     return defaultDayPlans();
   });
 
-  const [deliverables, setDeliverables] = useState<Deliverable[]>(() => {
-    const incoming = initialDraft?.deliverables ?? [];
-    if (incoming.length > 0) return incoming;
-    return [
-      { week: 1, title: "", description: "" },
-      { week: 2, title: "", description: "" },
-    ];
-  });
+  const [deliverables, setDeliverables] = useState<Deliverable[]>(
+    initialDraft?.deliverables ?? []
+  );
 
   const [saving, setSaving] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -325,22 +320,15 @@ export default function SmokeTestSprintBuilderClient({
     );
   }
 
-  function addDeliverable(week: 1 | 2) {
+  function addDeliverable() {
     setDeliverables((prev) => {
-      const inWeek = prev.filter((d) => d.week === week).length;
-      if (inWeek >= MAX_DELIVERABLES_PER_WEEK) return prev;
-      return [...prev, { week, title: "", description: "" }];
+      if (prev.length >= MAX_DELIVERABLES_PER_WEEK * 2) return prev;
+      return [...prev, { week: 1, title: "", description: "" }];
     });
   }
 
   function removeDeliverable(index: number) {
-    setDeliverables((prev) => {
-      const target = prev[index];
-      if (!target) return prev;
-      const inWeek = prev.filter((d) => d.week === target.week).length;
-      if (inWeek <= 1) return prev;
-      return prev.filter((_, i) => i !== index);
-    });
+    setDeliverables((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function persist(
@@ -729,83 +717,70 @@ export default function SmokeTestSprintBuilderClient({
         </section>
 
         {/* Additional deliverables */}
-        <section className="flex flex-col gap-6">
+        <section className="flex flex-col gap-4">
           <div>
             <h2 className={sectionHeaderClasses}>Additional deliverables</h2>
             <p className={sectionSubClasses}>
-              On top of the browser prototype and Figma file above. At least one per week — add more as
-              needed (deck, write-up, research summary, etc.).
+              Optional extras on top of the browser prototype and Figma file (deck, write-up, research summary, etc.).
             </p>
           </div>
 
-          {[1, 2].map((week) => {
-            const w = week as 1 | 2;
-            const weekHeader = w === 1 ? "⛰️ Week 1 — Uphill" : "🏁 Week 2 — Downhill";
-            const inWeek = deliverables
-              .map((d, idx) => ({ d, idx }))
-              .filter(({ d }) => d.week === w);
-            const canRemove = inWeek.length > 1;
-            const canAdd = inWeek.length < MAX_DELIVERABLES_PER_WEEK;
-            return (
-              <div key={w} className="flex flex-col gap-3">
-                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                  {weekHeader}
-                </div>
-                <div className="flex flex-col gap-3">
-                  {inWeek.map(({ d, idx }, positionInWeek) => (
-                    <div
-                      key={idx}
-                      className="rounded-md border border-neutral-200 dark:border-neutral-700 p-3 flex flex-col gap-2"
+          {deliverables.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {deliverables.map((d, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-md border border-neutral-200 dark:border-neutral-700 p-3 flex flex-col gap-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <select
+                      value={d.week}
+                      onChange={(e) => updateDeliverable(idx, { week: Number(e.target.value) as 1 | 2 })}
+                      className="h-8 px-2 text-xs rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                          Deliverable {positionInWeek + 1}
-                        </span>
-                        {canRemove && (
-                          <button
-                            type="button"
-                            onClick={() => removeDeliverable(idx)}
-                            className="text-xs text-neutral-500 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-150"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        value={d.title}
-                        onChange={(e) => updateDeliverable(idx, { title: e.target.value })}
-                        placeholder="Title (e.g. Pitch deck v1)"
-                        maxLength={120}
-                        className={`${inputClasses} h-9`}
-                        aria-label={`Week ${w} deliverable ${positionInWeek + 1} title`}
-                      />
-                      <textarea
-                        value={d.description}
-                        onChange={(e) =>
-                          updateDeliverable(idx, { description: e.target.value })
-                        }
-                        rows={2}
-                        placeholder="What this deliverable contains"
-                        className={textareaClasses}
-                        aria-label={`Week ${w} deliverable ${positionInWeek + 1} description`}
-                      />
-                    </div>
-                  ))}
+                      <option value={1}>⛰️ Week 1 — Uphill</option>
+                      <option value={2}>🏁 Week 2 — Downhill</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => removeDeliverable(idx)}
+                      className="text-xs text-neutral-400 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-150"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={d.title}
+                    onChange={(e) => updateDeliverable(idx, { title: e.target.value })}
+                    placeholder="Title (e.g. Pitch deck v1)"
+                    maxLength={120}
+                    className={`${inputClasses} h-9`}
+                    aria-label={`Deliverable ${idx + 1} title`}
+                  />
+                  <textarea
+                    value={d.description}
+                    onChange={(e) => updateDeliverable(idx, { description: e.target.value })}
+                    rows={2}
+                    placeholder="What this deliverable contains"
+                    className={textareaClasses}
+                    aria-label={`Deliverable ${idx + 1} description`}
+                  />
                 </div>
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => addDeliverable(w)}
-                    disabled={!canAdd}
-                    className="h-9 px-3 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 text-neutral-800 dark:text-neutral-200 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    + Add deliverable
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          )}
+
+          <div>
+            <button
+              type="button"
+              onClick={addDeliverable}
+              disabled={deliverables.length >= MAX_DELIVERABLES_PER_WEEK * 2}
+              className="h-9 px-3 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 text-neutral-800 dark:text-neutral-200 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              + Add deliverable
+            </button>
+          </div>
         </section>
 
         {/* Effort & Pricing */}
@@ -829,11 +804,15 @@ export default function SmokeTestSprintBuilderClient({
                 onChange={(e) => setComplexityScore(Number(e.target.value))}
                 className={inputClasses}
               >
-                {[1, 2, 3, 4, 5].map((level) => (
-                  <option key={level} value={level}>
-                    {level}
-                  </option>
-                ))}
+                {[1, 2, 3, 4, 5].map((level) => {
+                  const suffix =
+                    level === 1 ? " (Minimum)" : level === 3 ? " (Medium)" : level === 5 ? " (Maximum)" : "";
+                  return (
+                    <option key={level} value={level}>
+                      {level}{suffix}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -904,23 +883,6 @@ export default function SmokeTestSprintBuilderClient({
                 </option>
               ))}
             </select>
-          </div>
-          <div className="rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-4 flex flex-col gap-3 text-sm text-neutral-700 dark:text-neutral-300">
-            <div>
-              <div className="font-semibold text-neutral-900 dark:text-neutral-100">Week 1 — Uphill</div>
-              <div className="opacity-80">
-                Kickoff Monday. Exploration and direction through the week. Direction locked Friday.
-              </div>
-            </div>
-            <div>
-              <div className="font-semibold text-neutral-900 dark:text-neutral-100">Week 2 — Downhill</div>
-              <div className="opacity-80">
-                Build begins Monday. Mid-week check Wednesday. Delivery Friday.
-              </div>
-            </div>
-            <div className="opacity-80 text-xs">
-              Four live moments — Kickoff, Ingredient Review, Direction Check, Delivery. Everything else async via your client dashboard.
-            </div>
           </div>
         </section>
 
