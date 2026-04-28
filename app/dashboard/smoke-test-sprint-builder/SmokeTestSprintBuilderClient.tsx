@@ -69,6 +69,7 @@ type InitialDraft = {
   deliverables: Deliverable[];
   attachments: Attachment[];
   updatedAt: string;
+  updatedByLabel: string | null;
 };
 
 const MAX_DELIVERABLES_PER_WEEK = 10;
@@ -102,6 +103,7 @@ type Props = {
   sprintsByProject: Record<string, Sprint[]>;
   projectMembersByProject: Record<string, { email: string; displayName: string | null }[]>;
   initialDraft?: InitialDraft | null;
+  currentUserLabel: string;
 };
 
 const SPRINT_TYPE_LABELS: Record<string, string> = {
@@ -178,6 +180,7 @@ export default function SmokeTestSprintBuilderClient({
   sprintsByProject,
   projectMembersByProject,
   initialDraft,
+  currentUserLabel,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -186,6 +189,9 @@ export default function SmokeTestSprintBuilderClient({
   const [draftId, setDraftId] = useState<string | null>(initialDraft?.id ?? null);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(
     initialDraft?.updatedAt ?? null
+  );
+  const [lastSavedByLabel, setLastSavedByLabel] = useState<string | null>(
+    initialDraft?.updatedByLabel ?? null
   );
   const [title, setTitle] = useState(initialDraft?.title ?? "");
   const [draftStatus, setDraftStatus] = useState<string>(
@@ -396,6 +402,7 @@ export default function SmokeTestSprintBuilderClient({
     if (!result) return null;
     setDraftId(result.id);
     setLastSavedAt(new Date().toISOString());
+    setLastSavedByLabel(currentUserLabel);
     const params = new URLSearchParams(searchParams.toString());
     params.set("draftId", result.id);
     router.replace(`/dashboard/smoke-test-sprint-builder?${params.toString()}`);
@@ -517,6 +524,7 @@ export default function SmokeTestSprintBuilderClient({
           router.replace(`/dashboard/smoke-test-sprint-builder?${params.toString()}`);
         }
         setLastSavedAt(new Date().toISOString());
+        setLastSavedByLabel(currentUserLabel);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -576,7 +584,8 @@ export default function SmokeTestSprintBuilderClient({
           <div className="flex flex-wrap items-center gap-3 mt-2">
             <p className="text-xs font-normal leading-normal text-neutral-500 dark:text-neutral-400">
               Editing draft
-              {lastSavedLabel ? ` · last saved ${lastSavedLabel}` : ""}
+              {lastSavedLabel ? ` · last updated ${lastSavedLabel}` : ""}
+              {lastSavedByLabel ? ` by ${lastSavedByLabel}` : ""}
             </p>
             <div className="flex items-center gap-2">
               <span className="text-xs text-neutral-500 dark:text-neutral-400">Status:</span>
@@ -584,8 +593,13 @@ export default function SmokeTestSprintBuilderClient({
                 sprintId={draftId}
                 currentStatus={draftStatus}
                 endpoint={`/api/smoke-test-sprints/${draftId}/status`}
-                onSuccess={(newStatus) => setDraftStatus(newStatus)}
+                onSuccess={(newStatus) => {
+                  setDraftStatus(newStatus);
+                  setLastSavedAt(new Date().toISOString());
+                  setLastSavedByLabel(currentUserLabel);
+                }}
                 compact
+                skipConfirm
               />
             </div>
           </div>
@@ -1385,7 +1399,8 @@ export default function SmokeTestSprintBuilderClient({
             </Link>
             {lastSavedLabel && (
               <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                Last saved {lastSavedLabel}
+                Last updated {lastSavedLabel}
+                {lastSavedByLabel ? ` by ${lastSavedByLabel}` : ""}
               </span>
             )}
           </div>

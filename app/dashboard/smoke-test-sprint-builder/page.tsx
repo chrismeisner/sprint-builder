@@ -67,6 +67,7 @@ export type InitialDraft = {
   deliverables: Deliverable[];
   attachments: Attachment[];
   updatedAt: string;
+  updatedByLabel: string | null;
 };
 
 function hydrateDeliverables(value: unknown): Deliverable[] {
@@ -176,16 +177,22 @@ export default async function SmokeTestSprintBuilderPage({
   const draftId = searchParams?.draftId;
   if (draftId) {
     const draftRes = await pool.query(
-      `SELECT id, project_id, status, title,
-              building_from_sprint_ids, no_prior_sprint,
-              current_state,
-              whats_next, why_now, good_looks_like, how_we_know,
-              browser_prototype_scope, figma_file_scope,
-              implementation_members, existing_assets,
-              complexity_score, hourly_rate, proposed_start_date,
-              notes, day_plans, deliverables, updated_at
-       FROM smoke_test_sprints
-       WHERE id = $1`,
+      `SELECT sts.id, sts.project_id, sts.status, sts.title,
+              sts.building_from_sprint_ids, sts.no_prior_sprint,
+              sts.current_state,
+              sts.whats_next, sts.why_now, sts.good_looks_like, sts.how_we_know,
+              sts.browser_prototype_scope, sts.figma_file_scope,
+              sts.implementation_members, sts.existing_assets,
+              sts.complexity_score, sts.hourly_rate, sts.proposed_start_date,
+              sts.notes, sts.day_plans, sts.deliverables, sts.updated_at,
+              COALESCE(
+                NULLIF(au.name, ''),
+                NULLIF(CONCAT_WS(' ', NULLIF(au.first_name, ''), NULLIF(au.last_name, '')), ''),
+                au.email
+              ) AS updated_by_label
+       FROM smoke_test_sprints sts
+       LEFT JOIN accounts au ON au.id = COALESCE(sts.updated_by, sts.created_by)
+       WHERE sts.id = $1`,
       [draftId]
     );
     if (draftRes.rowCount && draftRes.rowCount > 0) {
@@ -243,9 +250,15 @@ export default async function SmokeTestSprintBuilderPage({
           row.updated_at instanceof Date
             ? row.updated_at.toISOString()
             : (row.updated_at as string),
+        updatedByLabel: (row.updated_by_label as string | null) ?? null,
       };
     }
   }
+
+  const currentUserLabel =
+    (user.name && user.name.trim()) ||
+    [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
+    user.email;
 
   return (
     <SmokeTestSprintBuilderClient
@@ -253,6 +266,7 @@ export default async function SmokeTestSprintBuilderPage({
       sprintsByProject={sprintsByProject}
       projectMembersByProject={projectMembersByProject}
       initialDraft={initialDraft}
+      currentUserLabel={currentUserLabel}
     />
   );
 }
