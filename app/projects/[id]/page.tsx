@@ -253,6 +253,114 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         </div>
       </div>
 
+      {/* Refinement Cycles */}
+      <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <Typography as="h2" scale="h3">
+              Refinement Cycles
+            </Typography>
+            <Typography as="span" scale="body-sm" className="opacity-60">
+              {refinementCycles.length} total
+            </Typography>
+          </div>
+          <Link
+            href={`/dashboard/refinement-cycles/new?projectId=${project.id}`}
+            className="inline-flex items-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity duration-150 self-start md:self-auto"
+          >
+            New refinement cycle
+          </Link>
+        </div>
+        {refinementCycles.length === 0 ? (
+          <Typography as="div" scale="body-sm" className="opacity-70">
+            No refinement cycles yet. Submit one for fast, fixed-price design
+            refinement work — $1,200 per cycle, next-business-day delivery.
+          </Typography>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
+                <tr>
+                  <th className="text-left px-4 py-2 font-semibold">Title</th>
+                  <th className="text-left px-4 py-2 font-semibold">Status</th>
+                  <th className="text-left px-4 py-2 font-semibold">Submitter</th>
+                  <th className="text-left px-4 py-2 font-semibold">Scope</th>
+                  <th className="text-left px-4 py-2 font-semibold w-32">Submitted</th>
+                  <th className="text-left px-4 py-2 font-semibold w-32">Delivery</th>
+                  <th className="text-left px-4 py-2 font-semibold w-24"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
+                {refinementCycles.map((rc) => {
+                  const submittedAt =
+                    rc.submitted_at instanceof Date
+                      ? rc.submitted_at
+                      : new Date(rc.submitted_at);
+                  const deliveryDate = rc.delivery_date
+                    ? rc.delivery_date instanceof Date
+                      ? rc.delivery_date.toISOString().slice(0, 10)
+                      : (rc.delivery_date as string)
+                    : null;
+                  const statusLabel: Record<string, string> = {
+                    submitted: "Submitted",
+                    accepted: "Accepted",
+                    awaiting_deposit: "Awaiting deposit",
+                    in_progress: "In progress",
+                    delivered: "Delivered",
+                    declined: "Declined",
+                    expired: "Expired",
+                  };
+                  return (
+                    <tr
+                      key={rc.id}
+                      className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150"
+                    >
+                      <td className="px-4 py-2 font-medium text-neutral-900 dark:text-neutral-100">
+                        {rc.title || "Untitled"}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                          {statusLabel[rc.status] ?? rc.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 opacity-80">
+                        {rc.submitter_email ?? "—"}
+                      </td>
+                      <td className="px-4 py-2 opacity-70">
+                        {rc.screen_count} screen
+                        {rc.screen_count === 1 ? "" : "s"}
+                      </td>
+                      <td className="px-4 py-2 opacity-70">
+                        {submittedAt.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </td>
+                      <td className="px-4 py-2 opacity-70">
+                        {deliveryDate
+                          ? new Date(`${deliveryDate}T12:00:00Z`).toLocaleDateString(
+                              "en-US",
+                              { month: "short", day: "numeric", timeZone: "UTC" }
+                            )
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-2">
+                        <Link
+                          href={`/dashboard/refinement-cycles/${rc.id}`}
+                          className="text-neutral-700 dark:text-neutral-300 underline hover:opacity-80"
+                        >
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
       {/* Sprints */}
       <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -374,114 +482,6 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                           </div>
                         </td>
                       )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      {/* Refinement Cycles */}
-      <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <Typography as="h2" scale="h3">
-              Refinement Cycles
-            </Typography>
-            <Typography as="span" scale="body-sm" className="opacity-60">
-              {refinementCycles.length} total
-            </Typography>
-          </div>
-          <Link
-            href={`/dashboard/refinement-cycles/new?projectId=${project.id}`}
-            className="inline-flex items-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity duration-150 self-start md:self-auto"
-          >
-            New refinement cycle
-          </Link>
-        </div>
-        {refinementCycles.length === 0 ? (
-          <Typography as="div" scale="body-sm" className="opacity-70">
-            No refinement cycles yet. Submit one for fast, fixed-price design
-            refinement work — $1,200 per cycle, next-business-day delivery.
-          </Typography>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
-                <tr>
-                  <th className="text-left px-4 py-2 font-semibold">Title</th>
-                  <th className="text-left px-4 py-2 font-semibold">Status</th>
-                  <th className="text-left px-4 py-2 font-semibold">Submitter</th>
-                  <th className="text-left px-4 py-2 font-semibold">Scope</th>
-                  <th className="text-left px-4 py-2 font-semibold w-32">Submitted</th>
-                  <th className="text-left px-4 py-2 font-semibold w-32">Delivery</th>
-                  <th className="text-left px-4 py-2 font-semibold w-24"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
-                {refinementCycles.map((rc) => {
-                  const submittedAt =
-                    rc.submitted_at instanceof Date
-                      ? rc.submitted_at
-                      : new Date(rc.submitted_at);
-                  const deliveryDate = rc.delivery_date
-                    ? rc.delivery_date instanceof Date
-                      ? rc.delivery_date.toISOString().slice(0, 10)
-                      : (rc.delivery_date as string)
-                    : null;
-                  const statusLabel: Record<string, string> = {
-                    submitted: "Submitted",
-                    accepted: "Accepted",
-                    awaiting_deposit: "Awaiting deposit",
-                    in_progress: "In progress",
-                    delivered: "Delivered",
-                    declined: "Declined",
-                    expired: "Expired",
-                  };
-                  return (
-                    <tr
-                      key={rc.id}
-                      className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150"
-                    >
-                      <td className="px-4 py-2 font-medium text-neutral-900 dark:text-neutral-100">
-                        {rc.title || "Untitled"}
-                      </td>
-                      <td className="px-4 py-2">
-                        <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
-                          {statusLabel[rc.status] ?? rc.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 opacity-80">
-                        {rc.submitter_email ?? "—"}
-                      </td>
-                      <td className="px-4 py-2 opacity-70">
-                        {rc.screen_count} screen
-                        {rc.screen_count === 1 ? "" : "s"}
-                      </td>
-                      <td className="px-4 py-2 opacity-70">
-                        {submittedAt.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </td>
-                      <td className="px-4 py-2 opacity-70">
-                        {deliveryDate
-                          ? new Date(`${deliveryDate}T12:00:00Z`).toLocaleDateString(
-                              "en-US",
-                              { month: "short", day: "numeric", timeZone: "UTC" }
-                            )
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-2">
-                        <Link
-                          href={`/dashboard/refinement-cycles/${rc.id}`}
-                          className="text-neutral-700 dark:text-neutral-300 underline hover:opacity-80"
-                        >
-                          View
-                        </Link>
-                      </td>
                     </tr>
                   );
                 })}
