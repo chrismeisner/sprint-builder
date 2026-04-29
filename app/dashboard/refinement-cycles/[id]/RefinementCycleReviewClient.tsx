@@ -13,6 +13,7 @@ type Props = {
   cycle: CycleDetail;
   defaultDeliveryDate: string;
   viewerRole: "admin" | "member";
+  viewerIsSubmitter: boolean;
 };
 
 const TONE_CLASSES: Record<
@@ -63,10 +64,20 @@ export default function RefinementCycleReviewClient({
   cycle,
   defaultDeliveryDate,
   viewerRole,
+  viewerIsSubmitter,
 }: Props) {
   const router = useRouter();
   const { showToast } = useToast();
   const isAdmin = viewerRole === "admin";
+
+  // A cycle can be revoked while it hasn't progressed past awaiting_deposit
+  // for admins, or while still pending review for the submitter themselves.
+  const canRevoke =
+    (isAdmin &&
+      (cycle.status === "submitted" ||
+        cycle.status === "accepted" ||
+        cycle.status === "awaiting_deposit")) ||
+    (viewerIsSubmitter && cycle.status === "submitted");
 
   const [screens, setScreens] = useState<CycleScreen[]>(cycle.screens);
   const [reviewNote, setReviewNote] = useState(cycle.studioReviewNote ?? "");
@@ -74,7 +85,7 @@ export default function RefinementCycleReviewClient({
     cycle.deliveryDate ?? cycle.preferredDeliveryDate ?? defaultDeliveryDate
   );
   const [busy, setBusy] = useState<
-    "accept" | "decline" | "screen" | "deliver" | null
+    "accept" | "decline" | "screen" | "deliver" | "revoke" | null
   >(null);
 
   const [figmaFileUrl, setFigmaFileUrl] = useState(cycle.figmaFileUrl ?? "");
@@ -189,6 +200,33 @@ export default function RefinementCycleReviewClient({
     }
   }
 
+  async function revokeCycle() {
+    const message =
+      cycle.status === "submitted"
+        ? "Revoke this cycle? It will be removed and the studio will not review it."
+        : "Revoke this accepted cycle? Any unpaid Stripe deposit invoice will be voided and the cycle will be removed.";
+    if (!window.confirm(message)) return;
+    setBusy("revoke");
+    try {
+      const res = await fetch(`/api/refinement-cycles/${cycle.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Revoke failed");
+      }
+      showToast("Cycle revoked", "success");
+      router.push(
+        isAdmin
+          ? "/dashboard/refinement-cycles"
+          : `/projects/${cycle.projectId}`
+      );
+    } catch (err) {
+      showToast((err as Error).message, "error");
+      setBusy(null);
+    }
+  }
+
   async function deliverCycle() {
     if (
       !window.confirm(
@@ -280,7 +318,20 @@ export default function RefinementCycleReviewClient({
               Submitted {formatDateTime(cycle.submittedAt)} ET · {tagline}
             </Typography>
           </div>
-          <StatusBadge status={cycle.status} />
+          <div className="flex flex-col items-end gap-2">
+            <StatusBadge status={cycle.status} />
+            {canRevoke && (
+              <Button
+                type="button"
+                variant="destructiveOutline"
+                size="sm"
+                onClick={revokeCycle}
+                disabled={busy !== null}
+              >
+                {busy === "revoke" ? "Revoking…" : "Revoke cycle"}
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 

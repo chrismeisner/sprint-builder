@@ -198,11 +198,16 @@ export default async function RefinementCycleReviewPage({
     screens,
   };
 
+  const viewerEmail = user.email;
+  const isSubmitter =
+    (cycle.submitterEmail ?? "").toLowerCase() === viewerEmail.toLowerCase();
+
   return (
     <RefinementCycleReviewClient
       cycle={cycle}
       defaultDeliveryDate={defaultDeliveryDateEt()}
       viewerRole={isAdmin ? "admin" : "member"}
+      viewerIsSubmitter={isSubmitter}
     />
   );
 }
