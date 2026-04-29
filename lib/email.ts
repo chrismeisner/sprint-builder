@@ -1081,6 +1081,87 @@ function formatUsd(amount: number): string {
   });
 }
 
+export function generateRefinementCycleRevokedClientEmail(params: {
+  title?: string | null;
+  projectName: string | null;
+  projectEmoji: string | null;
+  revokedByStudio: boolean;
+  newSubmissionUrl: string;
+}): { subject: string; text: string; html: string } {
+  const project = projectLabel(params.projectName, params.projectEmoji);
+  const titlePart = params.title ? `${params.title} — ` : "";
+  const subject = `${titlePart}Refinement cycle revoked`;
+  const opener = params.revokedByStudio
+    ? "The studio has revoked this refinement cycle."
+    : "Your refinement cycle has been revoked.";
+
+  const text = `${opener} It will not be reviewed${
+    params.revokedByStudio
+      ? ""
+      : " — you can submit a new one whenever you're ready"
+  }.
+
+If a deposit invoice was issued, it has been voided.
+
+Submit a new cycle:
+${params.newSubmissionUrl}
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${escapeHtml(opener)}</p>
+<p style="margin:0 0 16px;">It will not be reviewed${
+    params.revokedByStudio
+      ? ""
+      : " &mdash; you can submit a new one whenever you&rsquo;re ready"
+  } for <strong>${project}</strong>.</p>
+<p style="margin:0 0 16px;">If a deposit invoice was issued, it has been voided.</p>
+${linkButton(params.newSubmissionUrl, "Submit a new cycle")}
+${divider()}
+${muted("Meisner Design — Refinement Cycles")}
+`);
+
+  return { subject, text, html };
+}
+
+export function generateRefinementCycleRevokedAdminEmail(params: {
+  title?: string | null;
+  submitterEmail: string | null;
+  projectName: string | null;
+  projectEmoji: string | null;
+  revokedByStudio: boolean;
+  actorEmail: string | null;
+}): { subject: string; text: string; html: string } {
+  const project = projectLabel(params.projectName, params.projectEmoji);
+  const titlePart = params.title ? `${params.title} — ` : "";
+  const actorLabel = params.revokedByStudio
+    ? params.actorEmail
+      ? `the studio (${params.actorEmail})`
+      : "the studio"
+    : params.submitterEmail ?? "the submitter";
+  const subject = `${titlePart}Refinement cycle revoked — ${params.projectName ?? "project"}`;
+
+  const text = `A refinement cycle was just revoked.
+
+Project: ${params.projectName ?? "—"}
+Submitter: ${params.submitterEmail ?? "(unknown)"}
+Revoked by: ${actorLabel}
+
+Any unpaid Stripe deposit invoice has been voided. The cycle has been removed from the queue.
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">A refinement cycle was just revoked.</p>
+<p style="margin:0 0 8px;"><strong>Project:</strong> ${project}</p>
+<p style="margin:0 0 8px;"><strong>Submitter:</strong> ${escapeHtml(params.submitterEmail ?? "(unknown)")}</p>
+<p style="margin:0 0 16px;"><strong>Revoked by:</strong> ${escapeHtml(actorLabel)}</p>
+<p style="margin:0 0 16px;">Any unpaid Stripe deposit invoice has been voided. The cycle has been removed from the queue.</p>
+${divider()}
+${muted("Meisner Design — Refinement Cycles")}
+`);
+
+  return { subject, text, html };
+}
+
 export function generateRefinementCycleSubmittedClientEmail(params: {
   title?: string | null;
   submitterName: string | null;

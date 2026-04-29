@@ -14,6 +14,8 @@ import {
   generateRefinementCycleDeclinedClientEmail,
   generateRefinementCycleExpiredClientEmail,
   generateRefinementCycleDeliveredClientEmail,
+  generateRefinementCycleRevokedClientEmail,
+  generateRefinementCycleRevokedAdminEmail,
   generateRefinementCycleSubmittedAdminEmail,
   generateRefinementCycleSubmittedClientEmail,
 } from "@/lib/email";
@@ -385,6 +387,85 @@ export async function onCycleExpired(cycleId: string): Promise<void> {
     });
   } catch (err) {
     console.error("[RefinementCycleBilling] onCycleExpired error:", err);
+  }
+}
+
+// Notify all parties when a cycle is revoked. Called AFTER the row has
+// already been deleted, so we accept a snapshot of the cycle data.
+export type RevokedCycleSnapshot = {
+  cycleId: string;
+  title: string | null;
+  submitterEmail: string | null;
+  ccEmails: string[];
+  projectId: string;
+  projectName: string | null;
+  projectEmoji: string | null;
+};
+
+export async function onCycleRevoked(
+  snapshot: RevokedCycleSnapshot,
+  actor: { email: string | null; isStudio: boolean }
+): Promise<void> {
+  try {
+    const pool = getPool();
+    const newSubmissionUrl = `${getBaseUrl()}/dashboard/refinement-cycles/new?projectId=${snapshot.projectId}`;
+
+    // Client confirmation (to submitter, CC any team members they looped in).
+    if (snapshot.submitterEmail) {
+      try {
+        const content = generateRefinementCycleRevokedClientEmail({
+          title: snapshot.title,
+          projectName: snapshot.projectName,
+          projectEmoji: snapshot.projectEmoji,
+          revokedByStudio: actor.isStudio,
+          newSubmissionUrl,
+        });
+        await sendEmail({
+          to: snapshot.submitterEmail,
+          cc:
+            snapshot.ccEmails.length > 0
+              ? snapshot.ccEmails.join(",")
+              : undefined,
+          ...content,
+          category: "transactional",
+          tag: "refinement-cycle-revoked",
+        });
+      } catch (err) {
+        console.error(
+          `[RefinementCycleBilling] revoked client email failed for ${snapshot.submitterEmail}:`,
+          err
+        );
+      }
+    }
+
+    // Admin confirmation — so the studio knows the queue changed.
+    const adminEmails = await getAdminEmails(pool);
+    if (adminEmails.length === 0) return;
+    const adminContent = generateRefinementCycleRevokedAdminEmail({
+      title: snapshot.title,
+      submitterEmail: snapshot.submitterEmail,
+      projectName: snapshot.projectName,
+      projectEmoji: snapshot.projectEmoji,
+      revokedByStudio: actor.isStudio,
+      actorEmail: actor.email,
+    });
+    for (const to of adminEmails) {
+      try {
+        await sendEmail({
+          to,
+          ...adminContent,
+          category: "transactional",
+          tag: "refinement-cycle-revoked-admin",
+        });
+      } catch (err) {
+        console.error(
+          `[RefinementCycleBilling] revoked admin email failed for ${to}:`,
+          err
+        );
+      }
+    }
+  } catch (err) {
+    console.error("[RefinementCycleBilling] onCycleRevoked error:", err);
   }
 }
 

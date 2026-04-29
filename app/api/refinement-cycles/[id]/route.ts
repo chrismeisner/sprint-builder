@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
+import { onCycleRevoked } from "@/lib/refinementCycleBilling";
 
 type Params = { params: { id: string } };
 
@@ -26,9 +27,11 @@ export async function DELETE(_request: Request, { params }: Params) {
 
     const pool = getPool();
     const cycleRes = await pool.query(
-      `SELECT rc.id, rc.status, rc.submitter_email, rc.project_id,
-              rc.stripe_deposit_invoice_id
+      `SELECT rc.id, rc.status, rc.title, rc.submitter_email, rc.project_id,
+              rc.stripe_deposit_invoice_id, rc.cc_emails,
+              p.name AS project_name, p.emoji AS project_emoji
        FROM refinement_cycles rc
+       LEFT JOIN projects p ON p.id = rc.project_id
        WHERE rc.id = $1
        LIMIT 1`,
       [params.id]
@@ -39,9 +42,13 @@ export async function DELETE(_request: Request, { params }: Params) {
     const cycle = cycleRes.rows[0] as {
       id: string;
       status: string;
+      title: string | null;
       submitter_email: string | null;
       project_id: string;
       stripe_deposit_invoice_id: string | null;
+      cc_emails: string[] | null;
+      project_name: string | null;
+      project_emoji: string | null;
     };
 
     const isAdmin = Boolean(user.isAdmin);
@@ -95,6 +102,25 @@ export async function DELETE(_request: Request, { params }: Params) {
     await pool.query(`DELETE FROM refinement_cycles WHERE id = $1`, [
       params.id,
     ]);
+
+    // Notify all parties: submitter (with their CC list) + admins. Best-effort.
+    await onCycleRevoked(
+      {
+        cycleId: cycle.id,
+        title: cycle.title,
+        submitterEmail: cycle.submitter_email,
+        ccEmails: Array.isArray(cycle.cc_emails) ? cycle.cc_emails : [],
+        projectId: cycle.project_id,
+        projectName: cycle.project_name,
+        projectEmoji: cycle.project_emoji,
+      },
+      {
+        email: user.email,
+        // The studio (admin) revoked it unless the submitter pulled it back
+        // themselves.
+        isStudio: isAdmin && !isSubmitter,
+      }
+    );
 
     return NextResponse.json({ ok: true, projectId: cycle.project_id });
   } catch (err) {
