@@ -1483,6 +1483,145 @@ export async function ensureSchema(): Promise<void> {
       ON smoke_test_sprint_links(smoke_test_sprint_id);
   `);
 
+  // Refinement Cycles — productized $1,200 design refinement service.
+  // Distinct from sprint_drafts and smoke_test_sprints: a one-shot, fixed-price
+  // engagement with a tight lifecycle (submitted → accepted → awaiting_deposit
+  // → in_progress → delivered, plus declined/expired).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS refinement_cycles (
+      id text PRIMARY KEY,
+      project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+
+      submitter_email text,
+      screen_recording_url text,
+      whats_working text,
+      whats_not_working text,
+      success_looks_like text,
+
+      status text NOT NULL DEFAULT 'submitted'
+        CHECK (status IN ('submitted', 'accepted', 'awaiting_deposit', 'in_progress', 'delivered', 'declined', 'expired')),
+      submitted_at timestamptz NOT NULL DEFAULT now(),
+      accepted_at timestamptz,
+      accepted_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      declined_at timestamptz,
+      declined_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      studio_review_note text,
+      delivery_date date,
+      deposit_due_at timestamptz,
+      deposit_paid_at timestamptz,
+      delivered_at timestamptz,
+      delivered_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      expired_at timestamptz,
+
+      total_price numeric(12,2) NOT NULL DEFAULT 1200,
+      deposit_amount numeric(12,2) NOT NULL DEFAULT 600,
+      final_amount numeric(12,2) NOT NULL DEFAULT 600,
+
+      stripe_deposit_invoice_id text,
+      stripe_deposit_invoice_url text,
+      stripe_final_invoice_id text,
+      stripe_final_invoice_url text,
+      final_paid_at timestamptz,
+
+      cal_booking_url text,
+      checkin_scheduled_at timestamptz,
+      checkin_attended boolean NOT NULL DEFAULT false,
+      checkin_notes text,
+
+      figma_file_url text,
+      loom_walkthrough_url text,
+      engineering_notes text,
+
+      created_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_refinement_cycles_project ON refinement_cycles(project_id);
+    CREATE INDEX IF NOT EXISTS idx_refinement_cycles_status ON refinement_cycles(status);
+    CREATE INDEX IF NOT EXISTS idx_refinement_cycles_submitted ON refinement_cycles(submitted_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_refinement_cycles_delivery_date ON refinement_cycles(delivery_date);
+    CREATE INDEX IF NOT EXISTS idx_refinement_cycles_stripe_deposit
+      ON refinement_cycles(stripe_deposit_invoice_id)
+      WHERE stripe_deposit_invoice_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_refinement_cycles_stripe_final
+      ON refinement_cycles(stripe_final_invoice_id)
+      WHERE stripe_final_invoice_id IS NOT NULL;
+  `);
+
+  // Refinement Cycle Screens — itemized scope. Each screen has a name, notes,
+  // optional screenshot. `added_by` distinguishes client-submitted vs.
+  // admin-added (during acceptance review). Once the cycle is accepted, scope
+  // is immutable.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS refinement_cycle_screens (
+      id text PRIMARY KEY,
+      refinement_cycle_id text NOT NULL REFERENCES refinement_cycles(id) ON DELETE CASCADE,
+      name text,
+      notes text,
+      screenshot_url text,
+      added_by text NOT NULL DEFAULT 'client'
+        CHECK (added_by IN ('client', 'admin')),
+      admin_note text,
+      sort_order integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_refinement_cycle_screens_cycle
+      ON refinement_cycle_screens(refinement_cycle_id);
+  `);
+
+  // Client's preferred delivery date (chosen at submission time). The
+  // committed delivery date — set by the studio at acceptance — lives in
+  // `delivery_date`. The admin review UI defaults to the client's preference.
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS preferred_delivery_date date
+  `);
+
+  // Short cycle title chosen by the client (e.g. "Trip summary"). Used as
+  // the primary label in queues, listings, and email subject lines.
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS title text
+  `);
+
+  // Rename the original pain/desired/constraints inputs to a positive-framing
+  // trio (what's working / what's not working / what success looks like).
+  // Idempotent: only renames if the old columns still exist.
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'refinement_cycles' AND column_name = 'current_pain'
+      ) THEN
+        ALTER TABLE refinement_cycles RENAME COLUMN current_pain TO whats_not_working;
+      END IF;
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'refinement_cycles' AND column_name = 'desired_state'
+      ) THEN
+        ALTER TABLE refinement_cycles RENAME COLUMN desired_state TO success_looks_like;
+      END IF;
+    END $$;
+  `);
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS whats_working text
+  `);
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    DROP COLUMN IF EXISTS constraints
+  `);
+
+  // CC list: project member emails the submitter wants looped into all
+  // studio↔client emails for this cycle (acceptance, decline, expiry,
+  // delivery). Validated server-side against the project's members.
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS cc_emails text[] NOT NULL DEFAULT '{}'
+  `);
+
   // Miles Proto 3 — persisted scenario state (overrides + custom order)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS miles_proto3_scenario_state (

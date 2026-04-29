@@ -1,0 +1,761 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Button from "@/components/ui/Button";
+import Typography from "@/components/ui/Typography";
+import { useToast } from "@/lib/toast-context";
+import { statusVisuals } from "@/lib/refinementCycle";
+import type { CycleDetail, CycleScreen } from "./page";
+
+type Props = {
+  cycle: CycleDetail;
+  defaultDeliveryDate: string;
+  viewerRole: "admin" | "member";
+};
+
+const TONE_CLASSES: Record<
+  ReturnType<typeof statusVisuals>["tone"],
+  string
+> = {
+  neutral: "bg-surface-subtle text-text-secondary border-stroke-muted",
+  info: "bg-blue-100 text-blue-800 border-blue-200",
+  success: "bg-green-100 text-green-800 border-green-200",
+  warning: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  danger: "bg-red-100 text-red-800 border-red-200",
+};
+
+function StatusBadge({ status }: { status: CycleDetail["status"] }) {
+  const v = statusVisuals(status);
+  return (
+    <span
+      className={`inline-flex items-center rounded border px-2 py-0.5 ${TONE_CLASSES[v.tone]}`}
+    >
+      <Typography scale="body-sm" as="span">
+        {v.label}
+      </Typography>
+    </span>
+  );
+}
+
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+  });
+}
+
+function formatDate(yyyymmdd: string): string {
+  const [y, m, d] = yyyymmdd.split("-").map((n) => Number(n));
+  return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export default function RefinementCycleReviewClient({
+  cycle,
+  defaultDeliveryDate,
+  viewerRole,
+}: Props) {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const isAdmin = viewerRole === "admin";
+
+  const [screens, setScreens] = useState<CycleScreen[]>(cycle.screens);
+  const [reviewNote, setReviewNote] = useState(cycle.studioReviewNote ?? "");
+  const [deliveryDate, setDeliveryDate] = useState(
+    cycle.deliveryDate ?? cycle.preferredDeliveryDate ?? defaultDeliveryDate
+  );
+  const [busy, setBusy] = useState<
+    "accept" | "decline" | "screen" | "deliver" | null
+  >(null);
+
+  const [figmaFileUrl, setFigmaFileUrl] = useState(cycle.figmaFileUrl ?? "");
+  const [loomWalkthroughUrl, setLoomWalkthroughUrl] = useState(
+    cycle.loomWalkthroughUrl ?? ""
+  );
+  const [engineeringNotes, setEngineeringNotes] = useState(
+    cycle.engineeringNotes ?? ""
+  );
+
+  const isEditable = cycle.status === "submitted" && isAdmin;
+
+  const tagline = useMemo(() => {
+    switch (cycle.status) {
+      case "submitted":
+        return "Submitted — awaiting review.";
+      case "accepted":
+      case "awaiting_deposit":
+        return "Accepted — awaiting deposit payment.";
+      case "in_progress":
+        return "Deposit received — work in progress.";
+      case "delivered":
+        return "Delivered.";
+      case "declined":
+        return "Declined.";
+      case "expired":
+        return "Expired — deposit was not paid in time.";
+    }
+  }, [cycle.status]);
+
+  async function addScreen() {
+    if (!isEditable) return;
+    setBusy("screen");
+    try {
+      const res = await fetch(`/api/refinement-cycles/${cycle.id}/screens`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "",
+          notes: "",
+          adminNote: "",
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to add screen");
+      }
+      const json = (await res.json()) as { screen: CycleScreen };
+      setScreens((prev) => [...prev, json.screen]);
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function patchScreen(id: string, patch: Partial<CycleScreen>) {
+    if (!isEditable) return;
+    const res = await fetch(
+      `/api/refinement-cycles/${cycle.id}/screens/${id}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Save failed");
+    }
+    setScreens((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...patch } : s))
+    );
+  }
+
+  async function deleteScreen(id: string) {
+    if (!isEditable) return;
+    if (!window.confirm("Remove this screen from scope?")) return;
+    const res = await fetch(
+      `/api/refinement-cycles/${cycle.id}/screens/${id}`,
+      { method: "DELETE" }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.error || "Failed to remove screen", "error");
+      return;
+    }
+    setScreens((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  async function acceptCycle() {
+    setBusy("accept");
+    try {
+      const res = await fetch(`/api/refinement-cycles/${cycle.id}/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deliveryDate,
+          studioReviewNote: reviewNote.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Accept failed");
+      }
+      showToast("Cycle accepted", "success");
+      router.refresh();
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function deliverCycle() {
+    if (
+      !window.confirm(
+        "Mark this cycle delivered? The client will receive the deliverables and final invoice."
+      )
+    ) {
+      return;
+    }
+    setBusy("deliver");
+    try {
+      const res = await fetch(`/api/refinement-cycles/${cycle.id}/deliver`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          figmaFileUrl: figmaFileUrl.trim() || null,
+          loomWalkthroughUrl: loomWalkthroughUrl.trim() || null,
+          engineeringNotes: engineeringNotes.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Deliver failed");
+      }
+      showToast("Cycle delivered", "success");
+      router.refresh();
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function declineCycle() {
+    if (
+      !window.confirm(
+        "Decline this refinement cycle? The client will be emailed."
+      )
+    ) {
+      return;
+    }
+    setBusy("decline");
+    try {
+      const res = await fetch(`/api/refinement-cycles/${cycle.id}/decline`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studioReviewNote: reviewNote.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Decline failed");
+      }
+      showToast("Cycle declined", "success");
+      router.refresh();
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl px-6 py-10 space-y-8">
+      <header className="space-y-3">
+        <Link
+          href={
+            isAdmin
+              ? "/dashboard/refinement-cycles"
+              : `/projects/${cycle.projectId}`
+          }
+          className="opacity-70 hover:opacity-100"
+        >
+          <Typography scale="body-sm" as="span">
+            ← {isAdmin ? "Back to queue" : "Back to project"}
+          </Typography>
+        </Link>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <Typography as="h1" scale="display-md" className="mb-1">
+              {cycle.title || "Refinement Cycle"}
+            </Typography>
+            <Typography className="text-text-secondary">
+              {cycle.projectEmoji ? `${cycle.projectEmoji} ` : ""}
+              {cycle.projectName ?? "—"} ·{" "}
+              {cycle.submitterEmail ?? "unknown submitter"}
+            </Typography>
+            <Typography scale="body-sm" className="text-text-secondary mt-1">
+              Submitted {formatDateTime(cycle.submittedAt)} ET · {tagline}
+            </Typography>
+          </div>
+          <StatusBadge status={cycle.status} />
+        </div>
+      </header>
+
+      <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
+        <Typography as="h2" scale="heading-md">
+          Submission
+        </Typography>
+        {cycle.ccEmails.length > 0 && (
+          <Field label="CC&rsquo;d on emails">
+            {cycle.ccEmails.join(", ")}
+          </Field>
+        )}
+        <Field label="Screen recording">
+          {cycle.screenRecordingUrl ? (
+            <a
+              href={cycle.screenRecordingUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              {cycle.screenRecordingUrl}
+            </a>
+          ) : (
+            <span className="opacity-60">Not provided</span>
+          )}
+        </Field>
+        <Field label="What's working">{cycle.whatsWorking ?? "—"}</Field>
+        <Field label="What's not working">
+          {cycle.whatsNotWorking ?? "—"}
+        </Field>
+        <Field label="What success looks like">
+          {cycle.successLooksLike ?? "—"}
+        </Field>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Typography as="h2" scale="heading-md">
+            Screens in scope ({screens.length})
+          </Typography>
+          {isEditable && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={addScreen}
+              disabled={busy !== null}
+            >
+              Add screen
+            </Button>
+          )}
+        </div>
+
+        {screens.length === 0 ? (
+          <Typography className="text-text-secondary">
+            No screens listed.
+          </Typography>
+        ) : (
+          <div className="space-y-3">
+            {screens.map((s) => (
+              <ScreenCard
+                key={s.id}
+                screen={s}
+                editable={isEditable}
+                onPatch={async (patch) => {
+                  try {
+                    await patchScreen(s.id, patch);
+                  } catch (err) {
+                    showToast((err as Error).message, "error");
+                  }
+                }}
+                onDelete={() => deleteScreen(s.id)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {cycle.status === "submitted" && isAdmin ? (
+        <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-4">
+          <Typography as="h2" scale="heading-md">
+            Review &amp; decide
+          </Typography>
+
+          <div className="space-y-2">
+            <label className="block">
+              <Typography scale="body-sm" as="span" className="font-semibold">
+                Studio note (optional)
+              </Typography>
+            </label>
+            <textarea
+              value={reviewNote}
+              onChange={(e) => setReviewNote(e.target.value)}
+              rows={3}
+              placeholder="Commentary that ships in the accept/decline email — flag adjustments, surface observations, or note things to discuss on the check-in."
+              className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block">
+              <Typography scale="body-sm" as="span" className="font-semibold">
+                Delivery date (used if accepted)
+              </Typography>
+            </label>
+            <input
+              type="date"
+              value={deliveryDate}
+              onChange={(e) => setDeliveryDate(e.target.value)}
+              className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+            />
+            <Typography scale="body-sm" className="text-text-secondary">
+              Default is the next business day (or the one after, if it&rsquo;s
+              past 5pm ET). Deposit deadline = 10am ET that day; delivery target
+              = 5pm ET that day.
+            </Typography>
+            {cycle.preferredDeliveryDate && (
+              <Typography scale="body-sm" className="text-text-secondary">
+                Client&rsquo;s preferred date:{" "}
+                {formatDate(cycle.preferredDeliveryDate)}
+              </Typography>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-stroke-muted pt-3">
+            <Button
+              type="button"
+              variant="destructiveOutline"
+              onClick={declineCycle}
+              disabled={busy !== null}
+            >
+              {busy === "decline" ? "Declining…" : "Decline"}
+            </Button>
+            <Button
+              type="button"
+              onClick={acceptCycle}
+              disabled={busy !== null || !deliveryDate}
+            >
+              {busy === "accept" ? "Accepting…" : "Accept cycle"}
+            </Button>
+          </div>
+        </section>
+      ) : (
+        <>
+          {isAdmin &&
+            (cycle.status === "awaiting_deposit" ||
+              cycle.status === "in_progress") && (
+            <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-4">
+              <Typography as="h2" scale="heading-md">
+                Deliver
+              </Typography>
+              {cycle.status === "awaiting_deposit" && (
+                <Typography
+                  scale="body-sm"
+                  className="text-text-secondary italic"
+                >
+                  Heads up — deposit hasn&rsquo;t cleared yet. Delivering now
+                  will still create the final invoice for the remaining{" "}
+                  {`$${cycle.finalAmount}`}.
+                </Typography>
+              )}
+              <div className="space-y-2">
+                <label className="block">
+                  <Typography
+                    scale="body-sm"
+                    as="span"
+                    className="font-semibold"
+                  >
+                    Figma file URL
+                  </Typography>
+                </label>
+                <input
+                  type="url"
+                  value={figmaFileUrl}
+                  onChange={(e) => setFigmaFileUrl(e.target.value)}
+                  placeholder="https://www.figma.com/file/..."
+                  className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block">
+                  <Typography
+                    scale="body-sm"
+                    as="span"
+                    className="font-semibold"
+                  >
+                    Walkthrough Loom URL
+                  </Typography>
+                </label>
+                <input
+                  type="url"
+                  value={loomWalkthroughUrl}
+                  onChange={(e) => setLoomWalkthroughUrl(e.target.value)}
+                  placeholder="https://www.loom.com/share/..."
+                  className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block">
+                  <Typography
+                    scale="body-sm"
+                    as="span"
+                    className="font-semibold"
+                  >
+                    Engineering notes
+                  </Typography>
+                </label>
+                <textarea
+                  value={engineeringNotes}
+                  onChange={(e) => setEngineeringNotes(e.target.value)}
+                  rows={5}
+                  placeholder="Implementation notes for the build team — tokens used, edge cases, gotchas, etc."
+                  className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+                />
+              </div>
+              <div className="flex justify-end border-t border-stroke-muted pt-3">
+                <Button
+                  type="button"
+                  onClick={deliverCycle}
+                  disabled={busy !== null}
+                >
+                  {busy === "deliver" ? "Delivering…" : "Mark delivered"}
+                </Button>
+              </div>
+            </section>
+          )}
+
+        <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-2">
+          <Typography as="h2" scale="heading-md">
+            Decision
+          </Typography>
+          {cycle.studioReviewNote ? (
+            <Field label="Studio note">{cycle.studioReviewNote}</Field>
+          ) : null}
+          {cycle.deliveryDate && (
+            <Field label="Delivery date">
+              {formatDate(cycle.deliveryDate)}
+            </Field>
+          )}
+          {cycle.acceptedAt && (
+            <Field label="Accepted">{formatDateTime(cycle.acceptedAt)} ET</Field>
+          )}
+          {cycle.declinedAt && (
+            <Field label="Declined">{formatDateTime(cycle.declinedAt)} ET</Field>
+          )}
+          {cycle.depositPaidAt && (
+            <Field label="Deposit paid">
+              {formatDateTime(cycle.depositPaidAt)} ET
+            </Field>
+          )}
+          {cycle.deliveredAt && (
+            <Field label="Delivered">
+              {formatDateTime(cycle.deliveredAt)} ET
+            </Field>
+          )}
+          {cycle.expiredAt && (
+            <Field label="Expired">{formatDateTime(cycle.expiredAt)} ET</Field>
+          )}
+          {cycle.stripeDepositInvoiceUrl && (
+            <Field label="Deposit invoice">
+              <a
+                href={cycle.stripeDepositInvoiceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                {cycle.stripeDepositInvoiceUrl}
+              </a>
+            </Field>
+          )}
+          {cycle.stripeFinalInvoiceUrl && (
+            <Field label="Final invoice">
+              <a
+                href={cycle.stripeFinalInvoiceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                {cycle.stripeFinalInvoiceUrl}
+              </a>
+            </Field>
+          )}
+          {cycle.calBookingUrl && (
+            <Field label="Check-in booking link">
+              <a
+                href={cycle.calBookingUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                {cycle.calBookingUrl}
+              </a>
+            </Field>
+          )}
+          {cycle.figmaFileUrl && (
+            <Field label="Figma file">
+              <a
+                href={cycle.figmaFileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                {cycle.figmaFileUrl}
+              </a>
+            </Field>
+          )}
+          {cycle.loomWalkthroughUrl && (
+            <Field label="Walkthrough Loom">
+              <a
+                href={cycle.loomWalkthroughUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                {cycle.loomWalkthroughUrl}
+              </a>
+            </Field>
+          )}
+          {cycle.engineeringNotes && (
+            <Field label="Engineering notes">{cycle.engineeringNotes}</Field>
+          )}
+        </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <Typography scale="body-sm" as="span" className="font-semibold opacity-70">
+        {label}
+      </Typography>
+      <Typography className="whitespace-pre-wrap">{children}</Typography>
+    </div>
+  );
+}
+
+function ScreenCard({
+  screen,
+  editable,
+  onPatch,
+  onDelete,
+}: {
+  screen: CycleScreen;
+  editable: boolean;
+  onPatch: (patch: Partial<CycleScreen>) => Promise<void>;
+  onDelete: () => void | Promise<void>;
+}) {
+  const [name, setName] = useState(screen.name ?? "");
+  const [notes, setNotes] = useState(screen.notes ?? "");
+  const [adminNote, setAdminNote] = useState(screen.adminNote ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function commit(patch: Partial<CycleScreen>) {
+    setSaving(true);
+    try {
+      await onPatch(patch);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <span
+          className={`inline-flex items-center rounded border px-2 py-0.5 ${
+            screen.addedBy === "admin"
+              ? "border-blue-200 bg-blue-100 text-blue-800"
+              : "border-stroke-muted bg-background text-text-secondary"
+          }`}
+        >
+          <Typography scale="body-sm" as="span">
+            {screen.addedBy === "admin" ? "Added by studio" : "From client"}
+          </Typography>
+        </span>
+        {editable && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="text-semantic-danger hover:underline"
+          >
+            <Typography scale="body-sm" as="span">
+              Remove
+            </Typography>
+          </button>
+        )}
+      </div>
+
+      {editable ? (
+        <>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={() => {
+              if ((screen.name ?? "") !== name) commit({ name: name || null });
+            }}
+            placeholder="Screen name"
+            className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+          />
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={() => {
+              if ((screen.notes ?? "") !== notes)
+                commit({ notes: notes || null });
+            }}
+            placeholder="Notes"
+            rows={3}
+            className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+          />
+          {screen.addedBy === "admin" && (
+            <input
+              type="text"
+              value={adminNote}
+              onChange={(e) => setAdminNote(e.target.value)}
+              onBlur={() => {
+                if ((screen.adminNote ?? "") !== adminNote)
+                  commit({ adminNote: adminNote || null });
+              }}
+              placeholder="Why studio added this (e.g. 'spotted in your recording at 1:23')"
+              className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+            />
+          )}
+        </>
+      ) : (
+        <>
+          <Typography className="font-semibold">
+            {screen.name ?? "(no name)"}
+          </Typography>
+          {screen.notes && (
+            <Typography className="whitespace-pre-wrap">
+              {screen.notes}
+            </Typography>
+          )}
+          {screen.adminNote && (
+            <Typography
+              scale="body-sm"
+              className="text-text-secondary italic"
+            >
+              Studio note: {screen.adminNote}
+            </Typography>
+          )}
+        </>
+      )}
+
+      {screen.screenshotUrl && (
+        <a
+          href={screen.screenshotUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="block"
+        >
+          <img
+            src={screen.screenshotUrl}
+            alt={screen.name ?? "Screenshot"}
+            className="max-h-64 rounded border border-stroke-muted"
+          />
+        </a>
+      )}
+
+      {saving && (
+        <Typography scale="body-sm" className="text-text-secondary">
+          Saving…
+        </Typography>
+      )}
+    </div>
+  );
+}

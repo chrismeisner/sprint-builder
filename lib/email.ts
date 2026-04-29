@@ -1044,3 +1044,305 @@ ${muted("Meisner Design")}
 
   return { subject, text, html };
 }
+
+// ---------------------------------------------------------------------------
+// Refinement Cycle email generators
+// ---------------------------------------------------------------------------
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function projectLabel(name: string | null, emoji: string | null): string {
+  const safeName = name ? escapeHtml(name) : "your project";
+  return emoji ? `${emoji} ${safeName}` : safeName;
+}
+
+function formatDeliveryDate(yyyymmdd: string): string {
+  const [y, m, d] = yyyymmdd.split("-").map((n) => Number(n));
+  return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function formatUsd(amount: number): string {
+  return amount.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
+export function generateRefinementCycleSubmittedClientEmail(params: {
+  title?: string | null;
+  submitterName: string | null;
+  projectName: string | null;
+  projectEmoji: string | null;
+  projectUrl: string;
+}): { subject: string; text: string; html: string } {
+  const project = projectLabel(params.projectName, params.projectEmoji);
+  const titlePart = params.title ? `${params.title} — ` : "";
+  const subject = `${titlePart}Refinement cycle received — ${params.projectName ?? "project"}`;
+  const greeting = params.submitterName ? `Hi ${params.submitterName},` : "Hi,";
+
+  const text = `${greeting}
+
+Your refinement cycle ${params.title ? `"${params.title}" ` : ""}has been submitted${
+    params.projectName ? ` for ${params.projectName}` : ""
+  }.
+
+The studio will review and decide by 5pm ET. You'll get an email either way — accepted (with deposit invoice + optional check-in link) or declined.
+
+View the cycle on your project page:
+${params.projectUrl}
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${escapeHtml(greeting)}</p>
+<p style="margin:0 0 16px;">Your refinement cycle ${
+    params.title ? `<strong>${escapeHtml(params.title)}</strong> ` : ""
+  }has been submitted for <strong>${project}</strong>.</p>
+<p style="margin:0 0 16px;">The studio will review and decide by 5pm ET. You&rsquo;ll get an email either way — accepted (with deposit invoice + optional check-in link) or declined.</p>
+${linkButton(params.projectUrl, "View project")}
+${divider()}
+${muted("Cycles end at delivery. Further changes are submitted as a new cycle.")}
+`);
+
+  return { subject, text, html };
+}
+
+export function generateRefinementCycleSubmittedAdminEmail(params: {
+  title?: string | null;
+  submitterEmail: string | null;
+  projectName: string | null;
+  projectEmoji: string | null;
+  reviewUrl: string;
+}): { subject: string; text: string; html: string } {
+  const project = projectLabel(params.projectName, params.projectEmoji);
+  const titleSuffix = params.title ? `: ${params.title}` : "";
+  const subject = `New refinement cycle${titleSuffix} — ${params.projectName ?? "project"}`;
+  const submitter = params.submitterEmail ?? "(unknown submitter)";
+
+  const text = `A refinement cycle was just submitted.
+
+Project: ${params.projectName ?? "—"}
+Submitter: ${submitter}
+
+Decide by 5pm ET — accept or decline:
+${params.reviewUrl}
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">A refinement cycle was just submitted.</p>
+<p style="margin:0 0 8px;"><strong>Project:</strong> ${project}</p>
+<p style="margin:0 0 16px;"><strong>Submitter:</strong> ${escapeHtml(submitter)}</p>
+<p style="margin:0 0 16px;">Decide by 5pm ET — accept or decline.</p>
+${linkButton(params.reviewUrl, "Review cycle")}
+${divider()}
+${muted("Meisner Design — Refinement Cycles")}
+`);
+
+  return { subject, text, html };
+}
+
+export function generateRefinementCycleAcceptedClientEmail(params: {
+  title?: string | null;
+  projectName: string | null;
+  projectEmoji: string | null;
+  studioNote: string | null;
+  deliveryDate: string | null;
+  depositAmount: number;
+  stripeInvoiceUrl: string | null;
+  calBookingUrl: string | null;
+}): { subject: string; text: string; html: string } {
+  const project = projectLabel(params.projectName, params.projectEmoji);
+  const deliveryLine = params.deliveryDate
+    ? formatDeliveryDate(params.deliveryDate)
+    : "the next business day";
+  const titlePart = params.title ? `${params.title} — ` : "";
+  const subject = `${titlePart}Refinement cycle accepted — delivery ${deliveryLine}`;
+
+  const textLines: string[] = [];
+  textLines.push(`Your refinement cycle has been accepted.`);
+  textLines.push("");
+  if (params.studioNote) {
+    textLines.push("Studio note:");
+    textLines.push(params.studioNote);
+    textLines.push("");
+  }
+  textLines.push(`Delivery target: ${deliveryLine} at 5pm ET.`);
+  textLines.push(
+    `Deposit: ${formatUsd(params.depositAmount)} — pay by 10am ET on the delivery date to lock in your slot.`
+  );
+  if (params.stripeInvoiceUrl) {
+    textLines.push("");
+    textLines.push(`Pay deposit invoice: ${params.stripeInvoiceUrl}`);
+  }
+  if (params.calBookingUrl) {
+    textLines.push("");
+    textLines.push(
+      `Optional 15-minute check-in (10am ET on delivery day) — book a slot:`
+    );
+    textLines.push(params.calBookingUrl);
+  }
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">Your refinement cycle for <strong>${project}</strong> has been accepted.</p>
+${
+  params.studioNote
+    ? `<p style="margin:0 0 4px;"><strong>Studio note</strong></p>
+<p style="margin:0 0 16px;white-space:pre-wrap;">${escapeHtml(params.studioNote)}</p>`
+    : ""
+}
+<p style="margin:0 0 8px;"><strong>Delivery target:</strong> ${escapeHtml(deliveryLine)} at 5pm ET</p>
+<p style="margin:0 0 16px;"><strong>Deposit:</strong> ${formatUsd(params.depositAmount)} — must be paid by 10am ET on the delivery date to lock in your slot.</p>
+${
+  params.stripeInvoiceUrl
+    ? linkButton(params.stripeInvoiceUrl, "Pay deposit invoice")
+    : `<p style="margin:0 0 16px;color:#a16207;">Deposit invoice link will follow shortly.</p>`
+}
+${
+  params.calBookingUrl
+    ? `<p style="margin:24px 0 8px;"><strong>Optional check-in</strong></p>
+<p style="margin:0 0 16px;">Want a 15-minute call at 10am ET on delivery day to confirm direction or surface edge cases? Book a slot — no pressure if you skip it.</p>
+${linkButton(params.calBookingUrl, "Book check-in")}`
+    : ""
+}
+${divider()}
+${muted("Cycles end at delivery. Further changes are submitted as a new cycle.")}
+`);
+
+  return { subject, text: textLines.join("\n"), html };
+}
+
+export function generateRefinementCycleDeclinedClientEmail(params: {
+  projectName: string | null;
+  projectEmoji: string | null;
+  studioNote: string | null;
+  newSubmissionUrl: string;
+}): { subject: string; text: string; html: string } {
+  const project = projectLabel(params.projectName, params.projectEmoji);
+  const subject = `Refinement cycle declined — ${params.projectName ?? "project"}`;
+
+  const textLines: string[] = [];
+  textLines.push("We weren't able to take this refinement cycle as submitted.");
+  textLines.push("");
+  if (params.studioNote) {
+    textLines.push("Studio note:");
+    textLines.push(params.studioNote);
+    textLines.push("");
+  }
+  textLines.push(
+    "If you'd like to refine the scope and resubmit, you can submit a new cycle here:"
+  );
+  textLines.push(params.newSubmissionUrl);
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">We weren&rsquo;t able to take this refinement cycle for <strong>${project}</strong> as submitted.</p>
+${
+  params.studioNote
+    ? `<p style="margin:0 0 4px;"><strong>Studio note</strong></p>
+<p style="margin:0 0 16px;white-space:pre-wrap;">${escapeHtml(params.studioNote)}</p>`
+    : ""
+}
+<p style="margin:0 0 16px;">If you&rsquo;d like to refine the scope and resubmit, you can submit a new cycle.</p>
+${linkButton(params.newSubmissionUrl, "Submit a new cycle")}
+${divider()}
+${muted("Meisner Design — Refinement Cycles")}
+`);
+
+  return { subject, text: textLines.join("\n"), html };
+}
+
+export function generateRefinementCycleExpiredClientEmail(params: {
+  projectName: string | null;
+  projectEmoji: string | null;
+  newSubmissionUrl: string;
+}): { subject: string; text: string; html: string } {
+  const project = projectLabel(params.projectName, params.projectEmoji);
+  const subject = `Refinement cycle expired — deposit not received`;
+
+  const text = `Your accepted refinement cycle expired because the deposit wasn't received before 10am ET on delivery day. The slot is now released.
+
+If you'd still like to move forward, please submit a new cycle:
+${params.newSubmissionUrl}
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">Your accepted refinement cycle for <strong>${project}</strong> expired because the deposit wasn&rsquo;t received before 10am ET on delivery day.</p>
+<p style="margin:0 0 16px;">The slot has been released. If you&rsquo;d still like to move forward, please submit a new cycle.</p>
+${linkButton(params.newSubmissionUrl, "Submit a new cycle")}
+${divider()}
+${muted("Meisner Design — Refinement Cycles")}
+`);
+
+  return { subject, text, html };
+}
+
+export function generateRefinementCycleDeliveredClientEmail(params: {
+  projectName: string | null;
+  projectEmoji: string | null;
+  finalAmount: number;
+  stripeInvoiceUrl: string | null;
+  figmaFileUrl: string | null;
+  loomWalkthroughUrl: string | null;
+  engineeringNotes: string | null;
+}): { subject: string; text: string; html: string } {
+  const project = projectLabel(params.projectName, params.projectEmoji);
+  const subject = `Refinement cycle delivered — ${params.projectName ?? "project"}`;
+
+  const lines: string[] = [];
+  lines.push("Your refinement cycle is delivered.");
+  lines.push("");
+  if (params.figmaFileUrl) lines.push(`Figma file: ${params.figmaFileUrl}`);
+  if (params.loomWalkthroughUrl)
+    lines.push(`Walkthrough Loom: ${params.loomWalkthroughUrl}`);
+  if (params.engineeringNotes) {
+    lines.push("");
+    lines.push("Engineering notes:");
+    lines.push(params.engineeringNotes);
+  }
+  lines.push("");
+  lines.push(`Final invoice: ${formatUsd(params.finalAmount)}`);
+  if (params.stripeInvoiceUrl) {
+    lines.push(`Pay final invoice: ${params.stripeInvoiceUrl}`);
+  }
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">Your refinement cycle for <strong>${project}</strong> is delivered.</p>
+${
+  params.figmaFileUrl
+    ? `<p style="margin:0 0 8px;"><strong>Figma file:</strong> <a href="${escapeHtml(params.figmaFileUrl)}">${escapeHtml(params.figmaFileUrl)}</a></p>`
+    : ""
+}
+${
+  params.loomWalkthroughUrl
+    ? `<p style="margin:0 0 8px;"><strong>Walkthrough Loom:</strong> <a href="${escapeHtml(params.loomWalkthroughUrl)}">${escapeHtml(params.loomWalkthroughUrl)}</a></p>`
+    : ""
+}
+${
+  params.engineeringNotes
+    ? `<p style="margin:16px 0 4px;"><strong>Engineering notes</strong></p>
+<p style="margin:0 0 16px;white-space:pre-wrap;">${escapeHtml(params.engineeringNotes)}</p>`
+    : ""
+}
+<p style="margin:24px 0 8px;"><strong>Final invoice:</strong> ${formatUsd(params.finalAmount)}</p>
+${
+  params.stripeInvoiceUrl
+    ? linkButton(params.stripeInvoiceUrl, "Pay final invoice")
+    : `<p style="margin:0 0 16px;color:#a16207;">Final invoice link will follow shortly.</p>`
+}
+${divider()}
+${muted("Cycles end at delivery. Further changes are submitted as a new cycle.")}
+`);
+
+  return { subject, text: lines.join("\n"), html };
+}

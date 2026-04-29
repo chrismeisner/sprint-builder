@@ -246,6 +246,20 @@ async function updateInvoiceStatus(
   try {
     const pool = getPool();
 
+    // Refinement Cycle invoices: tagged via metadata.refinement_cycle_id +
+    // metadata.refinement_cycle_invoice_kind ('deposit' | 'final'). These rows
+    // live in `refinement_cycles`, not `sprint_invoices`, so they take a
+    // separate update path.
+    if (metadata?.refinement_cycle_id) {
+      await updateRefinementCycleStripeStatus(
+        pool,
+        metadata.refinement_cycle_id,
+        metadata.refinement_cycle_invoice_kind === "final" ? "final" : "deposit",
+        status
+      );
+      return;
+    }
+
     // Strategy 1: direct match via metadata.invoice_id
     if (metadata?.invoice_id) {
       const result = await pool.query(
@@ -296,6 +310,59 @@ async function updateInvoiceStatus(
   } catch (err) {
     console.error("[StripeWebhook] DB update error:", err);
     throw err;
+  }
+}
+
+async function updateRefinementCycleStripeStatus(
+  pool: ReturnType<typeof getPool>,
+  cycleId: string,
+  kind: "deposit" | "final",
+  status: "processing" | "paid" | "failed" | "voided" | "refunded"
+) {
+  if (kind === "deposit") {
+    if (status === "paid") {
+      // Deposit cleared → cycle moves into in_progress and the studio knows
+      // to start work. Only flip from awaiting_deposit so we don't trample
+      // a manually-advanced state.
+      const res = await pool.query(
+        `UPDATE refinement_cycles
+         SET deposit_paid_at = COALESCE(deposit_paid_at, now()),
+             status = CASE
+               WHEN status = 'awaiting_deposit' THEN 'in_progress'
+               ELSE status
+             END,
+             updated_at = now()
+         WHERE id = $1
+         RETURNING id, status`,
+        [cycleId]
+      );
+      if ((res.rowCount ?? 0) > 0) {
+        console.log(
+          `[StripeWebhook] Refinement cycle ${cycleId} deposit paid → status=${res.rows[0].status}`
+        );
+      }
+    } else {
+      console.log(
+        `[StripeWebhook] Refinement cycle ${cycleId} deposit invoice status=${status} (no-op)`
+      );
+    }
+    return;
+  }
+
+  // Final invoice events are informational — the cycle is already delivered.
+  if (status === "paid") {
+    await pool.query(
+      `UPDATE refinement_cycles
+       SET final_paid_at = COALESCE(final_paid_at, now()),
+           updated_at = now()
+       WHERE id = $1`,
+      [cycleId]
+    );
+    console.log(`[StripeWebhook] Refinement cycle ${cycleId} final paid`);
+  } else {
+    console.log(
+      `[StripeWebhook] Refinement cycle ${cycleId} final invoice status=${status} (no-op)`
+    );
   }
 }
 

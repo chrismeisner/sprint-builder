@@ -16,6 +16,7 @@ export default async function DashboardPage() {
     { href: "/dashboard/projects", label: "Past Projects" },
     { href: "/dashboard/deliverables", label: "Deliverables" },
     { href: "/dashboard/sprint-packages", label: "Sprint Packages" },
+    { href: "/dashboard/refinement-cycles/new", label: "New Refinement Cycle" },
     { href: "/dashboard/storage-test", label: "Cloud Storage Test" },
   ];
 
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
     links.push({ href: "/dashboard/deliverable-templates", label: "Deliverable Templates (Admin)" });
     links.push({ href: "/dashboard/sprint-drafts", label: "Sprint Drafts (Admin)" });
     links.push({ href: "/dashboard/smoke-test-sprints", label: "Smoke Test Sprints (Admin)" });
+    links.push({ href: "/dashboard/refinement-cycles", label: "Refinement Cycles (Admin)" });
     links.push({ href: "/dashboard/users", label: "User Management" });
     links.push({ href: "/dashboard/workshop-cleanup", label: "Workshop Cleanup (Admin)" });
     links.push({ href: "/dashboard/stripe", label: "Stripe Connection (Admin)" });
