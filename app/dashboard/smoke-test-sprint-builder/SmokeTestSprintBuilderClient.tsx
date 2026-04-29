@@ -575,7 +575,7 @@ export default function SmokeTestSprintBuilderClient({
           &larr; Back to project
         </Link>
         <h1 className="text-3xl font-semibold leading-tight text-balance text-neutral-900 dark:text-neutral-100 mt-3">
-          Smoke Test Sprint Builder
+          Sprint Planner
         </h1>
         <p className="text-sm font-normal leading-normal text-neutral-600 dark:text-neutral-400 mt-1">
           Single source — used during or before your Jam Session.
@@ -621,7 +621,7 @@ export default function SmokeTestSprintBuilderClient({
               Title
             </label>
             <p className={helpTextClasses}>
-              A short label for this sprint (e.g. &ldquo;Onboarding redesign smoke test&rdquo;).
+              A short label for this sprint (e.g. &ldquo;Onboarding redesign sprint&rdquo;).
             </p>
             <input
               id="sts-title"
@@ -629,7 +629,7 @@ export default function SmokeTestSprintBuilderClient({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={120}
-              placeholder="Untitled smoke test sprint"
+              placeholder="Untitled sprint"
               className={inputClasses}
             />
           </div>
@@ -1154,7 +1154,7 @@ export default function SmokeTestSprintBuilderClient({
           <div>
             <h2 className={sectionHeaderClasses}>Timeline</h2>
             <p className={sectionSubClasses}>
-              Every Smoke Test Sprint runs the same 2-week uphill / downhill arc.
+              Every sprint runs the same 2-week uphill / downhill arc.
             </p>
           </div>
           <div className="flex flex-col gap-2">
@@ -1266,7 +1266,7 @@ export default function SmokeTestSprintBuilderClient({
           <div className="rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 p-4">
             <dl className="grid grid-cols-1 sm:grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
               <dt className="font-medium text-neutral-500">Sprint type</dt>
-              <dd className="text-neutral-900 dark:text-neutral-100">Smoke Test Sprint</dd>
+              <dd className="text-neutral-900 dark:text-neutral-100">Sprint</dd>
 
               <dt className="font-medium text-neutral-500">Project</dt>
               <dd className="text-neutral-900 dark:text-neutral-100">
