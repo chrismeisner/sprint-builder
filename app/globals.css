@@ -266,3 +266,80 @@
   }
 
 }
+
+/*
+ * Hill slider — uniform track, no left-side fill.
+ *
+ * The native <input type="range"> paints the track to the left of the thumb
+ * with `accent-color`, which we don't want here (the SVG marker is the
+ * progress indicator, not the track). Disable default appearance and style
+ * the track + thumb so both sides of the thumb look identical.
+ */
+.hill-range {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  height: 1.5rem;
+  cursor: grab;
+}
+.hill-range:active {
+  cursor: grabbing;
+}
+.hill-range::-webkit-slider-runnable-track {
+  height: 4px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+.dark .hill-range::-webkit-slider-runnable-track {
+  background: rgba(255, 255, 255, 0.2);
+}
+.hill-range::-moz-range-track {
+  height: 4px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+  border: 0;
+}
+.dark .hill-range::-moz-range-track {
+  background: rgba(255, 255, 255, 0.2);
+}
+.hill-range::-moz-range-progress {
+  background: transparent;
+  height: 4px;
+}
+.hill-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: currentColor;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+  margin-top: -6px;
+}
+.dark .hill-range::-webkit-slider-thumb {
+  border-color: #0a0a0a;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+.hill-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: currentColor;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+.dark .hill-range::-moz-range-thumb {
+  border-color: #0a0a0a;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+.hill-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.hill-range:focus-visible::-moz-range-thumb {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}

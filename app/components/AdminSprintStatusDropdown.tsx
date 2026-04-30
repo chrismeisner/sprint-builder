@@ -7,6 +7,7 @@ const STATUS_OPTIONS = [
   { value: "scheduled", label: "Scheduled" },
   { value: "in_progress", label: "In progress" },
   { value: "complete", label: "Complete" },
+  { value: "archived", label: "Archived" },
 ];
 
 type Props = {

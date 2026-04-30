@@ -368,6 +368,64 @@ export default function RefinementCycleNewClient({
             </Typography>
           </div>
         </section>
+
+        <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
+          <Typography as="h2" scale="heading-md">
+            The Hill
+          </Typography>
+          <Typography>
+            Every feature travels a hill.{" "}
+            <span className="font-semibold">Uphill:</span> UX, prototyping,
+            defining how it works.{" "}
+            <span className="font-semibold">Over the top:</span> UX locks.{" "}
+            <span className="font-semibold">Downhill:</span> UI polish,
+            branding, refinement.
+          </Typography>
+          <Typography>
+            A Refinement Cycle pushes your feature as far across that hill as
+            one day allows. The further up the hill you hand off, the further
+            down the other side you&rsquo;ll get back.
+          </Typography>
+          <ul className="space-y-2 pl-5 list-disc">
+            <li>
+              <Typography as="span">
+                <span className="font-semibold">Hand off mid-uphill</span>{" "}
+                (rough prototype, UX still loose) → cycle finishes the uphill,
+                may not reach polish.
+              </Typography>
+            </li>
+            <li>
+              <Typography as="span">
+                <span className="font-semibold">Hand off at the peak</span>{" "}
+                (UX locked, ready for refinement) → cycle delivers fully
+                polished, ship-ready output.
+              </Typography>
+            </li>
+            <li>
+              <Typography as="span">
+                <span className="font-semibold">Hand off mid-downhill</span>{" "}
+                (mostly polished, needs a final pass) → cycle takes it the rest
+                of the way.
+              </Typography>
+            </li>
+          </ul>
+          <div className="border-t border-stroke-muted pt-3 space-y-2">
+            <Typography scale="body-sm" className="italic text-text-secondary">
+              Same studio methodology as our two-week sprints — just compressed
+              to one day per chunk of hill.
+            </Typography>
+            <Typography scale="body-sm">
+              <a
+                href="/refinement-cycle"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:opacity-80"
+              >
+                Drag the hill →
+              </a>
+            </Typography>
+          </div>
+        </section>
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-8">

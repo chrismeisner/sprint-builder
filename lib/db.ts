@@ -301,9 +301,9 @@ export async function ensureSchema(): Promise<void> {
       END IF;
       
       -- Add updated constraint with new statuses
-      ALTER TABLE sprint_drafts 
-      ADD CONSTRAINT sprint_drafts_status_check 
-      CHECK (status IN ('draft', 'scheduled', 'in_progress', 'complete'));
+      ALTER TABLE sprint_drafts
+      ADD CONSTRAINT sprint_drafts_status_check
+      CHECK (status IN ('draft', 'scheduled', 'in_progress', 'complete', 'archived'));
     END $$;
   `);
   
@@ -1427,7 +1427,7 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     ALTER TABLE smoke_test_sprints
       ADD CONSTRAINT smoke_test_sprints_status_check
-      CHECK (status IN ('draft', 'scheduled', 'in_progress', 'complete'))
+      CHECK (status IN ('draft', 'scheduled', 'in_progress', 'complete', 'archived'))
   `);
   await pool.query(`
     ALTER TABLE smoke_test_sprints
