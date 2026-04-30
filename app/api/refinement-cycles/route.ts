@@ -128,8 +128,20 @@ export async function POST(request: Request) {
 
       let screenshotUrl: string | null = null;
       if (spec.hasScreenshot === true && clientId) {
-        const file = fd.get(`screenshot:${clientId}`);
-        if (file instanceof File && file.size > 0) {
+        // Duck-type rather than `instanceof File` — `File` isn't a global in
+        // Node 18, which Heroku runs. FormData.get returns either a string or
+        // a File/Blob-like object with arrayBuffer/size/type/name.
+        const raw = fd.get(`screenshot:${clientId}`);
+        const file =
+          raw && typeof raw !== "string" && typeof raw === "object"
+            ? (raw as {
+                name?: string;
+                size: number;
+                type: string;
+                arrayBuffer: () => Promise<ArrayBuffer>;
+              })
+            : null;
+        if (file && file.size > 0) {
           if (!ALLOWED_SCREENSHOT_TYPES.has(file.type)) {
             return NextResponse.json(
               { error: `Unsupported screenshot type: ${file.type}` },
@@ -143,7 +155,8 @@ export async function POST(request: Request) {
             );
           }
           const buffer = Buffer.from(await file.arrayBuffer());
-          screenshotUrl = await uploadFile(buffer, file.name, file.type, {
+          const filename = file.name || "screenshot";
+          screenshotUrl = await uploadFile(buffer, filename, file.type, {
             prefix: `refinement-cycles/${cycleId}/screens`,
           });
         }
