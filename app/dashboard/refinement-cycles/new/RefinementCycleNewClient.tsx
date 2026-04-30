@@ -283,50 +283,6 @@ export default function RefinementCycleNewClient({
           </Typography>
         </div>
 
-        <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-2">
-          <Typography as="h2" scale="heading-md">
-            How it works
-          </Typography>
-          <ol className="list-decimal pl-5 space-y-1">
-            <li>
-              <Typography as="span">
-                Submit your cycle — scope, screens, and how you&rsquo;d like the
-                experience to feel.
-              </Typography>
-            </li>
-            <li>
-              <Typography as="span">
-                The studio reviews and decides by 5pm Eastern — accepted (with
-                a note + Stripe deposit invoice + optional check-in link) or
-                declined. You&rsquo;ll know either way before close of business.
-              </Typography>
-            </li>
-            <li>
-              <Typography as="span">
-                Pay the {formatUsd(selectedRate.depositAmount)} deposit by 10am
-                ET on delivery day to lock the slot.
-              </Typography>
-            </li>
-            <li>
-              <Typography as="span">
-                Receive Figma file, walkthrough Loom, and engineering notes by
-                5pm ET on delivery day, alongside the{" "}
-                {formatUsd(selectedRate.finalAmount)} final invoice.
-              </Typography>
-            </li>
-          </ol>
-          <div className="mt-3 border-t border-stroke-muted pt-3">
-            <Typography scale="body-sm" className="italic">
-              <span className="font-semibold not-italic">
-                Cycles end at delivery.
-              </span>{" "}
-              Further changes are submitted as a new cycle.
-            </Typography>
-          </div>
-        </section>
-      </header>
-
-      <form onSubmit={handleSubmit} className="space-y-8">
         <section className="space-y-2">
           <Typography as="span" scale="body-sm" className="font-semibold">
             Rate
@@ -371,6 +327,50 @@ export default function RefinementCycleNewClient({
           </div>
         </section>
 
+        <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-2">
+          <Typography as="h2" scale="heading-md">
+            How it works
+          </Typography>
+          <ol className="list-decimal pl-5 space-y-1">
+            <li>
+              <Typography as="span">
+                Submit your cycle — scope, screens, and how you&rsquo;d like the
+                experience to feel.
+              </Typography>
+            </li>
+            <li>
+              <Typography as="span">
+                The studio reviews and decides by 5pm Eastern — accepted (with
+                a note + Stripe deposit invoice + optional check-in link) or
+                declined. You&rsquo;ll know either way before close of business.
+              </Typography>
+            </li>
+            <li>
+              <Typography as="span">
+                Pay the {formatUsd(selectedRate.depositAmount)} deposit by 10am
+                ET on delivery day to lock the slot.
+              </Typography>
+            </li>
+            <li>
+              <Typography as="span">
+                Receive Figma file, walkthrough Loom, and engineering notes by
+                5pm ET on delivery day, alongside the{" "}
+                {formatUsd(selectedRate.finalAmount)} final invoice.
+              </Typography>
+            </li>
+          </ol>
+          <div className="mt-3 border-t border-stroke-muted pt-3">
+            <Typography scale="body-sm" className="italic">
+              <span className="font-semibold not-italic">
+                Cycles end at delivery.
+              </span>{" "}
+              Further changes are submitted as a new cycle.
+            </Typography>
+          </div>
+        </section>
+      </header>
+
+      <form onSubmit={handleSubmit} className="space-y-8">
         <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-1">
           <Typography scale="body-sm" as="span" className="font-semibold opacity-70">
             Submitting as
