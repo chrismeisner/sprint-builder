@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Typography from "@/components/ui/Typography";
 import { useToast } from "@/lib/toast-context";
+import type {
+  RefinementCycleRate,
+  RefinementCycleRateOption,
+} from "@/lib/refinementCycle";
 import type { ProjectOption, ProjectMember } from "./page";
 
 type ScreenDraft = {
@@ -21,7 +25,17 @@ type Props = {
   submitterEmail: string;
   submitterName: string | null;
   preferredDeliveryOptions: string[];
+  rateOptions: RefinementCycleRateOption[];
+  defaultRate: RefinementCycleRate;
 };
+
+function formatUsd(amount: number): string {
+  return amount.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
 
 function formatPreferredDate(yyyymmdd: string): string {
   const [y, m, d] = yyyymmdd.split("-").map((n) => Number(n));
@@ -63,6 +77,8 @@ export default function RefinementCycleNewClient({
   submitterEmail,
   submitterName,
   preferredDeliveryOptions,
+  rateOptions,
+  defaultRate,
 }: Props) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -82,8 +98,12 @@ export default function RefinementCycleNewClient({
     preferredDeliveryOptions[0] ?? ""
   );
   const [ccEmails, setCcEmails] = useState<string[]>([]);
+  const [rate, setRate] = useState<RefinementCycleRate>(defaultRate);
   const [acknowledged, setAcknowledged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const selectedRate =
+    rateOptions.find((r) => r.id === rate) ?? rateOptions[rateOptions.length - 1];
 
   const availableCcMembers: ProjectMember[] = useMemo(
     () => (projectId ? membersByProject[projectId] ?? [] : []),
@@ -192,6 +212,7 @@ export default function RefinementCycleNewClient({
     if (ccEmails.length > 0) {
       fd.set("ccEmails", JSON.stringify(ccEmails));
     }
+    fd.set("rate", rate);
 
     fd.set(
       "screens",
@@ -257,8 +278,8 @@ export default function RefinementCycleNewClient({
             New Refinement Cycle
           </Typography>
           <Typography className="text-text-secondary">
-            A $1,200 fixed-price design refinement. Submit before 3pm Eastern
-            for next-day delivery.
+            A fixed-price design refinement. Submit before 3pm Eastern for
+            next-day delivery.
           </Typography>
         </div>
 
@@ -282,14 +303,15 @@ export default function RefinementCycleNewClient({
             </li>
             <li>
               <Typography as="span">
-                Pay the $600 deposit by 10am ET on delivery day to lock the
-                slot.
+                Pay the {formatUsd(selectedRate.depositAmount)} deposit by 10am
+                ET on delivery day to lock the slot.
               </Typography>
             </li>
             <li>
               <Typography as="span">
                 Receive Figma file, walkthrough Loom, and engineering notes by
-                5pm ET on delivery day, alongside the $600 final invoice.
+                5pm ET on delivery day, alongside the{" "}
+                {formatUsd(selectedRate.finalAmount)} final invoice.
               </Typography>
             </li>
           </ol>
@@ -305,6 +327,50 @@ export default function RefinementCycleNewClient({
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        <section className="space-y-2">
+          <Typography as="span" scale="body-sm" className="font-semibold">
+            Rate
+          </Typography>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {rateOptions.map((opt) => {
+              const isActive = rate === opt.id;
+              return (
+                <label
+                  key={opt.id}
+                  className={`cursor-pointer rounded-md border p-3 transition ${
+                    isActive
+                      ? "border-brand-primary bg-brand-primary/5"
+                      : "border-stroke-muted bg-surface-subtle hover:bg-surface-strong"
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="radio"
+                      name="rate"
+                      value={opt.id}
+                      checked={isActive}
+                      onChange={() => setRate(opt.id)}
+                      className="mt-1"
+                    />
+                    <div className="flex flex-col">
+                      <Typography as="span" className="font-semibold">
+                        {opt.label} — {formatUsd(opt.totalPrice)}
+                      </Typography>
+                      <Typography
+                        scale="body-sm"
+                        className="text-text-secondary"
+                      >
+                        {opt.blurb} {formatUsd(opt.depositAmount)} deposit +{" "}
+                        {formatUsd(opt.finalAmount)} on delivery.
+                      </Typography>
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        </section>
+
         <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-1">
           <Typography scale="body-sm" as="span" className="font-semibold opacity-70">
             Submitting as
@@ -618,8 +684,9 @@ export default function RefinementCycleNewClient({
               By submitting, I understand the studio will review by 5pm ET and
               email me {submitterEmail} with their decision. If accepted,
               I&rsquo;ll receive a deposit invoice and an optional check-in
-              link. The cycle is confirmed once the $600 deposit is paid by
-              10am ET on the delivery date.
+              link. The cycle is confirmed once the{" "}
+              {formatUsd(selectedRate.depositAmount)} deposit is paid by 10am
+              ET on the delivery date.
             </Typography>
           </label>
 

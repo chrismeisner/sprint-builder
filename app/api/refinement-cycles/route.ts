@@ -3,6 +3,12 @@ import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { uploadFile, getStorage } from "@/lib/storage";
 import { onCycleSubmitted } from "@/lib/refinementCycleBilling";
+import {
+  getRateOption,
+  REFINEMENT_CYCLE_DEFAULT_RATE,
+  REFINEMENT_CYCLE_RATE_OPTIONS,
+  type RefinementCycleRate,
+} from "@/lib/refinementCycle";
 import { randomUUID } from "crypto";
 
 const ALLOWED_SCREENSHOT_TYPES = new Set([
@@ -164,6 +170,16 @@ export async function POST(request: Request) {
     const whatsNotWorking = clipText(fd.get("whatsNotWorking"));
     const successLooksLike = clipText(fd.get("successLooksLike"));
 
+    const rateRaw = fd.get("rate");
+    const validRateIds = new Set(
+      REFINEMENT_CYCLE_RATE_OPTIONS.map((r) => r.id)
+    );
+    const rate: RefinementCycleRate =
+      typeof rateRaw === "string" && validRateIds.has(rateRaw as RefinementCycleRate)
+        ? (rateRaw as RefinementCycleRate)
+        : REFINEMENT_CYCLE_DEFAULT_RATE;
+    const rateOption = getRateOption(rate);
+
     const preferredDeliveryDateRaw = fd.get("preferredDeliveryDate");
     const preferredDeliveryDate =
       typeof preferredDeliveryDateRaw === "string" &&
@@ -240,8 +256,9 @@ export async function POST(request: Request) {
            id, project_id, title, submitter_email, screen_recording_url,
            whats_working, whats_not_working, success_looks_like,
            preferred_delivery_date, cc_emails,
+           rate, total_price, deposit_amount, final_amount,
            status, submitted_at, created_by
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'submitted', now(), $11)`,
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'submitted', now(), $15)`,
         [
           cycleId,
           projectId,
@@ -253,6 +270,10 @@ export async function POST(request: Request) {
           successLooksLike,
           preferredDeliveryDate,
           ccEmails,
+          rate,
+          rateOption.totalPrice,
+          rateOption.depositAmount,
+          rateOption.finalAmount,
           user.accountId,
         ]
       );

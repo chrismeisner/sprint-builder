@@ -1622,6 +1622,26 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS cc_emails text[] NOT NULL DEFAULT '{}'
   `);
 
+  // Rate tier picked at submission time. The actual prices live in the
+  // `total_price`, `deposit_amount`, and `final_amount` columns; this is
+  // the human-readable label.
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS rate text NOT NULL DEFAULT 'full'
+  `);
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'refinement_cycles_rate_check'
+      ) THEN
+        ALTER TABLE refinement_cycles
+          ADD CONSTRAINT refinement_cycles_rate_check
+          CHECK (rate IN ('pilot', 'full'));
+      END IF;
+    END $$;
+  `);
+
   // Miles Proto 3 — persisted scenario state (overrides + custom order)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS miles_proto3_scenario_state (

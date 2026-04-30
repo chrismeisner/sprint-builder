@@ -1,7 +1,11 @@
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { preferredDeliveryDateOptionsEt } from "@/lib/refinementCycle";
+import {
+  preferredDeliveryDateOptionsEt,
+  REFINEMENT_CYCLE_DEFAULT_RATE,
+  REFINEMENT_CYCLE_RATE_OPTIONS,
+} from "@/lib/refinementCycle";
 import RefinementCycleNewClient from "./RefinementCycleNewClient";
 
 export const dynamic = "force-dynamic";
@@ -96,6 +100,8 @@ export default async function RefinementCycleNewPage({
       submitterEmail={user.email}
       submitterName={submitterName}
       preferredDeliveryOptions={preferredDeliveryOptions}
+      rateOptions={REFINEMENT_CYCLE_RATE_OPTIONS}
+      defaultRate={REFINEMENT_CYCLE_DEFAULT_RATE}
     />
   );
 }

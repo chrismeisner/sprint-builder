@@ -314,6 +314,15 @@ export default function RefinementCycleReviewClient({
               {cycle.projectName ?? "—"} ·{" "}
               {cycle.submitterEmail ?? "unknown submitter"}
             </Typography>
+            <Typography
+              scale="body-sm"
+              className="text-text-secondary mt-1"
+            >
+              {cycle.rate === "pilot" ? "Pilot rate" : "Full rate"} —{" "}
+              {`$${cycle.totalPrice.toLocaleString()}`} (
+              {`$${cycle.depositAmount.toLocaleString()}`} +{" "}
+              {`$${cycle.finalAmount.toLocaleString()}`})
+            </Typography>
             <Typography scale="body-sm" className="text-text-secondary mt-1">
               Submitted {formatDateTime(cycle.submittedAt)} ET · {tagline}
             </Typography>
