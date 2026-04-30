@@ -90,7 +90,13 @@ export default function RefinementCycleReviewClient({
   );
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [busy, setBusy] = useState<
-    "accept" | "decline" | "screen" | "deliver" | "revoke" | null
+    | "accept"
+    | "decline"
+    | "screen"
+    | "deliver"
+    | "revoke"
+    | "regenerateDeposit"
+    | null
   >(null);
 
   const [figmaFileUrl, setFigmaFileUrl] = useState(cycle.figmaFileUrl ?? "");
@@ -318,6 +324,33 @@ export default function RefinementCycleReviewClient({
     }
   }
 
+  async function regenerateDepositInvoice() {
+    if (
+      !window.confirm(
+        "Generate a Stripe deposit invoice for this cycle? The acceptance email will be re-sent to the client with the payment link."
+      )
+    ) {
+      return;
+    }
+    setBusy("regenerateDeposit");
+    try {
+      const res = await fetch(
+        `/api/refinement-cycles/${cycle.id}/regenerate-deposit-invoice`,
+        { method: "POST" }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to generate deposit invoice");
+      }
+      showToast("Deposit invoice generated and email re-sent", "success");
+      router.refresh();
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function submitDecision() {
     if (decision === "accept") {
       await acceptCycle();
@@ -380,6 +413,32 @@ export default function RefinementCycleReviewClient({
           </div>
         </div>
       </header>
+
+      {cycle.status === "awaiting_deposit" &&
+        !cycle.stripeDepositInvoiceUrl &&
+        isAdmin && (
+          <section className="rounded-md border border-red-200 bg-red-50 p-4 space-y-3">
+            <Typography as="h2" scale="heading-md">
+              Stripe deposit invoice missing
+            </Typography>
+            <Typography className="text-text-secondary">
+              This cycle was accepted but no Stripe deposit invoice was
+              created — the client can&rsquo;t pay yet. Generate one now to
+              re-send the acceptance email with a real payment link.
+            </Typography>
+            <div>
+              <Button
+                type="button"
+                onClick={regenerateDepositInvoice}
+                disabled={busy !== null}
+              >
+                {busy === "regenerateDeposit"
+                  ? "Generating…"
+                  : "Generate deposit invoice"}
+              </Button>
+            </div>
+          </section>
+        )}
 
       {cycle.status === "awaiting_deposit" && cycle.stripeDepositInvoiceUrl && (
         <section className="rounded-md border border-yellow-200 bg-yellow-50 p-4 space-y-3">
