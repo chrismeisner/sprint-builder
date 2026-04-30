@@ -27,12 +27,32 @@ export default async function RefinementCycleNewPage({
   searchParams?: { projectId?: string };
 }) {
   await ensureSchema();
+
+  // Build the return URL so /login can route the user back here after
+  // sign-in / verification — preserving any preselected project.
+  const returnUrl =
+    "/dashboard/refinement-cycles/new" +
+    (typeof searchParams?.projectId === "string" && searchParams.projectId
+      ? `?projectId=${encodeURIComponent(searchParams.projectId)}`
+      : "");
+
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login");
+    redirect(`/login?redirect=${encodeURIComponent(returnUrl)}`);
   }
 
   const pool = getPool();
+
+  // Belt-and-suspenders: refinement cycles touch billing + project access,
+  // so require a verified email even if a stale session exists.
+  const verifyRes = await pool.query(
+    `SELECT email_verified_at FROM accounts WHERE id = $1 LIMIT 1`,
+    [user.accountId]
+  );
+  const verifiedAt = verifyRes.rows[0]?.email_verified_at ?? null;
+  if (!verifiedAt) {
+    redirect(`/login?redirect=${encodeURIComponent(returnUrl)}`);
+  }
   const result = await pool.query(
     `
     SELECT DISTINCT p.id, p.name, p.emoji, p.created_at
