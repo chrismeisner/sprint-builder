@@ -361,6 +361,29 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         )}
       </section>
 
+      {/* Contact */}
+      <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <Typography as="h2" scale="h3">
+              Get in touch
+            </Typography>
+            <Typography as="p" scale="body-sm" className="opacity-70">
+              Want to talk through anything — direction, scope, ideas, or just
+              say hi? Book a jam session with the studio.
+            </Typography>
+          </div>
+          <a
+            href="https://cal.com/chrismeisner/jam-session"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity duration-150 self-start md:self-auto"
+          >
+            Book a jam session
+          </a>
+        </div>
+      </section>
+
       {/* Sprints */}
       <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
