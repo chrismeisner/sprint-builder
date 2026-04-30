@@ -1306,7 +1306,7 @@ ${attachmentBlock(params.studioAttachmentUrl)}
 ${
   params.stripeInvoiceUrl
     ? linkButton(params.stripeInvoiceUrl, "Pay deposit invoice")
-    : `<p style="margin:0 0 16px;color:#a16207;">Deposit invoice link will follow shortly.</p>`
+    : ""
 }
 ${
   params.calBookingUrl

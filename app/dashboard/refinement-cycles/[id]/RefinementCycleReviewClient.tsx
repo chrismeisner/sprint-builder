@@ -381,6 +381,32 @@ export default function RefinementCycleReviewClient({
         </div>
       </header>
 
+      {cycle.status === "awaiting_deposit" && cycle.stripeDepositInvoiceUrl && (
+        <section className="rounded-md border border-yellow-200 bg-yellow-50 p-4 space-y-3">
+          <Typography as="h2" scale="heading-md">
+            Pay your deposit
+          </Typography>
+          <Typography className="text-text-secondary">
+            Your refinement cycle is accepted. Pay the{" "}
+            {`$${cycle.depositAmount.toLocaleString()}`} deposit by 10am ET on{" "}
+            {cycle.deliveryDate
+              ? formatDate(cycle.deliveryDate)
+              : "delivery day"}{" "}
+            to lock in your slot — the cycle starts after the deposit clears.
+          </Typography>
+          <div>
+            <a
+              href={cycle.stripeDepositInvoiceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              Pay deposit invoice →
+            </a>
+          </div>
+        </section>
+      )}
+
       {cycle.status === "submitted" && isAdmin && (
         <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-4">
           <Typography as="h2" scale="heading-md">
@@ -514,9 +540,8 @@ export default function RefinementCycleReviewClient({
                 className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
               />
               <Typography scale="body-sm" className="text-text-secondary">
-                Default is the next business day (or the one after, if it&rsquo;s
-                past 5pm ET). Deposit deadline = 10am ET that day; delivery
-                target = 5pm ET that day.
+                Default is the next business day. Deposit deadline = 10am ET
+                that day; delivery target = 5pm ET that day.
               </Typography>
               {cycle.preferredDeliveryDate && (
                 <Typography

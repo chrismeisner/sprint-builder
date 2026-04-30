@@ -132,13 +132,11 @@ export function nextBusinessDayEt(fromEtDate: string): string {
   return `${yyyy}-${mo}-${da}`;
 }
 
-// Default delivery date for a cycle being accepted right now.
-// Before 5pm ET → next business day.
-// At/after 5pm ET → business day after that.
+// Default delivery date for a cycle being accepted right now: always the
+// next business day. The 5pm ET acceptance window is a soft commitment, not
+// a hard cutoff — the admin can always pick a different date in the picker.
 export function defaultDeliveryDateEt(now: Date = new Date()): string {
-  const today = etDateOnly(now);
-  const next = nextBusinessDayEt(today);
-  return isPastAcceptanceCutoff(now) ? nextBusinessDayEt(next) : next;
+  return nextBusinessDayEt(etDateOnly(now));
 }
 
 // Earliest delivery date a client can prefer at submission time. Mirrors the

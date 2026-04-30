@@ -68,6 +68,7 @@ type CycleBillingContext = {
     delivery_date: string | null;
     studio_review_note: string | null;
     studio_review_attachment_url: string | null;
+    stripe_deposit_invoice_url: string | null;
     deposit_amount: number;
     final_amount: number;
     cc_emails: string[];
@@ -88,6 +89,7 @@ async function loadCycleContext(
     `
     SELECT rc.id, rc.title, rc.submitter_email, rc.project_id, rc.delivery_date,
            rc.studio_review_note, rc.studio_review_attachment_url,
+           rc.stripe_deposit_invoice_url,
            rc.deposit_amount, rc.final_amount,
            rc.cc_emails,
            p.name AS project_name, p.emoji AS project_emoji,
@@ -114,6 +116,8 @@ async function loadCycleContext(
       studio_review_note: (row.studio_review_note as string | null) ?? null,
       studio_review_attachment_url:
         (row.studio_review_attachment_url as string | null) ?? null,
+      stripe_deposit_invoice_url:
+        (row.stripe_deposit_invoice_url as string | null) ?? null,
       deposit_amount: Number(row.deposit_amount ?? 600),
       final_amount: Number(row.final_amount ?? 600),
       cc_emails: Array.isArray(row.cc_emails) ? (row.cc_emails as string[]) : [],
@@ -130,6 +134,11 @@ async function loadCycleContext(
 type StripeInvoiceResult = {
   stripeInvoiceId: string;
   hostedInvoiceUrl: string | null;
+};
+
+export type DepositInvoice = {
+  stripeInvoiceId: string;
+  hostedInvoiceUrl: string;
 };
 
 async function createCycleStripeInvoice(
@@ -186,6 +195,61 @@ async function createCycleStripeInvoice(
     stripeInvoiceId: finalized.id,
     hostedInvoiceUrl: finalized.hosted_invoice_url ?? null,
   };
+}
+
+// Creates the Stripe deposit invoice for a cycle and returns the URL.
+// Retries transient errors a few times so an admin click doesn't fail just
+// because Stripe blipped. Throws (with a descriptive error) if every attempt
+// fails or if Stripe is unconfigured / the URL comes back empty — callers
+// should surface this to the admin so they can retry rather than send an
+// acceptance email without a payment link.
+export async function createDepositInvoiceForCycle(
+  cycleId: string
+): Promise<DepositInvoice> {
+  const pool = getPool();
+  const ctx = await loadCycleContext(pool, cycleId);
+  if (!ctx) {
+    throw new Error(`Cycle ${cycleId} not found`);
+  }
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error(
+      "STRIPE_SECRET_KEY is not configured — cannot create deposit invoice"
+    );
+  }
+
+  const delays = [0, 500, 2000];
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < delays.length; attempt++) {
+    if (delays[attempt] > 0) {
+      await new Promise((r) => setTimeout(r, delays[attempt]));
+    }
+    try {
+      const result = await createCycleStripeInvoice(
+        pool,
+        ctx,
+        "deposit",
+        ctx.cycle.deposit_amount
+      );
+      if (result && result.hostedInvoiceUrl) {
+        return {
+          stripeInvoiceId: result.stripeInvoiceId,
+          hostedInvoiceUrl: result.hostedInvoiceUrl,
+        };
+      }
+      lastErr = new Error("Stripe returned no hosted invoice URL");
+    } catch (err) {
+      lastErr = err;
+      console.warn(
+        `[RefinementCycleBilling] deposit invoice attempt ${attempt + 1} failed (cycle=${cycleId}):`,
+        err
+      );
+    }
+  }
+  throw new Error(
+    `Failed to create Stripe deposit invoice after ${delays.length} attempts: ${
+      (lastErr as Error)?.message ?? "unknown error"
+    }`
+  );
 }
 
 // -------------------------------------------------------------------------
@@ -281,80 +345,54 @@ export async function onCycleSubmitted(cycleId: string): Promise<void> {
   }
 }
 
+// Sends the acceptance email. The Stripe deposit invoice MUST already be on
+// the cycle row (callers ensure this via `createDepositInvoiceForCycle`)
+// before invoking this — the email is gated on a real payment URL so the
+// client never gets a "link will follow shortly" placeholder.
 export async function onCycleAccepted(cycleId: string): Promise<void> {
   try {
     const pool = getPool();
     const ctx = await loadCycleContext(pool, cycleId);
     if (!ctx) return;
-
-    let stripeResult: StripeInvoiceResult | null = null;
-    try {
-      stripeResult = await createCycleStripeInvoice(
-        pool,
-        ctx,
-        "deposit",
-        ctx.cycle.deposit_amount
-      );
-    } catch (err) {
+    if (!ctx.cycle.submitter_email) return;
+    if (!ctx.cycle.stripe_deposit_invoice_url) {
       console.error(
-        `[RefinementCycleBilling] deposit invoice creation failed (cycle=${cycleId}):`,
-        err
+        `[RefinementCycleBilling] onCycleAccepted skipped — no Stripe deposit URL on cycle ${cycleId}; refusing to send email without a real payment link`
       );
+      return;
     }
 
     const calBookingUrl = getCalBookingUrlForDeliveryDate(
       ctx.cycle.delivery_date
     );
 
-    if (stripeResult) {
-      await pool.query(
-        `UPDATE refinement_cycles
-         SET stripe_deposit_invoice_id = $2,
-             stripe_deposit_invoice_url = $3,
-             cal_booking_url = COALESCE($4, cal_booking_url),
-             updated_at = now()
-         WHERE id = $1`,
-        [cycleId, stripeResult.stripeInvoiceId, stripeResult.hostedInvoiceUrl, calBookingUrl]
+    try {
+      const content = generateRefinementCycleAcceptedClientEmail({
+        title: ctx.cycle.title,
+        projectName: ctx.project.name,
+        projectEmoji: ctx.project.emoji,
+        studioNote: ctx.cycle.studio_review_note,
+        studioAttachmentUrl: ctx.cycle.studio_review_attachment_url,
+        deliveryDate: ctx.cycle.delivery_date,
+        depositAmount: ctx.cycle.deposit_amount,
+        stripeInvoiceUrl: ctx.cycle.stripe_deposit_invoice_url,
+        calBookingUrl,
+      });
+      await sendEmail({
+        to: ctx.cycle.submitter_email,
+        cc:
+          ctx.cycle.cc_emails.length > 0
+            ? ctx.cycle.cc_emails.join(",")
+            : undefined,
+        ...content,
+        category: "transactional",
+        tag: "refinement-cycle-accepted",
+      });
+    } catch (err) {
+      console.error(
+        `[RefinementCycleBilling] accepted email failed for ${ctx.cycle.submitter_email}:`,
+        err
       );
-    } else if (calBookingUrl) {
-      await pool.query(
-        `UPDATE refinement_cycles
-         SET cal_booking_url = COALESCE(cal_booking_url, $2),
-             updated_at = now()
-         WHERE id = $1`,
-        [cycleId, calBookingUrl]
-      );
-    }
-
-    if (ctx.cycle.submitter_email) {
-      try {
-        const content = generateRefinementCycleAcceptedClientEmail({
-          title: ctx.cycle.title,
-          projectName: ctx.project.name,
-          projectEmoji: ctx.project.emoji,
-          studioNote: ctx.cycle.studio_review_note,
-          studioAttachmentUrl: ctx.cycle.studio_review_attachment_url,
-          deliveryDate: ctx.cycle.delivery_date,
-          depositAmount: ctx.cycle.deposit_amount,
-          stripeInvoiceUrl: stripeResult?.hostedInvoiceUrl ?? null,
-          calBookingUrl,
-        });
-        await sendEmail({
-          to: ctx.cycle.submitter_email,
-          cc:
-            ctx.cycle.cc_emails.length > 0
-              ? ctx.cycle.cc_emails.join(",")
-              : undefined,
-          ...content,
-          category: "transactional",
-          tag: "refinement-cycle-accepted",
-        });
-      } catch (err) {
-        console.error(
-          `[RefinementCycleBilling] accepted email failed for ${ctx.cycle.submitter_email}:`,
-          err
-        );
-      }
     }
   } catch (err) {
     console.error("[RefinementCycleBilling] onCycleAccepted error:", err);
