@@ -28,6 +28,7 @@ export async function POST(request: Request, { params }: Params) {
     const body = (await request.json().catch(() => ({}))) as {
       deliveryDate?: unknown;
       studioReviewNote?: unknown;
+      studioReviewAttachmentUrl?: unknown;
     };
 
     const deliveryDate =
@@ -47,6 +48,12 @@ export async function POST(request: Request, { params }: Params) {
         ? body.studioReviewNote.trim().slice(0, 5000)
         : null;
 
+    const studioReviewAttachmentUrl =
+      typeof body.studioReviewAttachmentUrl === "string" &&
+      body.studioReviewAttachmentUrl.trim()
+        ? body.studioReviewAttachmentUrl.trim().slice(0, 1000)
+        : null;
+
     const depositDueAt = depositDeadlineFromDeliveryDate(deliveryDate);
 
     const pool = getPool();
@@ -57,6 +64,7 @@ export async function POST(request: Request, { params }: Params) {
           accepted_at = now(),
           accepted_by = $2,
           studio_review_note = $3,
+          studio_review_attachment_url = $6,
           delivery_date = $4,
           deposit_due_at = $5,
           updated_at = now()
@@ -64,7 +72,14 @@ export async function POST(request: Request, { params }: Params) {
         AND status = 'submitted'
       RETURNING id, status, delivery_date, deposit_due_at
       `,
-      [params.id, user.accountId, studioReviewNote, deliveryDate, depositDueAt]
+      [
+        params.id,
+        user.accountId,
+        studioReviewNote,
+        deliveryDate,
+        depositDueAt,
+        studioReviewAttachmentUrl,
+      ]
     );
 
     if (result.rowCount === 0) {

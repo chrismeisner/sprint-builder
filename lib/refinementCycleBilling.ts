@@ -24,9 +24,26 @@ const REFINEMENT_CYCLE_PAYMENT_DUE_BUFFER_DAYS = 7; // Stripe-side fallback; the
 // real expiry is enforced by the deposit-deadline cron at 10am ET on delivery
 // day, so the Stripe due_date is a soft floor.
 
-function getCalBookingUrl(): string | null {
-  const url = process.env.REFINEMENT_CYCLE_CAL_URL?.trim();
-  return url || null;
+// Day-specific Cal booking links for the optional 10am ET check-in. Indexed
+// by JS day-of-week (0=Sun … 6=Sat). Cycles only deliver on weekdays, so
+// Sat/Sun are intentionally absent.
+const CAL_BOOKING_URLS_BY_DOW: Record<number, string> = {
+  1: "https://cal.com/chrismeisner/monday-mornings",
+  2: "https://cal.com/chrismeisner/tuesday-mornings",
+  3: "https://cal.com/chrismeisner/wednesday-mornings",
+  4: "https://cal.com/chrismeisner/thursday-mornings",
+  5: "https://cal.com/chrismeisner/friday-morning",
+};
+
+function getCalBookingUrlForDeliveryDate(
+  deliveryDate: string | null
+): string | null {
+  if (!deliveryDate) return null;
+  const [yy, mm, dd] = deliveryDate.split("-").map((n) => Number(n));
+  if (!yy || !mm || !dd) return null;
+  // Parse as UTC noon to get a stable day-of-week regardless of DST.
+  const dow = new Date(Date.UTC(yy, mm - 1, dd, 12, 0, 0)).getUTCDay();
+  return CAL_BOOKING_URLS_BY_DOW[dow] ?? null;
 }
 
 function getBaseUrl(): string {
@@ -50,6 +67,7 @@ type CycleBillingContext = {
     project_id: string;
     delivery_date: string | null;
     studio_review_note: string | null;
+    studio_review_attachment_url: string | null;
     deposit_amount: number;
     final_amount: number;
     cc_emails: string[];
@@ -69,7 +87,8 @@ async function loadCycleContext(
   const res = await pool.query(
     `
     SELECT rc.id, rc.title, rc.submitter_email, rc.project_id, rc.delivery_date,
-           rc.studio_review_note, rc.deposit_amount, rc.final_amount,
+           rc.studio_review_note, rc.studio_review_attachment_url,
+           rc.deposit_amount, rc.final_amount,
            rc.cc_emails,
            p.name AS project_name, p.emoji AS project_emoji,
            p.account_id AS project_account_id
@@ -93,6 +112,8 @@ async function loadCycleContext(
           ? row.delivery_date.toISOString().slice(0, 10)
           : ((row.delivery_date as string | null) ?? null),
       studio_review_note: (row.studio_review_note as string | null) ?? null,
+      studio_review_attachment_url:
+        (row.studio_review_attachment_url as string | null) ?? null,
       deposit_amount: Number(row.deposit_amount ?? 600),
       final_amount: Number(row.final_amount ?? 600),
       cc_emails: Array.isArray(row.cc_emails) ? (row.cc_emails as string[]) : [],
@@ -281,7 +302,9 @@ export async function onCycleAccepted(cycleId: string): Promise<void> {
       );
     }
 
-    const calBookingUrl = getCalBookingUrl();
+    const calBookingUrl = getCalBookingUrlForDeliveryDate(
+      ctx.cycle.delivery_date
+    );
 
     if (stripeResult) {
       await pool.query(
@@ -310,6 +333,7 @@ export async function onCycleAccepted(cycleId: string): Promise<void> {
           projectName: ctx.project.name,
           projectEmoji: ctx.project.emoji,
           studioNote: ctx.cycle.studio_review_note,
+          studioAttachmentUrl: ctx.cycle.studio_review_attachment_url,
           deliveryDate: ctx.cycle.delivery_date,
           depositAmount: ctx.cycle.deposit_amount,
           stripeInvoiceUrl: stripeResult?.hostedInvoiceUrl ?? null,
@@ -347,6 +371,7 @@ export async function onCycleDeclined(cycleId: string): Promise<void> {
       projectName: ctx.project.name,
       projectEmoji: ctx.project.emoji,
       studioNote: ctx.cycle.studio_review_note,
+      studioAttachmentUrl: ctx.cycle.studio_review_attachment_url,
       newSubmissionUrl: `${getBaseUrl()}/dashboard/refinement-cycles/new?projectId=${ctx.cycle.project_id}`,
     });
     await sendEmail({

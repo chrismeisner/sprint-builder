@@ -32,6 +32,7 @@ export type CycleDetail = {
   successLooksLike: string | null;
   ccEmails: string[];
   studioReviewNote: string | null;
+  studioReviewAttachmentUrl: string | null;
   rate: "pilot" | "full";
   totalPrice: number;
   depositAmount: number;
@@ -141,6 +142,8 @@ export default async function RefinementCycleReviewPage({
     successLooksLike: (row.success_looks_like as string | null) ?? null,
     ccEmails: Array.isArray(row.cc_emails) ? (row.cc_emails as string[]) : [],
     studioReviewNote: (row.studio_review_note as string | null) ?? null,
+    studioReviewAttachmentUrl:
+      (row.studio_review_attachment_url as string | null) ?? null,
     rate: ((row.rate as string) === "pilot" ? "pilot" : "full") as
       | "pilot"
       | "full",

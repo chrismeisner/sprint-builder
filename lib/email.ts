@@ -1073,6 +1073,18 @@ function formatDeliveryDate(yyyymmdd: string): string {
   });
 }
 
+function attachmentBlock(url: string | null | undefined): string {
+  if (!url) return "";
+  const safeUrl = escapeHtml(url);
+  const isImage = /\.(png|jpe?g|gif|webp)(\?|#|$)/i.test(url);
+  const preview = isImage
+    ? `<a href="${safeUrl}"><img src="${safeUrl}" alt="Studio attachment" style="max-width:100%;border:1px solid #e4e4e7;border-radius:6px;display:block;margin:8px 0 0;"></a>`
+    : `<p style="margin:8px 0 0;"><a href="${safeUrl}" style="color:#4f46e5;text-decoration:underline;">View attachment</a></p>`;
+  return `<p style="margin:0 0 4px;"><strong>Studio attachment</strong></p>
+${preview}
+<div style="height:16px;"></div>`;
+}
+
 function formatUsd(amount: number): string {
   return amount.toLocaleString("en-US", {
     style: "currency",
@@ -1239,6 +1251,7 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
   projectName: string | null;
   projectEmoji: string | null;
   studioNote: string | null;
+  studioAttachmentUrl?: string | null;
   deliveryDate: string | null;
   depositAmount: number;
   stripeInvoiceUrl: string | null;
@@ -1257,6 +1270,10 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
   if (params.studioNote) {
     textLines.push("Studio note:");
     textLines.push(params.studioNote);
+    textLines.push("");
+  }
+  if (params.studioAttachmentUrl) {
+    textLines.push(`Studio attachment: ${params.studioAttachmentUrl}`);
     textLines.push("");
   }
   textLines.push(`Delivery target: ${deliveryLine} at 5pm ET.`);
@@ -1283,6 +1300,7 @@ ${
 <p style="margin:0 0 16px;white-space:pre-wrap;">${escapeHtml(params.studioNote)}</p>`
     : ""
 }
+${attachmentBlock(params.studioAttachmentUrl)}
 <p style="margin:0 0 8px;"><strong>Delivery target:</strong> ${escapeHtml(deliveryLine)} at 5pm ET</p>
 <p style="margin:0 0 16px;"><strong>Deposit:</strong> ${formatUsd(params.depositAmount)} — must be paid by 10am ET on the delivery date to lock in your slot.</p>
 ${
@@ -1308,6 +1326,7 @@ export function generateRefinementCycleDeclinedClientEmail(params: {
   projectName: string | null;
   projectEmoji: string | null;
   studioNote: string | null;
+  studioAttachmentUrl?: string | null;
   newSubmissionUrl: string;
 }): { subject: string; text: string; html: string } {
   const project = projectLabel(params.projectName, params.projectEmoji);
@@ -1319,6 +1338,10 @@ export function generateRefinementCycleDeclinedClientEmail(params: {
   if (params.studioNote) {
     textLines.push("Studio note:");
     textLines.push(params.studioNote);
+    textLines.push("");
+  }
+  if (params.studioAttachmentUrl) {
+    textLines.push(`Studio attachment: ${params.studioAttachmentUrl}`);
     textLines.push("");
   }
   textLines.push(
@@ -1334,6 +1357,7 @@ ${
 <p style="margin:0 0 16px;white-space:pre-wrap;">${escapeHtml(params.studioNote)}</p>`
     : ""
 }
+${attachmentBlock(params.studioAttachmentUrl)}
 <p style="margin:0 0 16px;">If you&rsquo;d like to refine the scope and resubmit, you can submit a new cycle.</p>
 ${linkButton(params.newSubmissionUrl, "Submit a new cycle")}
 ${divider()}

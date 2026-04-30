@@ -1642,6 +1642,13 @@ export async function ensureSchema(): Promise<void> {
     END $$;
   `);
 
+  // Optional studio attachment (image / PDF) shown alongside the studio note
+  // in the accept/decline email and on the cycle review page.
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS studio_review_attachment_url text
+  `);
+
   // Miles Proto 3 — persisted scenario state (overrides + custom order)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS miles_proto3_scenario_state (

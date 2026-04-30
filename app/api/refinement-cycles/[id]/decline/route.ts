@@ -24,10 +24,16 @@ export async function POST(request: Request, { params }: Params) {
 
     const body = (await request.json().catch(() => ({}))) as {
       studioReviewNote?: unknown;
+      studioReviewAttachmentUrl?: unknown;
     };
     const studioReviewNote =
       typeof body.studioReviewNote === "string" && body.studioReviewNote.trim()
         ? body.studioReviewNote.trim().slice(0, 5000)
+        : null;
+    const studioReviewAttachmentUrl =
+      typeof body.studioReviewAttachmentUrl === "string" &&
+      body.studioReviewAttachmentUrl.trim()
+        ? body.studioReviewAttachmentUrl.trim().slice(0, 1000)
         : null;
 
     const pool = getPool();
@@ -38,12 +44,13 @@ export async function POST(request: Request, { params }: Params) {
           declined_at = now(),
           declined_by = $2,
           studio_review_note = $3,
+          studio_review_attachment_url = $4,
           updated_at = now()
       WHERE id = $1
         AND status = 'submitted'
       RETURNING id, status
       `,
-      [params.id, user.accountId, studioReviewNote]
+      [params.id, user.accountId, studioReviewNote, studioReviewAttachmentUrl]
     );
 
     if (result.rowCount === 0) {

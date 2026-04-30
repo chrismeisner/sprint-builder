@@ -85,6 +85,10 @@ export default function RefinementCycleReviewClient({
     cycle.deliveryDate ?? cycle.preferredDeliveryDate ?? defaultDeliveryDate
   );
   const [decision, setDecision] = useState<"accept" | "decline" | null>(null);
+  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(
+    cycle.studioReviewAttachmentUrl ?? null
+  );
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [busy, setBusy] = useState<
     "accept" | "decline" | "screen" | "deliver" | "revoke" | null
   >(null);
@@ -177,6 +181,28 @@ export default function RefinementCycleReviewClient({
     setScreens((prev) => prev.filter((s) => s.id !== id));
   }
 
+  async function uploadAttachment(file: File) {
+    setUploadingAttachment(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(
+        `/api/refinement-cycles/${cycle.id}/review-attachment`,
+        { method: "POST", body: fd }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Upload failed");
+      }
+      const json = (await res.json()) as { url: string };
+      setAttachmentUrl(json.url);
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setUploadingAttachment(false);
+    }
+  }
+
   async function acceptCycle() {
     setBusy("accept");
     try {
@@ -186,6 +212,7 @@ export default function RefinementCycleReviewClient({
         body: JSON.stringify({
           deliveryDate,
           studioReviewNote: reviewNote.trim() || null,
+          studioReviewAttachmentUrl: attachmentUrl,
         }),
       });
       if (!res.ok) {
@@ -275,6 +302,7 @@ export default function RefinementCycleReviewClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           studioReviewNote: reviewNote.trim() || null,
+          studioReviewAttachmentUrl: attachmentUrl,
         }),
       });
       if (!res.ok) {
@@ -410,6 +438,64 @@ export default function RefinementCycleReviewClient({
             />
           </div>
 
+          <div className="space-y-2">
+            <label className="block">
+              <Typography scale="body-sm" as="span" className="font-semibold">
+                Attachment (optional)
+              </Typography>
+            </label>
+            {attachmentUrl ? (
+              <div className="space-y-2">
+                {/\.(png|jpe?g|gif|webp)(\?|#|$)/i.test(attachmentUrl) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={attachmentUrl}
+                    alt="Studio attachment"
+                    className="max-h-64 rounded-md border border-stroke-muted"
+                  />
+                ) : (
+                  <a
+                    href={attachmentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline text-sm"
+                  >
+                    {attachmentUrl}
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setAttachmentUrl(null)}
+                  className="text-semantic-danger hover:underline"
+                >
+                  <Typography scale="body-sm" as="span">
+                    Remove
+                  </Typography>
+                </button>
+              </div>
+            ) : (
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp,application/pdf"
+                disabled={uploadingAttachment}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadAttachment(f);
+                  e.target.value = "";
+                }}
+                className="block text-sm"
+              />
+            )}
+            {uploadingAttachment && (
+              <Typography
+                scale="body-sm"
+                className="text-text-secondary"
+              >
+                Uploading…
+              </Typography>
+            )}
+          </div>
+
           {decision === "accept" && (
             <div className="space-y-2">
               <label className="block">
@@ -450,6 +536,7 @@ export default function RefinementCycleReviewClient({
               onClick={submitDecision}
               disabled={
                 busy !== null ||
+                uploadingAttachment ||
                 decision === null ||
                 (decision === "accept" && !deliveryDate)
               }
@@ -628,6 +715,18 @@ export default function RefinementCycleReviewClient({
           </Typography>
           {cycle.studioReviewNote ? (
             <Field label="Studio note">{cycle.studioReviewNote}</Field>
+          ) : null}
+          {cycle.studioReviewAttachmentUrl ? (
+            <Field label="Studio attachment">
+              <a
+                href={cycle.studioReviewAttachmentUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                {cycle.studioReviewAttachmentUrl}
+              </a>
+            </Field>
           ) : null}
           {cycle.deliveryDate && (
             <Field label="Delivery date">
