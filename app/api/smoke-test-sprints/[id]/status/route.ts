@@ -4,7 +4,13 @@ import { getCurrentUser } from "@/lib/auth";
 
 type Params = { params: { id: string } };
 
-const ALLOWED_STATUSES = new Set(["draft", "scheduled", "in_progress", "complete"]);
+const ALLOWED_STATUSES = new Set([
+  "draft",
+  "scheduled",
+  "in_progress",
+  "complete",
+  "archived",
+]);
 
 export async function PATCH(request: Request, { params }: Params) {
   try {
