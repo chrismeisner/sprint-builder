@@ -84,6 +84,7 @@ export default function RefinementCycleReviewClient({
   const [deliveryDate, setDeliveryDate] = useState(
     cycle.deliveryDate ?? cycle.preferredDeliveryDate ?? defaultDeliveryDate
   );
+  const [decision, setDecision] = useState<"accept" | "decline" | null>(null);
   const [busy, setBusy] = useState<
     "accept" | "decline" | "screen" | "deliver" | "revoke" | null
   >(null);
@@ -289,6 +290,14 @@ export default function RefinementCycleReviewClient({
     }
   }
 
+  async function submitDecision() {
+    if (decision === "accept") {
+      await acceptCycle();
+    } else if (decision === "decline") {
+      await declineCycle();
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 space-y-8">
       <header className="space-y-3">
@@ -343,6 +352,115 @@ export default function RefinementCycleReviewClient({
           </div>
         </div>
       </header>
+
+      {cycle.status === "submitted" && isAdmin && (
+        <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-4">
+          <Typography as="h2" scale="heading-md">
+            Review &amp; decide
+          </Typography>
+
+          <div className="space-y-2">
+            <Typography
+              scale="body-sm"
+              as="div"
+              className="font-semibold"
+            >
+              Decision
+            </Typography>
+            <div className="flex flex-wrap gap-4">
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="decision"
+                  value="accept"
+                  checked={decision === "accept"}
+                  onChange={() => setDecision("accept")}
+                />
+                <Typography scale="body-sm" as="span">
+                  Accept
+                </Typography>
+              </label>
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="decision"
+                  value="decline"
+                  checked={decision === "decline"}
+                  onChange={() => setDecision("decline")}
+                />
+                <Typography scale="body-sm" as="span">
+                  Decline
+                </Typography>
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block">
+              <Typography scale="body-sm" as="span" className="font-semibold">
+                Studio note (optional)
+              </Typography>
+            </label>
+            <textarea
+              value={reviewNote}
+              onChange={(e) => setReviewNote(e.target.value)}
+              rows={3}
+              placeholder="Commentary that ships in the accept/decline email — flag adjustments, surface observations, or note things to discuss on the check-in."
+              className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+            />
+          </div>
+
+          {decision === "accept" && (
+            <div className="space-y-2">
+              <label className="block">
+                <Typography
+                  scale="body-sm"
+                  as="span"
+                  className="font-semibold"
+                >
+                  Delivery date
+                </Typography>
+              </label>
+              <input
+                type="date"
+                value={deliveryDate}
+                onChange={(e) => setDeliveryDate(e.target.value)}
+                className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+              />
+              <Typography scale="body-sm" className="text-text-secondary">
+                Default is the next business day (or the one after, if it&rsquo;s
+                past 5pm ET). Deposit deadline = 10am ET that day; delivery
+                target = 5pm ET that day.
+              </Typography>
+              {cycle.preferredDeliveryDate && (
+                <Typography
+                  scale="body-sm"
+                  className="text-text-secondary"
+                >
+                  Client&rsquo;s preferred date:{" "}
+                  {formatDate(cycle.preferredDeliveryDate)}
+                </Typography>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end border-t border-stroke-muted pt-3">
+            <Button
+              type="button"
+              onClick={submitDecision}
+              disabled={
+                busy !== null ||
+                decision === null ||
+                (decision === "accept" && !deliveryDate)
+              }
+            >
+              {busy === "accept" || busy === "decline"
+                ? "Submitting…"
+                : "Submit decision"}
+            </Button>
+          </div>
+        </section>
+      )}
 
       <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
         <Typography as="h2" scale="heading-md">
@@ -419,71 +537,7 @@ export default function RefinementCycleReviewClient({
         )}
       </section>
 
-      {cycle.status === "submitted" && isAdmin ? (
-        <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-4">
-          <Typography as="h2" scale="heading-md">
-            Review &amp; decide
-          </Typography>
-
-          <div className="space-y-2">
-            <label className="block">
-              <Typography scale="body-sm" as="span" className="font-semibold">
-                Studio note (optional)
-              </Typography>
-            </label>
-            <textarea
-              value={reviewNote}
-              onChange={(e) => setReviewNote(e.target.value)}
-              rows={3}
-              placeholder="Commentary that ships in the accept/decline email — flag adjustments, surface observations, or note things to discuss on the check-in."
-              className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block">
-              <Typography scale="body-sm" as="span" className="font-semibold">
-                Delivery date (used if accepted)
-              </Typography>
-            </label>
-            <input
-              type="date"
-              value={deliveryDate}
-              onChange={(e) => setDeliveryDate(e.target.value)}
-              className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
-            />
-            <Typography scale="body-sm" className="text-text-secondary">
-              Default is the next business day (or the one after, if it&rsquo;s
-              past 5pm ET). Deposit deadline = 10am ET that day; delivery target
-              = 5pm ET that day.
-            </Typography>
-            {cycle.preferredDeliveryDate && (
-              <Typography scale="body-sm" className="text-text-secondary">
-                Client&rsquo;s preferred date:{" "}
-                {formatDate(cycle.preferredDeliveryDate)}
-              </Typography>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-stroke-muted pt-3">
-            <Button
-              type="button"
-              variant="destructiveOutline"
-              onClick={declineCycle}
-              disabled={busy !== null}
-            >
-              {busy === "decline" ? "Declining…" : "Decline"}
-            </Button>
-            <Button
-              type="button"
-              onClick={acceptCycle}
-              disabled={busy !== null || !deliveryDate}
-            >
-              {busy === "accept" ? "Accepting…" : "Accept cycle"}
-            </Button>
-          </div>
-        </section>
-      ) : (
+      {cycle.status !== "submitted" && (
         <>
           {isAdmin &&
             (cycle.status === "awaiting_deposit" ||
