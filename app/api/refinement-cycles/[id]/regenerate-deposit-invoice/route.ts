@@ -12,7 +12,7 @@ type Params = { params: { id: string } };
 // Stripe invoice URL — e.g. accepted under an older code path where Stripe
 // failures were swallowed. Creates the deposit invoice, persists the URL,
 // and re-sends the acceptance email so the client gets a real payment link.
-export async function POST(_req: Request, { params }: Params) {
+export async function POST(req: Request, { params }: Params) {
   try {
     await ensureSchema();
     const user = await getCurrentUser();
@@ -79,11 +79,20 @@ export async function POST(_req: Request, { params }: Params) {
       [params.id, invoice.stripeInvoiceId, invoice.hostedInvoiceUrl]
     );
 
-    // Now that the URL is on the row, send the acceptance email — it'll
-    // pick up the URL via loadCycleContext.
-    await onCycleAccepted(params.id);
+    // Default: send the acceptance email (with CC preferences honored) so
+    // the client + CC'd project members get the Stripe link. The admin can
+    // opt out by passing { notify: false } if they want to generate the
+    // invoice quietly and reach out by other means.
+    const body = (await req.json().catch(() => ({}))) as { notify?: unknown };
+    const notify = body.notify !== false;
+    if (notify) {
+      await onCycleAccepted(params.id);
+    }
 
-    return NextResponse.json({ url: invoice.hostedInvoiceUrl });
+    return NextResponse.json({
+      url: invoice.hostedInvoiceUrl,
+      notified: notify,
+    });
   } catch (err) {
     console.error("[RefinementCycle regenerate-deposit-invoice] error", err);
     return NextResponse.json(

@@ -89,6 +89,7 @@ export default function RefinementCycleReviewClient({
     cycle.studioReviewAttachmentUrl ?? null
   );
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [notifyOnRegenerate, setNotifyOnRegenerate] = useState(true);
   const [busy, setBusy] = useState<
     | "accept"
     | "decline"
@@ -325,24 +326,30 @@ export default function RefinementCycleReviewClient({
   }
 
   async function regenerateDepositInvoice() {
-    if (
-      !window.confirm(
-        "Generate a Stripe deposit invoice for this cycle? The acceptance email will be re-sent to the client with the payment link."
-      )
-    ) {
-      return;
-    }
+    const confirmMsg = notifyOnRegenerate
+      ? "Generate a Stripe deposit invoice for this cycle? The acceptance email will be sent to the submitter and any CC'd project members with the payment link."
+      : "Generate a Stripe deposit invoice for this cycle? No email will be sent — you'll need to share the link manually.";
+    if (!window.confirm(confirmMsg)) return;
     setBusy("regenerateDeposit");
     try {
       const res = await fetch(
         `/api/refinement-cycles/${cycle.id}/regenerate-deposit-invoice`,
-        { method: "POST" }
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ notify: notifyOnRegenerate }),
+        }
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Failed to generate deposit invoice");
       }
-      showToast("Deposit invoice generated and email re-sent", "success");
+      showToast(
+        notifyOnRegenerate
+          ? "Deposit invoice generated and email sent"
+          : "Deposit invoice generated (no email sent)",
+        "success"
+      );
       router.refresh();
     } catch (err) {
       showToast((err as Error).message, "error");
@@ -426,7 +433,7 @@ export default function RefinementCycleReviewClient({
               created — the client can&rsquo;t pay yet. Generate one now to
               re-send the acceptance email with a real payment link.
             </Typography>
-            <div>
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 type="button"
                 onClick={regenerateDepositInvoice}
@@ -436,6 +443,17 @@ export default function RefinementCycleReviewClient({
                   ? "Generating…"
                   : "Generate deposit invoice"}
               </Button>
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={notifyOnRegenerate}
+                  onChange={(e) => setNotifyOnRegenerate(e.target.checked)}
+                  disabled={busy !== null}
+                />
+                <Typography scale="body-sm" as="span">
+                  Email this link to project members on this cycle
+                </Typography>
+              </label>
             </div>
           </section>
         )}
