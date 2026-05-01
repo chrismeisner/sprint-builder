@@ -72,12 +72,13 @@ type CycleBillingContext = {
     deposit_amount: number;
     final_amount: number;
     cc_emails: string[];
+    created_by: string | null;
   };
   project: {
     id: string;
     name: string | null;
     emoji: string | null;
-    account_id: string;
+    account_id: string | null;
   };
 };
 
@@ -91,7 +92,7 @@ async function loadCycleContext(
            rc.studio_review_note, rc.studio_review_attachment_url,
            rc.stripe_deposit_invoice_url,
            rc.deposit_amount, rc.final_amount,
-           rc.cc_emails,
+           rc.cc_emails, rc.created_by,
            p.name AS project_name, p.emoji AS project_emoji,
            p.account_id AS project_account_id
     FROM refinement_cycles rc
@@ -121,12 +122,13 @@ async function loadCycleContext(
       deposit_amount: Number(row.deposit_amount ?? 600),
       final_amount: Number(row.final_amount ?? 600),
       cc_emails: Array.isArray(row.cc_emails) ? (row.cc_emails as string[]) : [],
+      created_by: (row.created_by as string | null) ?? null,
     },
     project: {
       id: row.project_id as string,
       name: (row.project_name as string | null) ?? null,
       emoji: (row.project_emoji as string | null) ?? null,
-      account_id: row.project_account_id as string,
+      account_id: (row.project_account_id as string | null) ?? null,
     },
   };
 }
@@ -155,9 +157,17 @@ async function createCycleStripeInvoice(
   }
 
   const stripe = getStripe();
+  // Bill the project owner when known; otherwise fall back to the cycle
+  // submitter so projects without an account_id can still invoice.
+  const billingAccountId = ctx.project.account_id ?? ctx.cycle.created_by;
+  if (!billingAccountId) {
+    throw new Error(
+      `Cannot create ${kind} invoice: cycle ${ctx.cycle.id} has no project owner or submitter account`
+    );
+  }
   const stripeCustomerId = await getOrCreateStripeCustomer(
     pool,
-    ctx.project.account_id
+    billingAccountId
   );
 
   const description = `Refinement Cycle ${kind === "deposit" ? "deposit" : "final"} — ${ctx.project.name ?? ctx.cycle.project_id}`;
