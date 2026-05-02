@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { depositDeadlineFromDeliveryDate } from "@/lib/refinementCycle";
-import {
-  createDepositInvoiceForCycle,
-  onCycleAccepted,
-} from "@/lib/refinementCycleBilling";
+import { onCycleAccepted } from "@/lib/refinementCycleBilling";
 
 type Params = { params: { id: string } };
 
@@ -57,81 +53,35 @@ export async function POST(request: Request, { params }: Params) {
         ? body.studioReviewAttachmentUrl.trim().slice(0, 1000)
         : null;
 
-    const depositDueAt = depositDeadlineFromDeliveryDate(deliveryDate);
-
     const pool = getPool();
 
-    // Pre-flight: confirm the cycle is still in `submitted` so we don't
-    // create an orphan Stripe invoice if it was already processed.
-    const stateRes = await pool.query(
-      `SELECT status FROM refinement_cycles WHERE id = $1 LIMIT 1`,
-      [params.id]
-    );
-    if (stateRes.rowCount === 0) {
-      return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
-    }
-    if (stateRes.rows[0].status !== "submitted") {
-      return NextResponse.json(
-        { error: "Cycle is no longer in submitted state" },
-        { status: 409 }
-      );
-    }
-
-    // Create the Stripe deposit invoice BEFORE flipping status. If Stripe
-    // fails (or returns no hosted URL), we throw — status stays `submitted`
-    // and the admin can retry. Guarantees the acceptance email always
-    // ships with a real payment link.
-    let depositInvoice;
-    try {
-      depositInvoice = await createDepositInvoiceForCycle(params.id);
-    } catch (err) {
-      console.error("[RefinementCycle accept] deposit invoice failed", err);
-      return NextResponse.json(
-        {
-          error:
-            "Could not create the Stripe deposit invoice. Please try again in a moment.",
-          details: (err as Error).message,
-        },
-        { status: 502 }
-      );
-    }
-
+    // Pay-on-delivery: acceptance commits the studio to the work and the
+    // delivery date. No Stripe invoice is created here — the full invoice
+    // is generated when the cycle is delivered.
     const result = await pool.query(
       `
       UPDATE refinement_cycles
-      SET status = 'awaiting_deposit',
+      SET status = 'in_progress',
           accepted_at = now(),
           accepted_by = $2,
           studio_review_note = $3,
-          studio_review_attachment_url = $6,
+          studio_review_attachment_url = $5,
           delivery_date = $4,
-          deposit_due_at = $5,
-          stripe_deposit_invoice_id = $7,
-          stripe_deposit_invoice_url = $8,
           updated_at = now()
       WHERE id = $1
         AND status = 'submitted'
-      RETURNING id, status, delivery_date, deposit_due_at
+      RETURNING id, status, delivery_date
       `,
       [
         params.id,
         user.accountId,
         studioReviewNote,
         deliveryDate,
-        depositDueAt,
         studioReviewAttachmentUrl,
-        depositInvoice.stripeInvoiceId,
-        depositInvoice.hostedInvoiceUrl,
       ]
     );
 
     if (result.rowCount === 0) {
-      // Race: another admin accepted/declined between our pre-flight and
-      // UPDATE. The Stripe invoice we just created is orphaned — log it so
-      // it can be voided manually.
-      console.error(
-        `[RefinementCycle accept] race lost — orphan Stripe invoice ${depositInvoice.stripeInvoiceId} for cycle ${params.id}`
-      );
       return NextResponse.json(
         { error: "Cycle is no longer in submitted state" },
         { status: 409 }

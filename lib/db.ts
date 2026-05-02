@@ -1570,6 +1570,25 @@ export async function ensureSchema(): Promise<void> {
       ON refinement_cycle_screens(refinement_cycle_id);
   `);
 
+  // Deliverable screenshots: studio-uploaded images attached to the Deliver
+  // section. Distinct from `refinement_cycle_screens` (which is the client's
+  // scope list) — these are the visual artifacts the studio sends back.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS refinement_cycle_deliverable_screenshots (
+      id text PRIMARY KEY,
+      refinement_cycle_id text NOT NULL REFERENCES refinement_cycles(id) ON DELETE CASCADE,
+      file_url text NOT NULL,
+      filename text,
+      mimetype text,
+      caption text,
+      sort_order integer NOT NULL DEFAULT 0,
+      uploaded_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_refinement_cycle_deliverable_screenshots_cycle
+      ON refinement_cycle_deliverable_screenshots(refinement_cycle_id);
+  `);
+
   // Client's preferred delivery date (chosen at submission time). The
   // committed delivery date — set by the studio at acceptance — lives in
   // `delivery_date`. The admin review UI defaults to the client's preference.
@@ -1647,6 +1666,32 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     ALTER TABLE refinement_cycles
     ADD COLUMN IF NOT EXISTS studio_review_attachment_url text
+  `);
+
+  // Delivery draft: admins can save figma_file_url / loom_walkthrough_url /
+  // engineering_notes without flipping status to delivered (the irreversible
+  // step that emails the client and creates the final invoice).
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS delivery_draft_saved_at timestamptz
+  `);
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS delivery_draft_saved_by text
+      REFERENCES accounts(id) ON DELETE SET NULL
+  `);
+
+  // One-off: cycle 6b4728a0-... was accepted under the old deposit flow but
+  // the deposit was never collected. Move it onto the new pay-on-delivery
+  // flow by flipping it to in_progress. Idempotent — only fires while the
+  // row is still stuck in awaiting_deposit.
+  await pool.query(`
+    UPDATE refinement_cycles
+    SET status = 'in_progress',
+        deposit_due_at = NULL,
+        updated_at = now()
+    WHERE id = '6b4728a0-ae60-49bf-ab30-6d38d658aaa4'
+      AND status = 'awaiting_deposit'
   `);
 
   // Miles Proto 3 — persisted scenario state (overrides + custom order)

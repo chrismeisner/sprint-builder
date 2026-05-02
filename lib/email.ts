@@ -1253,8 +1253,7 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
   studioNote: string | null;
   studioAttachmentUrl?: string | null;
   deliveryDate: string | null;
-  depositAmount: number;
-  stripeInvoiceUrl: string | null;
+  totalPrice: number;
   calBookingUrl: string | null;
 }): { subject: string; text: string; html: string } {
   const project = projectLabel(params.projectName, params.projectEmoji);
@@ -1278,12 +1277,8 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
   }
   textLines.push(`Delivery target: ${deliveryLine} at 5pm ET.`);
   textLines.push(
-    `Deposit: ${formatUsd(params.depositAmount)} — pay by 10am ET on the delivery date to lock in your slot.`
+    `Total: ${formatUsd(params.totalPrice)} — invoiced on delivery, no deposit needed.`
   );
-  if (params.stripeInvoiceUrl) {
-    textLines.push("");
-    textLines.push(`Pay deposit invoice: ${params.stripeInvoiceUrl}`);
-  }
   if (params.calBookingUrl) {
     textLines.push("");
     textLines.push(
@@ -1302,12 +1297,7 @@ ${
 }
 ${attachmentBlock(params.studioAttachmentUrl)}
 <p style="margin:0 0 8px;"><strong>Delivery target:</strong> ${escapeHtml(deliveryLine)} at 5pm ET</p>
-<p style="margin:0 0 16px;"><strong>Deposit:</strong> ${formatUsd(params.depositAmount)} — must be paid by 10am ET on the delivery date to lock in your slot.</p>
-${
-  params.stripeInvoiceUrl
-    ? linkButton(params.stripeInvoiceUrl, "Pay deposit invoice")
-    : ""
-}
+<p style="margin:0 0 16px;"><strong>Total:</strong> ${formatUsd(params.totalPrice)} — invoiced on delivery, no deposit needed.</p>
 ${
   params.calBookingUrl
     ? `<p style="margin:24px 0 8px;"><strong>Optional check-in</strong></p>
@@ -1400,9 +1390,11 @@ export function generateRefinementCycleDeliveredClientEmail(params: {
   figmaFileUrl: string | null;
   loomWalkthroughUrl: string | null;
   engineeringNotes: string | null;
+  screenshots?: Array<{ fileUrl: string; filename: string | null }>;
 }): { subject: string; text: string; html: string } {
   const project = projectLabel(params.projectName, params.projectEmoji);
   const subject = `Refinement cycle delivered — ${params.projectName ?? "project"}`;
+  const shots = params.screenshots ?? [];
 
   const lines: string[] = [];
   lines.push("Your refinement cycle is delivered.");
@@ -1415,11 +1407,29 @@ export function generateRefinementCycleDeliveredClientEmail(params: {
     lines.push("Engineering notes:");
     lines.push(params.engineeringNotes);
   }
+  if (shots.length > 0) {
+    lines.push("");
+    lines.push("Screenshots:");
+    for (const s of shots) {
+      lines.push(s.filename ? `${s.filename}: ${s.fileUrl}` : s.fileUrl);
+    }
+  }
   lines.push("");
   lines.push(`Final invoice: ${formatUsd(params.finalAmount)}`);
   if (params.stripeInvoiceUrl) {
     lines.push(`Pay final invoice: ${params.stripeInvoiceUrl}`);
   }
+
+  const screenshotsHtml =
+    shots.length > 0
+      ? `<p style="margin:16px 0 8px;"><strong>Screenshots</strong></p>
+${shots
+  .map(
+    (s) =>
+      `<p style="margin:0 0 8px;"><a href="${escapeHtml(s.fileUrl)}"><img src="${escapeHtml(s.fileUrl)}" alt="${escapeHtml(s.filename ?? "Screenshot")}" style="max-width:100%;border:1px solid #e5e7eb;border-radius:6px;" /></a></p>`
+  )
+  .join("\n")}`
+      : "";
 
   const html = emailShell(`
 <p style="margin:0 0 16px;">Your refinement cycle for <strong>${project}</strong> is delivered.</p>
@@ -1439,6 +1449,7 @@ ${
 <p style="margin:0 0 16px;white-space:pre-wrap;">${escapeHtml(params.engineeringNotes)}</p>`
     : ""
 }
+${screenshotsHtml}
 <p style="margin:24px 0 8px;"><strong>Final invoice:</strong> ${formatUsd(params.finalAmount)}</p>
 ${
   params.stripeInvoiceUrl

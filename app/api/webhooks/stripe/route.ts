@@ -349,16 +349,27 @@ async function updateRefinementCycleStripeStatus(
     return;
   }
 
-  // Final invoice events are informational — the cycle is already delivered.
+  // Final invoice paid → cycle moves from `awaiting_payment` (new flow) to
+  // terminal `delivered`. Legacy cycles already in `delivered` only get the
+  // final_paid_at stamp updated.
   if (status === "paid") {
-    await pool.query(
+    const res = await pool.query(
       `UPDATE refinement_cycles
        SET final_paid_at = COALESCE(final_paid_at, now()),
+           status = CASE
+             WHEN status = 'awaiting_payment' THEN 'delivered'
+             ELSE status
+           END,
            updated_at = now()
-       WHERE id = $1`,
+       WHERE id = $1
+       RETURNING id, status`,
       [cycleId]
     );
-    console.log(`[StripeWebhook] Refinement cycle ${cycleId} final paid`);
+    if ((res.rowCount ?? 0) > 0) {
+      console.log(
+        `[StripeWebhook] Refinement cycle ${cycleId} final paid → status=${res.rows[0].status}`
+      );
+    }
   } else {
     console.log(
       `[StripeWebhook] Refinement cycle ${cycleId} final invoice status=${status} (no-op)`

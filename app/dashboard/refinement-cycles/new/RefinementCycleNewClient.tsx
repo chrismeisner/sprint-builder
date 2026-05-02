@@ -316,8 +316,8 @@ export default function RefinementCycleNewClient({
                         scale="body-sm"
                         className="text-text-secondary"
                       >
-                        {opt.blurb} {formatUsd(opt.depositAmount)} deposit +{" "}
-                        {formatUsd(opt.finalAmount)} on delivery.
+                        {opt.blurb} {formatUsd(opt.totalPrice)} invoiced on
+                        delivery — no deposit.
                       </Typography>
                     </div>
                   </div>
@@ -341,21 +341,16 @@ export default function RefinementCycleNewClient({
             <li>
               <Typography as="span">
                 The studio reviews and decides by 5pm Eastern — accepted (with
-                a note + Stripe deposit invoice + optional check-in link) or
-                declined. You&rsquo;ll know either way before close of business.
-              </Typography>
-            </li>
-            <li>
-              <Typography as="span">
-                Pay the {formatUsd(selectedRate.depositAmount)} deposit by 10am
-                ET on delivery day to lock the slot.
+                a note + delivery date + optional check-in link) or declined.
+                You&rsquo;ll know either way before close of business.
               </Typography>
             </li>
             <li>
               <Typography as="span">
                 Receive Figma file, walkthrough Loom, and engineering notes by
                 5pm ET on delivery day, alongside the{" "}
-                {formatUsd(selectedRate.finalAmount)} final invoice.
+                {formatUsd(selectedRate.totalPrice)} invoice — billed on
+                delivery, no deposit needed.
               </Typography>
             </li>
           </ol>
@@ -446,9 +441,8 @@ export default function RefinementCycleNewClient({
             )}
           </Typography>
           <Typography scale="body-sm" className="text-text-secondary">
-            Acceptance, deposit, check-in, and delivery emails will all be sent
-            to this address. Sign in as a different account if that&rsquo;s
-            wrong.
+            Acceptance, check-in, and delivery emails will all be sent to this
+            address. Sign in as a different account if that&rsquo;s wrong.
           </Typography>
         </section>
 
@@ -481,8 +475,8 @@ export default function RefinementCycleNewClient({
             </Typography>
             <Typography scale="body-sm" className="text-text-secondary">
               Pick anyone you want looped into the back-and-forth with the
-              studio (acceptance, deposit, check-in, delivery emails). They
-              don&rsquo;t have to be the one who pays.
+              studio (acceptance, check-in, delivery emails). They don&rsquo;t
+              have to be the one who pays.
             </Typography>
             <div className="space-y-1 rounded-md border border-stroke-muted bg-surface-subtle p-3">
               {availableCcMembers.map((member) => {
@@ -740,11 +734,10 @@ export default function RefinementCycleNewClient({
             />
             <Typography scale="body-sm">
               By submitting, I understand the studio will review by 5pm ET and
-              email me {submitterEmail} with their decision. If accepted,
-              I&rsquo;ll receive a deposit invoice and an optional check-in
-              link. The cycle is confirmed once the{" "}
-              {formatUsd(selectedRate.depositAmount)} deposit is paid by 10am
-              ET on the delivery date.
+              email me {submitterEmail} with their decision. If accepted, work
+              starts immediately and the{" "}
+              {formatUsd(selectedRate.totalPrice)} invoice is issued on
+              delivery — no deposit required.
             </Typography>
           </label>
 

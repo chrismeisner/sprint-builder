@@ -76,8 +76,10 @@ export async function DELETE(_request: Request, { params }: Params) {
       return NextResponse.json(
         {
           error:
-            cycle.status === "in_progress" || cycle.status === "delivered"
-              ? "Deposit has been paid — contact the studio to handle this case."
+            cycle.status === "in_progress" ||
+            cycle.status === "awaiting_payment" ||
+            cycle.status === "delivered"
+              ? "Cycle is past acceptance — contact the studio to handle this case."
               : `Cycle is ${cycle.status}; nothing to revoke.`,
         },
         { status: 409 }

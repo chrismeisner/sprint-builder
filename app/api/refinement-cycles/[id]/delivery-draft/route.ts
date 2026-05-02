@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { onCycleDelivered } from "@/lib/refinementCycleBilling";
 
 type Params = { params: { id: string } };
 
@@ -50,16 +49,15 @@ export async function POST(request: Request, { params }: Params) {
     const result = await pool.query(
       `
       UPDATE refinement_cycles
-      SET status = 'awaiting_payment',
-          delivered_at = now(),
-          delivered_by = $2,
-          figma_file_url = COALESCE($3, figma_file_url),
-          loom_walkthrough_url = COALESCE($4, loom_walkthrough_url),
-          engineering_notes = COALESCE($5, engineering_notes),
+      SET figma_file_url = $3,
+          loom_walkthrough_url = $4,
+          engineering_notes = $5,
+          delivery_draft_saved_at = now(),
+          delivery_draft_saved_by = $2,
           updated_at = now()
       WHERE id = $1
         AND status IN ('in_progress', 'awaiting_deposit')
-      RETURNING id, status
+      RETURNING id, delivery_draft_saved_at
       `,
       [
         params.id,
@@ -74,26 +72,23 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json(
         {
           error:
-            "Cycle not found or not in a deliverable state (must be in_progress or awaiting_deposit).",
+            "Cycle not found or not in a draftable state (must be in_progress or awaiting_deposit).",
         },
         { status: 409 }
       );
     }
 
-    await onCycleDelivered(params.id, {
-      figmaFileUrl,
-      loomWalkthroughUrl,
-      engineeringNotes,
-    });
-
+    const savedAt = result.rows[0].delivery_draft_saved_at as Date | string;
     return NextResponse.json({
-      id: result.rows[0].id,
-      status: result.rows[0].status,
+      id: result.rows[0].id as string,
+      deliveryDraftSavedAt:
+        savedAt instanceof Date ? savedAt.toISOString() : savedAt,
+      deliveryDraftSavedByEmail: user.email,
     });
   } catch (err) {
-    console.error("[RefinementCycle deliver]", err);
+    console.error("[RefinementCycle delivery-draft]", err);
     return NextResponse.json(
-      { error: (err as Error).message ?? "Deliver failed" },
+      { error: (err as Error).message ?? "Save draft failed" },
       { status: 500 }
     );
   }

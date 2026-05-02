@@ -71,6 +71,8 @@ type CycleBillingContext = {
     stripe_deposit_invoice_url: string | null;
     deposit_amount: number;
     final_amount: number;
+    total_price: number;
+    deposit_paid_at: string | null;
     cc_emails: string[];
     created_by: string | null;
   };
@@ -91,7 +93,8 @@ async function loadCycleContext(
     SELECT rc.id, rc.title, rc.submitter_email, rc.project_id, rc.delivery_date,
            rc.studio_review_note, rc.studio_review_attachment_url,
            rc.stripe_deposit_invoice_url,
-           rc.deposit_amount, rc.final_amount,
+           rc.deposit_amount, rc.final_amount, rc.total_price,
+           rc.deposit_paid_at,
            rc.cc_emails, rc.created_by,
            p.name AS project_name, p.emoji AS project_emoji,
            p.account_id AS project_account_id
@@ -121,6 +124,12 @@ async function loadCycleContext(
         (row.stripe_deposit_invoice_url as string | null) ?? null,
       deposit_amount: Number(row.deposit_amount ?? 600),
       final_amount: Number(row.final_amount ?? 600),
+      total_price: Number(row.total_price ?? 1200),
+      deposit_paid_at: row.deposit_paid_at
+        ? row.deposit_paid_at instanceof Date
+          ? row.deposit_paid_at.toISOString()
+          : (row.deposit_paid_at as string)
+        : null,
       cc_emails: Array.isArray(row.cc_emails) ? (row.cc_emails as string[]) : [],
       created_by: (row.created_by as string | null) ?? null,
     },
@@ -355,22 +364,15 @@ export async function onCycleSubmitted(cycleId: string): Promise<void> {
   }
 }
 
-// Sends the acceptance email. The Stripe deposit invoice MUST already be on
-// the cycle row (callers ensure this via `createDepositInvoiceForCycle`)
-// before invoking this — the email is gated on a real payment URL so the
-// client never gets a "link will follow shortly" placeholder.
+// Sends the acceptance email. Pay-on-delivery: no deposit invoice exists at
+// this point, so the email confirms the delivery date but contains no
+// payment link. The full invoice goes out when the cycle is delivered.
 export async function onCycleAccepted(cycleId: string): Promise<void> {
   try {
     const pool = getPool();
     const ctx = await loadCycleContext(pool, cycleId);
     if (!ctx) return;
     if (!ctx.cycle.submitter_email) return;
-    if (!ctx.cycle.stripe_deposit_invoice_url) {
-      console.error(
-        `[RefinementCycleBilling] onCycleAccepted skipped — no Stripe deposit URL on cycle ${cycleId}; refusing to send email without a real payment link`
-      );
-      return;
-    }
 
     const calBookingUrl = getCalBookingUrlForDeliveryDate(
       ctx.cycle.delivery_date
@@ -384,8 +386,7 @@ export async function onCycleAccepted(cycleId: string): Promise<void> {
         studioNote: ctx.cycle.studio_review_note,
         studioAttachmentUrl: ctx.cycle.studio_review_attachment_url,
         deliveryDate: ctx.cycle.delivery_date,
-        depositAmount: ctx.cycle.deposit_amount,
-        stripeInvoiceUrl: ctx.cycle.stripe_deposit_invoice_url,
+        totalPrice: ctx.cycle.total_price,
         calBookingUrl,
       });
       await sendEmail({
@@ -558,16 +559,24 @@ export async function onCycleDelivered(
     const ctx = await loadCycleContext(pool, cycleId);
     if (!ctx) return { stripeInvoiceUrl: null };
 
+    // Pay-on-delivery: legacy cycles (deposit already cleared) only owe the
+    // remaining final_amount. Cycles created under the new pay-on-delivery
+    // flow owe the full total_price at delivery.
+    const isLegacyDepositFlow = ctx.cycle.deposit_paid_at !== null;
+    const billedAmount = isLegacyDepositFlow
+      ? ctx.cycle.final_amount
+      : ctx.cycle.total_price;
+
     try {
       stripeResult = await createCycleStripeInvoice(
         pool,
         ctx,
         "final",
-        ctx.cycle.final_amount
+        billedAmount
       );
     } catch (err) {
       console.error(
-        `[RefinementCycleBilling] final invoice creation failed (cycle=${cycleId}):`,
+        `[RefinementCycleBilling] delivery invoice creation failed (cycle=${cycleId}):`,
         err
       );
     }
@@ -583,16 +592,29 @@ export async function onCycleDelivered(
       );
     }
 
+    const shotsRes = await pool.query(
+      `SELECT file_url, filename
+       FROM refinement_cycle_deliverable_screenshots
+       WHERE refinement_cycle_id = $1
+       ORDER BY sort_order ASC, created_at ASC`,
+      [cycleId]
+    );
+    const screenshots = shotsRes.rows.map((r) => ({
+      fileUrl: r.file_url as string,
+      filename: (r.filename as string | null) ?? null,
+    }));
+
     if (ctx.cycle.submitter_email) {
       try {
         const content = generateRefinementCycleDeliveredClientEmail({
           projectName: ctx.project.name,
           projectEmoji: ctx.project.emoji,
-          finalAmount: ctx.cycle.final_amount,
+          finalAmount: billedAmount,
           stripeInvoiceUrl: stripeResult?.hostedInvoiceUrl ?? null,
           figmaFileUrl: payload.figmaFileUrl ?? null,
           loomWalkthroughUrl: payload.loomWalkthroughUrl ?? null,
           engineeringNotes: payload.engineeringNotes ?? null,
+          screenshots,
         });
         await sendEmail({
           to: ctx.cycle.submitter_email,

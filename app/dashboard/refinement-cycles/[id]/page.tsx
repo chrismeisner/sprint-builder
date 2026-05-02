@@ -18,6 +18,16 @@ export type CycleScreen = {
   createdAt: string;
 };
 
+export type CycleDeliverableScreenshot = {
+  id: string;
+  fileUrl: string;
+  filename: string | null;
+  mimetype: string | null;
+  caption: string | null;
+  sortOrder: number;
+  createdAt: string;
+};
+
 export type CycleDetail = {
   id: string;
   title: string | null;
@@ -54,7 +64,10 @@ export type CycleDetail = {
   figmaFileUrl: string | null;
   loomWalkthroughUrl: string | null;
   engineeringNotes: string | null;
+  deliveryDraftSavedAt: string | null;
+  deliveryDraftSavedByEmail: string | null;
   screens: CycleScreen[];
+  deliverableScreenshots: CycleDeliverableScreenshot[];
 };
 
 export default async function RefinementCycleReviewPage({
@@ -73,9 +86,11 @@ export default async function RefinementCycleReviewPage({
   const cycleRes = await pool.query(
     `
     SELECT rc.*, p.name AS project_name, p.emoji AS project_emoji,
-           p.account_id AS project_account_id
+           p.account_id AS project_account_id,
+           draft_saver.email AS delivery_draft_saved_by_email
     FROM refinement_cycles rc
     LEFT JOIN projects p ON p.id = rc.project_id
+    LEFT JOIN accounts draft_saver ON draft_saver.id = rc.delivery_draft_saved_by
     WHERE rc.id = $1
     LIMIT 1
     `,
@@ -127,6 +142,30 @@ export default async function RefinementCycleReviewPage({
         ? s.created_at.toISOString()
         : (s.created_at as string),
   }));
+
+  const shotsRes = await pool.query(
+    `
+    SELECT id, file_url, filename, mimetype, caption, sort_order, created_at
+    FROM refinement_cycle_deliverable_screenshots
+    WHERE refinement_cycle_id = $1
+    ORDER BY sort_order ASC, created_at ASC
+    `,
+    [params.id]
+  );
+  const deliverableScreenshots: CycleDeliverableScreenshot[] = shotsRes.rows.map(
+    (s) => ({
+      id: s.id as string,
+      fileUrl: s.file_url as string,
+      filename: (s.filename as string | null) ?? null,
+      mimetype: (s.mimetype as string | null) ?? null,
+      caption: (s.caption as string | null) ?? null,
+      sortOrder: Number(s.sort_order ?? 0),
+      createdAt:
+        s.created_at instanceof Date
+          ? s.created_at.toISOString()
+          : (s.created_at as string),
+    })
+  );
 
   const cycle: CycleDetail = {
     id: row.id as string,
@@ -202,7 +241,15 @@ export default async function RefinementCycleReviewPage({
     figmaFileUrl: (row.figma_file_url as string | null) ?? null,
     loomWalkthroughUrl: (row.loom_walkthrough_url as string | null) ?? null,
     engineeringNotes: (row.engineering_notes as string | null) ?? null,
+    deliveryDraftSavedAt: row.delivery_draft_saved_at
+      ? row.delivery_draft_saved_at instanceof Date
+        ? row.delivery_draft_saved_at.toISOString()
+        : (row.delivery_draft_saved_at as string)
+      : null,
+    deliveryDraftSavedByEmail:
+      (row.delivery_draft_saved_by_email as string | null) ?? null,
     screens,
+    deliverableScreenshots,
   };
 
   const viewerEmail = user.email;

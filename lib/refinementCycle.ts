@@ -72,6 +72,7 @@ export type RefinementCycleStatus =
   | "accepted"
   | "awaiting_deposit"
   | "in_progress"
+  | "awaiting_payment"
   | "delivered"
   | "declined"
   | "expired";
@@ -81,6 +82,7 @@ export const REFINEMENT_CYCLE_STATUSES: RefinementCycleStatus[] = [
   "accepted",
   "awaiting_deposit",
   "in_progress",
+  "awaiting_payment",
   "delivered",
   "declined",
   "expired",
@@ -227,6 +229,8 @@ export function statusVisuals(status: RefinementCycleStatus): StatusVisuals {
       return { label: "Awaiting deposit", tone: "warning" };
     case "in_progress":
       return { label: "In progress", tone: "info" };
+    case "awaiting_payment":
+      return { label: "Awaiting payment", tone: "warning" };
     case "delivered":
       return { label: "Delivered", tone: "success" };
     case "declined":

@@ -7,7 +7,11 @@ import Button from "@/components/ui/Button";
 import Typography from "@/components/ui/Typography";
 import { useToast } from "@/lib/toast-context";
 import { statusVisuals } from "@/lib/refinementCycle";
-import type { CycleDetail, CycleScreen } from "./page";
+import type {
+  CycleDetail,
+  CycleScreen,
+  CycleDeliverableScreenshot,
+} from "./page";
 
 type Props = {
   cycle: CycleDetail;
@@ -97,8 +101,13 @@ export default function RefinementCycleReviewClient({
     | "deliver"
     | "revoke"
     | "regenerateDeposit"
+    | "saveDraft"
+    | "uploadScreenshot"
     | null
   >(null);
+  const [deliverableShots, setDeliverableShots] = useState<
+    CycleDeliverableScreenshot[]
+  >(cycle.deliverableScreenshots);
 
   const [figmaFileUrl, setFigmaFileUrl] = useState(cycle.figmaFileUrl ?? "");
   const [loomWalkthroughUrl, setLoomWalkthroughUrl] = useState(
@@ -106,6 +115,12 @@ export default function RefinementCycleReviewClient({
   );
   const [engineeringNotes, setEngineeringNotes] = useState(
     cycle.engineeringNotes ?? ""
+  );
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(
+    cycle.deliveryDraftSavedAt
+  );
+  const [draftSavedByEmail, setDraftSavedByEmail] = useState<string | null>(
+    cycle.deliveryDraftSavedByEmail
   );
 
   const isEditable = cycle.status === "submitted" && isAdmin;
@@ -118,9 +133,11 @@ export default function RefinementCycleReviewClient({
       case "awaiting_deposit":
         return "Accepted — awaiting deposit payment.";
       case "in_progress":
-        return "Deposit received — work in progress.";
+        return "Approved — work in progress.";
+      case "awaiting_payment":
+        return "Delivered — awaiting payment.";
       case "delivered":
-        return "Delivered.";
+        return "Delivered & paid.";
       case "declined":
         return "Declined.";
       case "expired":
@@ -259,6 +276,80 @@ export default function RefinementCycleReviewClient({
     } catch (err) {
       showToast((err as Error).message, "error");
       setBusy(null);
+    }
+  }
+
+  async function saveDeliveryDraft() {
+    setBusy("saveDraft");
+    try {
+      const res = await fetch(
+        `/api/refinement-cycles/${cycle.id}/delivery-draft`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            figmaFileUrl: figmaFileUrl.trim() || null,
+            loomWalkthroughUrl: loomWalkthroughUrl.trim() || null,
+            engineeringNotes: engineeringNotes.trim() || null,
+          }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Save draft failed");
+      }
+      const json = (await res.json()) as {
+        deliveryDraftSavedAt: string;
+        deliveryDraftSavedByEmail: string;
+      };
+      setDraftSavedAt(json.deliveryDraftSavedAt);
+      setDraftSavedByEmail(json.deliveryDraftSavedByEmail);
+      showToast("Draft saved", "success");
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function uploadDeliverableScreenshot(file: File) {
+    setBusy("uploadScreenshot");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(
+        `/api/refinement-cycles/${cycle.id}/deliverable-screenshots`,
+        { method: "POST", body: fd }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Upload failed");
+      }
+      const json = (await res.json()) as {
+        screenshot: CycleDeliverableScreenshot;
+      };
+      setDeliverableShots((prev) => [...prev, json.screenshot]);
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function deleteDeliverableScreenshot(id: string) {
+    if (!window.confirm("Remove this screenshot?")) return;
+    try {
+      const res = await fetch(
+        `/api/refinement-cycles/${cycle.id}/deliverable-screenshots/${id}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Delete failed");
+      }
+      setDeliverableShots((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      showToast((err as Error).message, "error");
     }
   }
 
@@ -740,8 +831,9 @@ export default function RefinementCycleReviewClient({
                   scale="body-sm"
                   className="text-text-secondary italic"
                 >
-                  Heads up — deposit hasn&rsquo;t cleared yet. Delivering now
-                  will still create the final invoice for the remaining{" "}
+                  Heads up — this is a legacy cycle on the deposit flow and
+                  the deposit hasn&rsquo;t cleared. Delivering now will still
+                  create the final invoice for the remaining{" "}
                   {`$${cycle.finalAmount}`}.
                 </Typography>
               )}
@@ -799,14 +891,100 @@ export default function RefinementCycleReviewClient({
                   className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
                 />
               </div>
-              <div className="flex justify-end border-t border-stroke-muted pt-3">
-                <Button
-                  type="button"
-                  onClick={deliverCycle}
-                  disabled={busy !== null}
+              <div className="space-y-2">
+                <Typography
+                  scale="body-sm"
+                  as="span"
+                  className="font-semibold"
                 >
-                  {busy === "deliver" ? "Delivering…" : "Mark delivered"}
-                </Button>
+                  Screenshots
+                </Typography>
+                {deliverableShots.length === 0 ? (
+                  <Typography
+                    scale="body-sm"
+                    className="text-text-secondary"
+                  >
+                    No screenshots attached yet.
+                  </Typography>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {deliverableShots.map((s) => (
+                      <div
+                        key={s.id}
+                        className="group relative overflow-hidden rounded-md border border-stroke-muted bg-background"
+                      >
+                        <a
+                          href={s.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block"
+                        >
+                          <img
+                            src={s.fileUrl}
+                            alt={s.filename ?? "Deliverable screenshot"}
+                            className="h-32 w-full object-cover"
+                          />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => deleteDeliverableScreenshot(s.id)}
+                          className="absolute right-1 top-1 rounded bg-red-600/90 px-2 py-0.5 text-white opacity-0 transition group-hover:opacity-100"
+                        >
+                          <Typography scale="body-sm" as="span">
+                            Remove
+                          </Typography>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif,image/webp"
+                  disabled={busy !== null}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadDeliverableScreenshot(f);
+                    e.target.value = "";
+                  }}
+                />
+                {busy === "uploadScreenshot" && (
+                  <Typography
+                    scale="body-sm"
+                    className="text-text-secondary"
+                  >
+                    Uploading…
+                  </Typography>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stroke-muted pt-3">
+                <Typography
+                  scale="body-sm"
+                  className="text-text-secondary"
+                >
+                  {draftSavedAt
+                    ? `Draft saved ${formatDateTime(draftSavedAt)} ET${
+                        draftSavedByEmail ? ` by ${draftSavedByEmail}` : ""
+                      }`
+                    : "No draft saved yet. Saving a draft does not notify the client."}
+                </Typography>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={saveDeliveryDraft}
+                    disabled={busy !== null}
+                  >
+                    {busy === "saveDraft" ? "Saving…" : "Save draft"}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={deliverCycle}
+                    disabled={busy !== null}
+                  >
+                    {busy === "deliver" ? "Delivering…" : "Mark delivered"}
+                  </Button>
+                </div>
               </div>
             </section>
           )}
@@ -916,6 +1094,27 @@ export default function RefinementCycleReviewClient({
           )}
           {cycle.engineeringNotes && (
             <Field label="Engineering notes">{cycle.engineeringNotes}</Field>
+          )}
+          {deliverableShots.length > 0 && (
+            <Field label="Screenshots">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 mt-1">
+                {deliverableShots.map((s) => (
+                  <a
+                    key={s.id}
+                    href={s.fileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block overflow-hidden rounded-md border border-stroke-muted"
+                  >
+                    <img
+                      src={s.fileUrl}
+                      alt={s.filename ?? "Deliverable screenshot"}
+                      className="h-32 w-full object-cover"
+                    />
+                  </a>
+                ))}
+              </div>
+            </Field>
           )}
         </section>
         </>
