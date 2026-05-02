@@ -487,9 +487,7 @@ export default function RefinementCycleReviewClient({
               className="text-text-secondary mt-1"
             >
               {cycle.rate === "pilot" ? "Pilot rate" : "Full rate"} —{" "}
-              {`$${cycle.totalPrice.toLocaleString()}`} (
-              {`$${cycle.depositAmount.toLocaleString()}`} +{" "}
-              {`$${cycle.finalAmount.toLocaleString()}`})
+              {`$${cycle.totalPrice.toLocaleString()}`} invoiced on delivery
             </Typography>
             <Typography scale="body-sm" className="text-text-secondary mt-1">
               Submitted {formatDateTime(cycle.submittedAt)} ET · {tagline}
