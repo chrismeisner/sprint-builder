@@ -576,6 +576,7 @@ function VehicleCarousel({
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function HeaderAction({
   headerAction,
   size = "default",
@@ -679,6 +680,7 @@ function FleetView({
   showAvatars,
   mapStyle,
   compactCards,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setCompactCards,
   vehicleLayout,
   afterFilterPills,

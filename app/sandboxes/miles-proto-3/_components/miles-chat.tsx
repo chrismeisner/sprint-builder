@@ -13,7 +13,6 @@ import {
   getAgentResponse,
 } from "@/app/sandboxes/miles-proto-3/_lib/agent-data";
 import {
-  AgentBubble,
   AgentCardView,
   SuggestedPrompts,
   UserBubble,
