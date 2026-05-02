@@ -196,8 +196,8 @@ const COACHING_CARDS: CoachingCard[] = [
     id: "fuel-reminder",
     message:
       "Jack took the RAV4 out 12 mins ago, and the Civic is parked at home. Let me know if you want a notification when he goes over 80 mph.",
-    actionLabel: "Ask Miles",
-    actionContext: "fuel",
+    actionLabel: "Yes, notify me",
+    actionContext: "kid-trip-alert",
     dismissLabel: "Dismiss",
   },
   {

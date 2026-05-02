@@ -329,17 +329,21 @@ function BottomNavInner() {
     isFamilyLiveTrip,
   });
 
-  // Tap a sheet-kind tab → open Miles at large. Three cases:
-  //   1. Sheet already open → expand without resetting context.
-  //   2. Sheet closed but a saved thread exists → resume that conversation.
-  //   3. Otherwise → fresh "home" context at large.
+  // Tap a sheet-kind tab → always open at medium detent (the global
+  // "Ask Miles previewed at 66%" rule). The sheet auto-expands to large
+  // on the user's first interaction (see onUserInteraction wiring in
+  // miles-sheet.tsx). Three cases:
+  //   1. Sheet already open → bump to large (treat the re-tap as
+  //      explicit engagement, same effect as auto-expand-on-interaction).
+  //   2. Sheet closed but a saved thread exists → resume at medium.
+  //   3. Otherwise → fresh "home" context at medium.
   function handleSheetTabTap() {
     if (sheet.open) {
       sheet.setDetent("large");
     } else if (sheet.savedThread) {
-      sheet.openMilesSheet(sheet.savedThread.context, "large");
+      sheet.openMilesSheet(sheet.savedThread.context, "medium");
     } else {
-      sheet.openMilesSheet("home", "large");
+      sheet.openMilesSheet("home", "medium");
     }
   }
 

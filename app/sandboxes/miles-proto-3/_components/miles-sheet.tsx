@@ -262,7 +262,7 @@ function MilesAgentSheet({
               />
             </svg>
           </div>
-          <span className="flex-1 text-sm font-semibold text-neutral-900">Miles</span>
+          <span className="flex-1 text-sm font-semibold text-neutral-900">Ask Miles</span>
 
           <button
             type="button"

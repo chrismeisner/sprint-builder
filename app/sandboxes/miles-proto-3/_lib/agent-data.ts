@@ -428,6 +428,17 @@ export const CONTEXTS: Record<string, ContextConfig> = {
     ],
   },
 
+  "kid-trip-alert": {
+    greeting:
+      "Got it — I'll send you a notification if Jack goes over 80 mph in the RAV4 today. You can change the threshold or turn this off anytime.",
+    prompts: [
+      "Make this a default for all trips",
+      "Lower the threshold to 70 mph",
+      "Turn off this alert",
+      "Show me Jack's live trip",
+    ],
+  },
+
   "kid-trip": {
     greeting: "Jack just started a trip in the RAV4. Here's the live view:",
     badgeLabel: "Trip in progress",
