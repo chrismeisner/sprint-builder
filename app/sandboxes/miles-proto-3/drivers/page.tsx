@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/app/sandboxes/miles-proto-3/_components/link";
+import { AskMilesBadge } from "@/app/sandboxes/miles-proto-3/_components/ask-miles-badge";
 
 interface Driver {
   id: string;
@@ -88,11 +89,17 @@ function ScoreRing({ score }: { score: number }) {
 export default function DriversPage() {
   return (
     <main className="flex min-h-dvh flex-col bg-neutral-50 pb-24">
-      <div className="flex flex-col gap-6 px-5 pt-14">
+      <div className="flex flex-col gap-6 px-5 pt-6">
 
-        {/* Header */}
+        {/* Header — title left, AskMilesBadge pill right (page-level scope). */}
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold leading-tight text-neutral-900">Drivers</h1>
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-3xl font-bold leading-tight text-neutral-900">Drivers</h1>
+            <AskMilesBadge
+              context="drivers"
+              ariaLabel="Ask Miles about your drivers"
+            />
+          </div>
           <p className="text-sm text-neutral-500">Scores and activity for everyone in your household.</p>
         </div>
 

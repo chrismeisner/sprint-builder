@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/app/sandboxes/miles-proto-3/_components/link";
+import { AskMilesBadge } from "@/app/sandboxes/miles-proto-3/_components/ask-miles-badge";
 
 const menuSections = [
   {
@@ -9,7 +10,7 @@ const menuSections = [
       {
         label: "Personal information",
         description: "Name, email, and phone number",
-        href: "/profile",
+        href: "/personal-information",
         icon: (
           <path
             strokeLinecap="round"
@@ -39,6 +40,23 @@ const menuSections = [
             strokeLinecap="round"
             strokeLinejoin="round"
             d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"
+          />
+        ),
+      },
+    ],
+  },
+  {
+    label: "Miles AI",
+    items: [
+      {
+        label: "Chat history",
+        description: "Your past conversations with Miles",
+        href: "/profile",
+        icon: (
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"
           />
         ),
       },
@@ -130,9 +148,22 @@ const menuSections = [
 
 export default function ProfilePage() {
   return (
-    <main className="flex min-h-dvh flex-col px-6 py-16">
+    <main className="flex min-h-dvh flex-col px-6 pb-16 pt-6">
       <div className="mx-auto flex w-full max-w-sm flex-col gap-8">
-        {/* Avatar + Name */}
+        {/* Page header — same pattern as /trips and /personal-information:
+            page title left, AskMilesBadge pill right, on the same plane. */}
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
+            Account
+          </h1>
+          <AskMilesBadge
+            context="profile"
+            ariaLabel="Ask Miles about your account"
+          />
+        </div>
+
+        {/* Profile hero — centered avatar + name. The user's name moves
+            to h2 since "Account" is now the page-level h1. */}
         <div className="flex flex-col items-center gap-4">
           <div className="flex size-20 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
             <span className="text-2xl font-semibold leading-none text-blue-600 dark:text-blue-400">
@@ -140,39 +171,11 @@ export default function ProfilePage() {
             </span>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <h1 className="text-2xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100">
+            <h2 className="text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100">
               Chris Meisner
-            </h1>
+            </h2>
             <span className="text-sm font-normal leading-normal text-neutral-500 dark:text-neutral-500">
               chris@example.com
-            </span>
-          </div>
-        </div>
-
-        {/* Plan badge */}
-        <div className="flex items-center gap-3 rounded-md border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
-            <svg
-              className="size-5 text-blue-600 dark:text-blue-400"
-              aria-hidden="true"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"
-              />
-            </svg>
-          </div>
-          <div className="flex flex-1 flex-col gap-0.5">
-            <span className="text-sm font-medium leading-none text-blue-700 dark:text-blue-400">
-              Free trial
-            </span>
-            <span className="text-xs font-normal leading-normal text-blue-600 dark:text-blue-400">
-              14 days remaining &middot; No charge until trial ends
             </span>
           </div>
         </div>

@@ -31,7 +31,7 @@ export default function TripCompletePage() {
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col">
 
         {/* Push notification — top */}
-        <div className="px-4 pt-14">
+        <div className="px-4 pt-6">
           <Link
             href="/trip-receipt"
             className="flex gap-3 rounded-lg bg-white/80 p-3 shadow-sm motion-safe:transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-200"

@@ -54,7 +54,7 @@ function AddDriversContent() {
   if (fromSetup) {
     return (
       <>
-        <main className="flex min-h-dvh flex-col px-6 pb-8 pt-16">
+        <main className="flex min-h-dvh flex-col px-6 pb-8 pt-6">
           <div className="mx-auto flex w-full max-w-sm flex-col gap-8">
 
             <SetupProgress current={7} backHref="/whos-driving" />
@@ -221,7 +221,7 @@ function AddDriversContent() {
   // --- Non-setup flow (consistent with setup flow) ---
   return (
     <>
-      <main className="flex min-h-dvh flex-col px-6 pb-8 pt-16">
+      <main className="flex min-h-dvh flex-col px-6 pb-8 pt-6">
         <div className="mx-auto flex w-full max-w-sm flex-col gap-8">
 
           <Link

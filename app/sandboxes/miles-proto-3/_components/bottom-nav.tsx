@@ -4,6 +4,7 @@ import Link from "@/app/sandboxes/miles-proto-3/_components/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { BASE, p } from "@/app/sandboxes/miles-proto-3/_lib/nav";
 import { Suspense, useEffect, useState } from "react";
+import { useMilesSheet } from "@/app/sandboxes/miles-proto-3/_components/miles-sheet";
 
 const FOOTER_NAV_MODE_STORAGE_KEY = "miles-proto-3-footer-nav-mode";
 type FooterNavMode = "full" | "compact";
@@ -85,16 +86,36 @@ function AccountIcon({ active }: { active: boolean }) {
   );
 }
 
-interface TabDef {
-  href: string;
+// ── Tab definitions ──────────────────────────────────────────────────
+// Every tab carries a stable `id`, an icon, a label, and a `match`
+// predicate used purely to highlight the tab when on a related URL.
+//
+// Tab `kind`:
+//   - "link"  → renders as a <Link>, navigates on tap.
+//   - "sheet" → renders as a <button>, opens the Miles half-sheet on tap.
+//
+// Today only Miles is a sheet tab. The discrimination keeps the special-
+// case from leaking into the render loop as string equality.
+
+interface BaseTabDef {
+  id: string;
   label: string;
   icon: (props: { active: boolean }) => React.ReactNode;
   match: (pathname: string) => boolean;
-  badge?: boolean;
 }
+interface LinkTabDef extends BaseTabDef {
+  kind: "link";
+  href: string;
+}
+interface SheetTabDef extends BaseTabDef {
+  kind: "sheet";
+}
+type TabDef = LinkTabDef | SheetTabDef;
 
 const TABS: TabDef[] = [
   {
+    kind: "link",
+    id: "dashboard",
     href: "/dashboard",
     label: "Dashboard",
     icon: DashboardIcon,
@@ -104,6 +125,8 @@ const TABS: TabDef[] = [
       pn.startsWith(`${BASE}/dashboard?`),
   },
   {
+    kind: "link",
+    id: "trips",
     href: "/trips",
     label: "Trips",
     icon: TripsIcon,
@@ -112,21 +135,25 @@ const TABS: TabDef[] = [
       pn.startsWith(`${BASE}/trip-`),
   },
   {
-    href: "/miles",
-    label: "Miles",
+    kind: "sheet",
+    id: "miles",
+    label: "Ask Miles",
     icon: MilesIcon,
-    match: (pn) =>
-      pn === `${BASE}/miles` ||
-      pn === `${BASE}/miles/`,
-    badge: true,
+    // Deep-link fallback: highlight Miles when on the /miles URL even
+    // when the sheet isn't open (rare, but possible from shared links).
+    match: (pn) => pn === `${BASE}/miles` || pn === `${BASE}/miles/`,
   },
   {
+    kind: "link",
+    id: "drivers",
     href: "/drivers",
     label: "Drivers",
     icon: DriversIcon,
     match: (pn) => pn.startsWith(`${BASE}/drivers`),
   },
   {
+    kind: "link",
+    id: "profile",
     href: "/profile",
     label: "Account",
     icon: AccountIcon,
@@ -137,18 +164,61 @@ const TABS: TabDef[] = [
   },
 ];
 
-// ─── Single tab item — icon on top, label below ───────────────────────────────
+// ── Active-state precedence cascade ─────────────────────────────────
+// Returns the single active tab id. Order matters — earlier rules win.
 
-function NavTabItem({ tab, active }: { tab: TabDef; active: boolean }) {
+function getActiveTabId({
+  pathname,
+  sheetOpen,
+  sheetDetent,
+  isVehicleModal,
+  fromTab,
+  isFamilyLiveTrip,
+}: {
+  pathname: string;
+  sheetOpen: boolean;
+  sheetDetent: "medium" | "large";
+  isVehicleModal: boolean;
+  fromTab: string | null;
+  isFamilyLiveTrip: boolean;
+}): string | null {
+  // 1. Miles sheet at large detent owns active state. At medium the
+  //    underlying page's tab keeps focus — see miles-sheet.tsx.
+  if (sheetOpen && sheetDetent === "large") return "miles";
+  // 2. Vehicle/health modals retain the tab the user came from.
+  if (isVehicleModal && fromTab) {
+    const t = TABS.find((x) => x.kind === "link" && x.href === `/${fromTab}`);
+    if (t) return t.id;
+  }
+  // 3. A family-member live trip viewed from the dashboard belongs to Trips.
+  if (isFamilyLiveTrip) return "trips";
+  // 4. Default: first tab whose match() returns true for this pathname.
+  const t = TABS.find((x) => x.match(pathname));
+  return t?.id ?? null;
+}
+
+// ─── Tab item — icon on top, label below ──────────────────────────────────────
+// Two render paths: NavTabLink (default, navigates) and NavTabButton (used by
+// the Miles tab, which opens the global half-sheet instead of navigating).
+
+const TAB_ITEM_CLASSES =
+  "relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg py-2 motion-safe:transition-transform motion-safe:duration-150 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-semantic-info focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+
+function TabItemContents({
+  tab,
+  active,
+  showBadgeDot,
+}: {
+  tab: TabDef;
+  active: boolean;
+  showBadgeDot: boolean;
+}) {
   const Icon = tab.icon;
   return (
-    <Link
-      href={tab.href}
-      className="relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-semantic-info focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-    >
+    <>
       <span className="relative flex items-center justify-center">
         <Icon active={active} />
-        {tab.badge && !active && (
+        {showBadgeDot && (
           <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-semantic-info ring-2 ring-background" />
         )}
       </span>
@@ -159,7 +229,43 @@ function NavTabItem({ tab, active }: { tab: TabDef; active: boolean }) {
       >
         {tab.label}
       </span>
+    </>
+  );
+}
+
+function NavTabLink({
+  tab,
+  active,
+  showBadgeDot,
+  onNavigate,
+}: {
+  tab: LinkTabDef;
+  active: boolean;
+  showBadgeDot: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <Link href={tab.href} onClick={onNavigate} className={TAB_ITEM_CLASSES}>
+      <TabItemContents tab={tab} active={active} showBadgeDot={showBadgeDot} />
     </Link>
+  );
+}
+
+function NavTabButton({
+  tab,
+  active,
+  showBadgeDot,
+  onClick,
+}: {
+  tab: SheetTabDef;
+  active: boolean;
+  showBadgeDot: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" onClick={onClick} className={TAB_ITEM_CLASSES}>
+      <TabItemContents tab={tab} active={active} showBadgeDot={showBadgeDot} />
+    </button>
   );
 }
 
@@ -168,6 +274,7 @@ function NavTabItem({ tab, active }: { tab: TabDef; active: boolean }) {
 function BottomNavInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const sheet = useMilesSheet();
   const [footerNavMode, setFooterNavMode] = useState<FooterNavMode>("full");
 
   useEffect(() => {
@@ -213,22 +320,78 @@ function BottomNavInner() {
   const tabsToRender =
     footerNavMode === "compact" ? TABS.filter((tab) => tab.label !== "Account") : TABS;
 
+  const activeId = getActiveTabId({
+    pathname,
+    sheetOpen: sheet.open,
+    sheetDetent: sheet.detent,
+    isVehicleModal,
+    fromTab,
+    isFamilyLiveTrip,
+  });
+
+  // Tap a sheet-kind tab → open Miles at large. Three cases:
+  //   1. Sheet already open → expand without resetting context.
+  //   2. Sheet closed but a saved thread exists → resume that conversation.
+  //   3. Otherwise → fresh "home" context at large.
+  function handleSheetTabTap() {
+    if (sheet.open) {
+      sheet.setDetent("large");
+    } else if (sheet.savedThread) {
+      sheet.openMilesSheet(sheet.savedThread.context, "large");
+    } else {
+      sheet.openMilesSheet("home", "large");
+    }
+  }
+
+  // Tap any non-Miles tab while the sheet is open → close-with-save so
+  // the conversation becomes resumable from the Miles tab. The Link
+  // still navigates as normal afterwards; the sheet animates closed
+  // alongside the page transition.
+  function handleLinkTabTap() {
+    if (sheet.open) sheet.closeMilesSheet({ save: true });
+  }
+
   return (
-    <nav
-      className="sticky bottom-0 z-30 shrink-0 border-t border-stroke-muted bg-background"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-    >
-      <div className="mx-auto flex items-center justify-around px-2 py-2">
-        {tabsToRender.map((tab) => {
-          const active = isVehicleModal
-            ? tab.href === `/${fromTab}`
-            : isFamilyLiveTrip
-            ? tab.label === "Trips"
-            : tab.match(pathname);
-          return <NavTabItem key={tab.href} tab={tab} active={active} />;
-        })}
-      </div>
-    </nav>
+    <>
+      {/* Publish nav height as a CSS var so the Miles half-sheet (and any
+          future overlays) can clamp themselves above the bottom nav. The
+          var is removed automatically when this component returns null on
+          chrome-free routes — overlays then fill to the viewport bottom. */}
+      <style>{`:root { --miles-bottom-inset: calc(60px + env(safe-area-inset-bottom)); }`}</style>
+      <nav
+        className="sticky bottom-0 z-40 shrink-0 border-t border-stroke-muted bg-background"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="mx-auto flex items-center justify-around px-2 py-2">
+          {tabsToRender.map((tab) => {
+            const active = tab.id === activeId;
+            // Badge dot is purely a "convo in progress" signal. It only
+            // appears on sheet-kind tabs when a saved thread exists and
+            // the tab itself isn't currently active. No static "always
+            // show" config — default is no dot.
+            const showBadgeDot =
+              tab.kind === "sheet" && !active && !!sheet.savedThread;
+            return tab.kind === "sheet" ? (
+              <NavTabButton
+                key={tab.id}
+                tab={tab}
+                active={active}
+                showBadgeDot={showBadgeDot}
+                onClick={handleSheetTabTap}
+              />
+            ) : (
+              <NavTabLink
+                key={tab.id}
+                tab={tab}
+                active={active}
+                showBadgeDot={false}
+                onNavigate={handleLinkTabTap}
+              />
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 }
 

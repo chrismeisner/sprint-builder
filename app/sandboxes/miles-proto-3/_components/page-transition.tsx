@@ -17,7 +17,7 @@ function FadeIn({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className={`motion-safe:transition-opacity motion-safe:duration-300 ${
+      className={`flex min-h-0 flex-1 flex-col motion-safe:transition-opacity motion-safe:duration-300 ${
         visible ? "opacity-100" : "opacity-0"
       }`}
     >
@@ -30,7 +30,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="flex-1 min-h-0 overflow-x-clip">
+    <div className="flex min-h-0 flex-1 flex-col overflow-x-clip">
       <FadeIn key={pathname}>
         {children}
       </FadeIn>

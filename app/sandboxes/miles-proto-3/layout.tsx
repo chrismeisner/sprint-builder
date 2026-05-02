@@ -3,10 +3,11 @@ import type { Metadata } from "next";
 import { Inter, Overpass_Mono } from "next/font/google";
 import { DeviceSwitcher } from "@/app/sandboxes/miles-proto-3/_components/device-switcher";
 import { KeyboardShortcuts } from "@/app/sandboxes/miles-proto-3/_components/keyboard-shortcuts";
+import { AppHeader } from "@/app/sandboxes/miles-proto-3/_components/app-header";
 import { BottomNav } from "@/app/sandboxes/miles-proto-3/_components/bottom-nav";
 import { PageTransition } from "@/app/sandboxes/miles-proto-3/_components/page-transition";
+import { MilesSheetProvider } from "@/app/sandboxes/miles-proto-3/_components/miles-sheet";
 import { ForceLightMode } from "@/app/sandboxes/miles-proto-3/_components/force-light-mode";
-import { InspectorController } from "@/app/sandboxes/miles-proto-3/_components/inspector-controller";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -68,12 +69,14 @@ export default function MilesLayout({
     >
       <ForceLightMode />
       <KeyboardShortcuts />
-      <InspectorController />
       <DeviceSwitcher>
-        <div className="flex min-h-dvh flex-col">
-          <PageTransition>{children}</PageTransition>
-          <BottomNav />
-        </div>
+        <MilesSheetProvider>
+          <div className="flex min-h-dvh flex-col">
+            <AppHeader />
+            <PageTransition>{children}</PageTransition>
+            <BottomNav />
+          </div>
+        </MilesSheetProvider>
       </DeviceSwitcher>
     </div>
     </>

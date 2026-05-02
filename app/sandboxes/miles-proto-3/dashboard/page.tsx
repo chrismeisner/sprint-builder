@@ -6,6 +6,8 @@ import Link from "@/app/sandboxes/miles-proto-3/_components/link";
 import { MapView } from "@/app/sandboxes/miles-proto-3/_components/map-view";
 import { TodoPreview } from "@/app/sandboxes/miles-proto-3/_components/todo-preview";
 import { useForceLightMode, setForceLightMode } from "@/app/sandboxes/miles-proto-3/_components/force-light-mode";
+import { useMilesSheet } from "@/app/sandboxes/miles-proto-3/_components/miles-sheet";
+import { AskMilesBadge } from "@/app/sandboxes/miles-proto-3/_components/ask-miles-badge";
 import { DEMO_TODOS } from "@/app/sandboxes/miles-proto-3/_lib/demo-todos";
 import { DEMO_TRIPS } from "@/app/sandboxes/miles-proto-3/_lib/demo-trips";
 import { p } from "@/app/sandboxes/miles-proto-3/_lib/nav";
@@ -184,7 +186,8 @@ interface CoachingCard {
   id: string;
   message: string;
   actionLabel: string;
-  actionHref: string;
+  /** Context key passed to openMilesSheet when the action button is tapped. */
+  actionContext: string;
   dismissLabel: string;
 }
 
@@ -192,9 +195,9 @@ const COACHING_CARDS: CoachingCard[] = [
   {
     id: "fuel-reminder",
     message:
-      "Good evening Chris,\n\nJack took the RAV4 out 12 mins ago, and the Civic is parked at home. Let me know if you want a notification when he goes over 80 mph.",
-    actionLabel: "Let's do it",
-    actionHref: "/miles?context=fuel",
+      "Jack took the RAV4 out 12 mins ago, and the Civic is parked at home. Let me know if you want a notification when he goes over 80 mph.",
+    actionLabel: "Ask Miles",
+    actionContext: "fuel",
     dismissLabel: "Dismiss",
   },
   {
@@ -202,7 +205,7 @@ const COACHING_CARDS: CoachingCard[] = [
     message:
       "Your next oil change is due by May 12 or in about 800 miles, whichever comes first. I can help you schedule it or set a reminder.",
     actionLabel: "Set a reminder",
-    actionHref: "/miles?context=oil",
+    actionContext: "oil",
     dismissLabel: "Dismiss",
   },
   {
@@ -210,7 +213,7 @@ const COACHING_CARDS: CoachingCard[] = [
     message:
       "One hard braking event on your last trip. I can share tips to smooth out your driving.",
     actionLabel: "Show me tips",
-    actionHref: "/miles?context=fuel",
+    actionContext: "fuel",
     dismissLabel: "Dismiss",
   },
 ];
@@ -733,9 +736,11 @@ function FleetView({
       {/*
         Bounding container: pills lock flush against the main header (no travel).
         Container ends at the map bottom — that is the displacement trigger.
+        Pills sit directly under the header with no visible separator,
+        so brand chrome + filter row read as one cohesive sticky band.
       */}
       <div className="flex flex-col gap-0">
-        <div className="sticky z-10 bg-background pt-2 pb-2" style={{ top: "67px" }}>
+        <div className="sticky z-10 bg-background pb-2 pt-1" style={{ top: "53px" }}>
           <MapFilterPills vehicles={vehicles} filter={mapFilter} onChange={setMapFilter} />
         </div>
 
@@ -748,16 +753,14 @@ function FleetView({
       {/* AI card — outside the bounding container, rendered after the map */}
       {afterFilterPills}
 
-      {/* Vehicles section header with layout toggle */}
+      {/* Vehicles section header — section-scoped AskMilesBadge on the
+          right opens a chat scoped to the user's vehicles. */}
       <div className="flex items-center justify-between px-5">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Vehicles</span>
-        <button
-          type="button"
-          onClick={() => setCompactCards(!compactCards)}
-          className="text-[11px] font-medium text-semantic-info transition-colors hover:text-semantic-info/80"
-        >
-          {compactCards ? "Expand" : "Collapse"}
-        </button>
+        <AskMilesBadge
+          context="vehicles"
+          ariaLabel="Ask Miles about your vehicles"
+        />
       </div>
 
       {vehicleLayout === "carousel" ? (
@@ -1332,12 +1335,14 @@ function ActivityFeed({ showAvatars = false }: { showAvatars?: boolean }) {
 
   return (
     <div className="mx-5 flex flex-col gap-4">
-      {/* Section header */}
+      {/* Section header — section-scoped AskMilesBadge on the right
+          opens a chat scoped to recent activity. */}
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Activity</span>
-        <Link href="/trips" className="text-xs font-medium text-semantic-info hover:text-semantic-info/80">
-          See all
-        </Link>
+        <AskMilesBadge
+          context="activity"
+          ariaLabel="Ask Miles about recent activity"
+        />
       </div>
 
       {/* Day groups — each day is a single connected panel (iOS inset-grouped style) */}
@@ -1458,48 +1463,47 @@ function MilesTooltip({ onDismiss }: { onDismiss: () => void }) {
 
 function AgentCoachingCard({
   card,
-  onRefresh,
   messageWrapperRef,
+  onDismiss,
 }: {
   card: CoachingCard;
-  onRefresh?: () => void;
   messageWrapperRef?: React.RefObject<HTMLDivElement>;
+  onDismiss?: () => void;
 }) {
-  const [, setSpinning] = useState(false);
-
-  function handleRefreshClick() {
-    if (!onRefresh) return;
-    setSpinning(true);
-    onRefresh();
-    setTimeout(() => setSpinning(false), 400);
-  }
+  const { openMilesSheet } = useMilesSheet();
 
   return (
     <div className="flex h-full w-full flex-col gap-4 rounded-panel border border-stroke-muted bg-surface-card p-5 shadow-card">
       {/* Message — carousel animates opacity + height via ref */}
       <div ref={messageWrapperRef} className="overflow-hidden">
         <p className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-text-secondary">
-          {card.message}{"\n\n- Miles"}
+          {card.message}
         </p>
       </div>
 
-      {/* Buttons — pinned to bottom */}
+      {/* Actions — pinned to bottom. iOS modal convention: secondary on
+          the left, primary on the right, equal width. Color carries the
+          visual hierarchy (dark green primary vs outlined secondary). */}
       <div className="mt-auto flex items-center gap-2">
-        <Link
-          href={card.actionHref}
-          className="flex h-10 flex-1 items-center justify-center rounded-control bg-semantic-success px-5 text-sm font-medium text-background transition-colors hover:bg-semantic-success/90 active:bg-semantic-success/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-semantic-success focus-visible:ring-offset-1"
-        >
-          {card.actionLabel}
-        </Link>
-        {onRefresh && (
+        {onDismiss && (
           <button
             type="button"
-            onClick={handleRefreshClick}
-            className="flex h-10 flex-1 items-center justify-center rounded-control border border-stroke-muted px-5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-subtle active:bg-surface-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-muted focus-visible:ring-offset-1"
+            onClick={onDismiss}
+            className="flex h-12 flex-1 items-center justify-center rounded-full border border-stroke-muted bg-surface-card px-5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-subtle active:bg-surface-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-muted focus-visible:ring-offset-2"
           >
-            What else?
+            Dismiss
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => openMilesSheet(card.actionContext, "medium")}
+          className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-semantic-success px-5 text-sm font-medium text-background transition-colors hover:bg-semantic-success/90 active:bg-semantic-success/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-semantic-success focus-visible:ring-offset-2"
+        >
+          <span aria-hidden="true" className="text-base leading-none">
+            ✨
+          </span>
+          {card.actionLabel}
+        </button>
       </div>
     </div>
   );
@@ -1574,6 +1578,7 @@ function AgentCoachingCarousel({
     }, FADE_OUT_MS);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleRefresh() {
     if (cards.length < 2) return;
     runTransition(() => setActiveIndex((i) => (i + 1) % cards.length));
@@ -1599,8 +1604,8 @@ function AgentCoachingCarousel({
     <div className="mx-5">
       <AgentCoachingCard
         card={currentCard}
-        onRefresh={handleRefresh}
         messageWrapperRef={messageWrapperRef}
+        onDismiss={onAllDismissed}
       />
     </div>
   );
@@ -2022,27 +2027,6 @@ function DashboardContent() {
         paddingBottom: "max(env(safe-area-inset-bottom), 112px)",
       }}
     >
-      {/* ── Sticky header — direct child of <main> so sticky works reliably ── */}
-      <div
-        className="sticky top-0 z-20 flex items-center justify-between border-b border-stroke-muted bg-background px-5"
-        style={{ paddingTop: "max(env(safe-area-inset-top), 12px)", paddingBottom: "10px" }}
-      >
-        <svg
-          viewBox="80 190 690 365"
-          className="h-[30px] w-auto text-brand-wordmark"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-label="Miles"
-          role="img"
-          fill="currentColor"
-          style={{ overflow: "visible" }}
-        >
-            <path d="M92.16,508.93c6.52-42.4,25.12-83.77,40.96-123.7,17.2-43.36,35.1-89.82,55.56-131.6,2.2-4.49,5.89-13.42,10.58-15.22,8.17-3.14,25.36,1.22,32.81,5.65,8.4,4.99,8.87,8.65,8.32,18.06-1.03,17.62-4.48,37.9-6.67,55.71-3.86,31.35-9.25,62.68-11.32,94.24-.09,1.37-.23,3.24.29,4.49,24.25-47.62,46.33-96.36,72.22-143.14,6.93-12.52,14.36-25.92,22.06-37.93,2.66-4.15,5.89-10.81,11.34-11.46,10.28-1.23,29.15,2.16,37.21,9.02,2.71,2.3,5.55,6.05,5.1,9.83-.49,4.07-5.76,14.31-7.46,18.98-26.19,72.06-46.22,154.33-61.96,229.56-2.15,10.3-6.63,27.76-6.74,37.69-.04,3.82.88,7.21,5.39,5.95,77.41-27.78,169.05-47.18,251.73-38.73,11.37,1.16,22.67,3.47,33.91,5.39l-6.62-26.69c3.98-11.8,9.07-.89,12.92,3.32,14.2,15.54,34.01,25.96,54.19,31.61,6.11,1.71,14.58.71,9.31,9.8l-86.38,38.93c-3.46.33-4.61-3.44-3.09-6.15l16.38-25.61-.29-1.52c-82.46-10.1-166.64,1.64-244.85,28.23-18.06,6.14-44.63,19.54-63.27,17.59-28.97-3.03-21.64-39.22-18.2-58.83,9.29-53.04,24.16-107.89,39.74-159.41,4.52-14.94,10.23-30.08,14.4-44.99.18-.64.76-2.01,0-2.4-1.74.88-2.99,3.83-4,5.6-22.97,40.46-46.49,85.62-64.82,128.34-5.77,13.45-10.26,28.71-16.59,41.59-2.11,4.29-4.25,8.16-9.55,9.05-10.07,1.68-25.16-3.47-30.18-12.74-7.09-13.09-2.27-48.54-.58-64.18,3.07-28.39,7.93-56.7,10.22-85.15l-.62-5.12c-16.06,45.61-33.44,90.91-47.1,137.36-4.51,15.32-8.78,30.88-11.56,46.63-1.75,9.91.08,22.62-11.58,26.81-17.3,6.22-30.83-5.97-30.64-23.33l-.56-.95v-.6Z" />
-            <path d="M506.26,213.86c20.08,6.45,14.46,35.65,10.99,51.47-11.12,50.69-39.12,100.59-70.26,141.49-.76,9.69-2.65,19.5-1.97,29.27.56,7.99,3.94,16.95,13.64,12.98,9.24-3.78,28.92-34.02,31.13-43.86,1.11-4.97,1.42-10.03,2.84-15.15,7.84-28.18,36.48-75.14,65.27-85.31,18.11-6.4,36.56-1.68,38.38,19.78,2.85,33.78-32.85,77.22-64.33,86.83-3.15.96-8.78.2-9.44,4.36-1.06,6.68.55,22.92,5.67,27.84,10.63,10.24,28.51-6.77,36.31-14.08,26.04-24.41,46.28-61.27,60.29-93.89,4.3-10.01,8.74-27.59,17.42-34.17,8.62-6.53,21.8-5.44,28.17,3.64,4.45,6.34.7,7.98-1.47,13.45-10.89,27.4,5.67,38.53,13.82,61.77,13.65,38.9-6.33,89.53-53.65,84.8-16.82-1.68-33.82-15.09-25.88-33.51,1.53-3.55,9.84-15.05,13.82-14.98s1.97,7.05,2.13,9.2c1.04,13.99,19.63,14.41,27.21,5.13,12.31-15.09,4.65-46.83-.84-63.83-1.7-5.26-3.36-11.43-6.61-15.88-15.71,34.64-35.96,70.34-64.21,96.27-15.16,13.91-36.55,29.29-58.35,22.91-15.67-4.59-20.41-21.18-24.18-35.21-8.53,13.08-17.11,32.66-32.62,38.77-20.48,8.06-38.24-2.71-44.79-22.59l-2.41-9.57c-11.49,15.07-31.31,40.28-52.21,40.22-29.77-.08-24.19-38.05-20.53-57.15,3.9-20.36,9.73-42.9,15.87-62.71,1.52-4.91,6.36-21.68,9.36-24.53,4.09-3.89,14.61-1.34,19.61.09,13.45,3.84,11.79,7.16,8.82,19.63-6.46,27.18-20.72,56.86-22.03,84.74-.2,4.29-1.59,12.16,4.36,10.96,10.55-2.14,28.07-29.7,35.13-38.07,5.46-57.15,15.41-115.23,47.04-164.1,9.82-15.17,22.54-31.93,40.7-37h7.8ZM452.25,369.79c.83.94,3.83-3.69,4.33-4.36,16.25-21.84,30.7-56.96,37.98-83.19,2.58-9.29,8.86-34.23,6.02-42.61-1.14-3.36-3.78-1.17-5.43.61-9.17,9.89-18.99,32.99-23.71,45.88-9.76,26.67-16.31,55.39-19.19,83.67ZM548,380.34c10.34-10.53,22.96-28.16,26.84-42.46,5.39-19.86-7.19-14.1-16.09-4.68-15.16,16.03-24.9,40.66-32.09,61.18,8.22-1.83,15.6-8.2,21.34-14.04Z" />
-            <path d="M395.09,262.6c29.77-4.03,20.74,50.46-6.14,49.02-23.12-1.24-17.31-45.84,6.14-49.02Z" />
-          </svg>
-        <HeaderAction headerAction={headerAction} />
-      </div>
-
       {mode === "trip" || vehicleLabelParam ? (
         <TripInProgress
           vehicle={vehicle}

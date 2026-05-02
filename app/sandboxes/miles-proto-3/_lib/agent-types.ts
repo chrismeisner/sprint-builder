@@ -32,6 +32,10 @@ export interface ActionOption {
    * text + subtext appear as an agent bubble.
    * card (if present) is appended as an interactive follow-up card.
    * followUpMessages (if present) are injected after followUpDelay ms — used for async events like trip completion.
+   * awaitingFor (if present) puts the chat into "awaiting input" mode — the
+   *   user's next free-text message is treated as the answer to whatever this
+   *   action asked for. The chat surface uses this key to build a contextual
+   *   confirmation (see MilesChat.buildAwaitingConfirmation).
    */
   response: {
     text: string;
@@ -39,6 +43,7 @@ export interface ActionOption {
     card?: AgentCard;
     followUpMessages?: ChatMessage[];
     followUpDelay?: number;
+    awaitingFor?: string;
   };
 }
 
@@ -103,4 +108,17 @@ export type ChatMessage =
 export interface ResponseRule {
   match: (query: string, context: string) => boolean;
   messages: ChatMessage[];
+  /**
+   * Same semantics as ActionOption.response.awaitingFor — if set, after
+   * these messages render the chat enters "awaiting input" mode so the
+   * user's next free-text message is treated as the answer.
+   */
+  awaitingFor?: string;
+  /**
+   * If set, replaces the suggested-prompts chip set after these messages
+   * render. Useful for narrowing the user's next steps once a flow has
+   * begun (e.g. "Something else" while a chooser card is on screen).
+   * Persists until the context changes or another rule sets new prompts.
+   */
+  nextPrompts?: string[];
 }

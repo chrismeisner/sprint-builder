@@ -61,7 +61,7 @@ export default function TodosPage() {
   return (
     <main className="flex min-h-dvh flex-col bg-neutral-50 pb-24">
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-2">
+      <div className="flex items-center gap-3 px-5 pt-6 pb-2">
         <Link
           href="/dashboard"
           className="flex size-9 items-center justify-center rounded-full bg-neutral-100 transition-colors hover:bg-neutral-200"

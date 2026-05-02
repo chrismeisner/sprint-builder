@@ -315,6 +315,14 @@ export function AgentCardView({
   onAction?: (action: ActionOption) => void;
 }) {
   const hasActions = card.actions && card.actions.length > 0;
+  // True only if the title has data underneath it (rows, tire map,
+  // speed alert). If the card is just a title + actions (e.g. the
+  // personal-info chooser), drop the spacing below the title so the
+  // action buttons sit closer to the heading.
+  const hasContextContent =
+    !!card.tireMap ||
+    !!card.speedAlert ||
+    (card.rows !== undefined && card.rows.length > 0);
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -404,8 +412,12 @@ export function AgentCardView({
         )}
 
         {/* Context block */}
-        <div className="p-4 pb-3">
-          <div className="mb-3 flex items-start justify-between">
+        <div className={`p-4 ${hasContextContent ? "pb-3" : "pb-2"}`}>
+          <div
+            className={`flex items-start justify-between ${
+              hasContextContent ? "mb-3" : ""
+            }`}
+          >
             <div>
               <div className="text-sm font-semibold text-neutral-900">
                 {card.title}
@@ -448,9 +460,6 @@ export function AgentCardView({
 
         {hasActions && onAction && (
           <div className="flex flex-col gap-2 border-t border-neutral-100 p-3">
-            <span className="px-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-300">
-              What would you like to do?
-            </span>
             {card.actions!.map((action) => (
               <ActionButton
                 key={action.id}
@@ -502,6 +511,11 @@ export function UserBubble({ text }: { text: string }) {
 /*  Suggested prompts                                                  */
 /* ------------------------------------------------------------------ */
 
+// Chips fade in one at a time using the `mileschat-fadein` keyframe
+// defined in miles-chat.tsx (the prompts surface is only ever rendered
+// inside <MilesChat />, so the keyframe is in scope).
+const PROMPT_CHIP_STAGGER_MS = 120;
+
 export function SuggestedPrompts({
   prompts,
   onSelect,
@@ -510,22 +524,18 @@ export function SuggestedPrompts({
   onSelect: (p: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-300">
-        Suggested
-      </span>
-      <div className="flex flex-wrap gap-2">
-        {prompts.map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => onSelect(p)}
-            className="rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-50"
-          >
-            {p}
-          </button>
-        ))}
-      </div>
+    <div className="flex flex-wrap gap-2">
+      {prompts.map((p, i) => (
+        <button
+          key={p}
+          type="button"
+          onClick={() => onSelect(p)}
+          style={{ animationDelay: `${i * PROMPT_CHIP_STAGGER_MS}ms` }}
+          className="rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-50 motion-safe:[animation:mileschat-fadein_280ms_ease-out_both]"
+        >
+          {p}
+        </button>
+      ))}
     </div>
   );
 }

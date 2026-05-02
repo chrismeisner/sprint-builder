@@ -106,7 +106,7 @@ export default function LocationsPage() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col px-6 py-16">
+    <main className="flex min-h-dvh flex-col px-6 pb-16 pt-6">
       <div className="mx-auto flex w-full max-w-sm flex-col gap-8">
         {/* Back */}
         <Link

@@ -57,7 +57,7 @@ export default function AccountPage() {
   return (
     <main className="flex min-h-dvh flex-col bg-neutral-50 pb-24">
       {/* Header */}
-      <div className="px-5 pb-2 pt-14">
+      <div className="px-5 pb-2 pt-6">
         <h1 className="text-2xl font-semibold text-neutral-900">Account</h1>
       </div>
 

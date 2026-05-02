@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "@/app/sandboxes/miles-proto-3/_components/link";
+import { AskMilesBadge } from "@/app/sandboxes/miles-proto-3/_components/ask-miles-badge";
 import { MapView } from "@/app/sandboxes/miles-proto-3/_components/map-view";
 import { TripListItem } from "@/app/sandboxes/miles-proto-3/_components/trip-list-item";
 import { DEMO_TRIPS, LIVE_TRIP_CAR, LIVE_TRIP_ROUTE, TRIP_DRIVERS } from "@/app/sandboxes/miles-proto-3/_lib/demo-trips";
@@ -58,9 +59,15 @@ export default function TripsPage() {
 
   return (
     <main className="flex min-h-dvh flex-col bg-neutral-50 pb-24">
-      {/* Header */}
-      <div className="px-5 pb-3 pt-14">
+      {/* Header — page-level AskMilesBadge sits to the right of the title.
+          Same pattern as /personal-information: badge inline with the page
+          title implies the chat is scoped to everything on this page. */}
+      <div className="flex items-center justify-between gap-4 px-5 pb-3 pt-6">
         <h1 className="text-2xl font-semibold text-neutral-900">Trips</h1>
+        <AskMilesBadge
+          context="trips"
+          ariaLabel="Ask Miles about your trips"
+        />
       </div>
 
       {/* Top-level content nav */}

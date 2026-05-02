@@ -97,16 +97,78 @@ const OIL_ACTIONS: ActionOption[] = [
 
 export const CONTEXTS: Record<string, ContextConfig> = {
   home: {
-    greeting: "Hey Chris 👋 I'm Miles — your personal driving assistant. I keep an eye on your vehicles, trips, and drivers so you don't have to. What can I help with today?",
+    greeting:
+      "Your 2015 RAM 2500 is on the road right now — heading west near Lambertville, NJ at about 30 km/h. The trip started a few minutes ago from Rocktown-Lambertville Road. No harsh events so far, and your recent trips have been clean — all scoring 100.",
     prompts: [
-      "How's my Miles Score looking?",
+      "See the trip details",
+      "Check recent week",
+      "Something else",
+    ],
+  },
+
+  profile: {
+    greeting:
+      "You're on your account page. I can help you update your details, manage your household, or check on your subscription. What would you like to do?",
+    prompts: [
+      "Update my personal info",
+      "Manage household members",
+      "Check my subscription",
+      "Change notification settings",
+    ],
+  },
+
+  trips: {
+    greeting:
+      "You're looking at your trips. I can break down patterns across your recent drives, surface anything worth a second look, or pull up a specific trip. What's on your mind?",
+    prompts: [
+      "How was driving this week?",
+      "Any unusual trips lately?",
+      "Show me Jack's trips",
+      "Compare this week vs last",
+    ],
+  },
+
+  drivers: {
+    greeting:
+      "You're looking at the drivers in your household. I can compare scores, surface coaching opportunities, or dig into how anyone has been driving lately. Who's up?",
+    prompts: [
+      "How is Jack driving?",
+      "Who improved the most this week?",
+      "Set an alert for Jack",
+      "Compare scores across drivers",
+    ],
+  },
+
+  vehicles: {
+    greeting:
+      "Here's a quick read on your vehicles. I can flag anything off, walk you through upcoming maintenance, or explain a recent alert. What would you like to look at?",
+    prompts: [
       "Any issues with my vehicles?",
-      "Who drove the most this week?",
-      "When is my oil change due?",
+      "What's coming up for maintenance?",
+      "Compare the Civic and the RAV4",
+      "Set up a maintenance reminder",
+    ],
+  },
+
+  activity: {
+    greeting:
+      "Here's the recent activity across your vehicles and drivers. I can summarize the week, dig into a specific event, or surface anything that looks unusual. What's on your mind?",
+    prompts: [
+      "Summarize the past week",
+      "Anything unusual happen lately?",
       "Show me yesterday's trips",
-      "How can I improve my braking?",
-      "Is my insurance up to date?",
-      "What's Jack been up to on the road?",
+      "What did Jack do today?",
+    ],
+  },
+
+  "personal-information": {
+    greeting:
+      "I can help you update the details on your account — your name, email, phone, or date of birth. Which one needs a change?",
+    prompts: [
+      "Update my name",
+      "Change my email",
+      "Change my phone number",
+      "Update my date of birth",
     ],
   },
 
@@ -792,6 +854,126 @@ const RESPONSE_RULES: ResponseRule[] = [
       },
     ],
   },
+  /* ── Profile context: "Update my personal info" walkthrough ──
+     Multi-turn flow:
+       1. User taps the prompt → agent asks which field, surfaces options.
+       2. User taps an option → agent asks for the new value, sets
+          awaitingFor so the next free-text message is treated as input.
+       3. User types value → MilesChat builds a contextual confirmation. */
+  {
+    match: (q, ctx) => ctx === "profile" && q.includes("personal info"),
+    nextPrompts: ["This isn't what I'm looking for"],
+    messages: [
+      {
+        role: "agent",
+        text: "Sure — which one needs an update?",
+      },
+      {
+        role: "agent-card",
+        card: {
+          title: "Personal information",
+          actions: [
+            {
+              id: "first-name",
+              label: "First name",
+              detail: "Chris",
+              style: "secondary",
+              icon: "none",
+              response: {
+                text: "Got it — what's your new first name?",
+                subtext: "Type it in the composer below.",
+                awaitingFor: "first-name",
+              },
+            },
+            {
+              id: "last-name",
+              label: "Last name",
+              detail: "Meisner",
+              style: "secondary",
+              icon: "none",
+              response: {
+                text: "Got it — what's your new last name?",
+                subtext: "Type it in the composer below.",
+                awaitingFor: "last-name",
+              },
+            },
+            {
+              id: "email",
+              label: "Email",
+              detail: "chris@example.com",
+              style: "secondary",
+              icon: "none",
+              response: {
+                text: "Got it — what's your new email?",
+                subtext: "Type it in the composer below.",
+                awaitingFor: "email",
+              },
+            },
+            {
+              id: "phone",
+              label: "Phone number",
+              detail: "(555) 123-4567",
+              style: "secondary",
+              icon: "none",
+              response: {
+                text: "Got it — what's your new phone number?",
+                subtext: "Type it in the composer below.",
+                awaitingFor: "phone",
+              },
+            },
+          ],
+        },
+      },
+    ],
+  },
+  /* ── Personal-information context: section-level shortcuts ──
+     The /personal-information page badge opens a chat scoped to a
+     single record. Each prompt jumps straight to "what's the new value"
+     instead of the chooser card the profile context shows. */
+  {
+    match: (q, ctx) => ctx === "personal-information" && q.includes("update my name"),
+    messages: [
+      {
+        role: "agent",
+        text: "Got it — what should your full name be?",
+        subtext: "Type it in the composer below.",
+      },
+    ],
+    awaitingFor: "name",
+  },
+  {
+    match: (q, ctx) => ctx === "personal-information" && q.includes("change my email"),
+    messages: [
+      {
+        role: "agent",
+        text: "Sure — what's your new email?",
+        subtext: "Type it in the composer below.",
+      },
+    ],
+    awaitingFor: "email",
+  },
+  {
+    match: (q, ctx) => ctx === "personal-information" && q.includes("change my phone"),
+    messages: [
+      {
+        role: "agent",
+        text: "Sure — what's your new phone number?",
+        subtext: "Type it in the composer below.",
+      },
+    ],
+    awaitingFor: "phone",
+  },
+  {
+    match: (q, ctx) => ctx === "personal-information" && q.includes("date of birth"),
+    messages: [
+      {
+        role: "agent",
+        text: "Got it — what's your date of birth?",
+        subtext: "Try a format like \"Jan 1, 1990\" or \"01/01/1990\".",
+      },
+    ],
+    awaitingFor: "date-of-birth",
+  },
 ];
 
 const FALLBACK_RESPONSE: ChatMessage[] = [
@@ -801,11 +983,29 @@ const FALLBACK_RESPONSE: ChatMessage[] = [
   },
 ];
 
+export interface AgentResponseResult {
+  messages: ChatMessage[];
+  /** If non-null, the chat should enter "awaiting input" mode after these
+   *  messages render so the user's next free-text reply can be treated
+   *  as the answer. */
+  awaitingFor: string | null;
+  /** If non-null, the chat should replace the suggested-prompts chip set
+   *  after these messages render. */
+  nextPrompts: string[] | null;
+}
+
 export function getAgentResponse(
   text: string,
   context: string
-): ChatMessage[] {
+): AgentResponseResult {
   const q = text.toLowerCase();
   const rule = RESPONSE_RULES.find((r) => r.match(q, context));
-  return rule ? rule.messages : FALLBACK_RESPONSE;
+  if (rule) {
+    return {
+      messages: rule.messages,
+      awaitingFor: rule.awaitingFor ?? null,
+      nextPrompts: rule.nextPrompts ?? null,
+    };
+  }
+  return { messages: FALLBACK_RESPONSE, awaitingFor: null, nextPrompts: null };
 }

@@ -31,7 +31,7 @@ export default function TripIndicatorPage() {
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col">
 
         {/* Push notification — top */}
-        <div className="px-4 pt-14">
+        <div className="px-4 pt-6">
           <div className="flex gap-3 rounded-lg bg-white/80 p-3 shadow-sm">
             <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-blue-600">
               <svg
