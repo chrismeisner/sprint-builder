@@ -1681,6 +1681,20 @@ export async function ensureSchema(): Promise<void> {
       REFERENCES accounts(id) ON DELETE SET NULL
   `);
 
+  // Stamped when Stripe fires payment_intent.processing for the cycle's
+  // invoice — i.e. the client has submitted payment (typically ACH) but it
+  // has not yet cleared. Distinct from *_paid_at, which is only set on
+  // payment_intent.succeeded / invoice.paid. Used for admin notifications
+  // and the "Payment processing since…" badge in the cycle detail UI.
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS deposit_payment_initiated_at timestamptz
+  `);
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS final_payment_initiated_at timestamptz
+  `);
+
   // One-off: cycle 6b4728a0-... was accepted under the old deposit flow but
   // the deposit was never collected. Move it onto the new pay-on-delivery
   // flow by flipping it to in_progress. Idempotent — only fires while the
@@ -1692,6 +1706,20 @@ export async function ensureSchema(): Promise<void> {
         updated_at = now()
     WHERE id = '6b4728a0-ae60-49bf-ab30-6d38d658aaa4'
       AND status = 'awaiting_deposit'
+  `);
+
+  // One-off: cycle 6b4728a0-... — Stripe shows the deposit invoice in
+  // "Payment processing" but our DB never received the
+  // payment_intent.processing webhook (it predates that handler), so the
+  // Payments table renders "Sent — awaiting payment" by mistake. Backfill
+  // deposit_payment_initiated_at so the UI matches Stripe. Idempotent —
+  // only fires while the column is still NULL.
+  await pool.query(`
+    UPDATE refinement_cycles
+    SET deposit_payment_initiated_at = now(),
+        updated_at = now()
+    WHERE id = '6b4728a0-ae60-49bf-ab30-6d38d658aaa4'
+      AND deposit_payment_initiated_at IS NULL
   `);
 
   // Miles Proto 3 — persisted scenario state (overrides + custom order)

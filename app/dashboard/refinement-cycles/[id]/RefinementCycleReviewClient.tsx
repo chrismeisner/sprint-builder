@@ -122,6 +122,10 @@ export default function RefinementCycleReviewClient({
   const [draftSavedByEmail, setDraftSavedByEmail] = useState<string | null>(
     cycle.deliveryDraftSavedByEmail
   );
+  // Required acknowledgment that pressing "Mark delivered" emails the client
+  // the deliverables + Stripe invoice. Pairs with the existing window.confirm
+  // for a belt-and-suspenders guard on this irreversible action.
+  const [deliverAck, setDeliverAck] = useState(false);
 
   const isEditable = cycle.status === "submitted" && isAdmin;
 
@@ -955,37 +959,80 @@ export default function RefinementCycleReviewClient({
                   </Typography>
                 )}
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stroke-muted pt-3">
-                <Typography
-                  scale="body-sm"
-                  className="text-text-secondary"
-                >
-                  {draftSavedAt
-                    ? `Draft saved ${formatDateTime(draftSavedAt)} ET${
-                        draftSavedByEmail ? ` by ${draftSavedByEmail}` : ""
-                      }`
-                    : "No draft saved yet. Saving a draft does not notify the client."}
-                </Typography>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={saveDeliveryDraft}
-                    disabled={busy !== null}
+              <div className="border-t border-stroke-muted pt-3 space-y-3">
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                  <Typography scale="body-sm" className="font-semibold">
+                    Marking delivered will email the client and is irreversible.
+                  </Typography>
+                  <ul className="mt-1.5 list-disc pl-5 text-sm">
+                    <li>
+                      Sends the delivery email to the submitter
+                      {cycle.ccEmails.length > 0
+                        ? ` (and CC: ${cycle.ccEmails.join(", ")})`
+                        : ""}{" "}
+                      with the Figma file URL, Loom walkthrough, engineering
+                      notes, and {deliverableShots.length}{" "}
+                      deliverable screenshot
+                      {deliverableShots.length === 1 ? "" : "s"}.
+                    </li>
+                    <li>
+                      Generates a Stripe final invoice for{" "}
+                      {(cycle.depositPaidAt
+                        ? cycle.finalAmount
+                        : cycle.totalPrice
+                      ).toLocaleString("en-US", {
+                        style: "currency",
+                        currency: "USD",
+                      })}{" "}
+                      and includes the payment link in the email.
+                    </li>
+                    <li>Moves the cycle to <em>Awaiting payment</em>.</li>
+                  </ul>
+                  <label className="mt-2 flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={deliverAck}
+                      onChange={(e) => setDeliverAck(e.target.checked)}
+                      className="h-4 w-4 rounded border-amber-400 text-amber-700 focus:ring-amber-500"
+                    />
+                    I&rsquo;ve reviewed the deliverables — send the delivery
+                    email and final invoice now.
+                  </label>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <Typography
+                    scale="body-sm"
+                    className="text-text-secondary"
                   >
-                    {busy === "saveDraft" ? "Saving…" : "Save draft"}
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={deliverCycle}
-                    disabled={busy !== null}
-                  >
-                    {busy === "deliver" ? "Delivering…" : "Mark delivered"}
-                  </Button>
+                    {draftSavedAt
+                      ? `Draft saved ${formatDateTime(draftSavedAt)} ET${
+                          draftSavedByEmail ? ` by ${draftSavedByEmail}` : ""
+                        }`
+                      : "No draft saved yet. Saving a draft does not notify the client."}
+                  </Typography>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={saveDeliveryDraft}
+                      disabled={busy !== null}
+                    >
+                      {busy === "saveDraft" ? "Saving…" : "Save draft"}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={deliverCycle}
+                      disabled={busy !== null || !deliverAck}
+                    >
+                      {busy === "deliver" ? "Delivering…" : "Mark delivered"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </section>
           )}
+
+        <PaymentsSection cycle={cycle} />
 
         <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-2">
           <Typography as="h2" scale="heading-md">
@@ -1017,11 +1064,6 @@ export default function RefinementCycleReviewClient({
           {cycle.declinedAt && (
             <Field label="Declined">{formatDateTime(cycle.declinedAt)} ET</Field>
           )}
-          {cycle.depositPaidAt && (
-            <Field label="Deposit paid">
-              {formatDateTime(cycle.depositPaidAt)} ET
-            </Field>
-          )}
           {cycle.deliveredAt && (
             <Field label="Delivered">
               {formatDateTime(cycle.deliveredAt)} ET
@@ -1029,30 +1071,6 @@ export default function RefinementCycleReviewClient({
           )}
           {cycle.expiredAt && (
             <Field label="Expired">{formatDateTime(cycle.expiredAt)} ET</Field>
-          )}
-          {cycle.stripeDepositInvoiceUrl && (
-            <Field label="Deposit invoice">
-              <a
-                href={cycle.stripeDepositInvoiceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                {cycle.stripeDepositInvoiceUrl}
-              </a>
-            </Field>
-          )}
-          {cycle.stripeFinalInvoiceUrl && (
-            <Field label="Final invoice">
-              <a
-                href={cycle.stripeFinalInvoiceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                {cycle.stripeFinalInvoiceUrl}
-              </a>
-            </Field>
           )}
           {cycle.calBookingUrl && (
             <Field label="Check-in booking link">
@@ -1118,6 +1136,218 @@ export default function RefinementCycleReviewClient({
         </>
       )}
     </div>
+  );
+}
+
+type PaymentRow = {
+  kind: "deposit" | "final";
+  label: string;
+  amount: number;
+  invoiceUrl: string | null;
+  initiatedAt: string | null;
+  paidAt: string | null;
+};
+
+type PaymentStatusKey = "paid" | "processing" | "sent" | "not_created";
+
+const PAYMENT_STATUS_LABEL: Record<PaymentStatusKey, string> = {
+  paid: "Paid",
+  processing: "Processing",
+  sent: "Sent — awaiting payment",
+  not_created: "Not yet created",
+};
+
+const PAYMENT_STATUS_TONE: Record<
+  PaymentStatusKey,
+  ReturnType<typeof statusVisuals>["tone"]
+> = {
+  paid: "success",
+  processing: "warning",
+  sent: "info",
+  not_created: "neutral",
+};
+
+function paymentStatus(row: PaymentRow): PaymentStatusKey {
+  if (row.paidAt) return "paid";
+  if (row.initiatedAt) return "processing";
+  if (row.invoiceUrl) return "sent";
+  return "not_created";
+}
+
+function buildPaymentRows(cycle: CycleDetail): PaymentRow[] {
+  const rows: PaymentRow[] = [];
+
+  // Show a deposit row only if the legacy deposit flow was used (any of the
+  // deposit-tracked fields set). New pay-on-delivery cycles never create a
+  // deposit invoice, so we hide the row entirely rather than render a
+  // permanently-empty "Not yet created" line.
+  const hasDepositActivity = Boolean(
+    cycle.stripeDepositInvoiceUrl ||
+      cycle.depositPaidAt ||
+      cycle.depositPaymentInitiatedAt
+  );
+  if (hasDepositActivity) {
+    rows.push({
+      kind: "deposit",
+      label: "Deposit",
+      amount: cycle.depositAmount,
+      invoiceUrl: cycle.stripeDepositInvoiceUrl,
+      initiatedAt: cycle.depositPaymentInitiatedAt,
+      paidAt: cycle.depositPaidAt,
+    });
+  }
+
+  // Final invoice. For legacy deposit cycles the amount is finalAmount;
+  // for new pay-on-delivery cycles the single invoice covers totalPrice.
+  const hasFinalActivity = Boolean(
+    cycle.stripeFinalInvoiceUrl ||
+      cycle.finalPaidAt ||
+      cycle.finalPaymentInitiatedAt
+  );
+  const expectsFinal =
+    cycle.status === "in_progress" ||
+    cycle.status === "awaiting_payment" ||
+    cycle.status === "delivered";
+  if (hasFinalActivity || expectsFinal) {
+    rows.push({
+      kind: "final",
+      label: hasDepositActivity ? "Final payment" : "Cycle payment",
+      amount: hasDepositActivity ? cycle.finalAmount : cycle.totalPrice,
+      invoiceUrl: cycle.stripeFinalInvoiceUrl,
+      initiatedAt: cycle.finalPaymentInitiatedAt,
+      paidAt: cycle.finalPaidAt,
+    });
+  }
+
+  return rows;
+}
+
+function formatUsd(amount: number): string {
+  return amount.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+}
+
+function PaymentsSection({ cycle }: { cycle: CycleDetail }) {
+  const rows = buildPaymentRows(cycle);
+  const totalDue = rows.reduce((sum, r) => sum + r.amount, 0);
+  const totalPaid = rows
+    .filter((r) => r.paidAt)
+    .reduce((sum, r) => sum + r.amount, 0);
+  const totalProcessing = rows
+    .filter((r) => !r.paidAt && r.initiatedAt)
+    .reduce((sum, r) => sum + r.amount, 0);
+  const outstanding = totalDue - totalPaid - totalProcessing;
+
+  return (
+    <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
+      <Typography as="h2" scale="heading-md">
+        Payments
+      </Typography>
+      {rows.length === 0 ? (
+        <Typography scale="body-sm" className="text-text-secondary">
+          No invoices yet. The final invoice is created when the cycle is
+          marked delivered.
+        </Typography>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-stroke-muted text-left text-text-secondary">
+                  <th className="py-2 pr-3 font-medium">Invoice</th>
+                  <th className="py-2 pr-3 font-medium">Amount</th>
+                  <th className="py-2 pr-3 font-medium">Status</th>
+                  <th className="py-2 pr-3 font-medium">Activity</th>
+                  <th className="py-2 font-medium">Stripe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const status = paymentStatus(row);
+                  const tone = PAYMENT_STATUS_TONE[status];
+                  return (
+                    <tr
+                      key={row.kind}
+                      className="border-b border-stroke-muted/60 last:border-b-0 align-top"
+                    >
+                      <td className="py-2 pr-3 font-medium">{row.label}</td>
+                      <td className="py-2 pr-3 font-variant-numeric tabular-nums">
+                        {formatUsd(row.amount)}
+                      </td>
+                      <td className="py-2 pr-3">
+                        <span
+                          className={`inline-flex items-center rounded border px-2 py-0.5 text-xs ${TONE_CLASSES[tone]}`}
+                        >
+                          {PAYMENT_STATUS_LABEL[status]}
+                        </span>
+                      </td>
+                      <td className="py-2 pr-3 text-text-secondary">
+                        {row.paidAt ? (
+                          <>Paid {formatDateTime(row.paidAt)} ET</>
+                        ) : row.initiatedAt ? (
+                          <>
+                            Submitted {formatDateTime(row.initiatedAt)} ET —
+                            not yet cleared
+                          </>
+                        ) : row.invoiceUrl ? (
+                          "Awaiting client payment"
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="py-2">
+                        {row.invoiceUrl ? (
+                          <a
+                            href={row.invoiceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="underline"
+                          >
+                            Open invoice
+                          </a>
+                        ) : (
+                          <span className="text-text-secondary">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-stroke-muted pt-3 text-sm">
+            <span>
+              <span className="text-text-secondary">Total: </span>
+              <span className="font-variant-numeric tabular-nums font-medium">
+                {formatUsd(totalDue)}
+              </span>
+            </span>
+            <span>
+              <span className="text-text-secondary">Paid: </span>
+              <span className="font-variant-numeric tabular-nums font-medium text-green-700">
+                {formatUsd(totalPaid)}
+              </span>
+            </span>
+            {totalProcessing > 0 && (
+              <span>
+                <span className="text-text-secondary">Processing: </span>
+                <span className="font-variant-numeric tabular-nums font-medium text-yellow-700">
+                  {formatUsd(totalProcessing)}
+                </span>
+              </span>
+            )}
+            <span>
+              <span className="text-text-secondary">Outstanding: </span>
+              <span className="font-variant-numeric tabular-nums font-medium">
+                {formatUsd(outstanding)}
+              </span>
+            </span>
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 

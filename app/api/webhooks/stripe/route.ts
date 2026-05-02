@@ -8,6 +8,8 @@ import {
   generateInvoicePaidAdminEmail,
   generateInvoiceProcessingAdminEmail,
   generateInvoiceProcessingClientEmail,
+  generateRefinementCyclePaymentProcessingAdminEmail,
+  generateRefinementCyclePaymentProcessingClientEmail,
 } from "@/lib/email";
 
 /**
@@ -255,7 +257,8 @@ async function updateInvoiceStatus(
         pool,
         metadata.refinement_cycle_id,
         metadata.refinement_cycle_invoice_kind === "final" ? "final" : "deposit",
-        status
+        status,
+        origin
       );
       return;
     }
@@ -317,7 +320,8 @@ async function updateRefinementCycleStripeStatus(
   pool: ReturnType<typeof getPool>,
   cycleId: string,
   kind: "deposit" | "final",
-  status: "processing" | "paid" | "failed" | "voided" | "refunded"
+  status: "processing" | "paid" | "failed" | "voided" | "refunded",
+  origin: string
 ) {
   if (kind === "deposit") {
     if (status === "paid") {
@@ -341,11 +345,28 @@ async function updateRefinementCycleStripeStatus(
           `[StripeWebhook] Refinement cycle ${cycleId} deposit paid → status=${res.rows[0].status}`
         );
       }
-    } else {
-      console.log(
-        `[StripeWebhook] Refinement cycle ${cycleId} deposit invoice status=${status} (no-op)`
-      );
+      return;
     }
+    if (status === "processing") {
+      const res = await pool.query(
+        `UPDATE refinement_cycles
+         SET deposit_payment_initiated_at = COALESCE(deposit_payment_initiated_at, now()),
+             updated_at = now()
+         WHERE id = $1
+         RETURNING id`,
+        [cycleId]
+      );
+      if ((res.rowCount ?? 0) > 0) {
+        console.log(
+          `[StripeWebhook] Refinement cycle ${cycleId} deposit payment processing — stamped`
+        );
+        await sendCyclePaymentProcessingNotifications(pool, cycleId, "deposit", origin);
+      }
+      return;
+    }
+    console.log(
+      `[StripeWebhook] Refinement cycle ${cycleId} deposit invoice status=${status} (no-op)`
+    );
     return;
   }
 
@@ -370,9 +391,145 @@ async function updateRefinementCycleStripeStatus(
         `[StripeWebhook] Refinement cycle ${cycleId} final paid → status=${res.rows[0].status}`
       );
     }
-  } else {
-    console.log(
-      `[StripeWebhook] Refinement cycle ${cycleId} final invoice status=${status} (no-op)`
+    return;
+  }
+  if (status === "processing") {
+    const res = await pool.query(
+      `UPDATE refinement_cycles
+       SET final_payment_initiated_at = COALESCE(final_payment_initiated_at, now()),
+           updated_at = now()
+       WHERE id = $1
+       RETURNING id`,
+      [cycleId]
+    );
+    if ((res.rowCount ?? 0) > 0) {
+      console.log(
+        `[StripeWebhook] Refinement cycle ${cycleId} final payment processing — stamped`
+      );
+      await sendCyclePaymentProcessingNotifications(pool, cycleId, "final", origin);
+    }
+    return;
+  }
+  console.log(
+    `[StripeWebhook] Refinement cycle ${cycleId} final invoice status=${status} (no-op)`
+  );
+}
+
+// Sends two emails when a refinement cycle invoice enters processing:
+//   1. Admin notification — flags that payment is in flight, not yet cleared.
+//   2. Client confirmation — reassures the submitter (and CC list) that the
+//      studio has seen their bank transfer.
+// All sends are best-effort and never throw — Stripe webhooks must not retry
+// on email failures.
+async function sendCyclePaymentProcessingNotifications(
+  pool: ReturnType<typeof getPool>,
+  cycleId: string,
+  kind: "deposit" | "final",
+  origin: string
+) {
+  try {
+    const infoRes = await pool.query(
+      `SELECT rc.title, rc.submitter_email, rc.cc_emails,
+              rc.total_price, rc.deposit_amount, rc.final_amount,
+              p.name AS project_name, p.emoji AS project_emoji
+       FROM refinement_cycles rc
+       LEFT JOIN projects p ON p.id = rc.project_id
+       WHERE rc.id = $1
+       LIMIT 1`,
+      [cycleId]
+    );
+    if ((infoRes.rowCount ?? 0) === 0) return;
+
+    const info = infoRes.rows[0] as {
+      title: string | null;
+      submitter_email: string | null;
+      cc_emails: string[] | null;
+      total_price: string | number | null;
+      deposit_amount: string | number | null;
+      final_amount: string | number | null;
+      project_name: string | null;
+      project_emoji: string | null;
+    };
+
+    const cycleUrl = `${origin}/dashboard/refinement-cycles/${cycleId}`;
+    // For new pay-on-delivery cycles the final invoice is the full
+    // total_price; legacy cycles split into deposit/final. Fall back through
+    // the columns so either path renders a sensible amount.
+    const amount =
+      kind === "deposit"
+        ? Number(info.deposit_amount ?? 0)
+        : Number(info.final_amount ?? info.total_price ?? 0);
+
+    // Client confirmation — submitter + cc_emails, deduped + lowercased.
+    const clientRecipients = new Set<string>();
+    if (info.submitter_email) clientRecipients.add(info.submitter_email.toLowerCase());
+    for (const cc of info.cc_emails ?? []) {
+      if (cc) clientRecipients.add(cc.toLowerCase());
+    }
+    for (const email of Array.from(clientRecipients)) {
+      try {
+        const content = generateRefinementCyclePaymentProcessingClientEmail({
+          kind,
+          cycleTitle: info.title,
+          projectName: info.project_name,
+          projectEmoji: info.project_emoji,
+          amount,
+        });
+        await sendEmail({
+          to: email,
+          ...content,
+          category: "transactional",
+          tag: "refinement-cycle-payment-processing-client",
+        });
+      } catch (err) {
+        console.error(
+          `[StripeWebhook] Cycle processing client email failed for ${email}:`,
+          err
+        );
+      }
+    }
+
+    // Admin notification — every admin account.
+    const clientEmailSummary =
+      Array.from(clientRecipients).join(", ") || null;
+    const adminRes = await pool.query(
+      `SELECT email, first_name, last_name FROM accounts WHERE is_admin = true`
+    );
+    for (const admin of adminRes.rows as Array<{
+      email: string;
+      first_name: string | null;
+      last_name: string | null;
+    }>) {
+      try {
+        const adminName =
+          [admin.first_name, admin.last_name].filter(Boolean).join(" ") || null;
+        const content = generateRefinementCyclePaymentProcessingAdminEmail({
+          kind,
+          cycleTitle: info.title,
+          projectName: info.project_name,
+          projectEmoji: info.project_emoji,
+          amount,
+          clientEmail: clientEmailSummary,
+          adminName,
+          cycleUrl,
+        });
+        await sendEmail({
+          to: admin.email,
+          ...content,
+          category: "transactional",
+          tag: "refinement-cycle-payment-processing-admin",
+        });
+      } catch (err) {
+        console.error(
+          `[StripeWebhook] Cycle processing admin email failed for ${admin.email}:`,
+          err
+        );
+      }
+    }
+  } catch (err) {
+    console.error(
+      `[StripeWebhook] Cycle processing notifications failed for ${cycleId}:`,
+      err
     );
   }
 }

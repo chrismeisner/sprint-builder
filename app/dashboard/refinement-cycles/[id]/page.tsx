@@ -53,6 +53,9 @@ export type CycleDetail = {
   acceptedAt: string | null;
   declinedAt: string | null;
   depositPaidAt: string | null;
+  depositPaymentInitiatedAt: string | null;
+  finalPaidAt: string | null;
+  finalPaymentInitiatedAt: string | null;
   deliveredAt: string | null;
   expiredAt: string | null;
   stripeDepositInvoiceUrl: string | null;
@@ -215,6 +218,21 @@ export default async function RefinementCycleReviewPage({
       ? row.deposit_paid_at instanceof Date
         ? row.deposit_paid_at.toISOString()
         : (row.deposit_paid_at as string)
+      : null,
+    depositPaymentInitiatedAt: row.deposit_payment_initiated_at
+      ? row.deposit_payment_initiated_at instanceof Date
+        ? row.deposit_payment_initiated_at.toISOString()
+        : (row.deposit_payment_initiated_at as string)
+      : null,
+    finalPaidAt: row.final_paid_at
+      ? row.final_paid_at instanceof Date
+        ? row.final_paid_at.toISOString()
+        : (row.final_paid_at as string)
+      : null,
+    finalPaymentInitiatedAt: row.final_payment_initiated_at
+      ? row.final_payment_initiated_at instanceof Date
+        ? row.final_payment_initiated_at.toISOString()
+        : (row.final_payment_initiated_at as string)
       : null,
     deliveredAt: row.delivered_at
       ? row.delivered_at instanceof Date

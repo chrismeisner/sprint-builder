@@ -1462,3 +1462,118 @@ ${muted("Cycles end at delivery. Further changes are submitted as a new cycle.")
 
   return { subject, text: lines.join("\n"), html };
 }
+
+// Admin-only notification fired by the Stripe webhook when a cycle invoice
+// enters payment_intent.processing — the client has submitted payment
+// (typically ACH) but it has not yet cleared. Mirrors
+// generateInvoiceProcessingAdminEmail but tailored to refinement cycles.
+export function generateRefinementCyclePaymentProcessingAdminEmail(params: {
+  kind: "deposit" | "final";
+  cycleTitle: string | null;
+  projectName: string | null;
+  projectEmoji: string | null;
+  amount: number;
+  clientEmail: string | null;
+  adminName?: string | null;
+  cycleUrl: string;
+}): { subject: string; text: string; html: string } {
+  const { kind, cycleTitle, projectName, projectEmoji, amount, clientEmail, adminName, cycleUrl } = params;
+  const project = projectLabel(projectName, projectEmoji);
+  const greeting = adminName ? `Hi ${adminName},` : "Hi there,";
+  const kindLabel = kind === "final" ? "final invoice" : "deposit invoice";
+  const subjectTitle = cycleTitle ? `${cycleTitle} — ` : "";
+  const subject = `Payment pending: ${subjectTitle}refinement cycle ${kindLabel}`;
+  const clientNoteText = clientEmail ? ` from ${clientEmail}` : "";
+  const clientNoteHtml = clientEmail ? ` from <strong>${escapeHtml(clientEmail)}</strong>` : "";
+  const projectText = projectName ?? "(unnamed project)";
+
+  const text = `${greeting}
+
+A client has submitted payment${clientNoteText} on the ${kindLabel} for refinement cycle "${cycleTitle ?? "(untitled)"}" (${projectText}). The payment is pending (not yet cleared).
+
+Amount: ${formatUsd(amount)}
+
+For ACH/bank transfers, funds typically settle within 1–3 business days. You'll receive another notification once the payment has cleared.
+
+View cycle: ${cycleUrl}
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">A client has submitted payment${clientNoteHtml} on the ${kindLabel} for refinement cycle <strong>${escapeHtml(cycleTitle ?? "(untitled)")}</strong> (${project}). The payment is <strong>pending</strong> (not yet cleared).</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">Refinement cycle ${kindLabel}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formatUsd(amount)}</p>
+    </td>
+  </tr>
+</table>
+${secondaryLink(cycleUrl, "View cycle →")}
+${divider()}
+${muted("For ACH/bank transfers, funds typically settle within 1&ndash;3 business days. You&rsquo;ll receive another notification once the payment has cleared.")}
+`);
+
+  return { subject, text, html };
+}
+
+// Client-facing confirmation fired by the Stripe webhook when a cycle invoice
+// enters payment_intent.processing — reassures the client that the studio
+// has seen their payment even though it hasn't cleared yet.
+export function generateRefinementCyclePaymentProcessingClientEmail(params: {
+  kind: "deposit" | "final";
+  cycleTitle: string | null;
+  projectName: string | null;
+  projectEmoji: string | null;
+  amount: number;
+  clientName?: string | null;
+}): { subject: string; text: string; html: string } {
+  const { kind, cycleTitle, projectName, projectEmoji, amount, clientName } = params;
+  const project = projectLabel(projectName, projectEmoji);
+  const greeting = clientName ? `Hi ${clientName},` : "Hi there,";
+  const kindLabel = kind === "final" ? "final invoice" : "deposit invoice";
+  const cycleLabel = cycleTitle ?? "your refinement cycle";
+  const subject = `Payment received — processing now`;
+
+  const text = `${greeting}
+
+Thanks — we've received your bank transfer for ${cycleLabel} (${projectName ?? "your project"}). The ${kindLabel} payment is processing now.
+
+Amount: ${formatUsd(amount)}
+
+ACH/bank transfers typically clear within 1–3 business days. No further action is needed on your end — we'll send another note once it settles.
+
+Questions? Just reply to this email.
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">Thanks &mdash; we&rsquo;ve received your bank transfer for <strong>${escapeHtml(cycleLabel)}</strong> (${project}). The ${kindLabel} payment is processing now.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">Refinement cycle ${kindLabel}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formatUsd(amount)}</p>
+    </td>
+  </tr>
+</table>
+<p style="margin:0;">ACH/bank transfers typically clear within 1&ndash;3 business days. No further action is needed on your end &mdash; we&rsquo;ll send another note once it settles.</p>
+<p style="margin:16px 0 0;font-size:13px;color:#71717a;">Questions? Just reply to this email.</p>
+${divider()}
+${muted("Meisner Design")}
+`);
+
+  return { subject, text, html };
+}
