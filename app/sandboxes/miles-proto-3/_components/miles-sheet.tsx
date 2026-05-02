@@ -211,7 +211,7 @@ function MilesAgentSheet({
       <button
         type="button"
         aria-label="Close Miles"
-        onClick={closeMilesSheet}
+        onClick={() => closeMilesSheet()}
         tabIndex={open ? 0 : -1}
         className={`absolute inset-0 bg-black motion-safe:transition-opacity ${sheetEase} ${backdropOpacity} ${pointerCls}`}
       />
@@ -266,7 +266,7 @@ function MilesAgentSheet({
 
           <button
             type="button"
-            onClick={closeMilesSheet}
+            onClick={() => closeMilesSheet()}
             aria-label="Close"
             className="flex size-8 items-center justify-center rounded-full text-neutral-400 motion-safe:transition-colors hover:bg-neutral-100 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
           >
