@@ -6,7 +6,7 @@
 //   5pm the admin's default delivery date rolls to the day after next.
 // - 10am ET on delivery day: deposit deadline. Cycles still in
 //   `awaiting_deposit` past this moment expire.
-// - 5pm ET on delivery day: delivery target.
+// - 6pm ET on delivery day: delivery target.
 
 const ET_TIME_ZONE = "America/New_York";
 
@@ -17,6 +17,10 @@ export const REFINEMENT_CYCLE_FINAL_AMOUNT = 600;
 // Rate tiers. The actual amounts live on the cycle row at submission time
 // (`total_price`, `deposit_amount`, `final_amount`) so existing billing /
 // email code stays rate-agnostic. The `rate` column is for display.
+//
+// "pilot" is retired for new submissions (Full is the only option going
+// forward) but the literal stays in the union so legacy pilot cycles still
+// type-check on read and render with the "Pilot rate" label.
 export type RefinementCycleRate = "pilot" | "full";
 
 export type RefinementCycleRateOption = {
@@ -29,14 +33,6 @@ export type RefinementCycleRateOption = {
 };
 
 export const REFINEMENT_CYCLE_RATE_OPTIONS: RefinementCycleRateOption[] = [
-  {
-    id: "pilot",
-    label: "Pilot rate",
-    totalPrice: 800,
-    depositAmount: 400,
-    finalAmount: 400,
-    blurb: "Intro pricing for new client relationships.",
-  },
   {
     id: "full",
     label: "Full rate",
@@ -54,12 +50,12 @@ export function getRateOption(
 ): RefinementCycleRateOption {
   return (
     REFINEMENT_CYCLE_RATE_OPTIONS.find((r) => r.id === rate) ??
-    REFINEMENT_CYCLE_RATE_OPTIONS[1]
+    REFINEMENT_CYCLE_RATE_OPTIONS[0]
   );
 }
 export const REFINEMENT_CYCLE_ACCEPTANCE_CUTOFF_HOUR_ET = 17; // 5pm ET — studio commits to deciding by this time
 export const REFINEMENT_CYCLE_DEPOSIT_DEADLINE_HOUR_ET = 10; // 10am ET
-export const REFINEMENT_CYCLE_DELIVERY_HOUR_ET = 17; // 5pm ET
+export const REFINEMENT_CYCLE_DELIVERY_HOUR_ET = 18; // 6pm ET
 
 // Client-facing preferred-date cutoff: submissions before 3pm ET can pick
 // next business day as their earliest preference; after 3pm ET the earliest

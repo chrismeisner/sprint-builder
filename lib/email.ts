@@ -1275,7 +1275,7 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
     textLines.push(`Studio attachment: ${params.studioAttachmentUrl}`);
     textLines.push("");
   }
-  textLines.push(`Delivery target: ${deliveryLine} at 5pm ET.`);
+  textLines.push(`Delivery target: ${deliveryLine} at 6pm ET.`);
   textLines.push(
     `Total: ${formatUsd(params.totalPrice)} — invoiced on delivery, no deposit needed.`
   );
@@ -1296,7 +1296,7 @@ ${
     : ""
 }
 ${attachmentBlock(params.studioAttachmentUrl)}
-<p style="margin:0 0 8px;"><strong>Delivery target:</strong> ${escapeHtml(deliveryLine)} at 5pm ET</p>
+<p style="margin:0 0 8px;"><strong>Delivery target:</strong> ${escapeHtml(deliveryLine)} at 6pm ET</p>
 <p style="margin:0 0 16px;"><strong>Total:</strong> ${formatUsd(params.totalPrice)} — invoiced on delivery, no deposit needed.</p>
 ${
   params.calBookingUrl

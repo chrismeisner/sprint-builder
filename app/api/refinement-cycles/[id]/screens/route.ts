@@ -23,22 +23,33 @@ export async function POST(request: Request, { params }: Params) {
         { status: 401 }
       );
     }
-    if (!user.isAdmin) {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 }
-      );
-    }
 
     const pool = getPool();
     const cycleRes = await pool.query(
-      `SELECT status FROM refinement_cycles WHERE id = $1 LIMIT 1`,
+      `SELECT status, submitter_email
+       FROM refinement_cycles WHERE id = $1 LIMIT 1`,
       [params.id]
     );
     if (cycleRes.rowCount === 0) {
       return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
     }
-    if (cycleRes.rows[0].status !== "submitted") {
+    const cycleRow = cycleRes.rows[0] as {
+      status: string;
+      submitter_email: string | null;
+    };
+
+    const isAdmin = Boolean(user.isAdmin);
+    const isSubmitter =
+      cycleRow.submitter_email != null &&
+      cycleRow.submitter_email.toLowerCase() === user.email.toLowerCase();
+    if (!isAdmin && !isSubmitter) {
+      return NextResponse.json(
+        { error: "Only the studio or the original submitter can edit scope" },
+        { status: 403 }
+      );
+    }
+
+    if (cycleRow.status !== "submitted") {
       return NextResponse.json(
         { error: "Scope is locked once the cycle is accepted or declined" },
         { status: 409 }
@@ -54,11 +65,14 @@ export async function POST(request: Request, { params }: Params) {
 
     const name = clipText(body.name);
     const notes = clipText(body.notes);
-    const adminNote = clipText(body.adminNote);
+    // Submitter-added screens never carry an admin_note (it's a studio-only
+    // annotation). Ignore the field if the caller isn't an admin.
+    const adminNote = isAdmin ? clipText(body.adminNote) : null;
     const screenshotUrl =
       typeof body.screenshotUrl === "string" && body.screenshotUrl.trim()
         ? body.screenshotUrl.trim().slice(0, 1000)
         : null;
+    const addedBy: "client" | "admin" = isAdmin ? "admin" : "client";
 
     const sortRes = await pool.query(
       `SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_sort
@@ -74,11 +88,22 @@ export async function POST(request: Request, { params }: Params) {
       INSERT INTO refinement_cycle_screens (
         id, refinement_cycle_id, name, notes, screenshot_url,
         added_by, admin_note, sort_order
-      ) VALUES ($1, $2, $3, $4, $5, 'admin', $6, $7)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING id, name, notes, screenshot_url, added_by, admin_note,
                 sort_order, created_at
       `,
-      [id, params.id, name, notes, screenshotUrl, adminNote, sortOrder]
+      [id, params.id, name, notes, screenshotUrl, addedBy, adminNote, sortOrder]
+    );
+
+    // Stamp the parent cycle's last-edited fields so the studio sees the
+    // scope changed before they accept/decline.
+    await pool.query(
+      `UPDATE refinement_cycles
+       SET last_edited_at = now(),
+           last_edited_by = $1,
+           updated_at = now()
+       WHERE id = $2`,
+      [user.accountId, params.id]
     );
 
     const row = insertRes.rows[0];

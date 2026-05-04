@@ -283,49 +283,60 @@ export default function RefinementCycleNewClient({
           </Typography>
         </div>
 
-        <section className="space-y-2">
-          <Typography as="span" scale="body-sm" className="font-semibold">
-            Rate
-          </Typography>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {rateOptions.map((opt) => {
-              const isActive = rate === opt.id;
-              return (
-                <label
-                  key={opt.id}
-                  className={`cursor-pointer rounded-md border p-3 transition ${
-                    isActive
-                      ? "border-brand-primary bg-brand-primary/5"
-                      : "border-stroke-muted bg-surface-subtle hover:bg-surface-strong"
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <input
-                      type="radio"
-                      name="rate"
-                      value={opt.id}
-                      checked={isActive}
-                      onChange={() => setRate(opt.id)}
-                      className="mt-1"
-                    />
-                    <div className="flex flex-col">
-                      <Typography as="span" className="font-semibold">
-                        {opt.label} — {formatUsd(opt.totalPrice)}
-                      </Typography>
-                      <Typography
-                        scale="body-sm"
-                        className="text-text-secondary"
-                      >
-                        {opt.blurb} {formatUsd(opt.totalPrice)} invoiced on
-                        delivery — no deposit.
-                      </Typography>
+        {rateOptions.length > 1 ? (
+          <section className="space-y-2">
+            <Typography as="span" scale="body-sm" className="font-semibold">
+              Rate
+            </Typography>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {rateOptions.map((opt) => {
+                const isActive = rate === opt.id;
+                return (
+                  <label
+                    key={opt.id}
+                    className={`cursor-pointer rounded-md border p-3 transition ${
+                      isActive
+                        ? "border-brand-primary bg-brand-primary/5"
+                        : "border-stroke-muted bg-surface-subtle hover:bg-surface-strong"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <input
+                        type="radio"
+                        name="rate"
+                        value={opt.id}
+                        checked={isActive}
+                        onChange={() => setRate(opt.id)}
+                        className="mt-1"
+                      />
+                      <div className="flex flex-col">
+                        <Typography as="span" className="font-semibold">
+                          {opt.label} — {formatUsd(opt.totalPrice)}
+                        </Typography>
+                        <Typography
+                          scale="body-sm"
+                          className="text-text-secondary"
+                        >
+                          {opt.blurb} {formatUsd(opt.totalPrice)} invoiced on
+                          delivery — no deposit.
+                        </Typography>
+                      </div>
                     </div>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-        </section>
+                  </label>
+                );
+              })}
+            </div>
+          </section>
+        ) : (
+          <section className="rounded-md border border-stroke-muted bg-surface-subtle p-3">
+            <Typography as="span" className="font-semibold">
+              {formatUsd(selectedRate.totalPrice)} — {selectedRate.blurb}
+            </Typography>
+            <Typography scale="body-sm" className="text-text-secondary">
+              Invoiced on delivery — no deposit.
+            </Typography>
+          </section>
+        )}
 
         <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-2">
           <Typography as="h2" scale="heading-md">
@@ -348,7 +359,7 @@ export default function RefinementCycleNewClient({
             <li>
               <Typography as="span">
                 Receive Figma file, walkthrough Loom, and engineering notes by
-                5pm ET on delivery day, alongside the{" "}
+                6pm ET on delivery day, alongside the{" "}
                 {formatUsd(selectedRate.totalPrice)} invoice — billed on
                 delivery, no deposit needed.
               </Typography>

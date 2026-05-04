@@ -69,6 +69,8 @@ export type CycleDetail = {
   engineeringNotes: string | null;
   deliveryDraftSavedAt: string | null;
   deliveryDraftSavedByEmail: string | null;
+  lastEditedAt: string | null;
+  lastEditedByEmail: string | null;
   screens: CycleScreen[];
   deliverableScreenshots: CycleDeliverableScreenshot[];
 };
@@ -90,10 +92,12 @@ export default async function RefinementCycleReviewPage({
     `
     SELECT rc.*, p.name AS project_name, p.emoji AS project_emoji,
            p.account_id AS project_account_id,
-           draft_saver.email AS delivery_draft_saved_by_email
+           draft_saver.email AS delivery_draft_saved_by_email,
+           last_editor.email AS last_edited_by_email
     FROM refinement_cycles rc
     LEFT JOIN projects p ON p.id = rc.project_id
     LEFT JOIN accounts draft_saver ON draft_saver.id = rc.delivery_draft_saved_by
+    LEFT JOIN accounts last_editor ON last_editor.id = rc.last_edited_by
     WHERE rc.id = $1
     LIMIT 1
     `,
@@ -266,6 +270,13 @@ export default async function RefinementCycleReviewPage({
       : null,
     deliveryDraftSavedByEmail:
       (row.delivery_draft_saved_by_email as string | null) ?? null,
+    lastEditedAt: row.last_edited_at
+      ? row.last_edited_at instanceof Date
+        ? row.last_edited_at.toISOString()
+        : (row.last_edited_at as string)
+      : null,
+    lastEditedByEmail:
+      (row.last_edited_by_email as string | null) ?? null,
     screens,
     deliverableScreenshots,
   };

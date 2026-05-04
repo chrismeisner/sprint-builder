@@ -6,6 +6,156 @@ import { onCycleRevoked } from "@/lib/refinementCycleBilling";
 
 type Params = { params: { id: string } };
 
+const MAX_TEXT = 5000;
+
+function clipText(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, MAX_TEXT) : null;
+}
+
+// PATCH /api/refinement-cycles/[id]
+//
+// Submitter (or admin) edits the cycle's free-text scope fields while the
+// status is still `submitted`. Stamps last_edited_at + last_edited_by so the
+// studio can see the scope shifted before they accept/decline.
+export async function PATCH(request: Request, { params }: Params) {
+  try {
+    await ensureSchema();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const pool = getPool();
+    const cycleRes = await pool.query(
+      `SELECT status, submitter_email
+       FROM refinement_cycles WHERE id = $1 LIMIT 1`,
+      [params.id]
+    );
+    if (cycleRes.rowCount === 0) {
+      return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
+    }
+    const row = cycleRes.rows[0] as {
+      status: string;
+      submitter_email: string | null;
+    };
+    const isAdmin = Boolean(user.isAdmin);
+    const isSubmitter =
+      row.submitter_email != null &&
+      row.submitter_email.toLowerCase() === user.email.toLowerCase();
+    if (!isAdmin && !isSubmitter) {
+      return NextResponse.json(
+        { error: "Only the studio or the original submitter can edit scope" },
+        { status: 403 }
+      );
+    }
+    if (row.status !== "submitted") {
+      return NextResponse.json(
+        { error: "Scope is locked once the cycle is accepted or declined" },
+        { status: 409 }
+      );
+    }
+
+    const body = (await request.json().catch(() => ({}))) as {
+      whatsWorking?: unknown;
+      whatsNotWorking?: unknown;
+      successLooksLike?: unknown;
+      totalPrice?: unknown;
+      depositAmount?: unknown;
+      finalAmount?: unknown;
+    };
+
+    const sets: string[] = [];
+    const vals: unknown[] = [];
+    let pidx = 1;
+    if ("whatsWorking" in body) {
+      sets.push(`whats_working = $${pidx++}`);
+      vals.push(clipText(body.whatsWorking));
+    }
+    if ("whatsNotWorking" in body) {
+      sets.push(`whats_not_working = $${pidx++}`);
+      vals.push(clipText(body.whatsNotWorking));
+    }
+    if ("successLooksLike" in body) {
+      sets.push(`success_looks_like = $${pidx++}`);
+      vals.push(clipText(body.successLooksLike));
+    }
+
+    // Pricing override: admin-only. Must update all three together so the
+    // total/deposit/final invariant (deposit + final == total) holds.
+    const wantsPriceUpdate =
+      "totalPrice" in body ||
+      "depositAmount" in body ||
+      "finalAmount" in body;
+    if (wantsPriceUpdate) {
+      if (!isAdmin) {
+        return NextResponse.json(
+          { error: "Only admins can adjust pricing" },
+          { status: 403 }
+        );
+      }
+      const total = Number(body.totalPrice);
+      const deposit = Number(body.depositAmount);
+      const final = Number(body.finalAmount);
+      if (
+        !Number.isFinite(total) ||
+        !Number.isFinite(deposit) ||
+        !Number.isFinite(final) ||
+        total < 0 ||
+        deposit < 0 ||
+        final < 0
+      ) {
+        return NextResponse.json(
+          { error: "Pricing fields must be non-negative numbers" },
+          { status: 400 }
+        );
+      }
+      // Allow a 1-cent rounding fudge to absorb floating-point input.
+      if (Math.abs(deposit + final - total) > 0.01) {
+        return NextResponse.json(
+          {
+            error: `Deposit ($${deposit.toFixed(2)}) + final ($${final.toFixed(
+              2
+            )}) must equal total ($${total.toFixed(2)})`,
+          },
+          { status: 400 }
+        );
+      }
+      sets.push(`total_price = $${pidx++}`);
+      vals.push(total);
+      sets.push(`deposit_amount = $${pidx++}`);
+      vals.push(deposit);
+      sets.push(`final_amount = $${pidx++}`);
+      vals.push(final);
+    }
+
+    if (sets.length === 0) {
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    }
+    sets.push(`last_edited_at = now()`);
+    sets.push(`last_edited_by = $${pidx++}`);
+    vals.push(user.accountId);
+    sets.push(`updated_at = now()`);
+    vals.push(params.id);
+
+    await pool.query(
+      `UPDATE refinement_cycles SET ${sets.join(", ")} WHERE id = $${pidx}`,
+      vals
+    );
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[RefinementCycle PATCH]", err);
+    return NextResponse.json(
+      { error: (err as Error).message ?? "Save failed" },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE /api/refinement-cycles/[id]
 //
 // Revoke / withdraw a cycle. Allowed when:

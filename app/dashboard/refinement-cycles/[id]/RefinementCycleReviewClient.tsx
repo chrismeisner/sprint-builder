@@ -127,7 +127,85 @@ export default function RefinementCycleReviewClient({
   // for a belt-and-suspenders guard on this irreversible action.
   const [deliverAck, setDeliverAck] = useState(false);
 
-  const isEditable = cycle.status === "submitted" && isAdmin;
+  // Submitter can also edit while the cycle is still in `submitted`. The
+  // server enforces the same rule; this gate just controls the affordances.
+  const isEditable =
+    cycle.status === "submitted" && (isAdmin || viewerIsSubmitter);
+
+  const [whatsWorking, setWhatsWorking] = useState(cycle.whatsWorking ?? "");
+  const [whatsNotWorking, setWhatsNotWorking] = useState(
+    cycle.whatsNotWorking ?? ""
+  );
+  const [successLooksLike, setSuccessLooksLike] = useState(
+    cycle.successLooksLike ?? ""
+  );
+
+  async function patchCycleField(
+    payload: {
+      whatsWorking?: string | null;
+      whatsNotWorking?: string | null;
+      successLooksLike?: string | null;
+      totalPrice?: number;
+      depositAmount?: number;
+      finalAmount?: number;
+    }
+  ) {
+    if (!isEditable) return;
+    try {
+      const res = await fetch(`/api/refinement-cycles/${cycle.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Save failed");
+      }
+      router.refresh();
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    }
+  }
+
+  // Admin pricing override — local state, validated client-side, committed
+  // via a single PATCH that updates total/deposit/final atomically. Server
+  // re-validates the same invariant.
+  const [priceTotal, setPriceTotal] = useState(String(cycle.totalPrice));
+  const [priceDeposit, setPriceDeposit] = useState(
+    String(cycle.depositAmount)
+  );
+  const [priceFinal, setPriceFinal] = useState(String(cycle.finalAmount));
+  const [savingPrice, setSavingPrice] = useState(false);
+
+  const parsedTotal = Number(priceTotal);
+  const parsedDeposit = Number(priceDeposit);
+  const parsedFinal = Number(priceFinal);
+  const priceValid =
+    Number.isFinite(parsedTotal) &&
+    Number.isFinite(parsedDeposit) &&
+    Number.isFinite(parsedFinal) &&
+    parsedTotal >= 0 &&
+    parsedDeposit >= 0 &&
+    parsedFinal >= 0 &&
+    Math.abs(parsedDeposit + parsedFinal - parsedTotal) <= 0.01;
+  const priceChanged =
+    parsedTotal !== cycle.totalPrice ||
+    parsedDeposit !== cycle.depositAmount ||
+    parsedFinal !== cycle.finalAmount;
+
+  async function savePrice() {
+    if (!priceValid || !priceChanged) return;
+    setSavingPrice(true);
+    try {
+      await patchCycleField({
+        totalPrice: parsedTotal,
+        depositAmount: parsedDeposit,
+        finalAmount: parsedFinal,
+      });
+    } finally {
+      setSavingPrice(false);
+    }
+  }
 
   const tagline = useMemo(() => {
     switch (cycle.status) {
@@ -496,6 +574,14 @@ export default function RefinementCycleReviewClient({
             <Typography scale="body-sm" className="text-text-secondary mt-1">
               Submitted {formatDateTime(cycle.submittedAt)} ET · {tagline}
             </Typography>
+            {cycle.lastEditedAt && (
+              <Typography scale="body-sm" className="text-text-secondary mt-1">
+                Last edited {formatDateTime(cycle.lastEditedAt)} ET
+                {cycle.lastEditedByEmail
+                  ? ` by ${cycle.lastEditedByEmail}`
+                  : ""}
+              </Typography>
+            )}
           </div>
           <div className="flex flex-col items-end gap-2">
             <StatusBadge status={cycle.status} />
@@ -573,6 +659,77 @@ export default function RefinementCycleReviewClient({
             >
               Pay deposit invoice →
             </a>
+          </div>
+        </section>
+      )}
+
+      {cycle.status === "submitted" && isAdmin && (
+        <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
+          <Typography as="h2" scale="heading-md">
+            Adjust pricing
+          </Typography>
+          <Typography scale="body-sm" className="text-text-secondary">
+            Override the rate for this cycle only. Past cycles are unaffected
+            because pricing is frozen on each cycle row.
+          </Typography>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="flex flex-col gap-1">
+              <Typography scale="body-sm" as="span" className="font-semibold">
+                Total
+              </Typography>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={priceTotal}
+                onChange={(e) => setPriceTotal(e.target.value)}
+                className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <Typography scale="body-sm" as="span" className="font-semibold">
+                Deposit
+              </Typography>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={priceDeposit}
+                onChange={(e) => setPriceDeposit(e.target.value)}
+                className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <Typography scale="body-sm" as="span" className="font-semibold">
+                Final
+              </Typography>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={priceFinal}
+                onChange={(e) => setPriceFinal(e.target.value)}
+                className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+              />
+            </label>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Typography
+              scale="body-sm"
+              className={priceValid ? "text-text-secondary" : "text-red-600"}
+            >
+              {priceValid
+                ? "Deposit + Final equals Total ✓"
+                : "Deposit + Final must equal Total"}
+            </Typography>
+            <Button
+              type="button"
+              size="sm"
+              onClick={savePrice}
+              disabled={!priceValid || !priceChanged || savingPrice}
+            >
+              {savingPrice ? "Saving…" : "Save pricing"}
+            </Button>
           </div>
         </section>
       )}
@@ -711,7 +868,7 @@ export default function RefinementCycleReviewClient({
               />
               <Typography scale="body-sm" className="text-text-secondary">
                 Default is the next business day. Deposit deadline = 10am ET
-                that day; delivery target = 5pm ET that day.
+                that day; delivery target = 6pm ET that day.
               </Typography>
               {cycle.preferredDeliveryDate && (
                 <Typography
@@ -767,12 +924,65 @@ export default function RefinementCycleReviewClient({
             <span className="opacity-60">Not provided</span>
           )}
         </Field>
-        <Field label="What's working">{cycle.whatsWorking ?? "—"}</Field>
+        <Field label="What's working">
+          {isEditable ? (
+            <textarea
+              value={whatsWorking}
+              onChange={(e) => setWhatsWorking(e.target.value)}
+              onBlur={() => {
+                if ((cycle.whatsWorking ?? "") !== whatsWorking) {
+                  void patchCycleField({
+                    whatsWorking: whatsWorking || null,
+                  });
+                }
+              }}
+              placeholder="What's working today"
+              rows={3}
+              className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+            />
+          ) : (
+            cycle.whatsWorking ?? "—"
+          )}
+        </Field>
         <Field label="What's not working">
-          {cycle.whatsNotWorking ?? "—"}
+          {isEditable ? (
+            <textarea
+              value={whatsNotWorking}
+              onChange={(e) => setWhatsNotWorking(e.target.value)}
+              onBlur={() => {
+                if ((cycle.whatsNotWorking ?? "") !== whatsNotWorking) {
+                  void patchCycleField({
+                    whatsNotWorking: whatsNotWorking || null,
+                  });
+                }
+              }}
+              placeholder="What's not working"
+              rows={3}
+              className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+            />
+          ) : (
+            cycle.whatsNotWorking ?? "—"
+          )}
         </Field>
         <Field label="What success looks like">
-          {cycle.successLooksLike ?? "—"}
+          {isEditable ? (
+            <textarea
+              value={successLooksLike}
+              onChange={(e) => setSuccessLooksLike(e.target.value)}
+              onBlur={() => {
+                if ((cycle.successLooksLike ?? "") !== successLooksLike) {
+                  void patchCycleField({
+                    successLooksLike: successLooksLike || null,
+                  });
+                }
+              }}
+              placeholder="What success looks like"
+              rows={3}
+              className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+            />
+          ) : (
+            cycle.successLooksLike ?? "—"
+          )}
         </Field>
       </section>
 

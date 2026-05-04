@@ -1695,6 +1695,21 @@ export async function ensureSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS final_payment_initiated_at timestamptz
   `);
 
+  // Submitters can edit their cycle (free-text fields + screens) while the
+  // status is still `submitted`. These columns track the most recent mutation
+  // by *anyone* (submitter or admin) and surface in the UI as
+  // "Last edited {time} by {email}" so the studio knows the scope shifted
+  // before they accept/decline.
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS last_edited_at timestamptz
+  `);
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS last_edited_by text
+      REFERENCES accounts(id) ON DELETE SET NULL
+  `);
+
   // One-off: cycle 6b4728a0-... was accepted under the old deposit flow but
   // the deposit was never collected. Move it onto the new pay-on-delivery
   // flow by flipping it to in_progress. Idempotent — only fires while the

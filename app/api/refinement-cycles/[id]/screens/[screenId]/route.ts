@@ -12,22 +12,55 @@ function clipText(value: unknown): string | null {
   return trimmed ? trimmed.slice(0, MAX_TEXT) : null;
 }
 
-async function assertEditable(cycleId: string) {
+// Authorize a mutation against the parent cycle. Returns either an error
+// payload or { isAdmin } describing the caller's role.
+async function authorizeEdit(
+  cycleId: string,
+  user: { email: string; isAdmin?: boolean | null }
+): Promise<
+  { error: string; status: 401 | 403 | 404 | 409 } | { isAdmin: boolean }
+> {
   const pool = getPool();
   const res = await pool.query(
-    `SELECT status FROM refinement_cycles WHERE id = $1 LIMIT 1`,
+    `SELECT status, submitter_email
+     FROM refinement_cycles WHERE id = $1 LIMIT 1`,
     [cycleId]
   );
   if (res.rowCount === 0) {
-    return { error: "Cycle not found", status: 404 as const };
+    return { error: "Cycle not found", status: 404 };
   }
-  if (res.rows[0].status !== "submitted") {
+  const row = res.rows[0] as {
+    status: string;
+    submitter_email: string | null;
+  };
+  const isAdmin = Boolean(user.isAdmin);
+  const isSubmitter =
+    row.submitter_email != null &&
+    row.submitter_email.toLowerCase() === user.email.toLowerCase();
+  if (!isAdmin && !isSubmitter) {
     return {
-      error: "Scope is locked once the cycle is accepted or declined",
-      status: 409 as const,
+      error: "Only the studio or the original submitter can edit scope",
+      status: 403,
     };
   }
-  return null;
+  if (row.status !== "submitted") {
+    return {
+      error: "Scope is locked once the cycle is accepted or declined",
+      status: 409,
+    };
+  }
+  return { isAdmin };
+}
+
+async function stampLastEdited(cycleId: string, accountId: string | null) {
+  await getPool().query(
+    `UPDATE refinement_cycles
+     SET last_edited_at = now(),
+         last_edited_by = $1,
+         updated_at = now()
+     WHERE id = $2`,
+    [accountId, cycleId]
+  );
 }
 
 export async function PATCH(request: Request, { params }: Params) {
@@ -40,15 +73,9 @@ export async function PATCH(request: Request, { params }: Params) {
         { status: 401 }
       );
     }
-    if (!user.isAdmin) {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 }
-      );
-    }
 
-    const guard = await assertEditable(params.id);
-    if (guard) {
+    const guard = await authorizeEdit(params.id, user);
+    if ("error" in guard) {
       return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
 
@@ -69,7 +96,9 @@ export async function PATCH(request: Request, { params }: Params) {
       sets.push(`notes = $${pidx++}`);
       vals.push(clipText(body.notes));
     }
-    if ("adminNote" in body) {
+    // adminNote is studio-only — ignore the field for submitter edits to
+    // prevent the client UI from accidentally clobbering studio annotations.
+    if ("adminNote" in body && guard.isAdmin) {
       sets.push(`admin_note = $${pidx++}`);
       vals.push(clipText(body.adminNote));
     }
@@ -90,6 +119,7 @@ export async function PATCH(request: Request, { params }: Params) {
     if (res.rowCount === 0) {
       return NextResponse.json({ error: "Screen not found" }, { status: 404 });
     }
+    await stampLastEdited(params.id, user.accountId);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[RefinementCycle screens PATCH]", err);
@@ -110,15 +140,9 @@ export async function DELETE(request: Request, { params }: Params) {
         { status: 401 }
       );
     }
-    if (!user.isAdmin) {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 }
-      );
-    }
 
-    const guard = await assertEditable(params.id);
-    if (guard) {
+    const guard = await authorizeEdit(params.id, user);
+    if ("error" in guard) {
       return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
 
@@ -132,6 +156,7 @@ export async function DELETE(request: Request, { params }: Params) {
     if (res.rowCount === 0) {
       return NextResponse.json({ error: "Screen not found" }, { status: 404 });
     }
+    await stampLastEdited(params.id, user.accountId);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[RefinementCycle screens DELETE]", err);
