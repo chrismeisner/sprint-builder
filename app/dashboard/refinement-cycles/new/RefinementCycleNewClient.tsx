@@ -435,28 +435,6 @@ export default function RefinementCycleNewClient({
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-1">
-          <Typography scale="body-sm" as="span" className="font-semibold opacity-70">
-            Submitting as
-          </Typography>
-          <Typography>
-            {submitterName ? (
-              <>
-                {submitterName}{" "}
-                <span className="text-text-secondary">
-                  ({submitterEmail})
-                </span>
-              </>
-            ) : (
-              submitterEmail
-            )}
-          </Typography>
-          <Typography scale="body-sm" className="text-text-secondary">
-            Acceptance, check-in, and delivery emails will all be sent to this
-            address. Sign in as a different account if that&rsquo;s wrong.
-          </Typography>
-        </section>
-
         <section className="space-y-2">
           <label
             htmlFor="rc-project"
@@ -477,6 +455,28 @@ export default function RefinementCycleNewClient({
               </option>
             ))}
           </select>
+        </section>
+
+        <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-1">
+          <Typography scale="body-sm" as="span" className="font-semibold opacity-70">
+            Submitting as
+          </Typography>
+          <Typography>
+            {submitterName ? (
+              <>
+                {submitterName}{" "}
+                <span className="text-text-secondary">
+                  ({submitterEmail})
+                </span>
+              </>
+            ) : (
+              submitterEmail
+            )}
+          </Typography>
+          <Typography scale="body-sm" className="text-text-secondary">
+            Acceptance, check-in, and delivery emails will all be sent to this
+            address. Sign in as a different account if that&rsquo;s wrong.
+          </Typography>
         </section>
 
         {availableCcMembers.length > 0 && (
