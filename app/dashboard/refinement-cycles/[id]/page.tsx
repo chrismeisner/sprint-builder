@@ -28,6 +28,23 @@ export type CycleDeliverableScreenshot = {
   createdAt: string;
 };
 
+export type CycleNoteAttachment = {
+  id: string;
+  fileUrl: string;
+  filename: string | null;
+  mimetype: string | null;
+  sortOrder: number;
+};
+
+export type CycleNote = {
+  id: string;
+  body: string | null;
+  authorEmail: string | null;
+  createdAt: string;
+  attachments: CycleNoteAttachment[];
+  canDelete: boolean;
+};
+
 export type CycleDetail = {
   id: string;
   title: string | null;
@@ -73,6 +90,7 @@ export type CycleDetail = {
   lastEditedByEmail: string | null;
   screens: CycleScreen[];
   deliverableScreenshots: CycleDeliverableScreenshot[];
+  notes: CycleNote[];
 };
 
 export default async function RefinementCycleReviewPage({
@@ -173,6 +191,59 @@ export default async function RefinementCycleReviewPage({
           : (s.created_at as string),
     })
   );
+
+  const notesRes = await pool.query(
+    `
+    SELECT id, body, author_account_id, author_email, created_at
+    FROM refinement_cycle_notes
+    WHERE refinement_cycle_id = $1
+    ORDER BY created_at ASC
+    `,
+    [params.id]
+  );
+  const noteIds = notesRes.rows.map((n) => n.id as string);
+  const attachmentsByNoteId: Record<string, CycleNoteAttachment[]> = {};
+  if (noteIds.length > 0) {
+    const attachRes = await pool.query(
+      `
+      SELECT id, note_id, file_url, filename, mimetype, sort_order
+      FROM refinement_cycle_note_attachments
+      WHERE note_id = ANY($1::text[])
+      ORDER BY sort_order ASC, created_at ASC
+      `,
+      [noteIds]
+    );
+    for (const r of attachRes.rows) {
+      const noteId = r.note_id as string;
+      if (!attachmentsByNoteId[noteId]) attachmentsByNoteId[noteId] = [];
+      attachmentsByNoteId[noteId].push({
+        id: r.id as string,
+        fileUrl: r.file_url as string,
+        filename: (r.filename as string | null) ?? null,
+        mimetype: (r.mimetype as string | null) ?? null,
+        sortOrder: Number(r.sort_order ?? 0),
+      });
+    }
+  }
+  const notes: CycleNote[] = notesRes.rows.map((n) => {
+    const authorAccountId = (n.author_account_id as string | null) ?? null;
+    const authorEmail = (n.author_email as string | null) ?? null;
+    const isAuthor =
+      (authorAccountId !== null && authorAccountId === user.accountId) ||
+      (authorEmail !== null &&
+        authorEmail.toLowerCase() === user.email.toLowerCase());
+    return {
+      id: n.id as string,
+      body: (n.body as string | null) ?? null,
+      authorEmail,
+      createdAt:
+        n.created_at instanceof Date
+          ? n.created_at.toISOString()
+          : (n.created_at as string),
+      attachments: attachmentsByNoteId[n.id as string] ?? [],
+      canDelete: isAdmin || isAuthor,
+    };
+  });
 
   const cycle: CycleDetail = {
     id: row.id as string,
@@ -279,6 +350,7 @@ export default async function RefinementCycleReviewPage({
       (row.last_edited_by_email as string | null) ?? null,
     screens,
     deliverableScreenshots,
+    notes,
   };
 
   const viewerEmail = user.email;

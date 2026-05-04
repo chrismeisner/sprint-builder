@@ -11,6 +11,7 @@ import type {
   CycleDetail,
   CycleScreen,
   CycleDeliverableScreenshot,
+  CycleNote,
 } from "./page";
 
 type Props = {
@@ -108,6 +109,12 @@ export default function RefinementCycleReviewClient({
   const [deliverableShots, setDeliverableShots] = useState<
     CycleDeliverableScreenshot[]
   >(cycle.deliverableScreenshots);
+
+  const [notes, setNotes] = useState<CycleNote[]>(cycle.notes);
+  const [noteBody, setNoteBody] = useState("");
+  const [noteFiles, setNoteFiles] = useState<File[]>([]);
+  const [postingNote, setPostingNote] = useState(false);
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
 
   const [figmaFileUrl, setFigmaFileUrl] = useState(cycle.figmaFileUrl ?? "");
   const [loomWalkthroughUrl, setLoomWalkthroughUrl] = useState(
@@ -432,6 +439,56 @@ export default function RefinementCycleReviewClient({
       setDeliverableShots((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       showToast((err as Error).message, "error");
+    }
+  }
+
+  async function postNote() {
+    const trimmed = noteBody.trim();
+    if (!trimmed && noteFiles.length === 0) {
+      showToast("Add a note or an attachment", "warning");
+      return;
+    }
+    setPostingNote(true);
+    try {
+      const fd = new FormData();
+      if (trimmed) fd.append("body", trimmed);
+      for (const f of noteFiles) fd.append("files", f);
+      const res = await fetch(`/api/refinement-cycles/${cycle.id}/notes`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to post note");
+      }
+      const json = (await res.json()) as { note: CycleNote };
+      setNotes((prev) => [...prev, json.note]);
+      setNoteBody("");
+      setNoteFiles([]);
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setPostingNote(false);
+    }
+  }
+
+  async function deleteNote(id: string) {
+    if (!window.confirm("Delete this note?")) return;
+    setDeletingNoteId(id);
+    try {
+      const res = await fetch(
+        `/api/refinement-cycles/${cycle.id}/notes/${id}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Delete failed");
+      }
+      setNotes((prev) => prev.filter((n) => n.id !== id));
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setDeletingNoteId(null);
     }
   }
 
@@ -1027,6 +1084,148 @@ export default function RefinementCycleReviewClient({
             ))}
           </div>
         )}
+      </section>
+
+      <section className="space-y-3">
+        <Typography as="h2" scale="heading-md">
+          Notes ({notes.length})
+        </Typography>
+        <Typography scale="body-sm" className="text-text-secondary">
+          Track follow-up info, regressions, or context after submission.
+          Anyone with access to this cycle can add a note.
+        </Typography>
+
+        {notes.length > 0 && (
+          <div className="space-y-3">
+            {notes.map((n) => (
+              <div
+                key={n.id}
+                className="rounded-md border border-stroke-muted bg-surface-subtle p-3 space-y-2"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <Typography
+                    scale="body-sm"
+                    className="text-text-secondary"
+                  >
+                    {n.authorEmail ?? "Unknown"} •{" "}
+                    {formatDateTime(n.createdAt)}
+                  </Typography>
+                  {n.canDelete && (
+                    <button
+                      type="button"
+                      onClick={() => deleteNote(n.id)}
+                      disabled={deletingNoteId === n.id}
+                      className="text-sm text-red-700 hover:underline disabled:opacity-50"
+                    >
+                      {deletingNoteId === n.id ? "Deleting…" : "Delete"}
+                    </button>
+                  )}
+                </div>
+                {n.body && (
+                  <Typography className="whitespace-pre-wrap">
+                    {n.body}
+                  </Typography>
+                )}
+                {n.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {n.attachments.map((a) => {
+                      const isImage =
+                        a.mimetype != null && a.mimetype.startsWith("image/");
+                      return isImage ? (
+                        <a
+                          key={a.id}
+                          href={a.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={a.fileUrl}
+                            alt={a.filename ?? "Attachment"}
+                            className="max-h-48 rounded border border-stroke-muted"
+                          />
+                        </a>
+                      ) : (
+                        <a
+                          key={a.id}
+                          href={a.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-block text-sm underline"
+                        >
+                          {a.filename ?? "Attachment"}
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="rounded-md border border-stroke-muted bg-background p-3 space-y-2">
+          <textarea
+            value={noteBody}
+            onChange={(e) => setNoteBody(e.target.value)}
+            rows={3}
+            placeholder="Add a note…"
+            disabled={postingNote}
+            className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+          />
+          {noteFiles.length > 0 && (
+            <ul className="space-y-1 text-sm">
+              {noteFiles.map((f, i) => (
+                <li
+                  key={`${f.name}-${i}`}
+                  className="flex items-center justify-between gap-2 rounded border border-stroke-muted bg-surface-subtle px-2 py-1"
+                >
+                  <span className="truncate">{f.name}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNoteFiles((prev) =>
+                        prev.filter((_, idx) => idx !== i)
+                      )
+                    }
+                    disabled={postingNote}
+                    className="text-text-secondary hover:underline"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="file"
+              multiple
+              accept="image/png,image/jpeg,image/gif,image/webp,application/pdf"
+              onChange={(e) => {
+                const picked = Array.from(e.target.files ?? []);
+                if (picked.length === 0) return;
+                setNoteFiles((prev) => [...prev, ...picked]);
+                e.target.value = "";
+              }}
+              disabled={postingNote}
+              className="text-sm"
+            />
+            <div className="ml-auto">
+              <Button
+                type="button"
+                size="sm"
+                onClick={postNote}
+                disabled={
+                  postingNote ||
+                  (!noteBody.trim() && noteFiles.length === 0)
+                }
+              >
+                {postingNote ? "Posting…" : "Post note"}
+              </Button>
+            </div>
+          </div>
+        </div>
       </section>
 
       {cycle.status !== "submitted" && (

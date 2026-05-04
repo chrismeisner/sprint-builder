@@ -1589,6 +1589,48 @@ export async function ensureSchema(): Promise<void> {
       ON refinement_cycle_deliverable_screenshots(refinement_cycle_id);
   `);
 
+  // Free-form notes attached to a cycle by anyone with view access. Used to
+  // track additional info after submission (e.g. "saw a regression on iOS"
+  // with a screenshot). Distinct from `refinement_cycle_screens` (scope) and
+  // `refinement_cycle_deliverable_screenshots` (studio output).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS refinement_cycle_notes (
+      id text PRIMARY KEY,
+      refinement_cycle_id text NOT NULL REFERENCES refinement_cycles(id) ON DELETE CASCADE,
+      body text,
+      author_account_id text REFERENCES accounts(id) ON DELETE SET NULL,
+      author_email text,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_refinement_cycle_notes_cycle
+      ON refinement_cycle_notes(refinement_cycle_id);
+  `);
+
+  // Notes briefly had inline attachment_* columns (single attachment).
+  // Multi-attachment now lives in `refinement_cycle_note_attachments`. Drop
+  // the legacy columns if any dev DB still has them — safe because the
+  // single-attachment shape was never deployed past local.
+  await pool.query(`
+    ALTER TABLE refinement_cycle_notes
+    DROP COLUMN IF EXISTS attachment_url,
+    DROP COLUMN IF EXISTS attachment_filename,
+    DROP COLUMN IF EXISTS attachment_mimetype
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS refinement_cycle_note_attachments (
+      id text PRIMARY KEY,
+      note_id text NOT NULL REFERENCES refinement_cycle_notes(id) ON DELETE CASCADE,
+      file_url text NOT NULL,
+      filename text,
+      mimetype text,
+      sort_order integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_refinement_cycle_note_attachments_note
+      ON refinement_cycle_note_attachments(note_id);
+  `);
+
   // Client's preferred delivery date (chosen at submission time). The
   // committed delivery date — set by the studio at acceptance — lives in
   // `delivery_date`. The admin review UI defaults to the client's preference.
