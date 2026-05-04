@@ -359,7 +359,7 @@ export default function RefinementCycleNewClient({
             <li>
               <Typography as="span">
                 Receive Figma file, walkthrough Loom, and engineering notes by
-                6pm ET on delivery day, alongside the{" "}
+                end of day on delivery day, alongside the{" "}
                 {formatUsd(selectedRate.totalPrice)} invoice — billed on
                 delivery, no deposit needed.
               </Typography>

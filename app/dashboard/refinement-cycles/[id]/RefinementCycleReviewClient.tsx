@@ -1439,7 +1439,7 @@ export default function RefinementCycleReviewClient({
               />
               <Typography scale="body-sm" className="text-text-secondary">
                 Default is the next business day. Deposit deadline = 10am ET
-                that day; delivery target = 6pm ET that day.
+                that day; delivery target = end of day.
               </Typography>
               {cycle.preferredDeliveryDate && (
                 <Typography
