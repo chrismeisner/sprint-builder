@@ -9,6 +9,7 @@ const ProjectActions = dynamicImport(() => import("../../ProjectActions"), { ssr
 const ProjectNameForm = dynamicImport(() => import("../../ProjectNameForm"), { ssr: false });
 const ProjectDescriptionForm = dynamicImport(() => import("../../ProjectDescriptionForm"), { ssr: false });
 const ProjectEmojiForm = dynamicImport(() => import("../../ProjectEmojiForm"), { ssr: false });
+const ProjectTypeForm = dynamicImport(() => import("../../ProjectTypeForm"), { ssr: false });
 
 type PageProps = { params: { id: string } };
 
@@ -24,7 +25,7 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
   }
 
   const projectResult = await pool.query(
-    `SELECT id, name, description, emoji, account_id, created_at, updated_at
+    `SELECT id, name, description, emoji, project_type, account_id, created_at, updated_at
      FROM projects
      WHERE id = $1`,
     [params.id]
@@ -39,6 +40,7 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
     name: string;
     description: string | null;
     emoji: string | null;
+    project_type: string | null;
     account_id: string | null;
     created_at: string | Date;
     updated_at: string | Date | null;
@@ -86,6 +88,15 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
         <ProjectDescriptionForm projectId={project.id} initialDescription={project.description ?? ''} />
         <hr className="border-black/10 dark:border-white/10" />
         <ProjectEmojiForm projectId={project.id} initialEmoji={project.emoji ?? null} />
+        {isAdmin && (
+          <>
+            <hr className="border-black/10 dark:border-white/10" />
+            <ProjectTypeForm
+              projectId={project.id}
+              initialType={(project.project_type === "internal" ? "internal" : "client")}
+            />
+          </>
+        )}
       </section>
 
       <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-4">
