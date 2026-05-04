@@ -1268,7 +1268,7 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
     ? formatDeliveryDate(params.deliveryDate)
     : "the next business day";
   const titlePart = params.title ? `${params.title} — ` : "";
-  const subject = `${titlePart}Refinement cycle accepted — delivery ${deliveryLine}`;
+  const subject = `${titlePart}Refinement cycle accepted`;
 
   const requiresDeposit = Boolean(params.requiresDeposit);
   const depositAmount = params.depositAmount ?? 0;
