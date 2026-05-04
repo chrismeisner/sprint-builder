@@ -1570,6 +1570,45 @@ export async function ensureSchema(): Promise<void> {
       ON refinement_cycle_screens(refinement_cycle_id);
   `);
 
+  // Screens-in-scope used to carry a single inline screenshot column. Move
+  // attachments into a child table so each screen can have N. Backfill any
+  // existing screenshot_url values into the new table, then drop the column.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS refinement_cycle_screen_attachments (
+      id text PRIMARY KEY,
+      screen_id text NOT NULL REFERENCES refinement_cycle_screens(id) ON DELETE CASCADE,
+      file_url text NOT NULL,
+      filename text,
+      mimetype text,
+      sort_order integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_refinement_cycle_screen_attachments_screen
+      ON refinement_cycle_screen_attachments(screen_id);
+  `);
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'refinement_cycle_screens'
+          AND column_name = 'screenshot_url'
+      ) THEN
+        INSERT INTO refinement_cycle_screen_attachments
+          (id, screen_id, file_url, sort_order)
+        SELECT s.id || ':a0', s.id, s.screenshot_url, 0
+        FROM refinement_cycle_screens s
+        WHERE s.screenshot_url IS NOT NULL
+        ON CONFLICT (id) DO NOTHING;
+      END IF;
+    END
+    $$;
+  `);
+  await pool.query(`
+    ALTER TABLE refinement_cycle_screens
+    DROP COLUMN IF EXISTS screenshot_url
+  `);
+
   // Deliverable screenshots: studio-uploaded images attached to the Deliver
   // section. Distinct from `refinement_cycle_screens` (which is the client's
   // scope list) — these are the visual artifacts the studio sends back.
@@ -1750,6 +1789,26 @@ export async function ensureSchema(): Promise<void> {
     ALTER TABLE refinement_cycles
     ADD COLUMN IF NOT EXISTS last_edited_by text
       REFERENCES accounts(id) ON DELETE SET NULL
+  `);
+
+  // Whether the cycle requires a deposit at acceptance (legacy deposit flow)
+  // or is pay-on-delivery (default). Admin sets this in the Adjust pricing
+  // panel before acceptance. Backfill any historical rows that show signs of
+  // having gone through the deposit flow so existing cycles keep behaving
+  // correctly.
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS requires_deposit boolean NOT NULL DEFAULT false
+  `);
+  await pool.query(`
+    UPDATE refinement_cycles
+    SET requires_deposit = true
+    WHERE requires_deposit = false
+      AND (
+        stripe_deposit_invoice_id IS NOT NULL
+        OR deposit_paid_at IS NOT NULL
+        OR status = 'awaiting_deposit'
+      )
   `);
 
   // One-off: cycle 6b4728a0-... was accepted under the old deposit flow but

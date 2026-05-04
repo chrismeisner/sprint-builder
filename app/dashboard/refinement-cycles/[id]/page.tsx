@@ -7,11 +7,19 @@ import type { RefinementCycleStatus } from "@/lib/refinementCycle";
 
 export const dynamic = "force-dynamic";
 
+export type CycleScreenAttachment = {
+  id: string;
+  fileUrl: string;
+  filename: string | null;
+  mimetype: string | null;
+  sortOrder: number;
+};
+
 export type CycleScreen = {
   id: string;
   name: string | null;
   notes: string | null;
-  screenshotUrl: string | null;
+  attachments: CycleScreenAttachment[];
   addedBy: "client" | "admin";
   adminNote: string | null;
   sortOrder: number;
@@ -64,6 +72,7 @@ export type CycleDetail = {
   totalPrice: number;
   depositAmount: number;
   finalAmount: number;
+  requiresDeposit: boolean;
   preferredDeliveryDate: string | null;
   deliveryDate: string | null;
   submittedAt: string;
@@ -145,7 +154,7 @@ export default async function RefinementCycleReviewPage({
 
   const screensRes = await pool.query(
     `
-    SELECT id, name, notes, screenshot_url, added_by, admin_note,
+    SELECT id, name, notes, added_by, admin_note,
            sort_order, created_at
     FROM refinement_cycle_screens
     WHERE refinement_cycle_id = $1
@@ -154,11 +163,36 @@ export default async function RefinementCycleReviewPage({
     [params.id]
   );
 
+  const screenIds = screensRes.rows.map((r) => r.id as string);
+  const attachmentsByScreenId: Record<string, CycleScreenAttachment[]> = {};
+  if (screenIds.length > 0) {
+    const screenAttachRes = await pool.query(
+      `
+      SELECT id, screen_id, file_url, filename, mimetype, sort_order
+      FROM refinement_cycle_screen_attachments
+      WHERE screen_id = ANY($1::text[])
+      ORDER BY sort_order ASC, created_at ASC
+      `,
+      [screenIds]
+    );
+    for (const r of screenAttachRes.rows) {
+      const sid = r.screen_id as string;
+      if (!attachmentsByScreenId[sid]) attachmentsByScreenId[sid] = [];
+      attachmentsByScreenId[sid].push({
+        id: r.id as string,
+        fileUrl: r.file_url as string,
+        filename: (r.filename as string | null) ?? null,
+        mimetype: (r.mimetype as string | null) ?? null,
+        sortOrder: Number(r.sort_order ?? 0),
+      });
+    }
+  }
+
   const screens: CycleScreen[] = screensRes.rows.map((s) => ({
     id: s.id as string,
     name: (s.name as string | null) ?? null,
     notes: (s.notes as string | null) ?? null,
-    screenshotUrl: (s.screenshot_url as string | null) ?? null,
+    attachments: attachmentsByScreenId[s.id as string] ?? [],
     addedBy: (s.added_by as "client" | "admin") ?? "client",
     adminNote: (s.admin_note as string | null) ?? null,
     sortOrder: Number(s.sort_order ?? 0),
@@ -267,6 +301,7 @@ export default async function RefinementCycleReviewPage({
     totalPrice: Number(row.total_price ?? 1200),
     depositAmount: Number(row.deposit_amount ?? 600),
     finalAmount: Number(row.final_amount ?? 600),
+    requiresDeposit: Boolean(row.requires_deposit),
     preferredDeliveryDate:
       row.preferred_delivery_date instanceof Date
         ? row.preferred_delivery_date.toISOString().slice(0, 10)

@@ -1255,6 +1255,13 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
   deliveryDate: string | null;
   totalPrice: number;
   calBookingUrl: string | null;
+  // Deposit-flow extras. When `requiresDeposit` is true the email shows a
+  // "Pay deposit" CTA + amount breakdown; otherwise it falls back to the
+  // pay-on-delivery copy.
+  requiresDeposit?: boolean;
+  depositAmount?: number;
+  finalAmount?: number;
+  stripeDepositInvoiceUrl?: string | null;
 }): { subject: string; text: string; html: string } {
   const project = projectLabel(params.projectName, params.projectEmoji);
   const deliveryLine = params.deliveryDate
@@ -1262,6 +1269,11 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
     : "the next business day";
   const titlePart = params.title ? `${params.title} — ` : "";
   const subject = `${titlePart}Refinement cycle accepted — delivery ${deliveryLine}`;
+
+  const requiresDeposit = Boolean(params.requiresDeposit);
+  const depositAmount = params.depositAmount ?? 0;
+  const finalAmount = params.finalAmount ?? params.totalPrice;
+  const depositUrl = params.stripeDepositInvoiceUrl ?? null;
 
   const textLines: string[] = [];
   textLines.push(`Your refinement cycle has been accepted.`);
@@ -1276,9 +1288,24 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
     textLines.push("");
   }
   textLines.push(`Delivery target: ${deliveryLine} at 6pm ET.`);
-  textLines.push(
-    `Total: ${formatUsd(params.totalPrice)} — invoiced on delivery, no deposit needed.`
-  );
+  if (requiresDeposit) {
+    textLines.push(
+      `Total: ${formatUsd(params.totalPrice)} — ${formatUsd(depositAmount)} deposit due before we start, ${formatUsd(finalAmount)} on delivery.`
+    );
+    if (depositUrl) {
+      textLines.push("");
+      textLines.push(`Pay deposit: ${depositUrl}`);
+    } else {
+      textLines.push("");
+      textLines.push(
+        "Deposit invoice is on the way — we'll send it shortly."
+      );
+    }
+  } else {
+    textLines.push(
+      `Total: ${formatUsd(params.totalPrice)} — invoiced on delivery, no deposit needed.`
+    );
+  }
   if (params.calBookingUrl) {
     textLines.push("");
     textLines.push(
@@ -1286,6 +1313,19 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
     );
     textLines.push(params.calBookingUrl);
   }
+
+  const totalLine = requiresDeposit
+    ? `<p style="margin:0 0 16px;"><strong>Total:</strong> ${formatUsd(params.totalPrice)} — ${formatUsd(depositAmount)} deposit due before we start, ${formatUsd(finalAmount)} on delivery.</p>`
+    : `<p style="margin:0 0 16px;"><strong>Total:</strong> ${formatUsd(params.totalPrice)} — invoiced on delivery, no deposit needed.</p>`;
+
+  const depositBlock = requiresDeposit
+    ? depositUrl
+      ? `<p style="margin:24px 0 8px;"><strong>Pay deposit</strong></p>
+<p style="margin:0 0 16px;">Once we receive your ${formatUsd(depositAmount)} deposit, we'll get started on your cycle.</p>
+${linkButton(depositUrl, "Pay deposit invoice")}`
+      : `<p style="margin:24px 0 8px;"><strong>Pay deposit</strong></p>
+<p style="margin:0 0 16px;">Your ${formatUsd(depositAmount)} deposit invoice is on the way — we'll send it shortly.</p>`
+    : "";
 
   const html = emailShell(`
 <p style="margin:0 0 16px;">Your refinement cycle for <strong>${project}</strong> has been accepted.</p>
@@ -1297,7 +1337,8 @@ ${
 }
 ${attachmentBlock(params.studioAttachmentUrl)}
 <p style="margin:0 0 8px;"><strong>Delivery target:</strong> ${escapeHtml(deliveryLine)} at 6pm ET</p>
-<p style="margin:0 0 16px;"><strong>Total:</strong> ${formatUsd(params.totalPrice)} — invoiced on delivery, no deposit needed.</p>
+${totalLine}
+${depositBlock}
 ${
   params.calBookingUrl
     ? `<p style="margin:24px 0 8px;"><strong>Optional check-in</strong></p>

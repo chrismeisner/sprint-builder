@@ -53,13 +53,6 @@ export async function PATCH(request: Request, { params }: Params) {
         { status: 403 }
       );
     }
-    if (row.status !== "submitted") {
-      return NextResponse.json(
-        { error: "Scope is locked once the cycle is accepted or declined" },
-        { status: 409 }
-      );
-    }
-
     const body = (await request.json().catch(() => ({}))) as {
       whatsWorking?: unknown;
       whatsNotWorking?: unknown;
@@ -67,7 +60,42 @@ export async function PATCH(request: Request, { params }: Params) {
       totalPrice?: unknown;
       depositAmount?: unknown;
       finalAmount?: unknown;
+      requiresDeposit?: unknown;
     };
+
+    // Most fields lock once the cycle leaves `submitted`. The deposit-required
+    // flag is the exception: admins can flip it while the cycle is still in
+    // `submitted` (controls the upcoming acceptance email) or `in_progress`
+    // (record-keeping; runtime billing is keyed off `deposit_paid_at`, which
+    // protects against accidental double/under-billing).
+    const wantsLockedFieldUpdate =
+      "whatsWorking" in body ||
+      "whatsNotWorking" in body ||
+      "successLooksLike" in body ||
+      "totalPrice" in body ||
+      "depositAmount" in body ||
+      "finalAmount" in body;
+    const wantsRequiresDepositUpdate = "requiresDeposit" in body;
+
+    if (wantsLockedFieldUpdate && row.status !== "submitted") {
+      return NextResponse.json(
+        { error: "Scope is locked once the cycle is accepted or declined" },
+        { status: 409 }
+      );
+    }
+    if (
+      wantsRequiresDepositUpdate &&
+      row.status !== "submitted" &&
+      row.status !== "in_progress"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Deposit setting can only be changed while the cycle is submitted or in progress",
+        },
+        { status: 409 }
+      );
+    }
 
     const sets: string[] = [];
     const vals: unknown[] = [];
@@ -131,6 +159,20 @@ export async function PATCH(request: Request, { params }: Params) {
       vals.push(deposit);
       sets.push(`final_amount = $${pidx++}`);
       vals.push(final);
+    }
+
+    // Admin-only deposit-required toggle. Determines whether acceptance
+    // generates a Stripe deposit invoice (legacy flow) or moves straight to
+    // in-progress pay-on-delivery (default).
+    if ("requiresDeposit" in body) {
+      if (!isAdmin) {
+        return NextResponse.json(
+          { error: "Only admins can change the deposit setting" },
+          { status: 403 }
+        );
+      }
+      sets.push(`requires_deposit = $${pidx++}`);
+      vals.push(Boolean(body.requiresDeposit));
     }
 
     if (sets.length === 0) {

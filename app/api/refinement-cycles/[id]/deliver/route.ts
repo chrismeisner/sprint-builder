@@ -40,11 +40,30 @@ export async function POST(request: Request, { params }: Params) {
       figmaFileUrl?: unknown;
       loomWalkthroughUrl?: unknown;
       engineeringNotes?: unknown;
+      invoiceAmountOverride?: unknown;
+      invoiceDescriptionOverride?: unknown;
     };
 
     const figmaFileUrl = clipUrl(body.figmaFileUrl);
     const loomWalkthroughUrl = clipUrl(body.loomWalkthroughUrl);
     const engineeringNotes = clipText(body.engineeringNotes);
+
+    let invoiceAmountOverride: number | null = null;
+    if (body.invoiceAmountOverride !== undefined && body.invoiceAmountOverride !== null && body.invoiceAmountOverride !== "") {
+      const n = Number(body.invoiceAmountOverride);
+      if (!Number.isFinite(n) || n < 0) {
+        return NextResponse.json(
+          { error: "Invoice amount must be a non-negative number" },
+          { status: 400 }
+        );
+      }
+      invoiceAmountOverride = n;
+    }
+    const invoiceDescriptionOverride =
+      typeof body.invoiceDescriptionOverride === "string" &&
+      body.invoiceDescriptionOverride.trim()
+        ? body.invoiceDescriptionOverride.trim().slice(0, 200)
+        : null;
 
     const pool = getPool();
     const result = await pool.query(
@@ -84,6 +103,8 @@ export async function POST(request: Request, { params }: Params) {
       figmaFileUrl,
       loomWalkthroughUrl,
       engineeringNotes,
+      invoiceAmountOverride,
+      invoiceDescriptionOverride,
     });
 
     return NextResponse.json({

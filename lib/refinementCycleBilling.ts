@@ -75,6 +75,7 @@ type CycleBillingContext = {
     deposit_paid_at: string | null;
     cc_emails: string[];
     created_by: string | null;
+    requires_deposit: boolean;
   };
   project: {
     id: string;
@@ -94,7 +95,7 @@ async function loadCycleContext(
            rc.studio_review_note, rc.studio_review_attachment_url,
            rc.stripe_deposit_invoice_url,
            rc.deposit_amount, rc.final_amount, rc.total_price,
-           rc.deposit_paid_at,
+           rc.deposit_paid_at, rc.requires_deposit,
            rc.cc_emails, rc.created_by,
            p.name AS project_name, p.emoji AS project_emoji,
            p.account_id AS project_account_id
@@ -132,6 +133,7 @@ async function loadCycleContext(
         : null,
       cc_emails: Array.isArray(row.cc_emails) ? (row.cc_emails as string[]) : [],
       created_by: (row.created_by as string | null) ?? null,
+      requires_deposit: Boolean(row.requires_deposit),
     },
     project: {
       id: row.project_id as string,
@@ -156,7 +158,8 @@ async function createCycleStripeInvoice(
   pool: Pool,
   ctx: CycleBillingContext,
   kind: "deposit" | "final",
-  amount: number
+  amount: number,
+  descriptionOverride?: string | null
 ): Promise<StripeInvoiceResult | null> {
   if (!process.env.STRIPE_SECRET_KEY) {
     console.warn(
@@ -179,7 +182,11 @@ async function createCycleStripeInvoice(
     billingAccountId
   );
 
-  const description = `Refinement Cycle ${kind === "deposit" ? "deposit" : "final"} — ${ctx.project.name ?? ctx.cycle.project_id}`;
+  const defaultDescription = `Refinement Cycle ${kind === "deposit" ? "deposit" : "final"} — ${ctx.project.name ?? ctx.cycle.project_id}`;
+  const description =
+    descriptionOverride && descriptionOverride.trim()
+      ? descriptionOverride.trim()
+      : defaultDescription;
   const dueDateUnix =
     Math.floor(Date.now() / 1000) +
     REFINEMENT_CYCLE_PAYMENT_DUE_BUFFER_DAYS * 86400;
@@ -364,9 +371,11 @@ export async function onCycleSubmitted(cycleId: string): Promise<void> {
   }
 }
 
-// Sends the acceptance email. Pay-on-delivery: no deposit invoice exists at
-// this point, so the email confirms the delivery date but contains no
-// payment link. The full invoice goes out when the cycle is delivered.
+// Sends the acceptance email. By default this is the pay-on-delivery flow:
+// no Stripe invoice is created here and the email contains no payment link.
+// If the cycle was flagged as requiring a deposit, we create the deposit
+// invoice now and include the "Pay deposit" link in the email — the legacy
+// flow.
 export async function onCycleAccepted(cycleId: string): Promise<void> {
   try {
     const pool = getPool();
@@ -378,6 +387,31 @@ export async function onCycleAccepted(cycleId: string): Promise<void> {
       ctx.cycle.delivery_date
     );
 
+    // If the cycle requires a deposit, generate the Stripe invoice now and
+    // persist the URL so it can be included in the acceptance email and
+    // surfaced in the dashboard. Failures are non-fatal — the admin can hit
+    // "Regenerate deposit invoice" later to retry.
+    let depositInvoiceUrl: string | null = null;
+    if (ctx.cycle.requires_deposit) {
+      try {
+        const invoice = await createDepositInvoiceForCycle(cycleId);
+        depositInvoiceUrl = invoice.hostedInvoiceUrl;
+        await pool.query(
+          `UPDATE refinement_cycles
+           SET stripe_deposit_invoice_id = $2,
+               stripe_deposit_invoice_url = $3,
+               updated_at = now()
+           WHERE id = $1`,
+          [cycleId, invoice.stripeInvoiceId, invoice.hostedInvoiceUrl]
+        );
+      } catch (err) {
+        console.error(
+          `[RefinementCycleBilling] deposit invoice creation failed at acceptance (cycle=${cycleId}):`,
+          err
+        );
+      }
+    }
+
     try {
       const content = generateRefinementCycleAcceptedClientEmail({
         title: ctx.cycle.title,
@@ -388,6 +422,10 @@ export async function onCycleAccepted(cycleId: string): Promise<void> {
         deliveryDate: ctx.cycle.delivery_date,
         totalPrice: ctx.cycle.total_price,
         calBookingUrl,
+        requiresDeposit: ctx.cycle.requires_deposit,
+        depositAmount: ctx.cycle.deposit_amount,
+        finalAmount: ctx.cycle.final_amount,
+        stripeDepositInvoiceUrl: depositInvoiceUrl,
       });
       await sendEmail({
         to: ctx.cycle.submitter_email,
@@ -547,6 +585,8 @@ type DeliverPayload = {
   figmaFileUrl?: string | null;
   loomWalkthroughUrl?: string | null;
   engineeringNotes?: string | null;
+  invoiceAmountOverride?: number | null;
+  invoiceDescriptionOverride?: string | null;
 };
 
 export async function onCycleDelivered(
@@ -561,18 +601,25 @@ export async function onCycleDelivered(
 
     // Pay-on-delivery: legacy cycles (deposit already cleared) only owe the
     // remaining final_amount. Cycles created under the new pay-on-delivery
-    // flow owe the full total_price at delivery.
+    // flow owe the full total_price at delivery. Admin can override either
+    // the amount or the line-item description at deliver time.
     const isLegacyDepositFlow = ctx.cycle.deposit_paid_at !== null;
-    const billedAmount = isLegacyDepositFlow
+    const defaultAmount = isLegacyDepositFlow
       ? ctx.cycle.final_amount
       : ctx.cycle.total_price;
+    const billedAmount =
+      typeof payload.invoiceAmountOverride === "number" &&
+      payload.invoiceAmountOverride >= 0
+        ? payload.invoiceAmountOverride
+        : defaultAmount;
 
     try {
       stripeResult = await createCycleStripeInvoice(
         pool,
         ctx,
         "final",
-        billedAmount
+        billedAmount,
+        payload.invoiceDescriptionOverride ?? null
       );
     } catch (err) {
       console.error(

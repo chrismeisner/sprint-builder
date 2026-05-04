@@ -60,7 +60,6 @@ export async function POST(request: Request, { params }: Params) {
       name?: unknown;
       notes?: unknown;
       adminNote?: unknown;
-      screenshotUrl?: unknown;
     };
 
     const name = clipText(body.name);
@@ -68,10 +67,6 @@ export async function POST(request: Request, { params }: Params) {
     // Submitter-added screens never carry an admin_note (it's a studio-only
     // annotation). Ignore the field if the caller isn't an admin.
     const adminNote = isAdmin ? clipText(body.adminNote) : null;
-    const screenshotUrl =
-      typeof body.screenshotUrl === "string" && body.screenshotUrl.trim()
-        ? body.screenshotUrl.trim().slice(0, 1000)
-        : null;
     const addedBy: "client" | "admin" = isAdmin ? "admin" : "client";
 
     const sortRes = await pool.query(
@@ -86,13 +81,13 @@ export async function POST(request: Request, { params }: Params) {
     const insertRes = await pool.query(
       `
       INSERT INTO refinement_cycle_screens (
-        id, refinement_cycle_id, name, notes, screenshot_url,
+        id, refinement_cycle_id, name, notes,
         added_by, admin_note, sort_order
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING id, name, notes, screenshot_url, added_by, admin_note,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id, name, notes, added_by, admin_note,
                 sort_order, created_at
       `,
-      [id, params.id, name, notes, screenshotUrl, addedBy, adminNote, sortOrder]
+      [id, params.id, name, notes, addedBy, adminNote, sortOrder]
     );
 
     // Stamp the parent cycle's last-edited fields so the studio sees the
@@ -113,7 +108,7 @@ export async function POST(request: Request, { params }: Params) {
           id: row.id as string,
           name: (row.name as string | null) ?? null,
           notes: (row.notes as string | null) ?? null,
-          screenshotUrl: (row.screenshot_url as string | null) ?? null,
+          attachments: [],
           addedBy: row.added_by as "client" | "admin",
           adminNote: (row.admin_note as string | null) ?? null,
           sortOrder: Number(row.sort_order ?? 0),

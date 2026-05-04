@@ -294,11 +294,19 @@ export async function POST(request: Request) {
       for (const s of screenInserts) {
         await client.query(
           `INSERT INTO refinement_cycle_screens (
-             id, refinement_cycle_id, name, notes, screenshot_url,
+             id, refinement_cycle_id, name, notes,
              added_by, sort_order
-           ) VALUES ($1, $2, $3, $4, $5, 'client', $6)`,
-          [s.id, cycleId, s.name, s.notes, s.screenshotUrl, s.sortOrder]
+           ) VALUES ($1, $2, $3, $4, 'client', $5)`,
+          [s.id, cycleId, s.name, s.notes, s.sortOrder]
         );
+        if (s.screenshotUrl) {
+          await client.query(
+            `INSERT INTO refinement_cycle_screen_attachments (
+               id, screen_id, file_url, sort_order
+             ) VALUES ($1, $2, $3, 0)`,
+            [randomUUID(), s.id, s.screenshotUrl]
+          );
+        }
       }
 
       await client.query("COMMIT");

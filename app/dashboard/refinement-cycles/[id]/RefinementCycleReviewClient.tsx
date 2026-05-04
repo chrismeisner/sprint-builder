@@ -10,6 +10,7 @@ import { statusVisuals } from "@/lib/refinementCycle";
 import type {
   CycleDetail,
   CycleScreen,
+  CycleScreenAttachment,
   CycleDeliverableScreenshot,
   CycleNote,
 } from "./page";
@@ -134,6 +135,14 @@ export default function RefinementCycleReviewClient({
   // for a belt-and-suspenders guard on this irreversible action.
   const [deliverAck, setDeliverAck] = useState(false);
 
+  // Optional admin overrides for the final Stripe invoice. Defaults match the
+  // server's behavior when these are blank.
+  const defaultBilledAmount =
+    cycle.depositPaidAt != null ? cycle.finalAmount : cycle.totalPrice;
+  const [invoiceAmountOverride, setInvoiceAmountOverride] = useState("");
+  const [invoiceDescriptionOverride, setInvoiceDescriptionOverride] =
+    useState("");
+
   // Submitter can also edit while the cycle is still in `submitted`. The
   // server enforces the same rule; this gate just controls the affordances.
   const isEditable =
@@ -155,6 +164,7 @@ export default function RefinementCycleReviewClient({
       totalPrice?: number;
       depositAmount?: number;
       finalAmount?: number;
+      requiresDeposit?: boolean;
     }
   ) {
     if (!isEditable) return;
@@ -183,6 +193,37 @@ export default function RefinementCycleReviewClient({
   );
   const [priceFinal, setPriceFinal] = useState(String(cycle.finalAmount));
   const [savingPrice, setSavingPrice] = useState(false);
+  const [requiresDeposit, setRequiresDeposit] = useState(cycle.requiresDeposit);
+  const [savingRequiresDeposit, setSavingRequiresDeposit] = useState(false);
+
+  async function toggleRequiresDeposit(next: boolean) {
+    if (
+      !isAdmin ||
+      (cycle.status !== "submitted" && cycle.status !== "in_progress")
+    ) {
+      return;
+    }
+    const previous = requiresDeposit;
+    setRequiresDeposit(next);
+    setSavingRequiresDeposit(true);
+    try {
+      const res = await fetch(`/api/refinement-cycles/${cycle.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requiresDeposit: next }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update deposit setting");
+      }
+      router.refresh();
+    } catch (err) {
+      setRequiresDeposit(previous);
+      showToast((err as Error).message, "error");
+    } finally {
+      setSavingRequiresDeposit(false);
+    }
+  }
 
   const parsedTotal = Number(priceTotal);
   const parsedDeposit = Number(priceDeposit);
@@ -292,6 +333,56 @@ export default function RefinementCycleReviewClient({
       return;
     }
     setScreens((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  async function uploadScreenAttachments(screenId: string, files: File[]) {
+    if (!isEditable || files.length === 0) return;
+    const fd = new FormData();
+    for (const f of files) fd.append("files", f);
+    const res = await fetch(
+      `/api/refinement-cycles/${cycle.id}/screens/${screenId}/attachments`,
+      { method: "POST", body: fd }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.error || "Upload failed", "error");
+      return;
+    }
+    const json = (await res.json()) as { attachments: CycleScreenAttachment[] };
+    setScreens((prev) =>
+      prev.map((s) =>
+        s.id === screenId
+          ? { ...s, attachments: [...s.attachments, ...json.attachments] }
+          : s
+      )
+    );
+  }
+
+  async function deleteScreenAttachment(
+    screenId: string,
+    attachmentId: string
+  ) {
+    if (!isEditable) return;
+    if (!window.confirm("Remove this attachment?")) return;
+    const res = await fetch(
+      `/api/refinement-cycles/${cycle.id}/screens/${screenId}/attachments/${attachmentId}`,
+      { method: "DELETE" }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.error || "Failed to remove attachment", "error");
+      return;
+    }
+    setScreens((prev) =>
+      prev.map((s) =>
+        s.id === screenId
+          ? {
+              ...s,
+              attachments: s.attachments.filter((a) => a.id !== attachmentId),
+            }
+          : s
+      )
+    );
   }
 
   async function uploadAttachment(file: File) {
@@ -502,6 +593,11 @@ export default function RefinementCycleReviewClient({
     }
     setBusy("deliver");
     try {
+      const trimmedAmt = invoiceAmountOverride.trim();
+      const parsedAmt = trimmedAmt === "" ? null : Number(trimmedAmt);
+      if (parsedAmt !== null && (!Number.isFinite(parsedAmt) || parsedAmt < 0)) {
+        throw new Error("Invoice amount must be a non-negative number");
+      }
       const res = await fetch(`/api/refinement-cycles/${cycle.id}/deliver`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -509,6 +605,9 @@ export default function RefinementCycleReviewClient({
           figmaFileUrl: figmaFileUrl.trim() || null,
           loomWalkthroughUrl: loomWalkthroughUrl.trim() || null,
           engineeringNotes: engineeringNotes.trim() || null,
+          invoiceAmountOverride: parsedAmt,
+          invoiceDescriptionOverride:
+            invoiceDescriptionOverride.trim() || null,
         }),
       });
       if (!res.ok) {
@@ -720,6 +819,44 @@ export default function RefinementCycleReviewClient({
         </section>
       )}
 
+      {cycle.status === "in_progress" && isAdmin && (
+        <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
+          <Typography as="h2" scale="heading-md">
+            Deposit setting
+          </Typography>
+          <Typography scale="body-sm" className="text-text-secondary">
+            Adjust whether this cycle is recorded as deposit-flow or
+            pay-on-delivery. Final invoice amount at delivery is determined by
+            whether a deposit was actually paid (
+            {cycle.depositPaidAt ? "yes" : "no"}), so flipping this is a
+            record-keeping change — it does not regenerate or void any
+            invoices.
+          </Typography>
+          <label className="flex items-start gap-2 rounded-md border border-stroke-muted bg-background p-3">
+            <input
+              type="checkbox"
+              checked={requiresDeposit}
+              onChange={(e) => toggleRequiresDeposit(e.target.checked)}
+              disabled={savingRequiresDeposit}
+              className="mt-1 h-4 w-4"
+            />
+            <span>
+              <Typography scale="body-sm" as="span" className="font-semibold">
+                Required deposit at acceptance
+              </Typography>
+              <Typography scale="body-sm" className="text-text-secondary">
+                Reflects whether this cycle was set up to require a deposit.
+              </Typography>
+              {savingRequiresDeposit && (
+                <Typography scale="body-sm" className="text-text-secondary">
+                  Saving…
+                </Typography>
+              )}
+            </span>
+          </label>
+        </section>
+      )}
+
       {cycle.status === "submitted" && isAdmin && (
         <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
           <Typography as="h2" scale="heading-md">
@@ -729,6 +866,34 @@ export default function RefinementCycleReviewClient({
             Override the rate for this cycle only. Past cycles are unaffected
             because pricing is frozen on each cycle row.
           </Typography>
+          <label className="flex items-start gap-2 rounded-md border border-stroke-muted bg-background p-3">
+            <input
+              type="checkbox"
+              checked={requiresDeposit}
+              onChange={(e) => toggleRequiresDeposit(e.target.checked)}
+              disabled={savingRequiresDeposit}
+              className="mt-1 h-4 w-4"
+            />
+            <span>
+              <Typography scale="body-sm" as="span" className="font-semibold">
+                Require deposit at acceptance
+              </Typography>
+              <Typography scale="body-sm" className="text-text-secondary">
+                When checked, accepting this cycle generates a Stripe deposit
+                invoice ({(requiresDeposit ? cycle.depositAmount : Number(priceDeposit) || cycle.depositAmount).toLocaleString("en-US", { style: "currency", currency: "USD" })}) and the
+                acceptance email includes a &ldquo;Pay deposit&rdquo; link
+                alongside the check-in scheduler. The remaining{" "}
+                {(requiresDeposit ? cycle.finalAmount : Number(priceFinal) || cycle.finalAmount).toLocaleString("en-US", { style: "currency", currency: "USD" })}{" "}
+                is invoiced on delivery. Leave unchecked for pay-on-delivery
+                (single invoice for the full total at delivery).
+              </Typography>
+              {savingRequiresDeposit && (
+                <Typography scale="body-sm" className="text-text-secondary">
+                  Saving…
+                </Typography>
+              )}
+            </span>
+          </label>
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="flex flex-col gap-1">
               <Typography scale="body-sm" as="span" className="font-semibold">
@@ -1080,6 +1245,12 @@ export default function RefinementCycleReviewClient({
                   }
                 }}
                 onDelete={() => deleteScreen(s.id)}
+                onUploadAttachments={(files) =>
+                  uploadScreenAttachments(s.id, files)
+                }
+                onDeleteAttachment={(attachmentId) =>
+                  deleteScreenAttachment(s.id, attachmentId)
+                }
               />
             ))}
           </div>
@@ -1369,6 +1540,58 @@ export default function RefinementCycleReviewClient({
                 )}
               </div>
               <div className="border-t border-stroke-muted pt-3 space-y-3">
+                <div className="rounded-md border border-stroke-muted bg-background p-3 space-y-2">
+                  <Typography scale="body-sm" className="font-semibold">
+                    Final invoice (optional override)
+                  </Typography>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="block">
+                      <Typography
+                        scale="body-sm"
+                        as="span"
+                        className="text-text-secondary"
+                      >
+                        Amount (USD)
+                      </Typography>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
+                        value={invoiceAmountOverride}
+                        onChange={(e) =>
+                          setInvoiceAmountOverride(e.target.value)
+                        }
+                        placeholder={String(defaultBilledAmount)}
+                        className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+                      />
+                    </label>
+                    <label className="block">
+                      <Typography
+                        scale="body-sm"
+                        as="span"
+                        className="text-text-secondary"
+                      >
+                        Line item description
+                      </Typography>
+                      <input
+                        type="text"
+                        value={invoiceDescriptionOverride}
+                        onChange={(e) =>
+                          setInvoiceDescriptionOverride(e.target.value)
+                        }
+                        placeholder={`Refinement Cycle final — ${cycle.projectName ?? cycle.projectId}`}
+                        maxLength={200}
+                        className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+                      />
+                    </label>
+                  </div>
+                  <Typography scale="body-sm" className="text-text-secondary">
+                    Leave blank to use the defaults shown above. Overrides only
+                    apply to the invoice generated when you press Mark
+                    delivered.
+                  </Typography>
+                </div>
                 <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
                   <Typography scale="body-sm" className="font-semibold">
                     Marking delivered will email the client and is irreversible.
@@ -1386,13 +1609,19 @@ export default function RefinementCycleReviewClient({
                     </li>
                     <li>
                       Generates a Stripe final invoice for{" "}
-                      {(cycle.depositPaidAt
-                        ? cycle.finalAmount
-                        : cycle.totalPrice
-                      ).toLocaleString("en-US", {
-                        style: "currency",
-                        currency: "USD",
-                      })}{" "}
+                      {(() => {
+                        const override = Number(invoiceAmountOverride);
+                        const amount =
+                          invoiceAmountOverride.trim() &&
+                          Number.isFinite(override) &&
+                          override >= 0
+                            ? override
+                            : defaultBilledAmount;
+                        return amount.toLocaleString("en-US", {
+                          style: "currency",
+                          currency: "USD",
+                        });
+                      })()}{" "}
                       and includes the payment link in the email.
                     </li>
                     <li>Moves the cycle to <em>Awaiting payment</em>.</li>
@@ -1782,16 +2011,24 @@ function ScreenCard({
   editable,
   onPatch,
   onDelete,
+  onUploadAttachments,
+  onDeleteAttachment,
 }: {
   screen: CycleScreen;
   editable: boolean;
   onPatch: (patch: Partial<CycleScreen>) => Promise<void>;
   onDelete: () => void | Promise<void>;
+  onUploadAttachments: (files: File[]) => Promise<void>;
+  onDeleteAttachment: (attachmentId: string) => Promise<void>;
 }) {
   const [name, setName] = useState(screen.name ?? "");
   const [notes, setNotes] = useState(screen.notes ?? "");
   const [adminNote, setAdminNote] = useState(screen.adminNote ?? "");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<
+    string | null
+  >(null);
 
   async function commit(patch: Partial<CycleScreen>) {
     setSaving(true);
@@ -1887,19 +2124,79 @@ function ScreenCard({
         </>
       )}
 
-      {screen.screenshotUrl && (
-        <a
-          href={screen.screenshotUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="block"
-        >
-          <img
-            src={screen.screenshotUrl}
-            alt={screen.name ?? "Screenshot"}
-            className="max-h-64 rounded border border-stroke-muted"
-          />
-        </a>
+      {screen.attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {screen.attachments.map((a) => {
+            const isImage =
+              a.mimetype == null || a.mimetype.startsWith("image/");
+            return (
+              <div key={a.id} className="relative">
+                {isImage ? (
+                  <a href={a.fileUrl} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={a.fileUrl}
+                      alt={a.filename ?? screen.name ?? "Screenshot"}
+                      className="max-h-48 rounded border border-stroke-muted"
+                    />
+                  </a>
+                ) : (
+                  <a
+                    href={a.fileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block rounded border border-stroke-muted bg-background px-2 py-1 text-sm underline"
+                  >
+                    {a.filename ?? "Attachment"}
+                  </a>
+                )}
+                {editable && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setDeletingAttachmentId(a.id);
+                      try {
+                        await onDeleteAttachment(a.id);
+                      } finally {
+                        setDeletingAttachmentId(null);
+                      }
+                    }}
+                    disabled={deletingAttachmentId === a.id}
+                    className="absolute right-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-xs text-white hover:bg-black disabled:opacity-50"
+                  >
+                    {deletingAttachmentId === a.id ? "…" : "×"}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {editable && (
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="cursor-pointer text-sm underline text-text-secondary hover:text-text-primary">
+            <input
+              type="file"
+              multiple
+              accept="image/png,image/jpeg,image/gif,image/webp,application/pdf"
+              disabled={uploading}
+              onChange={async (e) => {
+                const picked = Array.from(e.target.files ?? []);
+                e.target.value = "";
+                if (picked.length === 0) return;
+                setUploading(true);
+                try {
+                  await onUploadAttachments(picked);
+                } finally {
+                  setUploading(false);
+                }
+              }}
+              className="hidden"
+            />
+            {uploading ? "Uploading…" : "Add attachment"}
+          </label>
+        </div>
       )}
 
       {saving && (

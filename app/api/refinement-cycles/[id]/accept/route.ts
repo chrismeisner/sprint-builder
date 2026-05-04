@@ -55,13 +55,17 @@ export async function POST(request: Request, { params }: Params) {
 
     const pool = getPool();
 
-    // Pay-on-delivery: acceptance commits the studio to the work and the
-    // delivery date. No Stripe invoice is created here — the full invoice
-    // is generated when the cycle is delivered.
+    // The next status depends on whether the admin marked this cycle as
+    // requiring a deposit:
+    //   requires_deposit = true  → awaiting_deposit (legacy flow; deposit
+    //     invoice is created in onCycleAccepted and emailed alongside the
+    //     acceptance confirmation).
+    //   requires_deposit = false → in_progress (pay-on-delivery; full
+    //     invoice is created when the cycle is delivered).
     const result = await pool.query(
       `
       UPDATE refinement_cycles
-      SET status = 'in_progress',
+      SET status = CASE WHEN requires_deposit THEN 'awaiting_deposit' ELSE 'in_progress' END,
           accepted_at = now(),
           accepted_by = $2,
           studio_review_note = $3,
