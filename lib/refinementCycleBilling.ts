@@ -35,7 +35,7 @@ const CAL_BOOKING_URLS_BY_DOW: Record<number, string> = {
   5: "https://cal.com/chrismeisner/friday-morning",
 };
 
-function getCalBookingUrlForDeliveryDate(
+export function getCalBookingUrlForDeliveryDate(
   deliveryDate: string | null
 ): string | null {
   if (!deliveryDate) return null;

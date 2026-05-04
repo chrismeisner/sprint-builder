@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
@@ -757,6 +757,70 @@ export default function RefinementCycleReviewClient({
     }
   }
 
+  // Live preview of what Submit decision will do — recipients, email
+  // subject/body, and the side-effect bullets the server will run. Debounced
+  // so typing in the studio note doesn't hammer the API.
+  type DecisionPreview = {
+    decision: "accept" | "decline";
+    to: string | null;
+    cc: string[];
+    subject: string;
+    text: string;
+    sideEffects: string[];
+  };
+  const [decisionPreview, setDecisionPreview] =
+    useState<DecisionPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  useEffect(() => {
+    if (cycle.status !== "submitted" || !isAdmin || decision === null) {
+      setDecisionPreview(null);
+      return;
+    }
+    if (decision === "accept" && !deliveryDate) {
+      setDecisionPreview(null);
+      return;
+    }
+    let cancelled = false;
+    setPreviewLoading(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/refinement-cycles/${cycle.id}/decision-preview`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              decision,
+              deliveryDate: decision === "accept" ? deliveryDate : null,
+              studioReviewNote: reviewNote.trim() || null,
+              studioReviewAttachmentUrl: attachmentUrl,
+            }),
+          }
+        );
+        if (!res.ok || cancelled) return;
+        const json = (await res.json()) as DecisionPreview;
+        if (!cancelled) setDecisionPreview(json);
+      } catch {
+        // Soft-fail: preview is informational only.
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    cycle.id,
+    cycle.status,
+    isAdmin,
+    decision,
+    deliveryDate,
+    reviewNote,
+    attachmentUrl,
+  ]);
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 space-y-8">
       <header className="space-y-3">
@@ -1385,6 +1449,89 @@ export default function RefinementCycleReviewClient({
                   Client&rsquo;s preferred date:{" "}
                   {formatDate(cycle.preferredDeliveryDate)}
                 </Typography>
+              )}
+            </div>
+          )}
+
+          {decision !== null && (
+            <div className="rounded-md border border-stroke-muted bg-background p-3 space-y-2">
+              <Typography scale="body-sm" as="span" className="font-semibold">
+                Preview — what happens when you press Submit decision
+              </Typography>
+              {decisionPreview === null ? (
+                <Typography
+                  scale="body-sm"
+                  className="text-text-secondary italic"
+                >
+                  {previewLoading
+                    ? "Generating preview…"
+                    : decision === "accept" && !deliveryDate
+                      ? "Pick a delivery date to see the preview."
+                      : "Preview will appear once a decision is selected."}
+                </Typography>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <Typography
+                      scale="body-sm"
+                      as="span"
+                      className="font-semibold"
+                    >
+                      Recipients:
+                    </Typography>{" "}
+                    <span>
+                      {decisionPreview.to ?? "(no submitter email on file)"}
+                      {decisionPreview.cc.length > 0 &&
+                        ` (CC: ${decisionPreview.cc.join(", ")})`}
+                    </span>
+                  </div>
+                  <div>
+                    <Typography
+                      scale="body-sm"
+                      as="span"
+                      className="font-semibold"
+                    >
+                      Subject:
+                    </Typography>{" "}
+                    <span>{decisionPreview.subject}</span>
+                  </div>
+                  <div>
+                    <Typography
+                      scale="body-sm"
+                      as="span"
+                      className="font-semibold"
+                    >
+                      Body:
+                    </Typography>
+                    <pre className="mt-1 whitespace-pre-wrap rounded border border-stroke-muted bg-surface-subtle p-2 text-xs">
+                      {decisionPreview.text}
+                    </pre>
+                  </div>
+                  {decisionPreview.sideEffects.length > 0 && (
+                    <div>
+                      <Typography
+                        scale="body-sm"
+                        as="span"
+                        className="font-semibold"
+                      >
+                        Other:
+                      </Typography>
+                      <ul className="mt-1 list-disc pl-5 space-y-0.5">
+                        {decisionPreview.sideEffects.map((s, i) => (
+                          <li key={i}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {previewLoading && (
+                    <Typography
+                      scale="body-sm"
+                      className="text-text-secondary italic"
+                    >
+                      Refreshing…
+                    </Typography>
+                  )}
+                </div>
               )}
             </div>
           )}
