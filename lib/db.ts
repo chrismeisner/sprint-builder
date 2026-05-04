@@ -1499,7 +1499,7 @@ export async function ensureSchema(): Promise<void> {
       success_looks_like text,
 
       status text NOT NULL DEFAULT 'submitted'
-        CHECK (status IN ('submitted', 'accepted', 'awaiting_deposit', 'in_progress', 'delivered', 'declined', 'expired')),
+        CHECK (status IN ('submitted', 'accepted', 'awaiting_deposit', 'in_progress', 'awaiting_payment', 'delivered', 'declined', 'expired')),
       submitted_at timestamptz NOT NULL DEFAULT now(),
       accepted_at timestamptz,
       accepted_by text REFERENCES accounts(id) ON DELETE SET NULL,
@@ -1789,6 +1789,21 @@ export async function ensureSchema(): Promise<void> {
     ALTER TABLE refinement_cycles
     ADD COLUMN IF NOT EXISTS last_edited_by text
       REFERENCES accounts(id) ON DELETE SET NULL
+  `);
+
+  // The status check constraint was originally created without
+  // `awaiting_payment` (added later for the pay-on-delivery flow). Drop and
+  // re-add it so existing DBs (Heroku) accept transitions to that status.
+  // Idempotent — re-running drops the same name and re-creates with the
+  // current set.
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    DROP CONSTRAINT IF EXISTS refinement_cycles_status_check
+  `);
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD CONSTRAINT refinement_cycles_status_check
+    CHECK (status IN ('submitted', 'accepted', 'awaiting_deposit', 'in_progress', 'awaiting_payment', 'delivered', 'declined', 'expired'))
   `);
 
   // Whether the cycle requires a deposit at acceptance (legacy deposit flow)
