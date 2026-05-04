@@ -61,13 +61,15 @@ export async function PATCH(request: Request, { params }: Params) {
       depositAmount?: unknown;
       finalAmount?: unknown;
       requiresDeposit?: unknown;
+      deliveryDate?: unknown;
     };
 
     // Most fields lock once the cycle leaves `submitted`. The deposit-required
     // flag is the exception: admins can flip it while the cycle is still in
     // `submitted` (controls the upcoming acceptance email) or `in_progress`
     // (record-keeping; runtime billing is keyed off `deposit_paid_at`, which
-    // protects against accidental double/under-billing).
+    // protects against accidental double/under-billing). Delivery date is
+    // also editable by admins at any pre-delivery status (no automatic email).
     const wantsLockedFieldUpdate =
       "whatsWorking" in body ||
       "whatsNotWorking" in body ||
@@ -76,6 +78,7 @@ export async function PATCH(request: Request, { params }: Params) {
       "depositAmount" in body ||
       "finalAmount" in body;
     const wantsRequiresDepositUpdate = "requiresDeposit" in body;
+    const wantsDeliveryDateUpdate = "deliveryDate" in body;
 
     if (wantsLockedFieldUpdate && row.status !== "submitted") {
       return NextResponse.json(
@@ -92,6 +95,20 @@ export async function PATCH(request: Request, { params }: Params) {
         {
           error:
             "Deposit setting can only be changed while the cycle is submitted or in progress",
+        },
+        { status: 409 }
+      );
+    }
+    if (
+      wantsDeliveryDateUpdate &&
+      (row.status === "delivered" ||
+        row.status === "declined" ||
+        row.status === "expired")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Delivery date can only be changed before the cycle is delivered, declined, or expired",
         },
         { status: 409 }
       );
@@ -159,6 +176,33 @@ export async function PATCH(request: Request, { params }: Params) {
       vals.push(deposit);
       sets.push(`final_amount = $${pidx++}`);
       vals.push(final);
+    }
+
+    // Admin-only delivery-date override. Accepts a YYYY-MM-DD string or null
+    // to clear. No emails are sent — admin handles client comms manually.
+    if ("deliveryDate" in body) {
+      if (!isAdmin) {
+        return NextResponse.json(
+          { error: "Only admins can change the delivery date" },
+          { status: 403 }
+        );
+      }
+      const raw = body.deliveryDate;
+      if (raw === null || raw === "") {
+        sets.push(`delivery_date = $${pidx++}`);
+        vals.push(null);
+      } else if (
+        typeof raw === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(raw)
+      ) {
+        sets.push(`delivery_date = $${pidx++}`);
+        vals.push(raw);
+      } else {
+        return NextResponse.json(
+          { error: "deliveryDate must be a YYYY-MM-DD string or null" },
+          { status: 400 }
+        );
+      }
     }
 
     // Admin-only deposit-required toggle. Determines whether acceptance

@@ -196,6 +196,40 @@ export default function RefinementCycleReviewClient({
   const [requiresDeposit, setRequiresDeposit] = useState(cycle.requiresDeposit);
   const [savingRequiresDeposit, setSavingRequiresDeposit] = useState(false);
 
+  // Admin-only delivery-date override. Editable on any pre-delivery status.
+  // Persists via PATCH /api/refinement-cycles/[id] with `deliveryDate`. No
+  // automatic email is sent — admin handles client comms manually.
+  const [confirmedDeliveryDate, setConfirmedDeliveryDate] = useState(
+    cycle.deliveryDate ?? cycle.preferredDeliveryDate ?? defaultDeliveryDate
+  );
+  const [savingDeliveryDate, setSavingDeliveryDate] = useState(false);
+
+  async function saveConfirmedDeliveryDate() {
+    if (!isAdmin) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(confirmedDeliveryDate)) {
+      showToast("Pick a valid delivery date", "warning");
+      return;
+    }
+    setSavingDeliveryDate(true);
+    try {
+      const res = await fetch(`/api/refinement-cycles/${cycle.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deliveryDate: confirmedDeliveryDate }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to save delivery date");
+      }
+      showToast("Delivery date saved", "success");
+      router.refresh();
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setSavingDeliveryDate(false);
+    }
+  }
+
   async function toggleRequiresDeposit(next: boolean) {
     if (
       !isAdmin ||
@@ -819,6 +853,69 @@ export default function RefinementCycleReviewClient({
         </section>
       )}
 
+      {isAdmin &&
+        (cycle.status === "submitted" ||
+          cycle.status === "accepted" ||
+          cycle.status === "awaiting_deposit" ||
+          cycle.status === "in_progress" ||
+          cycle.status === "awaiting_payment") && (
+          <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
+            <Typography as="h2" scale="heading-md">
+              Delivery date
+            </Typography>
+            <Typography scale="body-sm" className="text-text-secondary">
+              Confirm or shift the committed delivery date. Saving does not
+              email the client — handle comms manually.
+              {cycle.preferredDeliveryDate && (
+                <>
+                  {" "}Client&rsquo;s preferred date:{" "}
+                  <span className="font-semibold">
+                    {formatDate(cycle.preferredDeliveryDate)}
+                  </span>
+                  .
+                </>
+              )}
+            </Typography>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="flex flex-col gap-1">
+                <Typography
+                  scale="body-sm"
+                  as="span"
+                  className="font-semibold"
+                >
+                  Delivery date
+                </Typography>
+                <input
+                  type="date"
+                  value={confirmedDeliveryDate}
+                  onChange={(e) => setConfirmedDeliveryDate(e.target.value)}
+                  disabled={savingDeliveryDate}
+                  className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+                />
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                onClick={saveConfirmedDeliveryDate}
+                disabled={
+                  savingDeliveryDate ||
+                  confirmedDeliveryDate === (cycle.deliveryDate ?? "")
+                }
+              >
+                {savingDeliveryDate ? "Saving…" : "Save"}
+              </Button>
+              {cycle.deliveryDate && (
+                <Typography
+                  scale="body-sm"
+                  className="text-text-secondary"
+                >
+                  Currently saved: {formatDate(cycle.deliveryDate)}
+                </Typography>
+              )}
+            </div>
+          </section>
+        )}
+
       {cycle.status === "in_progress" && isAdmin && (
         <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
           <Typography as="h2" scale="heading-md">
@@ -832,28 +929,66 @@ export default function RefinementCycleReviewClient({
             record-keeping change — it does not regenerate or void any
             invoices.
           </Typography>
-          <label className="flex items-start gap-2 rounded-md border border-stroke-muted bg-background p-3">
-            <input
-              type="checkbox"
-              checked={requiresDeposit}
-              onChange={(e) => toggleRequiresDeposit(e.target.checked)}
-              disabled={savingRequiresDeposit}
-              className="mt-1 h-4 w-4"
-            />
-            <span>
-              <Typography scale="body-sm" as="span" className="font-semibold">
-                Required deposit at acceptance
-              </Typography>
-              <Typography scale="body-sm" className="text-text-secondary">
-                Reflects whether this cycle was set up to require a deposit.
-              </Typography>
-              {savingRequiresDeposit && (
-                <Typography scale="body-sm" className="text-text-secondary">
-                  Saving…
+          <fieldset className="space-y-2">
+            <legend className="sr-only">Billing flow</legend>
+            <label
+              className={`flex items-start gap-2 rounded-md border p-3 cursor-pointer ${
+                !requiresDeposit
+                  ? "border-brand-primary bg-brand-primary/5"
+                  : "border-stroke-muted bg-background"
+              }`}
+            >
+              <input
+                type="radio"
+                name="deposit-setting"
+                value="pay_on_delivery"
+                checked={!requiresDeposit}
+                onChange={() => toggleRequiresDeposit(false)}
+                disabled={savingRequiresDeposit}
+                className="mt-1 h-4 w-4"
+              />
+              <span>
+                <Typography
+                  scale="body-sm"
+                  as="span"
+                  className="font-semibold"
+                >
+                  Pay on delivery (no deposit)
                 </Typography>
-              )}
-            </span>
-          </label>
+              </span>
+            </label>
+            <label
+              className={`flex items-start gap-2 rounded-md border p-3 cursor-pointer ${
+                requiresDeposit
+                  ? "border-brand-primary bg-brand-primary/5"
+                  : "border-stroke-muted bg-background"
+              }`}
+            >
+              <input
+                type="radio"
+                name="deposit-setting"
+                value="require_deposit"
+                checked={requiresDeposit}
+                onChange={() => toggleRequiresDeposit(true)}
+                disabled={savingRequiresDeposit}
+                className="mt-1 h-4 w-4"
+              />
+              <span>
+                <Typography
+                  scale="body-sm"
+                  as="span"
+                  className="font-semibold"
+                >
+                  Required deposit at acceptance
+                </Typography>
+              </span>
+            </label>
+            {savingRequiresDeposit && (
+              <Typography scale="body-sm" className="text-text-secondary">
+                Saving…
+              </Typography>
+            )}
+          </fieldset>
         </section>
       )}
 
@@ -866,34 +1001,91 @@ export default function RefinementCycleReviewClient({
             Override the rate for this cycle only. Past cycles are unaffected
             because pricing is frozen on each cycle row.
           </Typography>
-          <label className="flex items-start gap-2 rounded-md border border-stroke-muted bg-background p-3">
-            <input
-              type="checkbox"
-              checked={requiresDeposit}
-              onChange={(e) => toggleRequiresDeposit(e.target.checked)}
-              disabled={savingRequiresDeposit}
-              className="mt-1 h-4 w-4"
-            />
-            <span>
-              <Typography scale="body-sm" as="span" className="font-semibold">
-                Require deposit at acceptance
-              </Typography>
-              <Typography scale="body-sm" className="text-text-secondary">
-                When checked, accepting this cycle generates a Stripe deposit
-                invoice ({(requiresDeposit ? cycle.depositAmount : Number(priceDeposit) || cycle.depositAmount).toLocaleString("en-US", { style: "currency", currency: "USD" })}) and the
-                acceptance email includes a &ldquo;Pay deposit&rdquo; link
-                alongside the check-in scheduler. The remaining{" "}
-                {(requiresDeposit ? cycle.finalAmount : Number(priceFinal) || cycle.finalAmount).toLocaleString("en-US", { style: "currency", currency: "USD" })}{" "}
-                is invoiced on delivery. Leave unchecked for pay-on-delivery
-                (single invoice for the full total at delivery).
-              </Typography>
-              {savingRequiresDeposit && (
-                <Typography scale="body-sm" className="text-text-secondary">
-                  Saving…
+          <fieldset className="space-y-2">
+            <legend className="sr-only">Billing flow</legend>
+            <label
+              className={`flex items-start gap-2 rounded-md border p-3 cursor-pointer ${
+                !requiresDeposit
+                  ? "border-brand-primary bg-brand-primary/5"
+                  : "border-stroke-muted bg-background"
+              }`}
+            >
+              <input
+                type="radio"
+                name="billing-flow"
+                value="pay_on_delivery"
+                checked={!requiresDeposit}
+                onChange={() => toggleRequiresDeposit(false)}
+                disabled={savingRequiresDeposit}
+                className="mt-1 h-4 w-4"
+              />
+              <span>
+                <Typography
+                  scale="body-sm"
+                  as="span"
+                  className="font-semibold"
+                >
+                  Pay on delivery (no deposit)
                 </Typography>
-              )}
-            </span>
-          </label>
+                <Typography scale="body-sm" className="text-text-secondary">
+                  Acceptance email confirms the delivery date with no payment
+                  link. A single Stripe invoice for the full total is sent at
+                  delivery.
+                </Typography>
+              </span>
+            </label>
+            <label
+              className={`flex items-start gap-2 rounded-md border p-3 cursor-pointer ${
+                requiresDeposit
+                  ? "border-brand-primary bg-brand-primary/5"
+                  : "border-stroke-muted bg-background"
+              }`}
+            >
+              <input
+                type="radio"
+                name="billing-flow"
+                value="require_deposit"
+                checked={requiresDeposit}
+                onChange={() => toggleRequiresDeposit(true)}
+                disabled={savingRequiresDeposit}
+                className="mt-1 h-4 w-4"
+              />
+              <span>
+                <Typography
+                  scale="body-sm"
+                  as="span"
+                  className="font-semibold"
+                >
+                  Require deposit at acceptance
+                </Typography>
+                <Typography scale="body-sm" className="text-text-secondary">
+                  Accepting generates a Stripe deposit invoice (
+                  {(requiresDeposit
+                    ? cycle.depositAmount
+                    : Number(priceDeposit) || cycle.depositAmount
+                  ).toLocaleString("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                  })}
+                  ) and the acceptance email includes a &ldquo;Pay deposit&rdquo;
+                  link alongside the check-in scheduler. The remaining{" "}
+                  {(requiresDeposit
+                    ? cycle.finalAmount
+                    : Number(priceFinal) || cycle.finalAmount
+                  ).toLocaleString("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                  })}{" "}
+                  is invoiced on delivery.
+                </Typography>
+                {savingRequiresDeposit && (
+                  <Typography scale="body-sm" className="text-text-secondary">
+                    Saving…
+                  </Typography>
+                )}
+              </span>
+            </label>
+          </fieldset>
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="flex flex-col gap-1">
               <Typography scale="body-sm" as="span" className="font-semibold">
