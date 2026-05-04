@@ -276,6 +276,34 @@ export default function RefinementCycleReviewClient({
     parsedFinal !== cycle.finalAmount;
 
   async function savePrice() {
+    // Pay-on-delivery: only Total matters. Persist deposit=0, final=total
+    // so the row is internally consistent and the server's
+    // deposit+final=total invariant passes.
+    if (!requiresDeposit) {
+      if (
+        !Number.isFinite(parsedTotal) ||
+        parsedTotal < 0 ||
+        parsedTotal === cycle.totalPrice
+      ) {
+        return;
+      }
+      setSavingPrice(true);
+      try {
+        await patchCycleField({
+          totalPrice: parsedTotal,
+          depositAmount: 0,
+          finalAmount: parsedTotal,
+        });
+        // Keep the local hidden state in sync so toggling back to
+        // require-deposit shows sensible values.
+        setPriceDeposit("0");
+        setPriceFinal(String(parsedTotal));
+      } finally {
+        setSavingPrice(false);
+      }
+      return;
+    }
+
     if (!priceValid || !priceChanged) return;
     setSavingPrice(true);
     try {
@@ -1086,65 +1114,130 @@ export default function RefinementCycleReviewClient({
               </span>
             </label>
           </fieldset>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <label className="flex flex-col gap-1">
-              <Typography scale="body-sm" as="span" className="font-semibold">
-                Total
-              </Typography>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={priceTotal}
-                onChange={(e) => setPriceTotal(e.target.value)}
-                className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <Typography scale="body-sm" as="span" className="font-semibold">
-                Deposit
-              </Typography>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={priceDeposit}
-                onChange={(e) => setPriceDeposit(e.target.value)}
-                className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <Typography scale="body-sm" as="span" className="font-semibold">
-                Final
-              </Typography>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={priceFinal}
-                onChange={(e) => setPriceFinal(e.target.value)}
-                className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
-              />
-            </label>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Typography
-              scale="body-sm"
-              className={priceValid ? "text-text-secondary" : "text-red-600"}
-            >
-              {priceValid
-                ? "Deposit + Final equals Total ✓"
-                : "Deposit + Final must equal Total"}
-            </Typography>
-            <Button
-              type="button"
-              size="sm"
-              onClick={savePrice}
-              disabled={!priceValid || !priceChanged || savingPrice}
-            >
-              {savingPrice ? "Saving…" : "Save pricing"}
-            </Button>
-          </div>
+          {requiresDeposit ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="flex flex-col gap-1">
+                  <Typography
+                    scale="body-sm"
+                    as="span"
+                    className="font-semibold"
+                  >
+                    Total
+                  </Typography>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={priceTotal}
+                    onChange={(e) => setPriceTotal(e.target.value)}
+                    className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <Typography
+                    scale="body-sm"
+                    as="span"
+                    className="font-semibold"
+                  >
+                    Deposit
+                  </Typography>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={priceDeposit}
+                    onChange={(e) => setPriceDeposit(e.target.value)}
+                    className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <Typography
+                    scale="body-sm"
+                    as="span"
+                    className="font-semibold"
+                  >
+                    Final
+                  </Typography>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={priceFinal}
+                    onChange={(e) => setPriceFinal(e.target.value)}
+                    className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+                  />
+                </label>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Typography
+                  scale="body-sm"
+                  className={priceValid ? "text-text-secondary" : "text-red-600"}
+                >
+                  {priceValid
+                    ? "Deposit + Final equals Total ✓"
+                    : "Deposit + Final must equal Total"}
+                </Typography>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={savePrice}
+                  disabled={!priceValid || !priceChanged || savingPrice}
+                >
+                  {savingPrice ? "Saving…" : "Save pricing"}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-1">
+                <label className="flex flex-col gap-1">
+                  <Typography
+                    scale="body-sm"
+                    as="span"
+                    className="font-semibold"
+                  >
+                    Total
+                  </Typography>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={priceTotal}
+                    onChange={(e) => setPriceTotal(e.target.value)}
+                    className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+                  />
+                </label>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Typography
+                  scale="body-sm"
+                  className={
+                    Number.isFinite(parsedTotal) && parsedTotal >= 0
+                      ? "text-text-secondary"
+                      : "text-red-600"
+                  }
+                >
+                  {Number.isFinite(parsedTotal) && parsedTotal >= 0
+                    ? "Invoiced in full at delivery."
+                    : "Total must be a non-negative number"}
+                </Typography>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={savePrice}
+                  disabled={
+                    !Number.isFinite(parsedTotal) ||
+                    parsedTotal < 0 ||
+                    parsedTotal === cycle.totalPrice ||
+                    savingPrice
+                  }
+                >
+                  {savingPrice ? "Saving…" : "Save pricing"}
+                </Button>
+              </div>
+            </>
+          )}
         </section>
       )}
 
