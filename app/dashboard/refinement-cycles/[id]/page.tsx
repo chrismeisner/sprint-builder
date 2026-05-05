@@ -92,6 +92,7 @@ export type CycleDetail = {
   checkinNotes: string | null;
   figmaFileUrl: string | null;
   loomWalkthroughUrl: string | null;
+  prototypeLink: string | null;
   engineeringNotes: string | null;
   deliveryDraftSavedAt: string | null;
   deliveryDraftSavedByEmail: string | null;
@@ -368,6 +369,7 @@ export default async function RefinementCycleReviewPage({
     checkinNotes: (row.checkin_notes as string | null) ?? null,
     figmaFileUrl: (row.figma_file_url as string | null) ?? null,
     loomWalkthroughUrl: (row.loom_walkthrough_url as string | null) ?? null,
+    prototypeLink: (row.prototype_link as string | null) ?? null,
     engineeringNotes: (row.engineering_notes as string | null) ?? null,
     deliveryDraftSavedAt: row.delivery_draft_saved_at
       ? row.delivery_draft_saved_at instanceof Date

@@ -38,11 +38,13 @@ export async function POST(request: Request, { params }: Params) {
     const body = (await request.json().catch(() => ({}))) as {
       figmaFileUrl?: unknown;
       loomWalkthroughUrl?: unknown;
+      prototypeLink?: unknown;
       engineeringNotes?: unknown;
     };
 
     const figmaFileUrl = clipUrl(body.figmaFileUrl);
     const loomWalkthroughUrl = clipUrl(body.loomWalkthroughUrl);
+    const prototypeLink = clipUrl(body.prototypeLink);
     const engineeringNotes = clipText(body.engineeringNotes);
 
     const pool = getPool();
@@ -52,6 +54,7 @@ export async function POST(request: Request, { params }: Params) {
       SET figma_file_url = $3,
           loom_walkthrough_url = $4,
           engineering_notes = $5,
+          prototype_link = $6,
           delivery_draft_saved_at = now(),
           delivery_draft_saved_by = $2,
           updated_at = now()
@@ -65,6 +68,7 @@ export async function POST(request: Request, { params }: Params) {
         figmaFileUrl,
         loomWalkthroughUrl,
         engineeringNotes,
+        prototypeLink,
       ]
     );
 

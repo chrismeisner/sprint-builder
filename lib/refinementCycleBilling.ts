@@ -584,6 +584,7 @@ export async function onCycleRevoked(
 type DeliverPayload = {
   figmaFileUrl?: string | null;
   loomWalkthroughUrl?: string | null;
+  prototypeLink?: string | null;
   engineeringNotes?: string | null;
   invoiceAmountOverride?: number | null;
   invoiceDescriptionOverride?: string | null;
@@ -660,6 +661,7 @@ export async function onCycleDelivered(
           stripeInvoiceUrl: stripeResult?.hostedInvoiceUrl ?? null,
           figmaFileUrl: payload.figmaFileUrl ?? null,
           loomWalkthroughUrl: payload.loomWalkthroughUrl ?? null,
+          prototypeLink: payload.prototypeLink ?? null,
           engineeringNotes: payload.engineeringNotes ?? null,
           screenshots,
         });

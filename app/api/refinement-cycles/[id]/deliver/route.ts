@@ -39,6 +39,7 @@ export async function POST(request: Request, { params }: Params) {
     const body = (await request.json().catch(() => ({}))) as {
       figmaFileUrl?: unknown;
       loomWalkthroughUrl?: unknown;
+      prototypeLink?: unknown;
       engineeringNotes?: unknown;
       invoiceAmountOverride?: unknown;
       invoiceDescriptionOverride?: unknown;
@@ -46,6 +47,7 @@ export async function POST(request: Request, { params }: Params) {
 
     const figmaFileUrl = clipUrl(body.figmaFileUrl);
     const loomWalkthroughUrl = clipUrl(body.loomWalkthroughUrl);
+    const prototypeLink = clipUrl(body.prototypeLink);
     const engineeringNotes = clipText(body.engineeringNotes);
 
     let invoiceAmountOverride: number | null = null;
@@ -75,6 +77,7 @@ export async function POST(request: Request, { params }: Params) {
           figma_file_url = COALESCE($3, figma_file_url),
           loom_walkthrough_url = COALESCE($4, loom_walkthrough_url),
           engineering_notes = COALESCE($5, engineering_notes),
+          prototype_link = COALESCE($6, prototype_link),
           updated_at = now()
       WHERE id = $1
         AND status IN ('in_progress', 'awaiting_deposit')
@@ -86,6 +89,7 @@ export async function POST(request: Request, { params }: Params) {
         figmaFileUrl,
         loomWalkthroughUrl,
         engineeringNotes,
+        prototypeLink,
       ]
     );
 
@@ -102,6 +106,7 @@ export async function POST(request: Request, { params }: Params) {
     await onCycleDelivered(params.id, {
       figmaFileUrl,
       loomWalkthroughUrl,
+      prototypeLink,
       engineeringNotes,
       invoiceAmountOverride,
       invoiceDescriptionOverride,

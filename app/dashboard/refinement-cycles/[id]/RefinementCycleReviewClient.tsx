@@ -118,6 +118,7 @@ export default function RefinementCycleReviewClient({
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
 
   const [figmaFileUrl, setFigmaFileUrl] = useState(cycle.figmaFileUrl ?? "");
+  const [prototypeLink, setPrototypeLink] = useState(cycle.prototypeLink ?? "");
   const [loomWalkthroughUrl, setLoomWalkthroughUrl] = useState(
     cycle.loomWalkthroughUrl ?? ""
   );
@@ -532,6 +533,7 @@ export default function RefinementCycleReviewClient({
           body: JSON.stringify({
             figmaFileUrl: figmaFileUrl.trim() || null,
             loomWalkthroughUrl: loomWalkthroughUrl.trim() || null,
+            prototypeLink: prototypeLink.trim() || null,
             engineeringNotes: engineeringNotes.trim() || null,
           }),
         }
@@ -666,6 +668,7 @@ export default function RefinementCycleReviewClient({
         body: JSON.stringify({
           figmaFileUrl: figmaFileUrl.trim() || null,
           loomWalkthroughUrl: loomWalkthroughUrl.trim() || null,
+          prototypeLink: prototypeLink.trim() || null,
           engineeringNotes: engineeringNotes.trim() || null,
           invoiceAmountOverride: parsedAmt,
           invoiceDescriptionOverride:
@@ -1894,6 +1897,27 @@ export default function RefinementCycleReviewClient({
                     as="span"
                     className="font-semibold"
                   >
+                    Prototype link{" "}
+                    <span className="font-normal text-text-secondary">
+                      (optional)
+                    </span>
+                  </Typography>
+                </label>
+                <input
+                  type="url"
+                  value={prototypeLink}
+                  onChange={(e) => setPrototypeLink(e.target.value)}
+                  placeholder="https://www.figma.com/proto/..."
+                  className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block">
+                  <Typography
+                    scale="body-sm"
+                    as="span"
+                    className="font-semibold"
+                  >
                     Engineering notes
                   </Typography>
                 </label>
@@ -2175,6 +2199,18 @@ export default function RefinementCycleReviewClient({
                 className="underline"
               >
                 {cycle.loomWalkthroughUrl}
+              </a>
+            </Field>
+          )}
+          {cycle.prototypeLink && (
+            <Field label="Prototype link">
+              <a
+                href={cycle.prototypeLink}
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                {cycle.prototypeLink}
               </a>
             </Field>
           )}

@@ -1530,6 +1530,7 @@ export async function ensureSchema(): Promise<void> {
 
       figma_file_url text,
       loom_walkthrough_url text,
+      prototype_link text,
       engineering_notes text,
 
       created_by text REFERENCES accounts(id) ON DELETE SET NULL,
@@ -1755,6 +1756,10 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     ALTER TABLE refinement_cycles
     ADD COLUMN IF NOT EXISTS delivery_draft_saved_at timestamptz
+  `);
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+    ADD COLUMN IF NOT EXISTS prototype_link text
   `);
   await pool.query(`
     ALTER TABLE refinement_cycles

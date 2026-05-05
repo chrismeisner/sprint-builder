@@ -1430,6 +1430,7 @@ export function generateRefinementCycleDeliveredClientEmail(params: {
   stripeInvoiceUrl: string | null;
   figmaFileUrl: string | null;
   loomWalkthroughUrl: string | null;
+  prototypeLink: string | null;
   engineeringNotes: string | null;
   screenshots?: Array<{ fileUrl: string; filename: string | null }>;
 }): { subject: string; text: string; html: string } {
@@ -1443,6 +1444,8 @@ export function generateRefinementCycleDeliveredClientEmail(params: {
   if (params.figmaFileUrl) lines.push(`Figma file: ${params.figmaFileUrl}`);
   if (params.loomWalkthroughUrl)
     lines.push(`Walkthrough Loom: ${params.loomWalkthroughUrl}`);
+  if (params.prototypeLink)
+    lines.push(`Prototype: ${params.prototypeLink}`);
   if (params.engineeringNotes) {
     lines.push("");
     lines.push("Engineering notes:");
@@ -1482,6 +1485,11 @@ ${
 ${
   params.loomWalkthroughUrl
     ? `<p style="margin:0 0 8px;"><strong>Walkthrough Loom:</strong> <a href="${escapeHtml(params.loomWalkthroughUrl)}">${escapeHtml(params.loomWalkthroughUrl)}</a></p>`
+    : ""
+}
+${
+  params.prototypeLink
+    ? `<p style="margin:0 0 8px;"><strong>Prototype:</strong> <a href="${escapeHtml(params.prototypeLink)}">${escapeHtml(params.prototypeLink)}</a></p>`
     : ""
 }
 ${
