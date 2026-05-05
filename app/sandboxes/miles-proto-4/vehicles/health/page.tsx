@@ -3,7 +3,7 @@
 import { Suspense, useState, type DragEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { VehicleDetailShell } from "@/app/sandboxes/miles-proto-4/_components/vehicle-detail-shell";
-import { getVehicleData } from "@/app/sandboxes/miles-proto-4/_components/vehicle-detail-body";
+import { getVehicleData } from "@/app/sandboxes/miles-proto-4/_lib/vehicle-data";
 import { SymbolIcon } from "@/app/sandboxes/miles-proto-4/_components/symbol-icon";
 import { useLocalStorageState } from "@/app/sandboxes/miles-proto-4/_lib/use-local-storage-state";
 

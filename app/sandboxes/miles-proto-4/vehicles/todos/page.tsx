@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { VehicleDetailShell } from "@/app/sandboxes/miles-proto-4/_components/vehicle-detail-shell";
-import { getVehicleData } from "@/app/sandboxes/miles-proto-4/_components/vehicle-detail-body";
+import { getVehicleData } from "@/app/sandboxes/miles-proto-4/_lib/vehicle-data";
 
 interface TodoItem {
   id: string;

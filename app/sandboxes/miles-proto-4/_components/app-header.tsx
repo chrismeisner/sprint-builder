@@ -94,10 +94,9 @@ export function AppHeader() {
 
   return (
     <header
-      className="sticky top-0 z-20 flex shrink-0 items-center justify-between bg-white px-5 dark:bg-neutral-950"
+      className="sticky top-0 z-20 flex shrink-0 items-center justify-between gap-4 bg-white px-5 pb-3 dark:bg-neutral-950"
       style={{
-        paddingTop: "max(env(safe-area-inset-top), 12px)",
-        paddingBottom: "6px",
+        paddingTop: "calc(max(env(safe-area-inset-top), 12px) + 24px)",
       }}
     >
       <Link

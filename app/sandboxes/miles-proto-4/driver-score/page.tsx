@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/app/sandboxes/miles-proto-4/_components/link";
+import { SymbolIcon } from "@/app/sandboxes/miles-proto-4/_components/symbol-icon";
 
 const SCORE = 82;
 const PREVIOUS_SCORE = 79;
@@ -217,9 +218,7 @@ export default function DriverScorePage() {
           className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 transition-colors hover:bg-green-100"
         >
           <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-green-100">
-            <svg className="size-4.5 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
-            </svg>
+            <SymbolIcon name="auto_awesome" size="md" filled className="text-green-600" />
           </div>
           <div className="flex flex-1 flex-col gap-0.5">
             <span className="text-sm font-semibold text-green-800">Ask Miles about your score</span>

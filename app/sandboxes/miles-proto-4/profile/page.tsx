@@ -148,19 +148,18 @@ const menuSections = [
 
 export default function ProfilePage() {
   return (
-    <main className="flex min-h-dvh flex-col px-6 pb-16 pt-6">
-      <div className="mx-auto flex w-full max-w-sm flex-col gap-8">
-        {/* Page header — same pattern as /trips and /personal-information:
-            page title left, AskMilesBadge pill right, on the same plane. */}
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
-            Account
-          </h1>
-          <AskMilesBadge
-            context="profile"
-            ariaLabel="Ask Miles about your account"
-          />
-        </div>
+    <main className="flex min-h-dvh flex-col bg-neutral-50 pb-24">
+      {/* Page header — shared shape with /dashboard, /trips, /drivers. */}
+      <div className="flex items-center justify-between gap-4 px-5 pb-3 pt-6">
+        <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
+          Account
+        </h1>
+        <AskMilesBadge
+          context="profile"
+          ariaLabel="Ask Miles about your account"
+        />
+      </div>
+      <div className="flex flex-col gap-8 px-5 pt-3">
 
         {/* Profile hero — centered avatar + name. The user's name moves
             to h2 since "Account" is now the page-level h1. */}

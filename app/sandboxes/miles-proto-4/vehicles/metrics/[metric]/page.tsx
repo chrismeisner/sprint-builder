@@ -7,7 +7,7 @@ import { SymbolIcon } from "@/app/sandboxes/miles-proto-4/_components/symbol-ico
 import {
   METRIC_ICONS,
   getVehicleData,
-} from "@/app/sandboxes/miles-proto-4/_components/vehicle-detail-body";
+} from "@/app/sandboxes/miles-proto-4/_lib/vehicle-data";
 
 const METRIC_DESCRIPTIONS: Record<string, string> = {
   fuel: "Fuel level reported by the vehicle's OBD port. Updated whenever the engine starts or the dongle reports.",

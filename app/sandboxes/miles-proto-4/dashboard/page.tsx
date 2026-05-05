@@ -7,8 +7,14 @@ import { MapView } from "@/app/sandboxes/miles-proto-4/_components/map-view";
 import { useForceLightMode, setForceLightMode } from "@/app/sandboxes/miles-proto-4/_components/force-light-mode";
 import { useMilesSheet } from "@/app/sandboxes/miles-proto-4/_components/miles-sheet";
 import { TripListItem } from "@/app/sandboxes/miles-proto-4/_components/trip-list-item";
-import { DEMO_TRIPS } from "@/app/sandboxes/miles-proto-4/_lib/demo-trips";
-import { LIVE_ACTIVITY } from "@/app/sandboxes/miles-proto-4/_lib/demo-activity";
+import {
+  ACTIVITY_ITEMS,
+  LIVE_ACTIVITY,
+  getEntryTime,
+  type ActivityEntry,
+  type EventItem,
+  type ScoreUpdateItem,
+} from "@/app/sandboxes/miles-proto-4/_lib/demo-activity";
 import { p } from "@/app/sandboxes/miles-proto-4/_lib/nav";
 import {
   MARKER_LABEL,
@@ -459,6 +465,8 @@ function VehicleCardContent({ v, compact = false }: { v: Vehicle; showAvatars?: 
     );
   }
 
+  const locationLabel = live ? live.approximateLocation : v.locationLabel;
+
   return (
     <>
       {/* Default header: name + status (left) | car image (right) */}
@@ -468,22 +476,24 @@ function VehicleCardContent({ v, compact = false }: { v: Vehicle; showAvatars?: 
             <span className="text-2xl font-semibold uppercase leading-tight text-text-primary">{v.name}</span>
             <StatusBadge live={live} />
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex h-16 w-24 shrink-0 items-center justify-center">
             {v.imageSrc ? (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={v.imageSrc} alt={v.name} className="w-24 object-contain opacity-90" />
+              <img src={v.imageSrc} alt={v.name} className="max-h-full w-full object-contain opacity-90" />
             ) : (
-              /* No photo yet — light gray placeholder block sized to match
-                 the photo's footprint so the card height matches photo'd
-                 vehicle cards. */
-              <div className="h-16 w-24 rounded-md bg-neutral-100" aria-hidden />
+              <div className="h-full w-full" aria-hidden />
             )}
           </div>
         </div>
+        <div className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-text-secondary">
+          <SymbolIcon name="location_on" filled size="sm" className="shrink-0 text-text-muted" />
+          <span className="truncate">{locationLabel}</span>
+        </div>
       </div>
 
-      {/* Stats bento */}
-      <div className="flex w-full flex-col gap-2 px-4 pb-3 text-left">
+      {/* Stats bento — pinned to bottom so cards with shorter headers
+          (e.g. no photo) bottom-align their stats with photo'd cards. */}
+      <div className="mt-auto flex w-full flex-col gap-2 px-4 pb-3 text-left">
         <StatsBento v={v} engineLabel={engineLabel} engineText={engineText} fuelText={fuelText} />
       </div>
     </>
@@ -663,7 +673,7 @@ function FleetView({
 
       {sortedVehicles.length > 1 && (
         <div
-          className="flex justify-center gap-2"
+          className="-mt-2 -mb-2 flex justify-center"
           aria-label="Vehicle carousel position"
         >
           {sortedVehicles.map((v, i) => (
@@ -679,7 +689,7 @@ function FleetView({
                 if (!tile) return;
                 el.scrollTo({ left: tile.offsetLeft, behavior: "smooth" });
               }}
-              className="flex size-4 items-center justify-center"
+              className="flex size-3 items-center justify-center"
             >
               <span
                 className={`size-1.5 rounded-full transition-colors ${
@@ -695,9 +705,7 @@ function FleetView({
           all vehicles. Mirrors /trips: uppercase eyebrow + a green-tinted
           live card + a rounded card of divided TripListItem rows. */}
       <div className="flex items-center justify-between px-5 pt-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-          Activity
-        </span>
+        <h2 className="text-base font-semibold text-text-primary">Activity</h2>
         <Link
           href="/trips"
           className="text-xs font-medium text-blue-600 hover:text-blue-700"
@@ -710,7 +718,7 @@ function FleetView({
           href={`/dashboard?mode=trip&driver=${encodeURIComponent(
             LIVE_ACTIVITY.driver
           )}&vehicleLabel=${encodeURIComponent(LIVE_ACTIVITY.vehicleLabel)}`}
-          className="flex items-center gap-3 rounded-panel border border-stroke-muted bg-surface-subtle px-3 py-3"
+          className="flex items-center gap-3 rounded-panel border border-stroke-muted bg-surface-card px-3 py-3"
         >
           {/* Wireframe avatar — gray circle with person icon, plus a small
               car badge overlay so the row reads as "person driving a vehicle"
@@ -758,14 +766,113 @@ function FleetView({
           </svg>
         </Link>
 
-        {DEMO_TRIPS.slice(0, 5).map((trip) => (
-          <div
-            key={trip.id}
-            className="overflow-hidden rounded-panel border border-stroke-muted bg-surface-subtle"
-          >
-            <TripListItem trip={trip} href="/trip-receipt" />
-          </div>
-        ))}
+        {ACTIVITY_ITEMS.filter((e) => e.kind !== "live")
+          .slice(0, 5)
+          .map((entry) => (
+            <div
+              key={entryKey(entry)}
+              className="overflow-hidden rounded-panel border border-stroke-muted bg-surface-card"
+            >
+              <ActivityFeedRow entry={entry} />
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+function entryKey(entry: ActivityEntry): string {
+  if (entry.kind === "trip") return entry.trip.id;
+  if (entry.kind === "score") return entry.item.id;
+  if (entry.kind === "event") return entry.event.id;
+  return entry.live.id;
+}
+
+function ActivityFeedRow({ entry }: { entry: ActivityEntry }) {
+  if (entry.kind === "trip") {
+    return <TripListItem trip={entry.trip} href="/trip-receipt" />;
+  }
+  if (entry.kind === "score") {
+    return <ScoreUpdateRow item={entry.item} time={getEntryTime(entry)} />;
+  }
+  if (entry.kind === "event") {
+    return <EventRow event={entry.event} time={getEntryTime(entry)} />;
+  }
+  // "live" entries surface as the pinned live row above this feed.
+  return null;
+}
+
+function ScoreUpdateRow({ item, time }: { item: ScoreUpdateItem; time: string }) {
+  const isUp = item.delta >= 0;
+  const deltaClass = isUp ? "text-emerald-600" : "text-amber-600";
+  return (
+    <div className="flex min-w-0 items-center gap-3 px-4 py-3.5">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+        <svg
+          className="size-4 text-neutral-500"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 6v6l4 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+          />
+        </svg>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm font-medium leading-snug text-neutral-900">
+            Miles Score updated
+          </span>
+          <span className="shrink-0 text-xs text-neutral-400 tabular-nums">{time}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+          <span>{item.vehicle}</span>
+          <span className="text-neutral-300">&middot;</span>
+          <span className="tabular-nums text-neutral-700">{item.score}</span>
+          <span className={`tabular-nums font-medium ${deltaClass}`}>
+            {isUp ? "+" : ""}
+            {item.delta}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EventRow({ event, time }: { event: EventItem; time: string }) {
+  return (
+    <div className="flex min-w-0 items-center gap-3 px-4 py-3.5">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-50">
+        <svg
+          className="size-4 text-amber-600"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+          />
+        </svg>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm font-medium leading-snug text-neutral-900">
+            {event.title}
+          </span>
+          <span className="shrink-0 text-xs text-neutral-400 tabular-nums">{time}</span>
+        </div>
+        <div className="flex min-w-0 items-center gap-1.5 text-xs text-neutral-500">
+          <span className="truncate">{event.detail}</span>
+          <span className="text-neutral-300">&middot;</span>
+          <span className="shrink-0">{event.driver}</span>
+        </div>
       </div>
     </div>
   );
@@ -1336,9 +1443,7 @@ function TripComplete({
       <div className="mx-5 flex flex-col gap-3 rounded-panel border border-stroke-muted bg-surface-subtle p-4">
         <div className="flex items-start gap-3">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-strong">
-            <svg className="size-4 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
-            </svg>
+            <SymbolIcon name="auto_awesome" size="sm" filled className="text-semantic-success" />
           </div>
           <p className="flex-1 font-mono text-sm leading-relaxed text-text-secondary">
             One hard braking event on Preston Rd. Leaving a little more following distance can help — want tips?

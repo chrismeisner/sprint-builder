@@ -7,7 +7,7 @@ import { useLocalStorageState } from "@/app/sandboxes/miles-proto-4/_lib/use-loc
 
 /**
  * Reusable "From Miles" insight card. Tinted in the Miles green palette
- * (matches AskMilesBadge), with a ✨ glyph + eyebrow, body content, an
+ * (matches AskMilesBadge), with an `auto_awesome` glyph + eyebrow, body content, an
  * optional "Tell me more" CTA that hands a context string off to the
  * Miles sheet, and a trailing dismiss button. Dismissed state persists
  * per `id` via localStorage so the user only sees it once until reset.

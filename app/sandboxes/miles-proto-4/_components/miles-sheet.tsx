@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { MilesChat } from "@/app/sandboxes/miles-proto-4/_components/miles-chat";
+import { SymbolIcon } from "@/app/sandboxes/miles-proto-4/_components/symbol-icon";
 import type { ChatMessage } from "@/app/sandboxes/miles-proto-4/_lib/agent-types";
 
 /**
@@ -247,20 +248,7 @@ function MilesAgentSheet({
         {/* Header — sparkle avatar + title + actions */}
         <div className="flex shrink-0 items-center gap-3 border-b border-neutral-100 px-5 pb-3 pt-1">
           <div className="flex size-7 items-center justify-center rounded-full bg-green-600">
-            <svg
-              className="size-3.5 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              aria-hidden
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"
-              />
-            </svg>
+            <SymbolIcon name="auto_awesome" size="sm" filled className="text-white" />
           </div>
           <span className="flex-1 text-sm font-semibold text-neutral-900">Ask Miles</span>
 

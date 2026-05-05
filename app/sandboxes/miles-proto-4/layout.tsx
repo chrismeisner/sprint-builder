@@ -61,7 +61,7 @@ export default function MilesLayout({
 }) {
   return (
     <>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,300,0,0" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,300,0..1,0" />
     <Script src="https://mcp.figma.com/mcp/html-to-design/capture.js" strategy="afterInteractive" />
     <div
       className={`${inter.variable} ${overpassMono.variable} font-sans antialiased bg-neutral-100 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100`}

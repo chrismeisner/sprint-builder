@@ -4,7 +4,7 @@ import { Suspense, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { VehicleDetailShell } from "@/app/sandboxes/miles-proto-4/_components/vehicle-detail-shell";
 import { PrototypeNote } from "@/app/sandboxes/miles-proto-4/_components/prototype-note";
-import { getVehicleData } from "@/app/sandboxes/miles-proto-4/_components/vehicle-detail-body";
+import { getVehicleData } from "@/app/sandboxes/miles-proto-4/_lib/vehicle-data";
 
 function InsuranceContent() {
   const searchParams = useSearchParams();
