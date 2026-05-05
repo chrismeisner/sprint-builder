@@ -2058,8 +2058,9 @@ export default function RefinementCycleReviewClient({
                       {cycle.ccEmails.length > 0
                         ? ` (and CC: ${cycle.ccEmails.join(", ")})`
                         : ""}{" "}
-                      with the Figma file URL, Loom walkthrough, engineering
-                      notes, and {deliverableShots.length}{" "}
+                      with the Figma file URL, Loom walkthrough,
+                      {prototypeLink.trim() ? " prototype link," : ""}{" "}
+                      engineering notes, and {deliverableShots.length}{" "}
                       deliverable screenshot
                       {deliverableShots.length === 1 ? "" : "s"}.
                     </li>
