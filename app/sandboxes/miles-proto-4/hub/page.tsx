@@ -258,7 +258,7 @@ export default function HubPage() {
   const componentInventory = [
     { name: "FleetView", description: "Dashboard header, map, vehicle list" },
     { name: "VehicleCardContent", description: "Single vehicle card (header, bento, live strip)" },
-    { name: "ActivityFeed", description: "Grouped timeline: live trip · trip cards · score update cards · conversation starters" },
+    { name: "TripsFeed", description: "Trips page — unified wireframe feed (live trip · trip rows · score updates · events) grouped by day" },
     { name: "AgentCoachingCard", description: "From Miles message + CTA" },
     { name: "AgentCoachingCarousel", description: "Horizontal coaching cards + dot indicators" },
     { name: "TodoPreview", description: "Demo todos list" },
@@ -703,7 +703,7 @@ export default function HubPage() {
               <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">iOS track</span>
               <ol className="flex flex-col gap-2.5">
                 {[
-                  { n: "3", title: "Build component structure", body: "SwiftUI views, navigation, screen states — mirroring the web prototype component names (FleetView, VehicleCardContent, ActivityFeed, etc.). Use this hub as the reference." },
+                  { n: "3", title: "Build component structure", body: "SwiftUI views, navigation, screen states — mirroring the web prototype component names (FleetView, VehicleCardContent, TripsFeed, etc.). Use this hub as the reference." },
                   { n: "4", title: "Wire token-mapped styles", body: "Apply Color, Font, and cornerRadius using the hub mappings. Once Figma screens are token-linked, use Figma MCP to inspect any layer directly — it returns exact token names and resolved values as a live reference alongside the hub." },
                 ].map((step) => (
                   <li key={step.n} className="flex items-start gap-2.5">

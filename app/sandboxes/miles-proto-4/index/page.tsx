@@ -1577,7 +1577,7 @@ export default function IndexPage() {
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
               <h1 className="truncate text-sm font-semibold text-neutral-900">
-                Miles Proto 3
+                Miles Proto 4
               </h1>
               <span className="shrink-0 text-xs text-neutral-400">
                 {tab === "screens"

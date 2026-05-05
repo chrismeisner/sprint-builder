@@ -2,6 +2,7 @@
 
 import Link from "@/app/sandboxes/miles-proto-4/_components/link";
 import type { DemoTrip } from "@/app/sandboxes/miles-proto-4/_lib/demo-trips";
+import { normalizeTimeRange } from "@/app/sandboxes/miles-proto-4/_lib/format-time";
 
 interface TripListItemProps {
   trip: DemoTrip;
@@ -13,20 +14,6 @@ interface TripListItemProps {
   vehicleInitial?: string;
   /** Background color for the vehicle initial badge */
   vehicleColor?: string;
-}
-
-function normalizeTimeRange(timeRange: string): [string, string] {
-  const [rawStart = "", rawEnd = ""] = timeRange.split(/\s+[–-]\s+/);
-  const startMatch = rawStart.match(/\b(am|pm)\b/i);
-  const endMatch = rawEnd.match(/\b(am|pm)\b/i);
-  const meridiem = (endMatch?.[1] ?? startMatch?.[1] ?? "").toUpperCase();
-
-  const normalize = (value: string) => value.replace(/\b(am|pm)\b/i, (match) => match.toUpperCase()).trim();
-
-  const start = startMatch ? normalize(rawStart) : meridiem ? `${rawStart} ${meridiem}` : rawStart;
-  const end = endMatch ? normalize(rawEnd) : meridiem ? `${rawEnd} ${meridiem}` : rawEnd;
-
-  return [start.trim(), end.trim()];
 }
 
 export function TripListItem({

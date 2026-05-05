@@ -89,20 +89,19 @@ function ScoreRing({ score }: { score: number }) {
 export default function DriversPage() {
   return (
     <main className="flex min-h-dvh flex-col bg-neutral-50 pb-24">
-      <div className="flex flex-col gap-6 px-5 pt-6">
+      {/* Page header — flat layout matching /trips for consistent height
+          across the Trips / Drivers / Profile tabs. */}
+      <div className="flex items-center justify-between gap-4 px-5 pb-3 pt-6">
+        <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
+          Drivers
+        </h1>
+        <AskMilesBadge
+          context="drivers"
+          ariaLabel="Ask Miles about your drivers"
+        />
+      </div>
 
-        {/* Header — title left, AskMilesBadge pill right (page-level scope). */}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="text-3xl font-bold leading-tight text-neutral-900">Drivers</h1>
-            <AskMilesBadge
-              context="drivers"
-              ariaLabel="Ask Miles about your drivers"
-            />
-          </div>
-          <p className="text-sm text-neutral-500">Scores and activity for everyone in your household.</p>
-        </div>
-
+      <div className="flex flex-col gap-6 px-5">
         {/* Driver cards */}
         <div className="flex flex-col gap-3">
           {DRIVERS.map((d) => (

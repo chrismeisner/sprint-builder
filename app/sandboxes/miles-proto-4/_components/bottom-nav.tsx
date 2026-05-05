@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { BASE, p } from "@/app/sandboxes/miles-proto-4/_lib/nav";
 import { Suspense, useEffect, useState } from "react";
 import { useMilesSheet } from "@/app/sandboxes/miles-proto-4/_components/miles-sheet";
+import { SymbolIcon } from "@/app/sandboxes/miles-proto-4/_components/symbol-icon";
 
 const FOOTER_NAV_MODE_STORAGE_KEY = "miles-proto-4-footer-nav-mode";
 type FooterNavMode = "full" | "compact";
@@ -49,14 +50,11 @@ function TripsIcon({ active }: { active: boolean }) {
 
 function MilesIcon({ active }: { active: boolean }) {
   return (
-    <svg
-      className={`size-6 transition-colors ${active ? "text-semantic-info" : "text-text-muted"}`}
-      aria-hidden="true"
-      fill="currentColor"
-      viewBox="0 0 100 100"
-    >
-      <path d="M85.001 13.4872C78.0421 32.7636 72.7189 54.7716 68.5381 74.8979C68.0175 77.4039 66.9872 81.4914 66.7794 84.2103C66.201 87.437 65.8376 90.9185 65.9859 93.985C66.0383 95.0569 65.2592 95.9997 64.2036 96.1507C63.1661 96.2999 62.1738 96.3436 61.2537 96.2472C53.5573 95.4373 55.504 85.7518 56.4186 80.5087C58.8877 66.3207 62.8353 51.6469 66.9746 37.8666C68.1748 33.8664 69.6949 29.8171 70.8011 25.8316C70.8481 25.6605 71.0035 25.2947 70.8011 25.1891C70.3384 25.4239 70.004 26.2137 69.7383 26.6869C63.6361 37.508 57.3856 49.5885 52.5162 61.0193C50.9852 64.6173 49.7904 68.703 48.1076 72.1444C47.5473 73.2946 46.9779 74.3301 45.5698 74.5649C42.8947 75.0144 38.8856 73.6367 37.5516 71.1562C35.6682 67.6547 36.9479 58.1712 37.398 53.9872C38.2132 46.3928 39.5074 38.822 40.1129 31.2112L39.9484 29.8408C35.6809 42.0414 31.0644 54.1601 27.4349 66.5828C26.2401 70.6812 25.105 74.8433 24.3657 79.0564C23.9012 81.708 24.3838 85.1075 21.2893 86.2286C16.6928 87.892 13.0958 84.6344 13.1482 79.9882L13 79.737V79.5769C14.7316 68.2352 19.677 57.1648 23.8831 46.4856C28.4525 34.8856 33.2118 22.4575 38.6452 11.2815C39.229 10.0803 40.2105 7.69079 41.4559 7.21033C43.6267 6.36954 48.1908 7.53973 50.1736 8.72449C52.4059 10.0585 52.5306 11.0358 52.3842 13.5563C52.1113 18.2699 51.1931 23.6932 50.6128 28.4559C49.588 36.842 48.1546 45.2262 47.6051 53.6669C47.5816 54.0327 47.5418 54.5332 47.6828 54.8681C54.1267 42.1288 59.9921 29.091 66.8715 16.5774C68.7098 13.2306 70.6836 9.64354 72.7333 6.43141C73.4401 5.32309 74.2987 3.54141 75.7429 3.36488C78.4777 3.03548 83.4881 3.94543 85.6301 5.77989C86.3495 6.39502 87.1068 7.39778 86.9875 8.40601C86.8574 9.49431 85.4547 12.2333 85.0047 13.4835L85.001 13.4872Z" />
-    </svg>
+    <SymbolIcon
+      name="auto_awesome"
+      filled
+      className={`transition-colors ${active ? "text-semantic-info" : "text-text-muted"}`}
+    />
   );
 }
 
@@ -117,7 +115,7 @@ const TABS: TabDef[] = [
     kind: "link",
     id: "dashboard",
     href: "/dashboard",
-    label: "Dashboard",
+    label: "Vehicles",
     icon: DashboardIcon,
     match: (pn) =>
       pn === `${BASE}/dashboard` ||
@@ -155,7 +153,7 @@ const TABS: TabDef[] = [
     kind: "link",
     id: "profile",
     href: "/profile",
-    label: "Account",
+    label: "Profile",
     icon: AccountIcon,
     match: (pn) =>
       pn === `${BASE}/profile` ||

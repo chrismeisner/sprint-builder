@@ -1,6 +1,7 @@
 "use client";
 
 import { useMilesSheet } from "@/app/sandboxes/miles-proto-4/_components/miles-sheet";
+import { SymbolIcon } from "@/app/sandboxes/miles-proto-4/_components/symbol-icon";
 
 /**
  * AskMilesBadge — entry point that hands a page or section's context off to
@@ -20,10 +21,13 @@ import { useMilesSheet } from "@/app/sandboxes/miles-proto-4/_components/miles-s
 export function AskMilesBadge({
   context,
   ariaLabel = "Ask Miles about this",
+  label = "Ask Miles",
   className = "",
 }: {
   context: string;
   ariaLabel?: string;
+  /** Override the badge copy. Defaults to "Ask Miles". */
+  label?: string;
   className?: string;
 }) {
   const { openMilesSheet } = useMilesSheet();
@@ -36,10 +40,8 @@ export function AskMilesBadge({
       data-ask-miles-context={context}
       className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700 motion-safe:transition-colors hover:bg-green-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60 ${className}`}
     >
-      <span aria-hidden="true" className="text-sm leading-none">
-        ✨
-      </span>
-      Ask Miles
+      <SymbolIcon name="auto_awesome" size="sm" filled className="text-green-700 dark:text-green-300" />
+      {label}
     </button>
   );
 }

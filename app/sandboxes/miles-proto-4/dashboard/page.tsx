@@ -4,13 +4,18 @@ import { Suspense, useState, useCallback, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "@/app/sandboxes/miles-proto-4/_components/link";
 import { MapView } from "@/app/sandboxes/miles-proto-4/_components/map-view";
-import { TodoPreview } from "@/app/sandboxes/miles-proto-4/_components/todo-preview";
 import { useForceLightMode, setForceLightMode } from "@/app/sandboxes/miles-proto-4/_components/force-light-mode";
 import { useMilesSheet } from "@/app/sandboxes/miles-proto-4/_components/miles-sheet";
-import { AskMilesBadge } from "@/app/sandboxes/miles-proto-4/_components/ask-miles-badge";
-import { DEMO_TODOS } from "@/app/sandboxes/miles-proto-4/_lib/demo-todos";
+import { TripListItem } from "@/app/sandboxes/miles-proto-4/_components/trip-list-item";
 import { DEMO_TRIPS } from "@/app/sandboxes/miles-proto-4/_lib/demo-trips";
+import { LIVE_ACTIVITY } from "@/app/sandboxes/miles-proto-4/_lib/demo-activity";
 import { p } from "@/app/sandboxes/miles-proto-4/_lib/nav";
+import {
+  MARKER_LABEL,
+  vehicleAccentByName,
+} from "@/app/sandboxes/miles-proto-4/_lib/vehicle-tokens";
+import { SymbolIcon } from "@/app/sandboxes/miles-proto-4/_components/symbol-icon";
+import { normalizeTimeRange } from "@/app/sandboxes/miles-proto-4/_lib/format-time";
 
 const FOOTER_NAV_MODE_STORAGE_KEY = "miles-proto-4-footer-nav-mode";
 type FooterNavMode = "full" | "compact";
@@ -85,7 +90,8 @@ const AVATAR_TEEN = "/miles-proto-4/images/teen.jpg";
 interface Vehicle {
   id: string;
   name: string;
-  imageSrc: string;
+  /** Optional — when missing, the dashboard tile renders a photo placeholder. */
+  imageSrc?: string;
   year: number;
   make: string;
   model: string;
@@ -103,24 +109,41 @@ interface Vehicle {
   /** When the engine/health check was last run (e.g. "Checked 2h ago", "Today, 9:02 AM") */
   engineCheckedAt: string;
   fuelRange: string;
-  liveTrip?: { driver: string; vehicleLabel: string; mph: number; startedAgo: string };
-  lastTrip: {
+  liveTrip?: {
     driver: string;
-    from: string;
-    to: string;
-    time: string;
-    duration: string;
-    distance: string;
-    score: number;
-    events: number;
+    vehicleLabel: string;
+    mph: number;
+    startedAgo: string;
+    approximateLocation: string;
+    startedAt: string;
+    startLocation: string;
+    lastRefreshedAt: string;
   };
+  lastTrip: TripPreview;
+  /** Older trips, displayed under Activity after lastTrip. Capped to fit the
+   *  3-item dashboard preview. */
+  priorTrips?: TripPreview[];
+}
+
+interface TripPreview {
+  driver: string;
+  from: string;
+  to: string;
+  time: string;
+  timeRange: string;
+  duration: string;
+  distance: string;
+  score: number;
+  events: number;
 }
 
 const VEHICLES: Vehicle[] = [
   {
     id: "civic",
     name: "Civic",
-    imageSrc: "/api/sandbox-files/miles-proto-4/public/images/civic.jpg",
+    /* No photo yet — surfaces the empty-state placeholder on the dashboard tile
+       and on the vehicle detail hero so we can demo the upload/generate affordance. */
+    imageSrc: undefined,
     year: 2019,
     make: "Honda",
     model: "Civic Sport",
@@ -142,19 +165,44 @@ const VEHICLES: Vehicle[] = [
       from: "Preston Rd & Belt Line",
       to: "4521 Main St",
       time: "Today, 3:42 PM",
+      timeRange: "3:42 – 3:54 PM",
       duration: "12 min",
       distance: "4.2 mi",
       score: 88,
       events: 1,
     },
+    priorTrips: [
+      {
+        driver: "Christina",
+        from: "4521 Main St",
+        to: "Whole Foods Market",
+        time: "Today, 11:08 AM",
+        timeRange: "11:08 – 11:23 AM",
+        duration: "15 min",
+        distance: "5.6 mi",
+        score: 92,
+        events: 0,
+      },
+      {
+        driver: "Emma",
+        from: "Plano West HS",
+        to: "4521 Main St",
+        time: "Yesterday, 4:41 PM",
+        timeRange: "4:41 – 4:58 PM",
+        duration: "17 min",
+        distance: "6.2 mi",
+        score: 79,
+        events: 2,
+      },
+    ],
   },
   {
     id: "rav4",
-    name: "RAV4",
+    name: "Kit's RAM",
     imageSrc: "/api/sandbox-files/miles-proto-4/public/images/rav4.jpg",
-    year: 2021,
-    make: "Toyota",
-    model: "RAV4 XLE",
+    year: 2015,
+    make: "RAM",
+    model: "2500",
     parkedAt: { lat: 33.0218, lng: -96.6945 },
     locationLabel: "Elm St & 4th Ave",
     locationType: "intersection",
@@ -168,17 +216,51 @@ const VEHICLES: Vehicle[] = [
     scoreUpdated: "13h ago",
     engineCheckedAt: "No errors",
     fuelRange: "120 miles",
-    liveTrip: { driver: "Jack", vehicleLabel: "Toyota RAV4", mph: 34, startedAgo: "12 mins ago" },
+    liveTrip: {
+      driver: "Jack",
+      vehicleLabel: "Kit's RAM",
+      mph: 34,
+      startedAgo: "12 min",
+      approximateLocation: "Preston Rd, Plano",
+      startedAt: "5:18 PM",
+      startLocation: "Preston Rd & Belt Line",
+      lastRefreshedAt: "5:30 PM",
+    },
     lastTrip: {
       driver: "Emma",
       from: "Preston Rd & Belt Line",
       to: "Elm St & 4th Ave",
       time: "Today, 5:18 PM",
+      timeRange: "5:18 – 5:42 PM",
       duration: "24 min",
       distance: "11.3 mi",
       score: 71,
       events: 3,
     },
+    priorTrips: [
+      {
+        driver: "Jack",
+        from: "Home Depot",
+        to: "Preston Rd & Belt Line",
+        time: "Today, 2:14 PM",
+        timeRange: "2:14 – 2:33 PM",
+        duration: "19 min",
+        distance: "8.8 mi",
+        score: 84,
+        events: 1,
+      },
+      {
+        driver: "Jack",
+        from: "Elm St & 4th Ave",
+        to: "Lowe's",
+        time: "Yesterday, 9:02 AM",
+        timeRange: "9:02 – 9:21 AM",
+        duration: "19 min",
+        distance: "7.5 mi",
+        score: 81,
+        events: 0,
+      },
+    ],
   },
 ];
 
@@ -195,8 +277,8 @@ const COACHING_CARDS: CoachingCard[] = [
   {
     id: "fuel-reminder",
     message:
-      "Jack took the RAV4 out 12 mins ago, and the Civic is parked at home. Let me know if you want a notification when he goes over 80 mph.",
-    actionLabel: "Yes, notify me",
+      "Jack took Kit's RAM out 12 mins ago, and the Civic's been parked at home all afternoon. I noticed something about his trips this week worth flagging.",
+    actionLabel: "Tell me more",
     actionContext: "kid-trip-alert",
     dismissLabel: "Dismiss",
   },
@@ -246,19 +328,6 @@ const TRIP_SUMMARY = {
 /*  Shared vehicle content (no map) — used by both list and card view  */
 /* ------------------------------------------------------------------ */
 
-const LOCATION_ICON = (
-  <svg className="size-3.5 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-  </svg>
-);
-
-const CHEVRON = (
-  <svg className="size-3.5 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-  </svg>
-);
-
 function StatusBadge({ live }: { live: Vehicle["liveTrip"] }) {
   if (live) {
     return (
@@ -285,22 +354,36 @@ function StatsBento({ v, engineLabel, engineText, fuelText, compact = false }: {
   fuelText: string;
   compact?: boolean;
 }) {
+  const live = v.liveTrip;
+
   if (compact) {
     return (
       <div className="flex items-center divide-x divide-stroke-muted rounded-control bg-surface-subtle overflow-hidden">
-        {/* Score */}
-        <div className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2">
-          <span className="material-symbols-outlined text-text-muted" style={{ fontSize: 15, lineHeight: 1, fontVariationSettings: "'FILL' 1" }} aria-hidden="true">speed</span>
-          <span className="text-sm font-bold leading-none text-semantic-success">{v.driverScore.toFixed(1)}</span>
-        </div>
+        {/* Speed when driving, otherwise Score */}
+        {live ? (
+          <div className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2">
+            <span className="relative flex size-1.5 shrink-0">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-semantic-success opacity-75" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-semantic-success" />
+            </span>
+            <span className="text-sm font-bold leading-none tabular-nums text-semantic-success">
+              {live.mph} mph
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2">
+            <SymbolIcon name="speed" filled size="sm" />
+            <span className="text-sm font-bold leading-none text-semantic-success">{v.driverScore.toFixed(1)}</span>
+          </div>
+        )}
         {/* Engine */}
         <div className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2">
-          <span className="material-symbols-outlined text-text-muted" style={{ fontSize: 15, lineHeight: 1, fontVariationSettings: "'FILL' 1" }} aria-hidden="true">build</span>
+          <SymbolIcon name="build" filled size="sm" />
           <span className={`text-sm font-bold leading-none ${engineText}`}>{engineLabel}</span>
         </div>
         {/* Fuel */}
         <div className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2">
-          <span className="material-symbols-outlined text-text-muted" style={{ fontSize: 15, lineHeight: 1, fontVariationSettings: "'FILL' 1" }} aria-hidden="true">local_gas_station</span>
+          <SymbolIcon name="local_gas_station" filled size="sm" />
           <span className={`text-sm font-bold leading-none tabular-nums ${fuelText}`}>{(v.fuelPct ?? 0)}%</span>
         </div>
       </div>
@@ -309,23 +392,33 @@ function StatsBento({ v, engineLabel, engineText, fuelText, compact = false }: {
 
   return (
     <div className="grid grid-cols-3 gap-2">
-      {/* Score */}
-      <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
-        <span className="text-[11px] font-medium text-text-muted">Miles Score</span>
-        <div className="flex items-center gap-1">
-          <span className="text-lg font-bold leading-none tabular-nums text-semantic-success">{v.driverScore.toFixed(1)}</span>
-          {v.scoreDelta >= 0 ? (
-            <svg className="size-3 shrink-0 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
-            </svg>
-          ) : (
-            <svg className="size-3 shrink-0 text-semantic-warning" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
-            </svg>
-          )}
+      {/* Speed when driving, otherwise Miles Score */}
+      {live ? (
+        <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
+          <span className="text-[11px] font-medium text-text-muted">Speed</span>
+          <span className="text-lg font-bold leading-none tabular-nums text-semantic-success">
+            {live.mph}
+          </span>
+          <span className="text-[11px] font-medium text-text-muted">mph</span>
         </div>
+      ) : (
+        <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
+          <span className="text-[11px] font-medium text-text-muted">Score</span>
+          <div className="flex items-center gap-1">
+            <span className="text-lg font-bold leading-none tabular-nums text-semantic-success">{v.driverScore.toFixed(1)}</span>
+            {v.scoreDelta >= 0 ? (
+              <svg className="size-3 shrink-0 text-semantic-success" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+              </svg>
+            ) : (
+              <svg className="size-3 shrink-0 text-semantic-warning" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+              </svg>
+            )}
+          </div>
           <span className="text-[11px] font-medium text-text-muted">{v.scoreUpdated}</span>
-      </div>
+        </div>
+      )}
       {/* Engine */}
       <div className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2.5">
         <span className="text-[11px] font-medium text-text-muted">Engine</span>
@@ -350,7 +443,7 @@ function DriverStrip({ live, tripHref, showAvatars }: {
   return (
     <Link
       href={tripHref}
-      className="mx-4 mb-4 flex items-start gap-3 rounded-panel border border-stroke-muted bg-surface-subtle px-3 py-3 transition-colors hover:bg-surface-strong"
+      className="flex items-center gap-3 rounded-panel border border-stroke-muted bg-surface-subtle px-3 py-3 transition-colors hover:bg-surface-strong"
     >
       <PersonAvatar
         name={live.driver}
@@ -358,39 +451,44 @@ function DriverStrip({ live, tripHref, showAvatars }: {
         size="md"
         colorClass="bg-semantic-success"
         textColorClass="text-background"
-        className="mt-0.5"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        {/* Title + Live indicator */}
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-sm font-semibold leading-none text-semantic-success">{live.driver} is driving</span>
-          <div className="flex shrink-0 items-center gap-1">
-            <span className="size-1.5 rounded-full bg-semantic-success" />
-            <span className="text-xs text-text-secondary">Live</span>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="shrink-0 text-xs leading-none tabular-nums text-text-muted">{live.startedAt}</span>
+          <span className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium leading-snug text-text-primary">
+            {live.startLocation}
+          </span>
+        </div>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="shrink-0 text-xs leading-none tabular-nums text-text-muted">{live.lastRefreshedAt}</span>
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <span className="relative flex size-1.5 shrink-0">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-semantic-success opacity-75" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-semantic-success" />
+            </span>
+            <span className="block truncate text-sm font-medium leading-snug text-semantic-success">
+              Driving
+            </span>
           </div>
         </div>
-        {/* Speed + chevron */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium tabular-nums text-semantic-success">{live.mph} mph</span>
-          <svg className="size-3.5 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-          </svg>
-        </div>
       </div>
+      <svg className="size-3.5 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+      </svg>
     </Link>
   );
 }
 
 function LastTripStrip({ lastTrip, showAvatars, driverAvatarSrc }: {
-  lastTrip: Vehicle["lastTrip"];
+  lastTrip: TripPreview;
   showAvatars: boolean;
   driverAvatarSrc?: string;
 }) {
-  const timeLabel = lastTrip.time.replace(/^Today,\s*/i, "");
+  const [startTime, endTime] = normalizeTimeRange(lastTrip.timeRange);
   return (
     <Link
       href="/trip-receipt"
-      className="mx-4 mb-4 flex items-start gap-3 rounded-panel border border-stroke-muted bg-surface-subtle px-3 py-3 transition-colors hover:bg-surface-strong"
+      className="flex items-center gap-3 rounded-panel border border-stroke-muted bg-surface-subtle px-3 py-3 transition-colors hover:bg-surface-strong"
     >
       <PersonAvatar
         name={lastTrip.driver}
@@ -398,23 +496,53 @@ function LastTripStrip({ lastTrip, showAvatars, driverAvatarSrc }: {
         size="md"
         colorClass="bg-surface-strong"
         textColorClass="text-text-secondary"
-        className="mt-0.5"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        {/* Route + time */}
-        <div className="flex items-start justify-between gap-2">
-          <span className="min-w-0 truncate text-sm font-semibold leading-none text-text-primary">{lastTrip.from} → {lastTrip.to}</span>
-          <span className="shrink-0 text-xs text-text-secondary">{timeLabel}</span>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="shrink-0 text-xs leading-none tabular-nums text-text-muted">{startTime}</span>
+          <span className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium leading-snug text-text-primary">{lastTrip.from}</span>
         </div>
-        {/* Stats text + chevron */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium tabular-nums text-text-muted">{lastTrip.duration} · {lastTrip.distance}</span>
-          <svg className="size-3.5 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-          </svg>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="shrink-0 text-xs leading-none tabular-nums text-text-muted">{endTime}</span>
+          <span className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium leading-snug text-text-primary">{lastTrip.to}</span>
         </div>
       </div>
+      <svg className="size-3.5 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+      </svg>
     </Link>
+  );
+}
+
+/* ── Activity wrapper: shared "ACTIVITY" eyebrow + up to 3 stacked rows
+   (live trip first when present, then lastTrip, then priorTrips). ── */
+function ActivitySection({ v, live, tripHref, showAvatars }: {
+  v: Vehicle;
+  live: Vehicle["liveTrip"];
+  tripHref: string | null;
+  showAvatars: boolean;
+}) {
+  const liveCount = live && tripHref ? 1 : 0;
+  const pastTrips = [v.lastTrip, ...(v.priorTrips ?? [])].slice(0, 3 - liveCount);
+  return (
+    <div className="mx-4 mb-4 flex flex-col gap-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
+        Activity
+      </span>
+      <div className="flex flex-col gap-1.5">
+        {live && tripHref && (
+          <DriverStrip live={live} tripHref={tripHref} showAvatars={showAvatars} />
+        )}
+        {pastTrips.map((trip, idx) => (
+          <LastTripStrip
+            key={`${trip.driver}-${trip.timeRange}-${idx}`}
+            lastTrip={trip}
+            showAvatars={showAvatars}
+            driverAvatarSrc={CARD_DRIVER_AVATAR_MAP[trip.driver]}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -424,157 +552,65 @@ const CARD_DRIVER_AVATAR_MAP: Record<string, string> = {
   Jack: AVATAR_TEEN,
 };
 
-function VehicleCardContent({ v, showAvatars = false, compact = false }: { v: Vehicle; showAvatars?: boolean; compact?: boolean }) {
+function VehicleCardContent({ v, showAvatars: _showAvatars = false, compact = false }: { v: Vehicle; showAvatars?: boolean; compact?: boolean }) {
   const live = v.liveTrip;
-  const vehicleHref = `/vehicle?from=dashboard&vehicle=${v.id}`;
-  const tripHref = live
-    ? `/dashboard?mode=trip&driver=${encodeURIComponent(live.driver)}&vehicleLabel=${encodeURIComponent(live.vehicleLabel)}`
-    : null;
-  const lastTripAvatarSrc = CARD_DRIVER_AVATAR_MAP[v.lastTrip.driver];
 
   const engineLabel = v.engine === "good" ? "Good" : v.engine === "attention" ? "Attention" : "—";
   const engineText = v.engine === "good" ? "text-semantic-success" : "text-semantic-warning";
   const fuelPct = v.fuelPct ?? 0;
   const fuelText = fuelPct > 30 ? "text-text-secondary" : "text-semantic-warning";
 
-  const parkedAddress =
-    v.locationType === "saved" && v.locationLabel === "Home"
-      ? "4521 Main St"
-      : v.locationLabel;
-  const locationLine = live ? "Plano, TX" : parkedAddress;
-
   if (compact) {
     return (
       <>
-        {/* Compact header: name (left) | chevron (right); status + location share second line */}
-        <Link href={vehicleHref} className="flex flex-col gap-1.5 px-4 pt-3.5 pb-3 transition-colors hover:bg-background/80">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-base font-semibold uppercase leading-tight text-text-primary">{v.name}</span>
-            {CHEVRON}
-          </div>
-          <div className="flex min-w-0 items-center gap-2">
-            <StatusBadge live={live} />
-            <span className="flex min-w-0 items-center gap-1 text-xs text-text-muted">
-              {LOCATION_ICON}
-              <span className="truncate">{locationLine}</span>
-            </span>
-          </div>
-        </Link>
+        {/* Compact header */}
+        <div className="flex w-full flex-col gap-1.5 px-4 pt-3.5 pb-3 text-left">
+          <span className="text-base font-semibold uppercase leading-tight text-text-primary">{v.name}</span>
+          <StatusBadge live={live} />
+        </div>
 
         {/* Stats bento */}
-        <Link href={vehicleHref} className="px-4 pb-3 transition-colors hover:bg-background/60 block">
+        <div className="block w-full px-4 pb-3 text-left">
           <StatsBento v={v} engineLabel={engineLabel} engineText={engineText} fuelText={fuelText} compact />
-        </Link>
-
-        {/* Driver strip when live, last trip strip when parked */}
-        {live && tripHref
-          ? <DriverStrip live={live} tripHref={tripHref} showAvatars={showAvatars} />
-          : <LastTripStrip lastTrip={v.lastTrip} showAvatars={showAvatars} driverAvatarSrc={lastTripAvatarSrc} />
-        }
+        </div>
       </>
     );
   }
 
   return (
     <>
-      {/* Default header: name + status + location (left) | car image + chevron (right) */}
-      <Link href={vehicleHref} className="flex flex-col gap-2 px-4 pt-3.5 pb-2 transition-colors hover:bg-background/80">
+      {/* Default header: name + status (left) | car image (right) */}
+      <div className="flex w-full flex-col gap-2 px-4 pt-3.5 pb-2 text-left">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <span className="text-2xl font-semibold uppercase leading-tight text-text-primary">{v.name}</span>
             <StatusBadge live={live} />
-            <span className="flex min-w-0 items-center gap-1.5 text-xs text-text-muted">
-              {LOCATION_ICON}
-              <span className="truncate">{locationLine}</span>
-            </span>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <img src={v.imageSrc} alt={v.name} className="w-24 object-contain opacity-90" />
-            {CHEVRON}
+            {v.imageSrc ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={v.imageSrc} alt={v.name} className="w-24 object-contain opacity-90" />
+            ) : (
+              /* No photo yet — light gray placeholder block sized to match
+                 the photo's footprint so the card height matches photo'd
+                 vehicle cards. */
+              <div className="h-16 w-24 rounded-md bg-neutral-100" aria-hidden />
+            )}
           </div>
         </div>
-      </Link>
+      </div>
 
       {/* Stats bento */}
-      <Link href={vehicleHref} className="flex flex-col gap-2 px-4 pb-3 transition-colors hover:bg-background/60">
+      <div className="flex w-full flex-col gap-2 px-4 pb-3 text-left">
         <StatsBento v={v} engineLabel={engineLabel} engineText={engineText} fuelText={fuelText} />
-      </Link>
-
-      {/* Driver strip when live, last trip strip when parked */}
-      {live && tripHref
-        ? <DriverStrip live={live} tripHref={tripHref} showAvatars={showAvatars} />
-        : <LastTripStrip lastTrip={v.lastTrip} showAvatars={showAvatars} driverAvatarSrc={lastTripAvatarSrc} />
-      }
+      </div>
     </>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Fleet view with list / card toggle                                 */
+/*  Fleet view                                                         */
 /* ------------------------------------------------------------------ */
-
-function VehicleCarousel({
-  vehicles,
-  showAvatars,
-  compactCards,
-}: {
-  vehicles: Vehicle[];
-  showAvatars: boolean;
-  compactCards: boolean;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const sorted = [...vehicles].sort((a, b) => (b.liveTrip ? 1 : 0) - (a.liveTrip ? 1 : 0));
-
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const width = el.clientWidth;
-    if (width <= 0) return;
-    const idx = Math.round(el.scrollLeft / width);
-    setActiveIndex(Math.max(0, Math.min(idx, sorted.length - 1)));
-  }, [sorted.length]);
-
-  const goTo = useCallback((idx: number) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
-  }, []);
-
-  return (
-    <div className="mx-5 flex flex-col gap-2">
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scrollbar-none"
-        style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
-      >
-        {sorted.map((v) => (
-          <div key={v.id} className="w-full min-w-full shrink-0 basis-full snap-start">
-            <div className="overflow-hidden rounded-card border border-stroke-muted bg-surface-card">
-              <VehicleCardContent v={v} showAvatars={showAvatars} compact={compactCards} />
-            </div>
-          </div>
-        ))}
-      </div>
-      {sorted.length > 1 && (
-        <div className="flex items-center justify-center gap-1.5 pt-1">
-          {sorted.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => goTo(i)}
-              aria-label={`Go to vehicle ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all duration-200 ${
-                i === activeIndex ? "size-1.5 bg-foreground" : "size-1.5 bg-stroke-muted hover:bg-stroke-strong"
-              }`}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function HeaderAction({
@@ -666,7 +702,7 @@ function MapFilterPills({
         >
           <span
             className="size-2 shrink-0 rounded-full"
-            style={{ backgroundColor: VEHICLE_COLOR_MAP[v.name] ?? "#6b7280" }}
+            style={{ backgroundColor: vehicleAccentByName(v.name) }}
           />
           {v.name}
         </button>
@@ -682,27 +718,56 @@ function FleetView({
   compactCards,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setCompactCards,
-  vehicleLayout,
-  afterFilterPills,
 }: {
   vehicles: Vehicle[];
   showAvatars: boolean;
   mapStyle: string;
   compactCards: boolean;
   setCompactCards: (v: boolean) => void;
-  vehicleLayout: VehicleLayout;
-  afterFilterPills?: React.ReactNode;
 }) {
-  const [mapFilter, setMapFilter] = useState<string>("all");
+  /* Sorted vehicles drive both the carousel order and the map's active
+     vehicle. Live trips float to the top so the swipe order matches the
+     dashboard's existing priority. */
+  const sortedVehicles = [...vehicles].sort(
+    (a, b) => (b.liveTrip ? 1 : 0) - (a.liveTrip ? 1 : 0)
+  );
 
-  // When the fleet mode changes (vehicles prop changes), reset the filter
-  // if the currently-filtered vehicle is no longer in the list.
+  /* Active vehicle = the one currently in view in the carousel. Drives the
+     map's filter / zoom so swiping the carousel pans the map to the
+     matching vehicle. */
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const tiles = el.children;
+        if (tiles.length < 2) return;
+        const t0 = tiles[0] as HTMLElement;
+        const t1 = tiles[1] as HTMLElement;
+        const step = t1.offsetLeft - t0.offsetLeft;
+        if (step <= 0) return;
+        const idx = Math.round(el.scrollLeft / step);
+        setActiveIdx(Math.min(tiles.length - 1, Math.max(0, idx)));
+      });
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [sortedVehicles.length]);
+
+  const activeVehicleId = sortedVehicles[activeIdx]?.id ?? "";
   const filteredVehicles =
-    mapFilter === "all"
-      ? vehicles
-      : vehicles.filter((v) => v.id === mapFilter).length > 0
-      ? vehicles.filter((v) => v.id === mapFilter)
-      : vehicles;
+    sortedVehicles.filter((v) => v.id === activeVehicleId).length > 0
+      ? sortedVehicles.filter((v) => v.id === activeVehicleId)
+      : sortedVehicles;
 
   const liveVehicle = filteredVehicles.find((v) => v.liveTrip);
 
@@ -713,8 +778,8 @@ function FleetView({
         lat: v.parkedAt.lat,
         lng: v.parkedAt.lng,
         type: "end" as const,
-        color: VEHICLE_COLOR_MAP[v.name] ?? "#6b7280",
-        labelColor: "#2563eb",
+        color: vehicleAccentByName(v.name),
+        labelColor: MARKER_LABEL.parked,
         label: "Parked",
         initial: v.name[0],
       })),
@@ -723,62 +788,153 @@ function FleetView({
           lat: LIVE_ROUTE[LIVE_ROUTE.length - 1][0],
           lng: LIVE_ROUTE[LIVE_ROUTE.length - 1][1],
           type: "end" as const,
-          color: VEHICLE_COLOR_MAP[liveVehicle.name] ?? "#6b7280",
-          labelColor: "#16a34a",
+          color: vehicleAccentByName(liveVehicle.name),
+          labelColor: MARKER_LABEL.driving,
           label: "Driving",
           imageSrc: AVATAR_TEEN,
           overlayInitial: liveVehicle.name[0],
-          overlayColor: VEHICLE_COLOR_MAP[liveVehicle.name] ?? "#6b7280",
+          overlayColor: vehicleAccentByName(liveVehicle.name),
         }]
       : []),
   ];
 
   return (
     <div className="flex flex-col gap-4">
-      {/*
-        Bounding container: pills lock flush against the main header (no travel).
-        Container ends at the map bottom — that is the displacement trigger.
-        Pills sit directly under the header with no visible separator,
-        so brand chrome + filter row read as one cohesive sticky band.
-      */}
-      <div className="flex flex-col gap-0">
-        <div className="sticky z-10 bg-background pb-2 pt-1" style={{ top: "53px" }}>
-          <MapFilterPills vehicles={vehicles} filter={mapFilter} onChange={setMapFilter} />
-        </div>
-
-        {/* Fleet map — full-width, no rounding */}
-        <div className="relative w-full overflow-hidden" style={{ paddingBottom: "66.667%" }}>
-          <MapView key={`fleet-${showAvatars}-${mapStyle}-${liveVehicle ? "live" : "parked"}-${mapFilter}`} markers={allMarkers} mapStyle={mapStyle} />
-        </div>
-      </div>
-
-      {/* AI card — outside the bounding container, rendered after the map */}
-      {afterFilterPills}
-
-      {/* Vehicles section header — section-scoped AskMilesBadge on the
-          right opens a chat scoped to the user's vehicles. */}
-      <div className="flex items-center justify-between px-5">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Vehicles</span>
-        <AskMilesBadge
-          context="vehicles"
-          ariaLabel="Ask Miles about your vehicles"
+      {/* Map zooms to the vehicle currently active in the carousel. Swiping
+          the carousel below remounts MapView (via the activeVehicleId in
+          the key) so it refits to that vehicle's marker. The map runs tall
+          and the vehicle carousel pulls up with a negative margin so the
+          cards float over its lower edge — the map reads as a backdrop
+          behind them. */}
+      <div className="relative w-full overflow-hidden" style={{ paddingBottom: "90%" }}>
+        <MapView
+          key={`fleet-${showAvatars}-${mapStyle}-${liveVehicle ? "live" : "parked"}-${activeVehicleId}`}
+          markers={allMarkers}
+          mapStyle={mapStyle}
         />
       </div>
 
-      {vehicleLayout === "carousel" ? (
-        <VehicleCarousel vehicles={vehicles} showAvatars={showAvatars} compactCards={compactCards} />
-      ) : (
-        <div className="mx-5 flex flex-col gap-3">
-          {[...vehicles].sort((a, b) => (b.liveTrip ? 1 : 0) - (a.liveTrip ? 1 : 0)).map((v) => (
-            <div
+      <div
+        ref={carouselRef}
+        className="relative z-10 -mt-24 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1 scroll-px-5 touch-pan-x [&::-webkit-scrollbar]:hidden"
+      >
+        {sortedVehicles.map((v) => (
+          <Link
+            key={v.id}
+            href={`/vehicle?vehicle=${v.id}&from=dashboard`}
+            className="flex w-[85%] shrink-0 snap-start flex-col overflow-hidden rounded-card border border-stroke-muted bg-surface-card"
+          >
+            <VehicleCardContent v={v} showAvatars={showAvatars} compact={compactCards} />
+          </Link>
+        ))}
+      </div>
+
+      {sortedVehicles.length > 1 && (
+        <div
+          className="flex justify-center gap-2"
+          aria-label="Vehicle carousel position"
+        >
+          {sortedVehicles.map((v, i) => (
+            <button
               key={v.id}
-              className="overflow-hidden rounded-card border border-stroke-muted bg-surface-card"
+              type="button"
+              aria-label={`Show ${v.name}`}
+              aria-current={i === activeIdx ? "true" : undefined}
+              onClick={() => {
+                const el = carouselRef.current;
+                if (!el) return;
+                const tile = el.children[i] as HTMLElement | undefined;
+                if (!tile) return;
+                el.scrollTo({ left: tile.offsetLeft, behavior: "smooth" });
+              }}
+              className="flex size-4 items-center justify-center"
             >
-              <VehicleCardContent v={v} showAvatars={showAvatars} compact={compactCards} />
-            </div>
+              <span
+                className={`size-1.5 rounded-full transition-colors ${
+                  i === activeIdx ? "bg-foreground" : "bg-stroke-muted"
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}
+
+      {/* Activity — live trip card pinned on top, then recent trips across
+          all vehicles. Mirrors /trips: uppercase eyebrow + a green-tinted
+          live card + a rounded card of divided TripListItem rows. */}
+      <div className="flex items-center justify-between px-5 pt-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+          Activity
+        </span>
+        <Link
+          href="/trips"
+          className="text-xs font-medium text-blue-600 hover:text-blue-700"
+        >
+          See all
+        </Link>
+      </div>
+      <div className="mx-5 flex flex-col gap-2">
+        <Link
+          href={`/dashboard?mode=trip&driver=${encodeURIComponent(
+            LIVE_ACTIVITY.driver
+          )}&vehicleLabel=${encodeURIComponent(LIVE_ACTIVITY.vehicleLabel)}`}
+          className="flex items-center gap-3 rounded-panel border border-stroke-muted bg-surface-subtle px-3 py-3"
+        >
+          {/* Wireframe avatar — gray circle with person icon, plus a small
+              car badge overlay so the row reads as "person driving a vehicle"
+              without leaning on real photos. */}
+          <div className="relative shrink-0">
+            <div className="flex size-9 items-center justify-center rounded-full border border-stroke-muted bg-surface-subtle">
+              <SymbolIcon name="person" size="sm" filled className="text-text-muted" />
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full border-2 border-background bg-surface-subtle">
+              <SymbolIcon name="directions_car" size="sm" filled className="text-text-muted" />
+            </span>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="shrink-0 text-xs leading-none tabular-nums text-text-muted">
+                {LIVE_ACTIVITY.startedAt}
+              </span>
+              <span className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium leading-snug text-text-primary">
+                {LIVE_ACTIVITY.startLocation}
+              </span>
+            </div>
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="shrink-0 text-xs leading-none tabular-nums text-text-muted">
+                {LIVE_ACTIVITY.lastRefreshedAt}
+              </span>
+              <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                <span className="relative flex size-1.5 shrink-0">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-semantic-success opacity-75" />
+                  <span className="relative inline-flex size-1.5 rounded-full bg-semantic-success" />
+                </span>
+                <span className="block truncate text-sm font-medium leading-snug text-semantic-success">
+                  Driving
+                </span>
+              </div>
+            </div>
+          </div>
+          <svg
+            className="size-3.5 shrink-0 text-text-muted"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+          </svg>
+        </Link>
+
+        {DEMO_TRIPS.slice(0, 5).map((trip) => (
+          <div
+            key={trip.id}
+            className="overflow-hidden rounded-panel border border-stroke-muted bg-surface-subtle"
+          >
+            <TripListItem trip={trip} href="/trip-receipt" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -786,11 +942,6 @@ function FleetView({
 const DRIVER_AVATAR_MAP: Record<string, string> = {
   Christina: AVATAR_MOM,
   Emma: AVATAR_TEEN,
-};
-
-const VEHICLE_COLOR_MAP: Record<string, string> = {
-  Civic: "#9b1c1c",
-  RAV4: "#6b8cae",
 };
 
 /* ------------------------------------------------------------------ */
@@ -841,368 +992,6 @@ function PersonAvatar({
   );
 }
 
-/** Vehicle initial on a colored circle, or a generic car-outline SVG when no vehicle data. */
-function VehicleAvatar({
-  vehicle,
-  vehicleColor,
-  size = "md",
-  className,
-}: {
-  vehicle?: string;
-  vehicleColor?: string;
-  size?: AvatarSize;
-  className?: string;
-}) {
-  const dim = AVATAR_DIM[size];
-  if (vehicle && vehicleColor) {
-    return (
-      <div
-        className={`flex ${dim} shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-background${className ? ` ${className}` : ""}`}
-        style={{ backgroundColor: vehicleColor }}
-      >
-        {vehicle[0]}
-      </div>
-    );
-  }
-  return (
-    <div className={`flex ${dim} shrink-0 items-center justify-center rounded-full bg-surface-subtle${className ? ` ${className}` : ""}`}>
-      <svg
-        className={`${size === "sm" ? "size-3.5" : "size-4"} text-text-muted`}
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth={1.5}
-        stroke="currentColor"
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-      </svg>
-    </div>
-  );
-}
-
-/**
- * PersonAvatar with a vehicle badge overlaid at the bottom-right — matching
- * the same proportions used by the map markers (overlay ≈ 50 % of base,
- * −4 px offset so it visibly spills outside the main circle).
- */
-function PersonWithVehicleBadge({
-  name,
-  imageSrc,
-  vehicle,
-  vehicleColor,
-  size = "md",
-  colorClass = "bg-surface-strong",
-  textColorClass = "text-text-secondary",
-  className,
-}: {
-  name: string;
-  imageSrc?: string;
-  vehicle?: string;
-  vehicleColor?: string;
-  size?: AvatarSize;
-  colorClass?: string;
-  textColorClass?: string;
-  className?: string;
-}) {
-  // sm: base size-7 (28 px) → overlay size-4 (16 px, 57 %)
-  // md: base size-9 (36 px) → overlay size-[18px] (18 px, 50 %)
-  const badgeSizeClass = size === "sm" ? "size-4" : "size-[18px]";
-  return (
-    <div className={`relative shrink-0${className ? ` ${className}` : ""}`}>
-      <PersonAvatar
-        name={name}
-        imageSrc={imageSrc}
-        size={size}
-        colorClass={colorClass}
-        textColorClass={textColorClass}
-        bordered={!!imageSrc}
-      />
-      {vehicle && vehicleColor && (
-        <span
-          className={`absolute -bottom-1 -right-1 flex ${badgeSizeClass} items-center justify-center rounded-full border-2 border-background text-[9px] font-bold leading-none text-background shadow-sm`}
-          style={{ backgroundColor: vehicleColor }}
-        >
-          {vehicle[0]}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function TripActivityItem({
-  trip,
-  href,
-  showAvatars,
-  driverImageSrc,
-  vehicleColor = "#2563eb",
-  timeLabel,
-  grouped = false,
-}: {
-  trip: (typeof DEMO_TRIPS)[number];
-  href: string;
-  showAvatars: boolean;
-  driverImageSrc?: string;
-  vehicleColor?: string;
-  timeLabel?: string;
-  grouped?: boolean;
-}) {
-  const resolvedTime = timeLabel ?? trip.timeRange.split(/\s*[–-]\s*/).pop();
-  const outerCls = grouped
-    ? "flex items-start gap-4 px-4 py-3 transition-colors hover:bg-surface-subtle"
-    : "flex items-start gap-4 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-surface-subtle";
-  return (
-    <div className={outerCls}>
-      <PersonWithVehicleBadge
-        name={trip.driver}
-        imageSrc={showAvatars ? driverImageSrc : undefined}
-        vehicle={trip.vehicle}
-        vehicleColor={vehicleColor}
-        size="md"
-        className="mt-0.5"
-        colorClass="bg-surface-strong"
-        textColorClass="text-text-secondary"
-      />
-
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        {/* Route + time */}
-        <div className="flex items-start justify-between gap-2">
-          <Link href={href} className="min-w-0 truncate text-sm font-semibold leading-none text-text-primary hover:underline">
-            {trip.from} → {trip.to}
-          </Link>
-          <span className="shrink-0 text-xs text-text-secondary">{resolvedTime}</span>
-        </div>
-        {/* Details text + Trip pill */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium tabular-nums text-text-muted">{trip.duration} · {trip.distance}</span>
-          <span className="rounded-full bg-surface-subtle px-2.5 py-[5px] text-[11px] font-medium text-text-primary">Trip</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface ScoreUpdateItem {
-  id: string;
-  vehicle: string;
-  score: number;
-  delta: number;
-  date: string;
-  time: string;
-}
-
-const DEMO_SCORE_UPDATES: ScoreUpdateItem[] = [
-  { id: "su-today-civic",  vehicle: "Civic", score: 82, delta:  3, date: "Today",     time: "11:30 PM" },
-  { id: "su-today-rav4",   vehicle: "RAV4",  score: 74, delta: -2, date: "Today",     time: "11:30 PM" },
-  { id: "su-yest-civic",   vehicle: "Civic", score: 79, delta:  1, date: "Yesterday", time: "11:30 PM" },
-  { id: "su-yest-rav4",    vehicle: "RAV4",  score: 76, delta: -1, date: "Yesterday", time: "11:30 PM" },
-];
-
-interface EventItem {
-  id: string;
-  title: string;
-  detail: string;
-  statusLabel: string;
-  timeAgo: string;
-  date: string;
-  time: string;
-  driver: string;
-}
-
-const DEMO_EVENTS: EventItem[] = [
-  { id: "ev-speed-1", title: "Speeding detected",   detail: "67 in a 65 zone",    statusLabel: "Driving",  timeAgo: "2m ago",  date: "Today",     time: "4:38 PM", driver: "Emma" },
-  { id: "ev-brake-1", title: "Hard braking",        detail: "Hwy 75 near Plano",  statusLabel: "Driving",  timeAgo: "18m ago", date: "Today",     time: "4:22 PM", driver: "Jack" },
-  { id: "ev-phone-1", title: "Phone use detected",  detail: "At 34 mph on Oak St", statusLabel: "Parked",  timeAgo: "1h ago",  date: "Yesterday", time: "5:14 PM", driver: "Emma" },
-];
-
-function ScoreUpdateActivityItem({ item, timeLabel, grouped = false }: { item: ScoreUpdateItem; timeLabel?: string; grouped?: boolean }) {
-  const isUp = item.delta >= 0;
-  const deltaColor = isUp ? "text-semantic-success" : "text-semantic-warning";
-  const resolvedTime = timeLabel ?? item.time;
-  const outerCls = grouped
-    ? "flex items-start gap-4 px-4 py-3 transition-colors hover:bg-surface-subtle"
-    : "flex items-start gap-4 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-surface-subtle";
-
-  return (
-    <div className={outerCls}>
-      <VehicleAvatar
-        vehicle={item.vehicle}
-        vehicleColor={VEHICLE_COLOR_MAP[item.vehicle]}
-        size="md"
-        className="mt-0.5"
-      />
-
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        {/* Title + time */}
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-sm font-semibold leading-none text-text-primary">Miles Score updated</span>
-          <span className="shrink-0 text-xs text-text-secondary">{resolvedTime}</span>
-        </div>
-        {/* Details text + Score pill */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-text-muted">
-            {item.vehicle} · <span className={`tabular-nums ${deltaColor}`}>{isUp ? "+" : ""}{item.delta}</span>
-          </span>
-          <span className="rounded-full bg-surface-subtle px-2.5 py-[5px] text-[11px] font-medium text-text-primary">Score</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EventActivityItem({
-  event,
-  showAvatars,
-  driverImageSrc,
-  grouped = false,
-}: {
-  event: EventItem;
-  showAvatars: boolean;
-  driverImageSrc?: string;
-  grouped?: boolean;
-}) {
-  const outerCls = grouped
-    ? "flex items-start gap-4 px-4 py-3 transition-colors hover:bg-surface-subtle"
-    : "flex items-start gap-4 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-surface-subtle";
-  return (
-    <div className={outerCls}>
-      <PersonWithVehicleBadge
-        name={event.driver}
-        imageSrc={showAvatars ? driverImageSrc : undefined}
-        size="md"
-        colorClass="bg-surface-strong"
-        textColorClass="text-text-secondary"
-        className="mt-0.5"
-      />
-
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        {/* Title + timeAgo — Miles/Subheadline + Miles/Caption Muted */}
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-sm font-semibold leading-none text-text-primary">{event.title}</span>
-          <span className="shrink-0 text-xs text-text-secondary">{event.timeAgo}</span>
-        </div>
-        {/* Detail + status pill */}
-        <div className="flex items-center gap-2">
-          <span className="min-w-0 truncate text-xs font-medium text-text-muted">{event.detail}</span>
-          <span className="shrink-0 rounded-full bg-surface-subtle px-2.5 py-[5px] text-[11px] font-medium text-text-primary">{event.statusLabel}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface LiveTripEntry {
-  id: string;
-  driver: string;
-  vehicleLabel: string;
-  mph: number;
-  startedAgo: string;
-  date: string;
-}
-
-const LIVE_ACTIVITY: LiveTripEntry = {
-  id: "live-jack",
-  driver: "Jack",
-  vehicleLabel: "Toyota RAV4",
-  mph: 34,
-  startedAgo: "12 mins ago",
-  date: "Today",
-};
-
-type ActivityEntry =
-  | { kind: "trip";  trip: (typeof DEMO_TRIPS)[number] }
-  | { kind: "score"; item: ScoreUpdateItem }
-  | { kind: "live";  live: LiveTripEntry }
-  | { kind: "event"; event: EventItem };
-
-function LiveActivityCard({ live, showAvatars, grouped = false }: { live: LiveTripEntry; showAvatars: boolean; grouped?: boolean }) {
-  const tripHref = `/dashboard?mode=trip&driver=${encodeURIComponent(live.driver)}&vehicleLabel=${encodeURIComponent(live.vehicleLabel)}`;
-  const vehicleName = Object.keys(VEHICLE_COLOR_MAP).find((k) => live.vehicleLabel.includes(k));
-  const vehicleColor = vehicleName ? VEHICLE_COLOR_MAP[vehicleName] : undefined;
-  const outerCls = grouped
-    ? "flex items-start gap-4 px-4 py-3 transition-colors hover:bg-surface-subtle"
-    : "flex items-start gap-4 rounded-panel border border-stroke-muted bg-surface-card p-4 transition-colors hover:bg-surface-subtle";
-  return (
-    <Link href={tripHref} className={outerCls}>
-      <PersonWithVehicleBadge
-        name={live.driver}
-        imageSrc={showAvatars ? AVATAR_TEEN : undefined}
-        vehicle={vehicleName}
-        vehicleColor={vehicleColor}
-        size="md"
-        colorClass="bg-semantic-success"
-        textColorClass="text-background"
-        className="mt-0.5"
-      />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        {/* Driver is driving + Now */}
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-sm font-semibold leading-none text-semantic-success">{live.driver} is driving</span>
-          <span className="shrink-0 text-xs text-text-secondary">Now</span>
-        </div>
-        {/* Details text + Driving pill */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-text-muted">
-            <span className="tabular-nums text-semantic-success">{live.mph} mph</span> · {live.startedAgo}
-          </span>
-          <span className="rounded-full bg-surface-subtle px-2.5 py-[5px] text-[11px] font-medium text-text-primary">Driving</span>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-// Items ordered newest-first within each day.
-// Today:     live now → 4:41 PM trip → 3:54 PM trip
-// Yesterday: 11:30 PM scores → 6:02 PM trip → 8:32 AM trip
-const ACTIVITY_ITEMS: ActivityEntry[] = [
-  { kind: "live",  live: LIVE_ACTIVITY },         // Today — Now (live)
-  { kind: "event", event: DEMO_EVENTS[0] },       // Today 4:38 PM — speeding
-  { kind: "trip",  trip: DEMO_TRIPS[1] },         // Today 4:41 PM
-  { kind: "event", event: DEMO_EVENTS[1] },       // Today 4:22 PM — hard braking
-  { kind: "trip",  trip: DEMO_TRIPS[0] },         // Today 3:54 PM
-  { kind: "score", item: DEMO_SCORE_UPDATES[2] }, // Yesterday 11:30 PM — Civic
-  { kind: "score", item: DEMO_SCORE_UPDATES[3] }, // Yesterday 11:30 PM — RAV4
-  { kind: "event", event: DEMO_EVENTS[2] },       // Yesterday 5:14 PM — phone use
-  { kind: "trip",  trip: DEMO_TRIPS[3] },         // Yesterday 6:02 PM
-  { kind: "trip",  trip: DEMO_TRIPS[2] },         // Yesterday 8:32 AM
-];
-
-/* ------------------------------------------------------------------ */
-/*  Activity timeline helpers                                          */
-/* ------------------------------------------------------------------ */
-
-const ACTIVITY_DATE_LABELS: Record<string, string> = {
-  "Today":     "Today, March 20, 2026",
-  "Yesterday": "Yesterday, March 19, 2026",
-};
-
-function getEntryDate(entry: ActivityEntry): string {
-  if (entry.kind === "trip")   return entry.trip.date;
-  if (entry.kind === "score")  return entry.item.date;
-  if (entry.kind === "event")  return entry.event.date;
-  return entry.live.date;
-}
-
-function getEntryTime(entry: ActivityEntry): string {
-  if (entry.kind === "trip")  return entry.trip.timeRange.split(/\s*[–-]\s*/).pop() ?? entry.trip.timeRange;
-  if (entry.kind === "score") return entry.item.time;
-  if (entry.kind === "event") return entry.event.time;
-  return "Now";
-}
-
-function groupActivityByDate(items: ActivityEntry[]) {
-  const order: string[] = [];
-  const map: Record<string, ActivityEntry[]> = {};
-  for (const item of items) {
-    const d = getEntryDate(item);
-    if (!map[d]) { order.push(d); map[d] = []; }
-    map[d].push(item);
-  }
-  return order.map((d) => ({
-    date: d,
-    label: ACTIVITY_DATE_LABELS[d] ?? d,
-    entries: map[d],
-  }));
-}
 
 interface ConversationStarter {
   id: string;
@@ -1244,7 +1033,7 @@ const CONVERSATION_STARTERS: ConversationStarter[] = [
   },
   {
     id: "braking",
-    label: "Why did my score dip on the RAV4?",
+    label: "Why did my score dip on Kit's RAM?",
     context: "score-rav4",
     icon: (
       <svg className="size-4 shrink-0 text-semantic-danger" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -1332,79 +1121,28 @@ function MilesConversationStarters() {
   );
 }
 
-function ActivityFeed({ showAvatars = false }: { showAvatars?: boolean }) {
-  const groups = groupActivityByDate(ACTIVITY_ITEMS);
-
-  return (
-    <div className="mx-5 flex flex-col gap-4">
-      {/* Section header — section-scoped AskMilesBadge on the right
-          opens a chat scoped to recent activity. */}
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Activity</span>
-        <AskMilesBadge
-          context="activity"
-          ariaLabel="Ask Miles about recent activity"
-        />
-      </div>
-
-      {/* Day groups — each day is a single connected panel (iOS inset-grouped style) */}
-      {groups.map((group) => (
-        <div key={group.date} className="flex flex-col gap-2">
-          {/* Day label */}
-          <span className="text-xs font-semibold text-text-secondary">{group.label}</span>
-
-          {/* Grouped panel */}
-          <div className="overflow-hidden rounded-panel border border-stroke-muted bg-surface-card">
-            {group.entries.map((entry, i) => {
-              const isLast = i === group.entries.length - 1;
-              const key = entry.kind === "trip" ? entry.trip.id : entry.kind === "score" ? entry.item.id : entry.kind === "event" ? entry.event.id : entry.live.id;
-              const time = getEntryTime(entry);
-
-              return (
-                <div key={key}>
-                  {entry.kind === "trip" ? (
-                    <TripActivityItem
-                      trip={entry.trip}
-                      href="/trip-receipt"
-                      showAvatars={showAvatars}
-                      driverImageSrc={DRIVER_AVATAR_MAP[entry.trip.driver]}
-                      vehicleColor={VEHICLE_COLOR_MAP[entry.trip.vehicle ?? ""]}
-                      timeLabel={time}
-                      grouped
-                    />
-                  ) : entry.kind === "score" ? (
-                    <ScoreUpdateActivityItem item={entry.item} timeLabel={time} grouped />
-                  ) : entry.kind === "event" ? (
-                    <EventActivityItem
-                      event={entry.event}
-                      showAvatars={showAvatars}
-                      driverImageSrc={DRIVER_AVATAR_MAP[entry.event.driver]}
-                      grouped
-                    />
-                  ) : (
-                    <LiveActivityCard live={entry.live} showAvatars={showAvatars} grouped />
-                  )}
-                  {!isLast && <div className="h-px bg-stroke-muted" />}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /*  Miles tooltip — appears over the bottom nav after card dismiss    */
 /* ------------------------------------------------------------------ */
 
-function MilesTooltip({ onDismiss }: { onDismiss: () => void }) {
+/**
+ * MilesTipOverlay — speech-bubble overlay anchored above the bottom nav,
+ * with a downward caret pointing at the centered Miles "M" tab. Reads as
+ * if Miles is talking through the tab. Reuses the coaching card content
+ * shape (top-left X dismiss · mono message · low-key green CTA).
+ *
+ * iOS analogue: TipKit popover (iOS 17+) attached to a `TabView` button,
+ * with `.tipBackground` + an `arrowEdge` of `.bottom`.
+ */
+function MilesTipOverlay({
+  card,
+  onDismiss,
+}: {
+  card: CoachingCard;
+  onDismiss: () => void;
+}) {
+  const { openMilesSheet } = useMilesSheet();
   const [visible, setVisible] = useState(false);
-  // Distance in px from the tooltip's bottom edge to the viewport bottom.
-  // Equals the nav's distance from the viewport top to the viewport bottom,
-  // i.e. window.innerHeight − nav.getBoundingClientRect().top.
   const [offsetBottom, setOffsetBottom] = useState(72);
 
   useEffect(() => {
@@ -1425,40 +1163,49 @@ function MilesTooltip({ onDismiss }: { onDismiss: () => void }) {
   }, []);
 
   return (
-    // Full-screen scrim — tap anywhere to dismiss
-    <div className="fixed inset-0 z-50" onClick={onDismiss} aria-label="Dismiss">
-      {/* Tooltip pinned just above the sticky nav.
-          left-1/2 lands on the Miles icon (centre of 5 equal tabs). */}
-      <div
-        className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 flex-col items-center"
-        style={{
-          bottom: offsetBottom,
-          transition: "opacity 260ms ease, transform 260ms ease",
-          opacity: visible ? 1 : 0,
-          transform: visible ? "translateY(0)" : "translateY(8px)",
-        }}
-      >
-        {/* Bubble */}
-        <div
-          className="pointer-events-auto rounded-2xl bg-foreground px-5 py-3 shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <p className="whitespace-nowrap font-mono text-sm leading-relaxed text-background">
-            I&apos;m here if you need anything
-          </p>
+    <div
+      className="pointer-events-none fixed inset-x-0 z-40 flex flex-col items-center"
+      style={{
+        bottom: offsetBottom,
+        transition: "opacity 260ms ease, transform 260ms ease",
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(8px)",
+      }}
+      aria-live="polite"
+    >
+      <div className="pointer-events-auto mx-5 flex w-full max-w-[300px] flex-col gap-2.5 rounded-panel border border-stroke-muted bg-surface-card p-4 shadow-card">
+        <p className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-text-secondary">
+          {card.message}
+        </p>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => openMilesSheet(card.actionContext, "medium")}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-semantic-success transition-opacity active:opacity-60"
+          >
+            <SymbolIcon name="auto_awesome" size="sm" filled className="text-semantic-success" />
+            {card.actionLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="text-sm font-medium text-text-muted transition-opacity active:opacity-60"
+          >
+            {card.dismissLabel}
+          </button>
         </div>
-        {/* Downward caret — tip touches the nav's top border */}
-        <svg
-          width="16"
-          height="8"
-          viewBox="0 0 16 8"
-          className="shrink-0 text-foreground"
-          fill="currentColor"
-          aria-hidden
-        >
-          <path d="M0 0 L16 0 L8 8 Z" />
-        </svg>
       </div>
+      {/* Downward caret aligned to the centered Miles tab. */}
+      <svg
+        width="18"
+        height="9"
+        viewBox="0 0 18 9"
+        className="-mt-px shrink-0 text-surface-card"
+        fill="currentColor"
+        aria-hidden
+      >
+        <path d="M0 0 L18 0 L9 9 Z" />
+      </svg>
     </div>
   );
 }
@@ -1475,7 +1222,28 @@ function AgentCoachingCard({
   const { openMilesSheet } = useMilesSheet();
 
   return (
-    <div className="flex h-full w-full flex-col gap-4 rounded-panel border border-stroke-muted bg-surface-card p-5 shadow-card">
+    <div className="flex h-full w-full flex-col gap-3 rounded-panel border border-stroke-muted bg-surface-card p-5 shadow-card">
+      {/* Top-left dismiss — quiet X chip, leaves the message + CTA the focus. */}
+      {onDismiss && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          className="-ml-1 -mt-1 flex size-7 shrink-0 items-center justify-center self-start rounded-full text-text-muted transition-colors hover:bg-surface-subtle active:bg-surface-strong"
+        >
+          <svg
+            className="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden
+          >
+            <path d="M6 6l12 12M6 18L18 6" strokeLinecap="round" />
+          </svg>
+        </button>
+      )}
+
       {/* Message — carousel animates opacity + height via ref */}
       <div ref={messageWrapperRef} className="overflow-hidden">
         <p className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-text-secondary">
@@ -1483,30 +1251,15 @@ function AgentCoachingCard({
         </p>
       </div>
 
-      {/* Actions — pinned to bottom. iOS modal convention: secondary on
-          the left, primary on the right, equal width. Color carries the
-          visual hierarchy (dark green primary vs outlined secondary). */}
-      <div className="mt-auto flex items-center gap-2">
-        {onDismiss && (
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="flex h-12 flex-1 items-center justify-center rounded-full border border-stroke-muted bg-surface-card px-5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-subtle active:bg-surface-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-muted focus-visible:ring-offset-2"
-          >
-            Dismiss
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => openMilesSheet(card.actionContext, "medium")}
-          className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-semantic-success px-5 text-sm font-medium text-background transition-colors hover:bg-semantic-success/90 active:bg-semantic-success/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-semantic-success focus-visible:ring-offset-2"
-        >
-          <span aria-hidden="true" className="text-base leading-none">
-            ✨
-          </span>
-          {card.actionLabel}
-        </button>
-      </div>
+      {/* Low-key inline CTA — Miles green text link, no filled button. */}
+      <button
+        type="button"
+        onClick={() => openMilesSheet(card.actionContext, "medium")}
+        className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-semantic-success transition-opacity active:opacity-60"
+      >
+        <SymbolIcon name="auto_awesome" size="sm" filled className="text-semantic-success" />
+        {card.actionLabel}
+      </button>
     </div>
   );
 }
@@ -1787,7 +1540,7 @@ function TripInProgress({
               { lat: currentPos[0], lng: currentPos[1], type: "end" },
             ]}
             interactive={false}
-            routeColor="#16a34a"
+            routeColor={MARKER_LABEL.driving}
             routeWeight={4}
             mapStyle={mapStyle}
           />
@@ -1955,21 +1708,17 @@ function TripComplete({
 
 type DashboardMode = "parked" | "trip" | "complete";
 type FleetMode = "both-parked" | "one-driving";
-type VehicleLayout = "list" | "carousel";
 
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [coachingDismissed, setCoachingDismissed] = useState(false);
-  const [showMilesTooltip, setShowMilesTooltip] = useState(false);
   const [headerAction, setHeaderAction] = useState<"profile" | "roadside">("roadside");
   const [footerNavMode, setFooterNavMode] = useState<FooterNavMode>("full");
   const [showAvatars, setShowAvatars] = useState(true);
   const [fleetMode, setFleetMode] = useState<FleetMode>("one-driving");
   const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/streets-v12");
-  const [showTodos, setShowTodos] = useState(false);
   const [compactCards, setCompactCards] = useState(false);
-  const [vehicleLayout, setVehicleLayout] = useState<VehicleLayout>("list");
 
   // Dark mode — reads/writes the shared proto theme preference
   const forceLight = useForceLightMode();
@@ -2046,21 +1795,7 @@ function DashboardContent() {
             mapStyle={mapStyle}
             compactCards={compactCards}
             setCompactCards={setCompactCards}
-            vehicleLayout={vehicleLayout}
-            afterFilterPills={
-              !coachingDismissed ? (
-                <AgentCoachingCarousel
-                  cards={COACHING_CARDS}
-                  onAllDismissed={() => {
-                    setCoachingDismissed(true);
-                    setShowMilesTooltip(true);
-                  }}
-                />
-              ) : undefined
-            }
           />
-          <ActivityFeed showAvatars={showAvatars} />
-          {showTodos && <TodoPreview items={DEMO_TODOS} className="mx-5" />}
           <QuickActions showRoadsideAssist={headerAction === "profile"} />
         </div>
       )}
@@ -2093,27 +1828,6 @@ function DashboardContent() {
                 }`}
               >
                 {m === "both-parked" ? "both parked" : "one driving"}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
-            Vehicle layout
-          </span>
-          <div className="flex items-center gap-1.5">
-            {(["list", "carousel"] as const).map((layout) => (
-              <button
-                key={layout}
-                type="button"
-                onClick={() => setVehicleLayout(layout)}
-                className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                  vehicleLayout === layout
-                    ? "bg-surface-strong text-text-secondary"
-                    : "text-text-muted hover:text-text-secondary"
-                }`}
-              >
-                {layout}
               </button>
             ))}
           </div>
@@ -2153,22 +1867,6 @@ function DashboardContent() {
             }`}
           >
             {showAvatars ? "Photos on" : "Photos off"}
-          </button>
-        </div>
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
-            Todos
-          </span>
-          <button
-            type="button"
-            onClick={() => setShowTodos((prev) => !prev)}
-            className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
-              showTodos
-                ? "bg-surface-strong text-text-secondary"
-                : "text-text-muted hover:text-text-secondary"
-            }`}
-          >
-            {showTodos ? "Visible" : "Hidden"}
           </button>
         </div>
         <div className="flex flex-col items-center gap-2">
@@ -2246,8 +1944,11 @@ function DashboardContent() {
           </div>
         </div>
       </div>
-      {showMilesTooltip && (
-        <MilesTooltip onDismiss={() => setShowMilesTooltip(false)} />
+      {!coachingDismissed && COACHING_CARDS[0] && (
+        <MilesTipOverlay
+          card={COACHING_CARDS[0]}
+          onDismiss={() => setCoachingDismissed(true)}
+        />
       )}
     </main>
   );

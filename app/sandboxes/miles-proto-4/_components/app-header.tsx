@@ -3,6 +3,7 @@
 import Link from "@/app/sandboxes/miles-proto-4/_components/link";
 import { usePathname } from "next/navigation";
 import { BASE, p } from "@/app/sandboxes/miles-proto-4/_lib/nav";
+import { AskMilesBadge } from "@/app/sandboxes/miles-proto-4/_components/ask-miles-badge";
 
 /**
  * Global iOS-style top navigation bar.
@@ -68,6 +69,9 @@ function MilesWordmark() {
 export function AppHeader() {
   const pathname = usePathname();
   if (HIDDEN_ON.has(pathname)) return null;
+  // Vehicle tap-in detail screens own their full top edge via
+  // VehicleDetailShell — no safe-area spacer here.
+  if (pathname.startsWith(`${BASE}/vehicles/`)) return null;
 
   // iOS-pattern: branded chrome lives only on the home/dashboard tab.
   // Other tabs render their own page header (title + AskMilesBadge) and
@@ -104,26 +108,11 @@ export function AppHeader() {
         <MilesWordmark />
       </Link>
 
-      <button
-        type="button"
-        aria-label="Roadside Assist"
-        className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800"
-      >
-        <svg
-          className="size-5 text-red-600 dark:text-red-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          aria-hidden
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-          />
-        </svg>
-      </button>
+      <AskMilesBadge
+        context="vehicles"
+        label="Need Help?"
+        ariaLabel="Ask Miles for help"
+      />
     </header>
   );
 }
