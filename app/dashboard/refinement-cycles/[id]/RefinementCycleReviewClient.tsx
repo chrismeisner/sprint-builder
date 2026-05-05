@@ -948,6 +948,35 @@ export default function RefinementCycleReviewClient({
         </section>
       )}
 
+      {cycle.status === "awaiting_payment" &&
+        cycle.stripeFinalInvoiceUrl &&
+        !cycle.finalPaidAt && (
+          <section className="rounded-md border border-yellow-200 bg-yellow-50 p-4 space-y-3">
+            <Typography as="h2" scale="heading-md">
+              Pay your invoice
+            </Typography>
+            <Typography className="text-text-secondary">
+              {cycle.finalPaymentInitiatedAt
+                ? `Payment is processing. If you still need to settle the ${formatUsd(
+                    cycle.depositPaidAt ? cycle.finalAmount : cycle.totalPrice
+                  )} invoice, use the link below.`
+                : `Your refinement cycle is delivered. Pay the ${formatUsd(
+                    cycle.depositPaidAt ? cycle.finalAmount : cycle.totalPrice
+                  )} invoice to close out the cycle.`}
+            </Typography>
+            <div>
+              <a
+                href={cycle.stripeFinalInvoiceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                Pay invoice via Stripe →
+              </a>
+            </div>
+          </section>
+        )}
+
       {isAdmin &&
         (cycle.status === "submitted" ||
           cycle.status === "accepted" ||
