@@ -2156,7 +2156,7 @@ export default function RefinementCycleReviewClient({
             </section>
           )}
 
-        <PaymentsSection cycle={cycle} />
+        <PaymentsSection cycle={cycle} isAdmin={isAdmin} />
 
         <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-2">
           <Typography as="h2" scale="heading-md">
@@ -2365,7 +2365,16 @@ function formatUsd(amount: number): string {
   });
 }
 
-function PaymentsSection({ cycle }: { cycle: CycleDetail }) {
+function PaymentsSection({
+  cycle,
+  isAdmin,
+}: {
+  cycle: CycleDetail;
+  isAdmin: boolean;
+}) {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const [busyKind, setBusyKind] = useState<"deposit" | "final" | null>(null);
   const rows = buildPaymentRows(cycle);
   const totalDue = rows.reduce((sum, r) => sum + r.amount, 0);
   const totalPaid = rows
@@ -2375,6 +2384,48 @@ function PaymentsSection({ cycle }: { cycle: CycleDetail }) {
     .filter((r) => !r.paidAt && r.initiatedAt)
     .reduce((sum, r) => sum + r.amount, 0);
   const outstanding = totalDue - totalPaid - totalProcessing;
+
+  async function setPaymentStatus(
+    kind: "deposit" | "final",
+    next: "processing" | "paid" | "reset"
+  ) {
+    const labelMap = {
+      processing: "mark as Processing",
+      paid: "mark as Paid",
+      reset: "clear the manual override on",
+    } as const;
+    const ok = window.confirm(
+      `${labelMap[next][0].toUpperCase()}${labelMap[next].slice(1)} the ${kind} payment?` +
+        (next === "paid"
+          ? "\n\nThis bypasses Stripe — only do this when you've confirmed payment another way."
+          : "")
+    );
+    if (!ok) return;
+    setBusyKind(kind);
+    try {
+      const res = await fetch(
+        `/api/refinement-cycles/${cycle.id}/payment-status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind, status: next }),
+        }
+      );
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? `Update failed (${res.status})`);
+      }
+      router.refresh();
+      showToast(
+        `${kind === "deposit" ? "Deposit" : "Final"} payment marked ${next}`,
+        "success"
+      );
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setBusyKind(null);
+    }
+  }
 
   return (
     <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
@@ -2396,7 +2447,8 @@ function PaymentsSection({ cycle }: { cycle: CycleDetail }) {
                   <th className="py-2 pr-3 font-medium">Amount</th>
                   <th className="py-2 pr-3 font-medium">Status</th>
                   <th className="py-2 pr-3 font-medium">Activity</th>
-                  <th className="py-2 font-medium">Stripe</th>
+                  <th className="py-2 pr-3 font-medium">Stripe</th>
+                  {isAdmin && <th className="py-2 font-medium">Admin</th>}
                 </tr>
               </thead>
               <tbody>
@@ -2433,7 +2485,7 @@ function PaymentsSection({ cycle }: { cycle: CycleDetail }) {
                           "—"
                         )}
                       </td>
-                      <td className="py-2">
+                      <td className="py-2 pr-3">
                         {row.invoiceUrl ? (
                           <a
                             href={row.invoiceUrl}
@@ -2447,6 +2499,48 @@ function PaymentsSection({ cycle }: { cycle: CycleDetail }) {
                           <span className="text-text-secondary">—</span>
                         )}
                       </td>
+                      {isAdmin && (
+                        <td className="py-2">
+                          <div className="flex flex-wrap gap-2">
+                            {status !== "processing" && status !== "paid" && (
+                              <button
+                                type="button"
+                                disabled={busyKind === row.kind}
+                                onClick={() =>
+                                  setPaymentStatus(row.kind, "processing")
+                                }
+                                className="text-xs underline text-text-secondary hover:text-text-primary disabled:opacity-50"
+                              >
+                                Mark processing
+                              </button>
+                            )}
+                            {status !== "paid" && (
+                              <button
+                                type="button"
+                                disabled={busyKind === row.kind}
+                                onClick={() =>
+                                  setPaymentStatus(row.kind, "paid")
+                                }
+                                className="text-xs underline text-text-secondary hover:text-text-primary disabled:opacity-50"
+                              >
+                                Mark paid
+                              </button>
+                            )}
+                            {(row.initiatedAt || row.paidAt) && (
+                              <button
+                                type="button"
+                                disabled={busyKind === row.kind}
+                                onClick={() =>
+                                  setPaymentStatus(row.kind, "reset")
+                                }
+                                className="text-xs underline text-semantic-danger hover:opacity-80 disabled:opacity-50"
+                              >
+                                Reset
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

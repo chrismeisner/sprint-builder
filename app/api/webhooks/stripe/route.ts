@@ -31,6 +31,7 @@ import {
  *   invoice.paid                    → mark matching invoice as "paid"
  *   invoice.payment_failed          → mark matching invoice as "failed"
  *   invoice.voided                  → mark matching invoice as "voided"
+ *   charge.pending                  → mark matching invoice as "processing" (ACH/bank-transfer fallback when payment_intent.processing isn't emitted)
  *   charge.refunded                 → mark matching invoice as "refunded"
  */
 export async function POST(request: Request) {
@@ -133,6 +134,13 @@ async function handleEvent(event: import("stripe").Stripe.Event, origin: string)
       );
       break;
 
+    case "charge.pending":
+      await onChargePending(
+        event.data.object as import("stripe").Stripe.Charge,
+        origin
+      );
+      break;
+
     case "charge.refunded":
       await onChargeRefunded(
         event.data.object as import("stripe").Stripe.Charge,
@@ -210,6 +218,48 @@ async function onInvoicePaymentFailed(invoice: import("stripe").Stripe.Invoice, 
 async function onInvoiceVoided(invoice: import("stripe").Stripe.Invoice, origin: string) {
   console.log(`[StripeWebhook] Invoice voided: ${invoice.id}`);
   await updateInvoiceStatus(invoice.id, "voided", origin, invoice.metadata ?? undefined);
+}
+
+// ACH / bank-transfer payments don't always trigger `payment_intent.processing`
+// — Stripe may surface the in-flight state as `charge.pending` instead. Route
+// it through the same "processing" path so the row gets stamped + notifications
+// fire. COALESCE in the update statements protects against double-stamping when
+// both events end up firing for the same payment.
+async function onChargePending(charge: import("stripe").Stripe.Charge, origin: string) {
+  console.log(`[StripeWebhook] Charge pending: ${charge.id}`);
+  const maybeWithInvoice = charge as import("stripe").Stripe.Charge & {
+    invoice?: string | { id?: string } | null;
+  };
+  const invoiceId =
+    typeof maybeWithInvoice.invoice === "string"
+      ? maybeWithInvoice.invoice
+      : maybeWithInvoice.invoice?.id;
+  const stripeId =
+    invoiceId ??
+    (typeof charge.payment_intent === "string"
+      ? charge.payment_intent
+      : charge.id);
+
+  // We tag refinement_cycle_id on the invoice, not the charge — so for
+  // invoice-backed charges we need to pull the invoice's metadata to route
+  // the update to the right cycle. Fall back to charge.metadata when the
+  // charge isn't tied to an invoice.
+  let metadata: Record<string, string> | undefined =
+    charge.metadata ?? undefined;
+  if (invoiceId) {
+    try {
+      const stripe = getStripe();
+      const inv = await stripe.invoices.retrieve(invoiceId);
+      if (inv.metadata) metadata = { ...metadata, ...inv.metadata };
+    } catch (err) {
+      console.error(
+        `[StripeWebhook] Failed to load invoice ${invoiceId} metadata for charge.pending:`,
+        err
+      );
+    }
+  }
+
+  await updateInvoiceStatus(stripeId, "processing", origin, metadata);
 }
 
 async function onChargeRefunded(charge: import("stripe").Stripe.Charge, origin: string) {
