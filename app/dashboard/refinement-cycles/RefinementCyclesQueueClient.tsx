@@ -38,6 +38,31 @@ function StatusBadge({ status }: { status: RefinementCycleStatus }) {
   );
 }
 
+function PaymentProcessingBadge() {
+  return (
+    <span
+      className={`inline-flex items-center rounded border px-2 py-0.5 ${TONE_CLASSES.warning}`}
+    >
+      <Typography scale="body-sm" as="span">
+        Payment processing
+      </Typography>
+    </span>
+  );
+}
+
+// True if the cycle has an in-flight payment (initiated via Stripe but not
+// yet cleared) on either the deposit or final invoice. Mirrors the
+// "Processing" payment-row state on the cycle detail page.
+function isPaymentProcessing(row: RefinementCycleQueueRow): boolean {
+  const depositInFlight = Boolean(
+    row.depositPaymentInitiatedAt && !row.depositPaidAt
+  );
+  const finalInFlight = Boolean(
+    row.finalPaymentInitiatedAt && !row.finalPaidAt
+  );
+  return depositInFlight || finalInFlight;
+}
+
 function formatTime(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString("en-US", {
@@ -61,31 +86,56 @@ function formatDate(yyyymmdd: string): string {
 }
 
 const ALL_FILTER = "all" as const;
-type StatusFilter = typeof ALL_FILTER | RefinementCycleStatus;
+const PAYMENT_PROCESSING_FILTER = "payment_processing" as const;
+type StatusFilter =
+  | typeof ALL_FILTER
+  | typeof PAYMENT_PROCESSING_FILTER
+  | RefinementCycleStatus;
 
 export default function RefinementCyclesQueueClient({ rows }: Props) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(ALL_FILTER);
 
   const filtered = useMemo(() => {
     if (statusFilter === ALL_FILTER) return rows;
+    if (statusFilter === PAYMENT_PROCESSING_FILTER) {
+      return rows.filter(isPaymentProcessing);
+    }
     return rows.filter((r) => r.status === statusFilter);
   }, [rows, statusFilter]);
 
   const counts = useMemo(() => {
-    const counter: Record<string, number> = { [ALL_FILTER]: rows.length };
+    const counter: Record<string, number> = {
+      [ALL_FILTER]: rows.length,
+      [PAYMENT_PROCESSING_FILTER]: 0,
+    };
     for (const s of REFINEMENT_CYCLE_STATUSES) counter[s] = 0;
-    for (const r of rows) counter[r.status] = (counter[r.status] ?? 0) + 1;
+    for (const r of rows) {
+      counter[r.status] = (counter[r.status] ?? 0) + 1;
+      if (isPaymentProcessing(r)) {
+        counter[PAYMENT_PROCESSING_FILTER] =
+          (counter[PAYMENT_PROCESSING_FILTER] ?? 0) + 1;
+      }
+    }
     return counter;
   }, [rows]);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {([ALL_FILTER, ...REFINEMENT_CYCLE_STATUSES] as StatusFilter[]).map(
-          (status) => {
+        {(
+          [
+            ALL_FILTER,
+            PAYMENT_PROCESSING_FILTER,
+            ...REFINEMENT_CYCLE_STATUSES,
+          ] as StatusFilter[]
+        ).map((status) => {
             const isActive = statusFilter === status;
             const label =
-              status === ALL_FILTER ? "All" : statusVisuals(status).label;
+              status === ALL_FILTER
+                ? "All"
+                : status === PAYMENT_PROCESSING_FILTER
+                  ? "Payment processing"
+                  : statusVisuals(status).label;
             return (
               <button
                 key={status}
@@ -166,7 +216,10 @@ export default function RefinementCyclesQueueClient({ rows }: Props) {
                   className="border-t border-stroke-muted hover:bg-surface-subtle/50"
                 >
                   <td className="px-3 py-2 align-top">
-                    <StatusBadge status={row.status} />
+                    <div className="flex flex-col gap-1 items-start">
+                      <StatusBadge status={row.status} />
+                      {isPaymentProcessing(row) && <PaymentProcessingBadge />}
+                    </div>
                   </td>
                   <td className="px-3 py-2 align-top">
                     <Typography>{row.title ?? "—"}</Typography>

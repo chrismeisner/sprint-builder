@@ -22,6 +22,9 @@ export type RefinementCycleQueueRow = {
   declinedAt: string | null;
   deliveryDate: string | null;
   depositPaidAt: string | null;
+  finalPaidAt: string | null;
+  depositPaymentInitiatedAt: string | null;
+  finalPaymentInitiatedAt: string | null;
   deliveredAt: string | null;
   expiredAt: string | null;
 };
@@ -51,6 +54,9 @@ export default async function RefinementCyclesAdminPage() {
       rc.declined_at,
       rc.delivery_date,
       rc.deposit_paid_at,
+      rc.final_paid_at,
+      rc.deposit_payment_initiated_at,
+      rc.final_payment_initiated_at,
       rc.delivered_at,
       rc.expired_at,
       COALESCE(s.cnt, 0)::int AS screen_count
@@ -108,6 +114,21 @@ export default async function RefinementCyclesAdminPage() {
       ? row.deposit_paid_at instanceof Date
         ? row.deposit_paid_at.toISOString()
         : (row.deposit_paid_at as string)
+      : null,
+    finalPaidAt: row.final_paid_at
+      ? row.final_paid_at instanceof Date
+        ? row.final_paid_at.toISOString()
+        : (row.final_paid_at as string)
+      : null,
+    depositPaymentInitiatedAt: row.deposit_payment_initiated_at
+      ? row.deposit_payment_initiated_at instanceof Date
+        ? row.deposit_payment_initiated_at.toISOString()
+        : (row.deposit_payment_initiated_at as string)
+      : null,
+    finalPaymentInitiatedAt: row.final_payment_initiated_at
+      ? row.final_payment_initiated_at instanceof Date
+        ? row.final_payment_initiated_at.toISOString()
+        : (row.final_payment_initiated_at as string)
       : null,
     deliveredAt: row.delivered_at
       ? row.delivered_at instanceof Date
