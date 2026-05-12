@@ -143,6 +143,9 @@ export default function RefinementCycleReviewClient({
   const [invoiceAmountOverride, setInvoiceAmountOverride] = useState("");
   const [invoiceDescriptionOverride, setInvoiceDescriptionOverride] =
     useState("");
+  // Stripe invoice due date = today + paymentDueDays. Default 7 matches the
+  // server fallback (REFINEMENT_CYCLE_PAYMENT_DUE_BUFFER_DAYS).
+  const [paymentDueDays, setPaymentDueDays] = useState("7");
 
   // Submitter can also edit while the cycle is still in `submitted`. The
   // server enforces the same rule; this gate just controls the affordances.
@@ -662,6 +665,18 @@ export default function RefinementCycleReviewClient({
       if (parsedAmt !== null && (!Number.isFinite(parsedAmt) || parsedAmt < 0)) {
         throw new Error("Invoice amount must be a non-negative number");
       }
+      const trimmedDueDays = paymentDueDays.trim();
+      const parsedDueDays =
+        trimmedDueDays === "" ? null : Number(trimmedDueDays);
+      if (
+        parsedDueDays !== null &&
+        (!Number.isFinite(parsedDueDays) ||
+          parsedDueDays < 0 ||
+          parsedDueDays > 365 ||
+          !Number.isInteger(parsedDueDays))
+      ) {
+        throw new Error("Payment due days must be an integer between 0 and 365");
+      }
       const res = await fetch(`/api/refinement-cycles/${cycle.id}/deliver`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -673,6 +688,7 @@ export default function RefinementCycleReviewClient({
           invoiceAmountOverride: parsedAmt,
           invoiceDescriptionOverride:
             invoiceDescriptionOverride.trim() || null,
+          paymentDueDays: parsedDueDays,
         }),
       });
       if (!res.ok) {
@@ -2070,11 +2086,43 @@ export default function RefinementCycleReviewClient({
                         className="w-full rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
                       />
                     </label>
+                    <label className="block sm:col-span-2">
+                      <Typography
+                        scale="body-sm"
+                        as="span"
+                        className="text-text-secondary"
+                      >
+                        Payment due in (days)
+                      </Typography>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          max="365"
+                          step="1"
+                          inputMode="numeric"
+                          value={paymentDueDays}
+                          onChange={(e) => setPaymentDueDays(e.target.value)}
+                          placeholder="7"
+                          className="w-32 rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
+                        />
+                        {[0, 7, 14, 30].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setPaymentDueDays(String(preset))}
+                            className="rounded-md border border-stroke-muted bg-background px-2 py-1 text-xs text-text-secondary hover:text-text-primary"
+                          >
+                            {preset === 0 ? "Due on receipt" : `Net ${preset}`}
+                          </button>
+                        ))}
+                      </div>
+                    </label>
                   </div>
                   <Typography scale="body-sm" className="text-text-secondary">
-                    Leave blank to use the defaults shown above. Overrides only
-                    apply to the invoice generated when you press Mark
-                    delivered.
+                    Leave amount/description blank to use the defaults shown
+                    above. Payment due defaults to 7 days. Overrides only apply
+                    to the invoice generated when you press Mark delivered.
                   </Typography>
                 </div>
                 <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
@@ -2108,7 +2156,18 @@ export default function RefinementCycleReviewClient({
                           currency: "USD",
                         });
                       })()}{" "}
-                      and includes the payment link in the email.
+                      ({(() => {
+                        const n = Number(paymentDueDays);
+                        const days =
+                          paymentDueDays.trim() &&
+                          Number.isFinite(n) &&
+                          n >= 0
+                            ? Math.floor(n)
+                            : 7;
+                        return days === 0
+                          ? "due on receipt"
+                          : `due in ${days} day${days === 1 ? "" : "s"}`;
+                      })()}) and includes the payment link in the email.
                     </li>
                     <li>Moves the cycle to <em>Awaiting payment</em>.</li>
                   </ul>

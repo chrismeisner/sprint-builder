@@ -43,6 +43,7 @@ export async function POST(request: Request, { params }: Params) {
       engineeringNotes?: unknown;
       invoiceAmountOverride?: unknown;
       invoiceDescriptionOverride?: unknown;
+      paymentDueDays?: unknown;
     };
 
     const figmaFileUrl = clipUrl(body.figmaFileUrl);
@@ -66,6 +67,22 @@ export async function POST(request: Request, { params }: Params) {
       body.invoiceDescriptionOverride.trim()
         ? body.invoiceDescriptionOverride.trim().slice(0, 200)
         : null;
+
+    let paymentDueDays: number | null = null;
+    if (
+      body.paymentDueDays !== undefined &&
+      body.paymentDueDays !== null &&
+      body.paymentDueDays !== ""
+    ) {
+      const n = Number(body.paymentDueDays);
+      if (!Number.isFinite(n) || n < 0 || n > 365 || !Number.isInteger(n)) {
+        return NextResponse.json(
+          { error: "Payment due days must be an integer between 0 and 365" },
+          { status: 400 }
+        );
+      }
+      paymentDueDays = n;
+    }
 
     const pool = getPool();
     const result = await pool.query(
@@ -110,6 +127,7 @@ export async function POST(request: Request, { params }: Params) {
       engineeringNotes,
       invoiceAmountOverride,
       invoiceDescriptionOverride,
+      paymentDueDays,
     });
 
     return NextResponse.json({

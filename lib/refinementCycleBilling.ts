@@ -23,6 +23,7 @@ import {
 const REFINEMENT_CYCLE_PAYMENT_DUE_BUFFER_DAYS = 7; // Stripe-side fallback; the
 // real expiry is enforced by the deposit-deadline cron at 10am ET on delivery
 // day, so the Stripe due_date is a soft floor.
+const REFINEMENT_CYCLE_PAYMENT_DUE_MAX_DAYS = 365;
 
 // Day-specific Cal booking links for the optional 10am ET check-in. Indexed
 // by JS day-of-week (0=Sun … 6=Sat). Cycles only deliver on weekdays, so
@@ -159,7 +160,8 @@ async function createCycleStripeInvoice(
   ctx: CycleBillingContext,
   kind: "deposit" | "final",
   amount: number,
-  descriptionOverride?: string | null
+  descriptionOverride?: string | null,
+  paymentDueDaysOverride?: number | null
 ): Promise<StripeInvoiceResult | null> {
   if (!process.env.STRIPE_SECRET_KEY) {
     console.warn(
@@ -187,9 +189,16 @@ async function createCycleStripeInvoice(
     descriptionOverride && descriptionOverride.trim()
       ? descriptionOverride.trim()
       : defaultDescription;
-  const dueDateUnix =
-    Math.floor(Date.now() / 1000) +
-    REFINEMENT_CYCLE_PAYMENT_DUE_BUFFER_DAYS * 86400;
+  const dueDays =
+    typeof paymentDueDaysOverride === "number" &&
+    Number.isFinite(paymentDueDaysOverride) &&
+    paymentDueDaysOverride >= 0
+      ? Math.min(
+          Math.floor(paymentDueDaysOverride),
+          REFINEMENT_CYCLE_PAYMENT_DUE_MAX_DAYS
+        )
+      : REFINEMENT_CYCLE_PAYMENT_DUE_BUFFER_DAYS;
+  const dueDateUnix = Math.floor(Date.now() / 1000) + dueDays * 86400;
 
   const invoice = await stripe.invoices.create({
     customer: stripeCustomerId,
@@ -588,6 +597,7 @@ type DeliverPayload = {
   engineeringNotes?: string | null;
   invoiceAmountOverride?: number | null;
   invoiceDescriptionOverride?: string | null;
+  paymentDueDays?: number | null;
 };
 
 export async function onCycleDelivered(
@@ -620,7 +630,8 @@ export async function onCycleDelivered(
         ctx,
         "final",
         billedAmount,
-        payload.invoiceDescriptionOverride ?? null
+        payload.invoiceDescriptionOverride ?? null,
+        payload.paymentDueDays ?? null
       );
     } catch (err) {
       console.error(
