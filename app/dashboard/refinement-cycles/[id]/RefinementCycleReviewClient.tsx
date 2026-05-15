@@ -2434,6 +2434,9 @@ function PaymentsSection({
   const router = useRouter();
   const { showToast } = useToast();
   const [busyKind, setBusyKind] = useState<"deposit" | "final" | null>(null);
+  const [reminderBusyKind, setReminderBusyKind] = useState<
+    "deposit" | "final" | null
+  >(null);
   const rows = buildPaymentRows(cycle);
   const totalDue = rows.reduce((sum, r) => sum + r.amount, 0);
   const totalPaid = rows
@@ -2483,6 +2486,39 @@ function PaymentsSection({
       showToast((err as Error).message, "error");
     } finally {
       setBusyKind(null);
+    }
+  }
+
+  async function sendInvoiceReminder(kind: "deposit" | "final") {
+    const ok = window.confirm(
+      `Send a reminder email about the ${kind} invoice to the client? Studio admins will be CC'd.`
+    );
+    if (!ok) return;
+    setReminderBusyKind(kind);
+    try {
+      const res = await fetch(
+        `/api/refinement-cycles/${cycle.id}/send-invoice-reminder`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }
+      );
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? `Send failed (${res.status})`);
+      }
+      const data = (await res.json().catch(() => ({}))) as {
+        recipient?: string;
+      };
+      showToast(
+        `Reminder sent${data.recipient ? ` to ${data.recipient}` : ""}`,
+        "success"
+      );
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setReminderBusyKind(null);
     }
   }
 
@@ -2597,6 +2633,25 @@ function PaymentsSection({
                                 Reset
                               </button>
                             )}
+                            {!row.paidAt &&
+                              row.invoiceUrl &&
+                              ((row.kind === "deposit" &&
+                                cycle.status === "awaiting_deposit") ||
+                                (row.kind === "final" &&
+                                  cycle.status === "awaiting_payment")) && (
+                                <button
+                                  type="button"
+                                  disabled={reminderBusyKind === row.kind}
+                                  onClick={() =>
+                                    sendInvoiceReminder(row.kind)
+                                  }
+                                  className="text-xs underline text-text-secondary hover:text-text-primary disabled:opacity-50"
+                                >
+                                  {reminderBusyKind === row.kind
+                                    ? "Sending…"
+                                    : "Send reminder"}
+                                </button>
+                              )}
                           </div>
                         </td>
                       )}

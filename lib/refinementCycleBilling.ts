@@ -18,6 +18,7 @@ import {
   generateRefinementCycleRevokedAdminEmail,
   generateRefinementCycleSubmittedAdminEmail,
   generateRefinementCycleSubmittedClientEmail,
+  generateRefinementCycleInvoiceReminderClientEmail,
 } from "@/lib/email";
 
 const REFINEMENT_CYCLE_PAYMENT_DUE_BUFFER_DAYS = 7; // Stripe-side fallback; the
@@ -697,4 +698,85 @@ export async function onCycleDelivered(
     console.error("[RefinementCycleBilling] onCycleDelivered error:", err);
   }
   return { stripeInvoiceUrl: stripeResult?.hostedInvoiceUrl ?? null };
+}
+
+export type SendInvoiceReminderResult =
+  | { ok: true; kind: "deposit" | "final"; recipient: string; ccAdmins: string[] }
+  | { ok: false; reason: "not_found" | "no_open_invoice" | "no_recipient" };
+
+// Manually re-pings the client about an unpaid invoice. Picks deposit or final
+// based on current cycle status; CCs the original cc_emails plus all studio
+// admins so the team has a record the nudge went out.
+export async function sendCycleInvoiceReminder(
+  cycleId: string,
+  options?: { customNote?: string | null }
+): Promise<SendInvoiceReminderResult> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT rc.id, rc.title, rc.status, rc.submitter_email, rc.cc_emails,
+            rc.deposit_amount, rc.final_amount, rc.total_price,
+            rc.deposit_paid_at,
+            rc.stripe_deposit_invoice_url, rc.stripe_final_invoice_url,
+            p.name AS project_name, p.emoji AS project_emoji
+     FROM refinement_cycles rc
+     JOIN projects p ON p.id = rc.project_id
+     WHERE rc.id = $1
+     LIMIT 1`,
+    [cycleId]
+  );
+  if (res.rowCount === 0) return { ok: false, reason: "not_found" };
+  const row = res.rows[0];
+
+  const status = String(row.status ?? "");
+  let kind: "deposit" | "final";
+  let stripeInvoiceUrl: string | null;
+  let amount: number;
+  if (status === "awaiting_deposit") {
+    kind = "deposit";
+    stripeInvoiceUrl = (row.stripe_deposit_invoice_url as string | null) ?? null;
+    amount = Number(row.deposit_amount ?? 0);
+  } else if (status === "awaiting_payment") {
+    kind = "final";
+    stripeInvoiceUrl = (row.stripe_final_invoice_url as string | null) ?? null;
+    // Final invoice covers either the remaining final_amount (legacy deposit
+    // flow) or the full total_price (pay-on-delivery flow).
+    const isLegacyDepositFlow = row.deposit_paid_at !== null;
+    amount = isLegacyDepositFlow
+      ? Number(row.final_amount ?? 0)
+      : Number(row.total_price ?? 0);
+  } else {
+    return { ok: false, reason: "no_open_invoice" };
+  }
+
+  const recipient = (row.submitter_email as string | null) ?? null;
+  if (!recipient) return { ok: false, reason: "no_recipient" };
+
+  const ccEmails = Array.isArray(row.cc_emails) ? (row.cc_emails as string[]) : [];
+  const adminEmails = await getAdminEmails(pool);
+  // Dedup admins against to/cc so they don't get two copies.
+  const ccSet = new Set<string>([...ccEmails]);
+  for (const a of adminEmails) {
+    if (a && a !== recipient) ccSet.add(a);
+  }
+  const ccList = Array.from(ccSet);
+
+  const content = generateRefinementCycleInvoiceReminderClientEmail({
+    kind,
+    projectName: (row.project_name as string | null) ?? null,
+    projectEmoji: (row.project_emoji as string | null) ?? null,
+    cycleTitle: (row.title as string | null) ?? null,
+    amount,
+    stripeInvoiceUrl,
+    customNote: options?.customNote ?? null,
+  });
+
+  await sendEmail({
+    to: recipient,
+    cc: ccList.length > 0 ? ccList.join(",") : undefined,
+    ...content,
+    category: "transactional",
+    tag: `refinement-cycle-invoice-reminder-${kind}`,
+  });
+
+  return { ok: true, kind, recipient, ccAdmins: adminEmails };
 }

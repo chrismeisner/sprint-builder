@@ -1626,3 +1626,70 @@ ${muted("Meisner Design")}
 
   return { subject, text, html };
 }
+
+// Manual nudge sent from the admin "Send invoice reminder" button. Works for
+// both the deposit invoice (status=awaiting_deposit) and the final invoice
+// (status=awaiting_payment).
+export function generateRefinementCycleInvoiceReminderClientEmail(params: {
+  kind: "deposit" | "final";
+  projectName: string | null;
+  projectEmoji: string | null;
+  cycleTitle: string | null;
+  amount: number;
+  stripeInvoiceUrl: string | null;
+  customNote?: string | null;
+}): { subject: string; text: string; html: string } {
+  const { kind, projectName, projectEmoji, cycleTitle, amount, stripeInvoiceUrl, customNote } = params;
+  const project = projectLabel(projectName, projectEmoji);
+  const kindLabel = kind === "final" ? "final invoice" : "deposit invoice";
+  const cycleLabel = cycleTitle ?? "your refinement cycle";
+  const subject = `Reminder: ${kindLabel} for ${projectName ?? "your project"}`;
+
+  const textLines: string[] = [];
+  textLines.push(`A quick reminder that the ${kindLabel} for ${cycleLabel} is still open.`);
+  textLines.push("");
+  textLines.push(`Amount due: ${formatUsd(amount)}`);
+  if (stripeInvoiceUrl) {
+    textLines.push("");
+    textLines.push(`Pay invoice: ${stripeInvoiceUrl}`);
+  }
+  if (customNote) {
+    textLines.push("");
+    textLines.push(customNote);
+  }
+  textLines.push("");
+  textLines.push("Questions or need to adjust something? Just reply to this email.");
+  textLines.push("");
+  textLines.push("— Meisner Design");
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">A quick reminder that the ${kindLabel} for <strong>${escapeHtml(cycleLabel)}</strong> (${project}) is still open.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">Refinement cycle ${kindLabel}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount due</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formatUsd(amount)}</p>
+    </td>
+  </tr>
+</table>
+${
+  stripeInvoiceUrl
+    ? linkButton(stripeInvoiceUrl, `Pay ${kindLabel}`)
+    : `<p style="margin:0 0 16px;color:#a16207;">We'll resend the invoice link shortly.</p>`
+}
+${
+  customNote
+    ? `<p style="margin:16px 0 0;white-space:pre-wrap;">${escapeHtml(customNote)}</p>`
+    : ""
+}
+<p style="margin:16px 0 0;font-size:13px;color:#71717a;">Questions or need to adjust something? Just reply to this email.</p>
+${divider()}
+${muted("Meisner Design")}
+`);
+
+  return { subject, text: textLines.join("\n"), html };
+}
