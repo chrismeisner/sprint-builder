@@ -11,7 +11,7 @@
     "tokens:figma": "node lib/design-system/build-figma-tokens.mjs"
   },
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
