@@ -1,18 +1,19 @@
 // Refinement Cycle business-logic helpers.
 //
 // Delivery model: a cycle is one day of studio work split across two
-// calendar days — "up-hill" the afternoon of Day 1 (1pm ET onward) and
-// delivery before noon ET on Day 2.
+// calendar days — "up-hill" the afternoon of Day 1 and delivery before
+// noon ET on Day 2.
 //
-// Timing rules:
-// - 1pm ET: client submission cutoff for the soonest delivery slot. The
-//   cutoff is 24 hours before up-hill starts, so the earliest delivery is
-//   ~48 hours after a same-day-before-1pm submission.
-// - Up-hill starts 1pm ET on Day 1; delivery lands before 12pm ET on Day 2.
+// Scheduling rules (day-based, no hour cutoff):
+// - Earliest delivery is the business day after the next business day from
+//   submission. Example: submit any time Monday → up-hill Tuesday →
+//   delivery Wednesday. Submit any time Fri/Sat/Sun → up-hill Monday →
+//   delivery Tuesday.
 // - Mondays are never delivery days: up-hill would be Friday PM with a
 //   weekend gap before delivery, which the studio can't run continuously.
-// - The studio admin can accept or decline at any time — there is no
-//   acceptance cutoff.
+//   When the computed delivery lands on Monday, it shifts to Tuesday.
+// - The studio admin can accept or decline at any time — no acceptance
+//   cutoff.
 
 const ET_TIME_ZONE = "America/New_York";
 
@@ -62,10 +63,6 @@ export function getRateOption(
 // Delivery target: before 12pm ET (noon) on the delivery day.
 export const REFINEMENT_CYCLE_DELIVERY_HOUR_ET = 12;
 
-// Up-hill block starts at 1pm ET on Day 1. This same hour is the daily
-// client submission cutoff for the soonest available delivery slot.
-export const REFINEMENT_CYCLE_UP_HILL_HOUR_ET = 13;
-export const REFINEMENT_CYCLE_PREFERRED_CUTOFF_HOUR_ET = REFINEMENT_CYCLE_UP_HILL_HOUR_ET;
 export const REFINEMENT_CYCLE_PREFERRED_DATE_OPTIONS = 3;
 
 export type RefinementCycleStatus =
@@ -88,21 +85,6 @@ export const REFINEMENT_CYCLE_STATUSES: RefinementCycleStatus[] = [
   "declined",
   "expired",
 ];
-
-// Returns the hour (0–23) at the given instant in Eastern Time.
-function getEtHour(at: Date): number {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    hour12: false,
-    timeZone: ET_TIME_ZONE,
-  });
-  const part = formatter
-    .formatToParts(at)
-    .find((p) => p.type === "hour")?.value;
-  const hour = Number(part);
-  // Some locales render midnight as "24" — normalize to 0.
-  return hour === 24 ? 0 : hour;
-}
 
 // Returns the ET calendar date (YYYY-MM-DD) at the given instant.
 export function etDateOnly(at: Date): string {
@@ -148,17 +130,11 @@ export function nextDeliveryDayAfterEt(fromEtDate: string): string {
 }
 
 // Earliest delivery date for a cycle being accepted/submitted right now.
-// Rule: submissions before 1pm ET get up-hill the next business day PM and
-// delivery the following business day AM (~48hr lead). Submissions at or
-// after 1pm ET bump up-hill by one business day, shifting delivery by one.
-// Mondays are then skipped.
+// Day-based: up-hill the next business day, deliver the business day after.
+// Mondays are then skipped (no Monday deliveries — see file header).
 export function earliestPreferredDeliveryDateEt(now: Date = new Date()): string {
   const today = etDateOnly(now);
-  const isPastCutoff =
-    getEtHour(now) >= REFINEMENT_CYCLE_PREFERRED_CUTOFF_HOUR_ET;
-  const upHillDay = isPastCutoff
-    ? nextBusinessDayEt(nextBusinessDayEt(today))
-    : nextBusinessDayEt(today);
+  const upHillDay = nextBusinessDayEt(today);
   return nextDeliveryDayAfterEt(upHillDay);
 }
 

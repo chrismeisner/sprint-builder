@@ -278,8 +278,8 @@ export default function RefinementCycleNewClient({
             New Refinement Cycle
           </Typography>
           <Typography className="text-text-secondary">
-            A fixed-price design refinement. Submit before 1pm Eastern to
-            claim the soonest delivery slot.
+            A fixed-price design refinement. Pick a delivery date — earliest
+            is the business day after up-hill kicks off.
           </Typography>
         </div>
 
