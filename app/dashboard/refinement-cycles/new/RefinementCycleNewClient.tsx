@@ -278,8 +278,8 @@ export default function RefinementCycleNewClient({
             New Refinement Cycle
           </Typography>
           <Typography className="text-text-secondary">
-            A fixed-price design refinement. Submit before 3pm Eastern for
-            next-day delivery.
+            A fixed-price design refinement. Submit before 1pm Eastern to
+            claim the soonest delivery slot.
           </Typography>
         </div>
 
@@ -351,15 +351,15 @@ export default function RefinementCycleNewClient({
             </li>
             <li>
               <Typography as="span">
-                The studio reviews and decides by 5pm Eastern — accepted (with
-                a note + delivery date + optional check-in link) or declined.
-                You&rsquo;ll know either way before close of business.
+                The studio reviews and replies with an accept (with a note +
+                delivery date + optional check-in link) or decline. Up-hill
+                work starts at 1pm ET the day before delivery.
               </Typography>
             </li>
             <li>
               <Typography as="span">
-                Receive Figma file, walkthrough Loom, and engineering notes by
-                end of day on delivery day, alongside the{" "}
+                Receive Figma file, walkthrough Loom, and engineering notes
+                before 12pm ET (noon) on delivery day, alongside the{" "}
                 {formatUsd(selectedRate.totalPrice)} invoice — billed on
                 delivery, no deposit needed.
               </Typography>
@@ -744,9 +744,10 @@ export default function RefinementCycleNewClient({
               className="mt-1"
             />
             <Typography scale="body-sm">
-              By submitting, I understand the studio will review by 5pm ET and
-              email me {submitterEmail} with their decision. If accepted, work
-              starts immediately and the{" "}
+              By submitting, I understand the studio will review and email me
+              at {submitterEmail} with their decision. If accepted, work starts
+              on the up-hill block (afternoon, 1pm ET) and delivery lands
+              before noon ET on the chosen delivery day. The{" "}
               {formatUsd(selectedRate.totalPrice)} invoice is issued on
               delivery — no deposit required.
             </Typography>

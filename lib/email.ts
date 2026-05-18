@@ -1192,7 +1192,7 @@ Your refinement cycle ${params.title ? `"${params.title}" ` : ""}has been submit
     params.projectName ? ` for ${params.projectName}` : ""
   }.
 
-The studio will review and decide by 5pm ET. You'll get an email either way — accepted (with deposit invoice + optional check-in link) or declined.
+The studio will review and reply with either an acceptance (with delivery date + optional check-in link) or a decline.
 
 View the cycle on your project page:
 ${params.projectUrl}
@@ -1203,7 +1203,7 @@ ${params.projectUrl}
 <p style="margin:0 0 16px;">Your refinement cycle ${
     params.title ? `<strong>${escapeHtml(params.title)}</strong> ` : ""
   }has been submitted for <strong>${project}</strong>.</p>
-<p style="margin:0 0 16px;">The studio will review and decide by 5pm ET. You&rsquo;ll get an email either way — accepted (with deposit invoice + optional check-in link) or declined.</p>
+<p style="margin:0 0 16px;">The studio will review and reply with either an acceptance (with delivery date + optional check-in link) or a decline.</p>
 ${linkButton(params.projectUrl, "View project")}
 ${divider()}
 ${muted("Cycles end at delivery. Further changes are submitted as a new cycle.")}
@@ -1229,7 +1229,7 @@ export function generateRefinementCycleSubmittedAdminEmail(params: {
 Project: ${params.projectName ?? "—"}
 Submitter: ${submitter}
 
-Decide by 5pm ET — accept or decline:
+Accept or decline:
 ${params.reviewUrl}
 `;
 
@@ -1237,7 +1237,7 @@ ${params.reviewUrl}
 <p style="margin:0 0 16px;">A refinement cycle was just submitted.</p>
 <p style="margin:0 0 8px;"><strong>Project:</strong> ${project}</p>
 <p style="margin:0 0 16px;"><strong>Submitter:</strong> ${escapeHtml(submitter)}</p>
-<p style="margin:0 0 16px;">Decide by 5pm ET — accept or decline.</p>
+<p style="margin:0 0 16px;">Accept or decline at your convenience.</p>
 ${linkButton(params.reviewUrl, "Review cycle")}
 ${divider()}
 ${muted("Meisner Design — Refinement Cycles")}
@@ -1266,7 +1266,7 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
   const project = projectLabel(params.projectName, params.projectEmoji);
   const deliveryLine = params.deliveryDate
     ? formatDeliveryDate(params.deliveryDate)
-    : "the next business day";
+    : "your scheduled delivery day";
   const titlePart = params.title ? `${params.title} — ` : "";
   const subject = `${titlePart}Refinement cycle accepted`;
 
@@ -1287,7 +1287,7 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
     textLines.push(`Studio attachment: ${params.studioAttachmentUrl}`);
     textLines.push("");
   }
-  textLines.push(`Delivery target: ${deliveryLine} — end of day.`);
+  textLines.push(`Delivery target: ${deliveryLine} — before 12pm ET (noon).`);
   if (requiresDeposit) {
     textLines.push(
       `Total: ${formatUsd(params.totalPrice)} — ${formatUsd(depositAmount)} deposit due before we start, ${formatUsd(finalAmount)} on delivery.`
@@ -1309,7 +1309,7 @@ export function generateRefinementCycleAcceptedClientEmail(params: {
   if (params.calBookingUrl) {
     textLines.push("");
     textLines.push(
-      `Optional 15-minute check-in (10am ET on delivery day) — book a slot:`
+      `Optional check-in — book a time to sync about the refinement:`
     );
     textLines.push(params.calBookingUrl);
   }
@@ -1336,18 +1336,84 @@ ${
     : ""
 }
 ${attachmentBlock(params.studioAttachmentUrl)}
-<p style="margin:0 0 8px;"><strong>Delivery target:</strong> ${escapeHtml(deliveryLine)} — end of day</p>
+<p style="margin:0 0 8px;"><strong>Delivery target:</strong> ${escapeHtml(deliveryLine)} — before 12pm ET (noon)</p>
 ${totalLine}
 ${depositBlock}
 ${
   params.calBookingUrl
     ? `<p style="margin:24px 0 8px;"><strong>Optional check-in</strong></p>
-<p style="margin:0 0 16px;">Want a 15-minute call at 10am ET on delivery day to confirm direction or surface edge cases? Book a slot — no pressure if you skip it.</p>
+<p style="margin:0 0 16px;">Here&rsquo;s a link to book a time to sync about the refinement — no pressure if you skip it.</p>
 ${linkButton(params.calBookingUrl, "Book check-in")}`
     : ""
 }
 ${divider()}
 ${muted("Cycles end at delivery. Further changes are submitted as a new cycle.")}
+`);
+
+  return { subject, text: textLines.join("\n"), html };
+}
+
+export function generateRefinementCycleRescheduledClientEmail(params: {
+  title?: string | null;
+  projectName: string | null;
+  projectEmoji: string | null;
+  previousDeliveryDate: string | null;
+  newDeliveryDate: string;
+  calBookingUrl: string | null;
+  cycleUrl: string;
+  studioNote?: string | null;
+}): { subject: string; text: string; html: string } {
+  const project = projectLabel(params.projectName, params.projectEmoji);
+  const subject = `Delivery date updated — ${params.projectName ?? "project"}`;
+  const newLine = formatDeliveryDate(params.newDeliveryDate);
+  const prevLine = params.previousDeliveryDate
+    ? formatDeliveryDate(params.previousDeliveryDate)
+    : null;
+
+  const textLines: string[] = [];
+  textLines.push(`Heads up — the delivery date for your refinement cycle has been updated.`);
+  textLines.push("");
+  if (prevLine) {
+    textLines.push(`Previous delivery: ${prevLine}`);
+  }
+  textLines.push(`New delivery: ${newLine} — before 12pm ET (noon).`);
+  textLines.push("");
+  if (params.studioNote) {
+    textLines.push("Studio note:");
+    textLines.push(params.studioNote);
+    textLines.push("");
+  }
+  if (params.calBookingUrl) {
+    textLines.push(`Optional check-in — book a time to sync about the refinement:`);
+    textLines.push(params.calBookingUrl);
+    textLines.push("");
+  }
+  textLines.push(`View the cycle: ${params.cycleUrl}`);
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">Heads up — the delivery date for your refinement cycle on <strong>${project}</strong> has been updated.</p>
+${
+  prevLine
+    ? `<p style="margin:0 0 4px;"><strong>Previous delivery:</strong> ${escapeHtml(prevLine)}</p>`
+    : ""
+}
+<p style="margin:0 0 16px;"><strong>New delivery:</strong> ${escapeHtml(newLine)} — before 12pm ET (noon)</p>
+${
+  params.studioNote
+    ? `<p style="margin:0 0 4px;"><strong>Studio note</strong></p>
+<p style="margin:0 0 16px;white-space:pre-wrap;">${escapeHtml(params.studioNote)}</p>`
+    : ""
+}
+${
+  params.calBookingUrl
+    ? `<p style="margin:24px 0 8px;"><strong>Optional check-in</strong></p>
+<p style="margin:0 0 16px;">Here&rsquo;s a link to book a time to sync about the refinement — no pressure if you skip it.</p>
+${linkButton(params.calBookingUrl, "Book check-in")}`
+    : ""
+}
+${linkButton(params.cycleUrl, "View cycle")}
+${divider()}
+${muted("Meisner Design — Refinement Cycles")}
 `);
 
   return { subject, text: textLines.join("\n"), html };

@@ -1,12 +1,18 @@
 // Refinement Cycle business-logic helpers.
 //
+// Delivery model: a cycle is one day of studio work split across two
+// calendar days — "up-hill" the afternoon of Day 1 (1pm ET onward) and
+// delivery before noon ET on Day 2.
+//
 // Timing rules:
-// - 3pm ET: client submission cutoff for the next-day delivery option.
-// - 5pm ET: studio commits to deciding (accept/decline) by this time. After
-//   5pm the admin's default delivery date rolls to the day after next.
-// - 10am ET on delivery day: deposit deadline. Cycles still in
-//   `awaiting_deposit` past this moment expire.
-// - 6pm ET on delivery day: delivery target.
+// - 1pm ET: client submission cutoff for the soonest delivery slot. The
+//   cutoff is 24 hours before up-hill starts, so the earliest delivery is
+//   ~48 hours after a same-day-before-1pm submission.
+// - Up-hill starts 1pm ET on Day 1; delivery lands before 12pm ET on Day 2.
+// - Mondays are never delivery days: up-hill would be Friday PM with a
+//   weekend gap before delivery, which the studio can't run continuously.
+// - The studio admin can accept or decline at any time — there is no
+//   acceptance cutoff.
 
 const ET_TIME_ZONE = "America/New_York";
 
@@ -53,14 +59,13 @@ export function getRateOption(
     REFINEMENT_CYCLE_RATE_OPTIONS[0]
   );
 }
-export const REFINEMENT_CYCLE_ACCEPTANCE_CUTOFF_HOUR_ET = 17; // 5pm ET — studio commits to deciding by this time
-export const REFINEMENT_CYCLE_DEPOSIT_DEADLINE_HOUR_ET = 10; // 10am ET
-export const REFINEMENT_CYCLE_DELIVERY_HOUR_ET = 18; // 6pm ET
+// Delivery target: before 12pm ET (noon) on the delivery day.
+export const REFINEMENT_CYCLE_DELIVERY_HOUR_ET = 12;
 
-// Client-facing preferred-date cutoff: submissions before 3pm ET can pick
-// next business day as their earliest preference; after 3pm ET the earliest
-// preference is the day after that.
-export const REFINEMENT_CYCLE_PREFERRED_CUTOFF_HOUR_ET = 15; // 3pm ET
+// Up-hill block starts at 1pm ET on Day 1. This same hour is the daily
+// client submission cutoff for the soonest available delivery slot.
+export const REFINEMENT_CYCLE_UP_HILL_HOUR_ET = 13;
+export const REFINEMENT_CYCLE_PREFERRED_CUTOFF_HOUR_ET = REFINEMENT_CYCLE_UP_HILL_HOUR_ET;
 export const REFINEMENT_CYCLE_PREFERRED_DATE_OPTIONS = 3;
 
 export type RefinementCycleStatus =
@@ -110,11 +115,6 @@ export function etDateOnly(at: Date): string {
   return formatter.format(at); // en-CA yields YYYY-MM-DD
 }
 
-// Returns true if `at` is past the 5pm ET acceptance cutoff for that ET day.
-export function isPastAcceptanceCutoff(at: Date): boolean {
-  return getEtHour(at) >= REFINEMENT_CYCLE_ACCEPTANCE_CUTOFF_HOUR_ET;
-}
-
 // Returns the next business day (Mon–Fri) AFTER the given ET date,
 // as a YYYY-MM-DD string.
 export function nextBusinessDayEt(fromEtDate: string): string {
@@ -130,35 +130,59 @@ export function nextBusinessDayEt(fromEtDate: string): string {
   return `${yyyy}-${mo}-${da}`;
 }
 
-// Default delivery date for a cycle being accepted right now: always the
-// next business day. The 5pm ET acceptance window is a soft commitment, not
-// a hard cutoff — the admin can always pick a different date in the picker.
-export function defaultDeliveryDateEt(now: Date = new Date()): string {
-  return nextBusinessDayEt(etDateOnly(now));
+// Returns true if the given YYYY-MM-DD ET date falls on a Monday.
+function isMondayEt(etDate: string): boolean {
+  const [yy, mm, dd] = etDate.split("-").map((n) => Number(n));
+  return new Date(Date.UTC(yy, mm - 1, dd, 12, 0, 0)).getUTCDay() === 1;
 }
 
-// Earliest delivery date a client can prefer at submission time. Mirrors the
-// 5pm cutoff (looser than the studio's 3pm acceptance commitment).
+// Valid delivery days are Tue/Wed/Thu/Fri. Mondays are skipped because the
+// preceding up-hill block would land on Friday PM with a weekend gap before
+// delivery — the studio can't run that continuously.
+export function nextDeliveryDayAfterEt(fromEtDate: string): string {
+  let candidate = nextBusinessDayEt(fromEtDate);
+  while (isMondayEt(candidate)) {
+    candidate = nextBusinessDayEt(candidate);
+  }
+  return candidate;
+}
+
+// Earliest delivery date for a cycle being accepted/submitted right now.
+// Rule: submissions before 1pm ET get up-hill the next business day PM and
+// delivery the following business day AM (~48hr lead). Submissions at or
+// after 1pm ET bump up-hill by one business day, shifting delivery by one.
+// Mondays are then skipped.
 export function earliestPreferredDeliveryDateEt(now: Date = new Date()): string {
   const today = etDateOnly(now);
-  const next = nextBusinessDayEt(today);
-  return getEtHour(now) >= REFINEMENT_CYCLE_PREFERRED_CUTOFF_HOUR_ET
-    ? nextBusinessDayEt(next)
-    : next;
+  const isPastCutoff =
+    getEtHour(now) >= REFINEMENT_CYCLE_PREFERRED_CUTOFF_HOUR_ET;
+  const upHillDay = isPastCutoff
+    ? nextBusinessDayEt(nextBusinessDayEt(today))
+    : nextBusinessDayEt(today);
+  return nextDeliveryDayAfterEt(upHillDay);
 }
 
-// Returns up to N business days starting from `fromEtDate` (inclusive).
-export function nextNBusinessDaysEt(
+// Default delivery date the admin sees when accepting — same earliest slot
+// the client would have been offered.
+export function defaultDeliveryDateEt(now: Date = new Date()): string {
+  return earliestPreferredDeliveryDateEt(now);
+}
+
+// Returns up to N consecutive valid delivery days starting at `fromEtDate`
+// (inclusive). Skips weekends AND Mondays.
+export function nextNDeliveryDaysEt(
   fromEtDate: string,
   count: number
 ): string[] {
   if (count <= 0) return [];
   const out: string[] = [];
-  // Re-use nextBusinessDayEt to step forward; first day is `fromEtDate` itself
-  // unless it's a weekend, in which case advance to the next weekday.
   const [yy, mm, dd] = fromEtDate.split("-").map((n) => Number(n));
   const cursor = new Date(Date.UTC(yy, mm - 1, dd, 12, 0, 0));
-  while (cursor.getUTCDay() === 0 || cursor.getUTCDay() === 6) {
+  const isInvalid = (d: Date) => {
+    const dow = d.getUTCDay();
+    return dow === 0 || dow === 6 || dow === 1; // Sun, Sat, Mon
+  };
+  while (isInvalid(cursor)) {
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   while (out.length < count) {
@@ -167,7 +191,7 @@ export function nextNBusinessDaysEt(
     const d = String(cursor.getUTCDate()).padStart(2, "0");
     out.push(`${y}-${m}-${d}`);
     cursor.setUTCDate(cursor.getUTCDate() + 1);
-    while (cursor.getUTCDay() === 0 || cursor.getUTCDay() === 6) {
+    while (isInvalid(cursor)) {
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
   }
@@ -178,36 +202,10 @@ export function nextNBusinessDaysEt(
 export function preferredDeliveryDateOptionsEt(
   now: Date = new Date()
 ): string[] {
-  return nextNBusinessDaysEt(
+  return nextNDeliveryDaysEt(
     earliestPreferredDeliveryDateEt(now),
     REFINEMENT_CYCLE_PREFERRED_DATE_OPTIONS
   );
-}
-
-// Convert a YYYY-MM-DD ET date + ET hour into a UTC timestamp.
-// Uses Intl to resolve the timezone offset robustly across DST.
-export function etDateAtHourToUtc(etDate: string, etHour: number): Date {
-  const [yy, mm, dd] = etDate.split("-").map((n) => Number(n));
-  // Start with a guess that treats the ET wall-clock time as if it were UTC,
-  // then correct by the actual ET offset at that instant.
-  const guess = new Date(Date.UTC(yy, mm - 1, dd, etHour, 0, 0));
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: ET_TIME_ZONE,
-    timeZoneName: "shortOffset",
-  });
-  const tzPart = formatter
-    .formatToParts(guess)
-    .find((p) => p.type === "timeZoneName")?.value;
-  // tzPart looks like "GMT-5" or "GMT-4"
-  const match = tzPart?.match(/GMT([+-]\d+)/);
-  const offsetHours = match ? Number(match[1]) : -5;
-  // ET wall-clock hour = UTC hour + offsetHours, so UTC = wall - offsetHours
-  return new Date(Date.UTC(yy, mm - 1, dd, etHour - offsetHours, 0, 0));
-}
-
-// Deposit deadline (10am ET on delivery date) as a UTC Date.
-export function depositDeadlineFromDeliveryDate(deliveryDate: string): Date {
-  return etDateAtHourToUtc(deliveryDate, REFINEMENT_CYCLE_DEPOSIT_DEADLINE_HOUR_ET);
 }
 
 export type StatusVisuals = {

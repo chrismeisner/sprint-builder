@@ -200,37 +200,92 @@ export default function RefinementCycleReviewClient({
   const [requiresDeposit, setRequiresDeposit] = useState(cycle.requiresDeposit);
   const [savingRequiresDeposit, setSavingRequiresDeposit] = useState(false);
 
-  // Admin-only delivery-date override. Editable on any pre-delivery status.
-  // Persists via PATCH /api/refinement-cycles/[id] with `deliveryDate`. No
-  // automatic email is sent — admin handles client comms manually.
+  // Admin-only delivery-date override for post-acceptance, pre-delivery
+  // cycles. Saving emails the submitter + cc list with the new date via
+  // POST /api/refinement-cycles/[id]/reschedule. The admin must tick an
+  // ack checkbox and review the email preview modal before sending.
   const [confirmedDeliveryDate, setConfirmedDeliveryDate] = useState(
     cycle.deliveryDate ?? cycle.preferredDeliveryDate ?? defaultDeliveryDate
   );
-  const [savingDeliveryDate, setSavingDeliveryDate] = useState(false);
+  const [rescheduleAck, setRescheduleAck] = useState(false);
+  const [reschedulePreviewLoading, setReschedulePreviewLoading] =
+    useState(false);
+  type ReschedulePreview = {
+    to: string | null;
+    cc: string[];
+    subject: string;
+    text: string;
+    previousDeliveryDate: string | null;
+    newDeliveryDate: string;
+  };
+  const [reschedulePreview, setReschedulePreview] =
+    useState<ReschedulePreview | null>(null);
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+  const [rescheduleSubmitting, setRescheduleSubmitting] = useState(false);
 
-  async function saveConfirmedDeliveryDate() {
+  // Reset the ack whenever the picked date changes — admin must re-confirm.
+  useEffect(() => {
+    setRescheduleAck(false);
+  }, [confirmedDeliveryDate]);
+
+  async function openReschedulePreview() {
     if (!isAdmin) return;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(confirmedDeliveryDate)) {
       showToast("Pick a valid delivery date", "warning");
       return;
     }
-    setSavingDeliveryDate(true);
+    setReschedulePreviewLoading(true);
     try {
-      const res = await fetch(`/api/refinement-cycles/${cycle.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deliveryDate: confirmedDeliveryDate }),
-      });
+      const res = await fetch(
+        `/api/refinement-cycles/${cycle.id}/reschedule-preview`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deliveryDate: confirmedDeliveryDate }),
+        }
+      );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to save delivery date");
+        throw new Error(err.error || "Failed to load preview");
       }
-      showToast("Delivery date saved", "success");
+      const json = (await res.json()) as ReschedulePreview;
+      setReschedulePreview(json);
+      setRescheduleModalOpen(true);
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setReschedulePreviewLoading(false);
+    }
+  }
+
+  async function confirmReschedule() {
+    if (!isAdmin) return;
+    setRescheduleSubmitting(true);
+    try {
+      const res = await fetch(
+        `/api/refinement-cycles/${cycle.id}/reschedule`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deliveryDate: confirmedDeliveryDate,
+            acknowledged: true,
+          }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to reschedule");
+      }
+      showToast("Delivery date saved and client notified", "success");
+      setRescheduleModalOpen(false);
+      setReschedulePreview(null);
+      setRescheduleAck(false);
       router.refresh();
     } catch (err) {
       showToast((err as Error).message, "error");
     } finally {
-      setSavingDeliveryDate(false);
+      setRescheduleSubmitting(false);
     }
   }
 
@@ -945,11 +1000,12 @@ export default function RefinementCycleReviewClient({
           </Typography>
           <Typography className="text-text-secondary">
             Your refinement cycle is accepted. Pay the{" "}
-            {`$${cycle.depositAmount.toLocaleString()}`} deposit by 10am ET on{" "}
+            {`$${cycle.depositAmount.toLocaleString()}`} deposit to lock in
+            your{" "}
             {cycle.deliveryDate
               ? formatDate(cycle.deliveryDate)
-              : "delivery day"}{" "}
-            to lock in your slot — the cycle starts after the deposit clears.
+              : "delivery"}{" "}
+            slot — the cycle starts after the deposit clears.
           </Typography>
           <div>
             <a
@@ -994,18 +1050,16 @@ export default function RefinementCycleReviewClient({
         )}
 
       {isAdmin &&
-        (cycle.status === "submitted" ||
-          cycle.status === "accepted" ||
+        (cycle.status === "accepted" ||
           cycle.status === "awaiting_deposit" ||
-          cycle.status === "in_progress" ||
-          cycle.status === "awaiting_payment") && (
+          cycle.status === "in_progress") && (
           <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
             <Typography as="h2" scale="heading-md">
               Delivery date
             </Typography>
             <Typography scale="body-sm" className="text-text-secondary">
-              Confirm or shift the committed delivery date. Saving does not
-              email the client — handle comms manually.
+              Shifting the delivery date emails the submitter and everyone on
+              this cycle&rsquo;s CC list with the new date.
               {cycle.preferredDeliveryDate && (
                 <>
                   {" "}Client&rsquo;s preferred date:{" "}
@@ -1023,27 +1077,16 @@ export default function RefinementCycleReviewClient({
                   as="span"
                   className="font-semibold"
                 >
-                  Delivery date
+                  New delivery date
                 </Typography>
                 <input
                   type="date"
                   value={confirmedDeliveryDate}
                   onChange={(e) => setConfirmedDeliveryDate(e.target.value)}
-                  disabled={savingDeliveryDate}
+                  disabled={reschedulePreviewLoading || rescheduleSubmitting}
                   className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
                 />
               </label>
-              <Button
-                type="button"
-                size="sm"
-                onClick={saveConfirmedDeliveryDate}
-                disabled={
-                  savingDeliveryDate ||
-                  confirmedDeliveryDate === (cycle.deliveryDate ?? "")
-                }
-              >
-                {savingDeliveryDate ? "Saving…" : "Save"}
-              </Button>
               {cycle.deliveryDate && (
                 <Typography
                   scale="body-sm"
@@ -1053,8 +1096,127 @@ export default function RefinementCycleReviewClient({
                 </Typography>
               )}
             </div>
+            {confirmedDeliveryDate !== (cycle.deliveryDate ?? "") && (
+              <div className="rounded-md border border-red-200 bg-red-50 p-3 space-y-2 dark:bg-red-950/30 dark:border-red-900">
+                <label className="flex cursor-pointer items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={rescheduleAck}
+                    onChange={(e) => setRescheduleAck(e.target.checked)}
+                    className="mt-1"
+                  />
+                  <Typography scale="body-sm">
+                    I&rsquo;ve reviewed the new date and want to notify the
+                    client by email.
+                  </Typography>
+                </label>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={openReschedulePreview}
+                  disabled={!rescheduleAck || reschedulePreviewLoading}
+                >
+                  {reschedulePreviewLoading
+                    ? "Loading preview…"
+                    : "Preview email & send"}
+                </Button>
+              </div>
+            )}
           </section>
         )}
+
+      {rescheduleModalOpen && reschedulePreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => {
+            if (!rescheduleSubmitting) setRescheduleModalOpen(false);
+          }}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-background p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Typography as="h2" scale="heading-md" className="mb-3">
+              Reschedule email preview
+            </Typography>
+            <div className="space-y-3 text-sm">
+              <div>
+                <Typography
+                  scale="body-sm"
+                  as="span"
+                  className="font-semibold"
+                >
+                  Date change:
+                </Typography>{" "}
+                <span>
+                  {reschedulePreview.previousDeliveryDate
+                    ? formatDate(reschedulePreview.previousDeliveryDate)
+                    : "(none set)"}
+                  {" → "}
+                  {formatDate(reschedulePreview.newDeliveryDate)}
+                </span>
+              </div>
+              <div>
+                <Typography
+                  scale="body-sm"
+                  as="span"
+                  className="font-semibold"
+                >
+                  Recipients:
+                </Typography>{" "}
+                <span>
+                  {reschedulePreview.to ?? "(no submitter email on file)"}
+                  {reschedulePreview.cc.length > 0 &&
+                    ` (CC: ${reschedulePreview.cc.join(", ")})`}
+                </span>
+              </div>
+              <div>
+                <Typography
+                  scale="body-sm"
+                  as="span"
+                  className="font-semibold"
+                >
+                  Subject:
+                </Typography>{" "}
+                <span>{reschedulePreview.subject}</span>
+              </div>
+              <div>
+                <Typography
+                  scale="body-sm"
+                  as="span"
+                  className="font-semibold"
+                >
+                  Body:
+                </Typography>
+                <pre className="mt-1 whitespace-pre-wrap rounded border border-stroke-muted bg-surface-subtle p-3 text-xs">
+                  {reschedulePreview.text}
+                </pre>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2 border-t border-stroke-muted pt-4">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setRescheduleModalOpen(false)}
+                disabled={rescheduleSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={confirmReschedule}
+                disabled={
+                  rescheduleSubmitting || !reschedulePreview.to
+                }
+              >
+                {rescheduleSubmitting
+                  ? "Sending…"
+                  : "Send email & save date"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {cycle.status === "in_progress" && isAdmin && (
         <section className="rounded-md border border-stroke-muted bg-surface-subtle p-4 space-y-3">
@@ -1486,8 +1648,9 @@ export default function RefinementCycleReviewClient({
                 className="rounded-md border border-stroke-muted bg-background px-3 py-2 text-text-primary"
               />
               <Typography scale="body-sm" className="text-text-secondary">
-                Default is the next business day. Deposit deadline = 10am ET
-                that day; delivery target = end of day.
+                Default is the earliest valid slot (no Monday deliveries).
+                Up-hill starts 1pm ET the prior business day; delivery target
+                is before 12pm ET (noon) on this day.
               </Typography>
               {cycle.preferredDeliveryDate && (
                 <Typography

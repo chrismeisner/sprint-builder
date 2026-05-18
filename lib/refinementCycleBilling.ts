@@ -19,22 +19,23 @@ import {
   generateRefinementCycleSubmittedAdminEmail,
   generateRefinementCycleSubmittedClientEmail,
   generateRefinementCycleInvoiceReminderClientEmail,
+  generateRefinementCycleRescheduledClientEmail,
 } from "@/lib/email";
 
-const REFINEMENT_CYCLE_PAYMENT_DUE_BUFFER_DAYS = 7; // Stripe-side fallback; the
-// real expiry is enforced by the deposit-deadline cron at 10am ET on delivery
-// day, so the Stripe due_date is a soft floor.
+const REFINEMENT_CYCLE_PAYMENT_DUE_BUFFER_DAYS = 7; // Stripe-side fallback
+// for the deposit invoice due_date when no delivery date is set yet.
 const REFINEMENT_CYCLE_PAYMENT_DUE_MAX_DAYS = 365;
 
-// Day-specific Cal booking links for the optional 10am ET check-in. Indexed
-// by JS day-of-week (0=Sun … 6=Sat). Cycles only deliver on weekdays, so
-// Sat/Sun are intentionally absent.
+// Day-specific Cal booking links for the optional check-in, which happens
+// the morning the cycle kicks off (the business day before delivery, when
+// up-hill work runs). Indexed by JS day-of-week (0=Sun … 6=Sat). Delivery
+// is restricted to Tue–Fri, so check-in lands on Mon–Thu — Friday and the
+// weekend are unreachable and intentionally absent.
 const CAL_BOOKING_URLS_BY_DOW: Record<number, string> = {
   1: "https://cal.com/chrismeisner/monday-mornings",
   2: "https://cal.com/chrismeisner/tuesday-mornings",
   3: "https://cal.com/chrismeisner/wednesday-mornings",
   4: "https://cal.com/chrismeisner/thursday-mornings",
-  5: "https://cal.com/chrismeisner/friday-morning",
 };
 
 export function getCalBookingUrlForDeliveryDate(
@@ -43,9 +44,13 @@ export function getCalBookingUrlForDeliveryDate(
   if (!deliveryDate) return null;
   const [yy, mm, dd] = deliveryDate.split("-").map((n) => Number(n));
   if (!yy || !mm || !dd) return null;
-  // Parse as UTC noon to get a stable day-of-week regardless of DST.
-  const dow = new Date(Date.UTC(yy, mm - 1, dd, 12, 0, 0)).getUTCDay();
-  return CAL_BOOKING_URLS_BY_DOW[dow] ?? null;
+  // Walk back to the prior business day — that's when the cycle kicks off
+  // and when the check-in happens. Parse as UTC noon for DST stability.
+  const cursor = new Date(Date.UTC(yy, mm - 1, dd, 12, 0, 0));
+  do {
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  } while (cursor.getUTCDay() === 0 || cursor.getUTCDay() === 6);
+  return CAL_BOOKING_URLS_BY_DOW[cursor.getUTCDay()] ?? null;
 }
 
 function getBaseUrl(): string {
@@ -483,6 +488,49 @@ export async function onCycleDeclined(cycleId: string): Promise<void> {
     });
   } catch (err) {
     console.error("[RefinementCycleBilling] onCycleDeclined error:", err);
+  }
+}
+
+// Notifies the submitter (and cc list) that the delivery date has changed.
+// Called from the reschedule API route after the cycle row's delivery_date
+// column has already been updated, so the cycle context reflects the new
+// date. `previousDeliveryDate` is passed in by the caller because it's
+// already been overwritten in the DB by the time this runs.
+export async function onCycleRescheduled(
+  cycleId: string,
+  previousDeliveryDate: string | null
+): Promise<void> {
+  try {
+    const pool = getPool();
+    const ctx = await loadCycleContext(pool, cycleId);
+    if (!ctx || !ctx.cycle.submitter_email || !ctx.cycle.delivery_date) return;
+
+    const calBookingUrl = getCalBookingUrlForDeliveryDate(
+      ctx.cycle.delivery_date
+    );
+
+    const content = generateRefinementCycleRescheduledClientEmail({
+      title: ctx.cycle.title,
+      projectName: ctx.project.name,
+      projectEmoji: ctx.project.emoji,
+      previousDeliveryDate,
+      newDeliveryDate: ctx.cycle.delivery_date,
+      calBookingUrl,
+      cycleUrl: `${getBaseUrl()}/dashboard/refinement-cycles/${cycleId}`,
+      studioNote: ctx.cycle.studio_review_note,
+    });
+    await sendEmail({
+      to: ctx.cycle.submitter_email,
+      cc:
+        ctx.cycle.cc_emails.length > 0
+          ? ctx.cycle.cc_emails.join(",")
+          : undefined,
+      ...content,
+      category: "transactional",
+      tag: "refinement-cycle-rescheduled",
+    });
+  } catch (err) {
+    console.error("[RefinementCycleBilling] onCycleRescheduled error:", err);
   }
 }
 

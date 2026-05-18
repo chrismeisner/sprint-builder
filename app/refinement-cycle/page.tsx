@@ -63,9 +63,9 @@ export default function RefinementCyclePage() {
             Ready to push your feature across the hill?
           </Typography>
           <Typography as="p" className="opacity-80">
-            Fixed price, next-day delivery. Submit a cycle through your
-            studio dashboard and you&rsquo;ll have a decision by 5pm ET the
-            same day.
+            Fixed price, next-day delivery before noon ET. Submit a cycle
+            through your studio dashboard and we&rsquo;ll email you back with
+            an accept or decline.
           </Typography>
           <Typography as="p" className="opacity-70">
             <strong>$1,200 per cycle.</strong> Pilot rate of $800 available
