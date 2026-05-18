@@ -346,14 +346,16 @@ export default function RefinementCycleNewClient({
             <li>
               <Typography as="span">
                 Submit your cycle — scope, screens, and how you&rsquo;d like the
-                experience to feel.
+                experience to feel. Pick a delivery date that works for you.
               </Typography>
             </li>
             <li>
               <Typography as="span">
-                The studio reviews and replies with an accept (with a note +
-                delivery date + optional check-in link) or decline. Up-hill
-                work starts at 1pm ET the day before delivery.
+                The studio replies with an accept (with a note + optional
+                check-in link) or decline — at the latest by 9am ET the
+                morning before delivery, so there&rsquo;s still time for a
+                sync that morning before up-hill work kicks off in the
+                afternoon.
               </Typography>
             </li>
             <li>
@@ -717,8 +719,9 @@ export default function RefinementCycleNewClient({
               Delivery date
             </label>
             <Typography scale="body-sm" className="text-text-secondary">
-              If the studio accepts your cycle, we&rsquo;ll deliver by the date
-              you pick.
+              If the studio accepts your cycle, we&rsquo;ll deliver by the
+              date you pick. You&rsquo;ll hear back at the latest by 9am ET
+              the day before.
             </Typography>
             <select
               id="rc-preferred-date"
@@ -744,10 +747,11 @@ export default function RefinementCycleNewClient({
               className="mt-1"
             />
             <Typography scale="body-sm">
-              By submitting, I understand the studio will review and email me
-              at {submitterEmail} with their decision. If accepted, work starts
-              on the up-hill block (afternoon, 1pm ET) and delivery lands
-              before noon ET on the chosen delivery day. The{" "}
+              By submitting, I understand the studio will email me at{" "}
+              {submitterEmail} with an accept or decline — at the latest by
+              9am ET the day before the chosen delivery date. If accepted,
+              up-hill work runs that afternoon and delivery lands before
+              noon ET on the chosen delivery day. The{" "}
               {formatUsd(selectedRate.totalPrice)} invoice is issued on
               delivery — no deposit required.
             </Typography>
