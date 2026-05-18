@@ -1364,7 +1364,8 @@ export function generateRefinementCycleRescheduledClientEmail(params: {
   studioNote?: string | null;
 }): { subject: string; text: string; html: string } {
   const project = projectLabel(params.projectName, params.projectEmoji);
-  const subject = `Delivery date updated — ${params.projectName ?? "project"}`;
+  const titlePart = params.title ? `${params.title} — ` : "";
+  const subject = `${titlePart}Delivery date updated — ${params.projectName ?? "project"}`;
   const newLine = formatDeliveryDate(params.newDeliveryDate);
   const prevLine = params.previousDeliveryDate
     ? formatDeliveryDate(params.previousDeliveryDate)
