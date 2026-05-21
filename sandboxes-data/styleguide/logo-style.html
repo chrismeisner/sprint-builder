@@ -361,6 +361,10 @@
       }
     ];
 
+    function epsPath(svgPath) {
+      return svgPath.replace(/\.svg$/i, ".eps");
+    }
+
     function renderLogos() {
       const grid = document.getElementById("logoGrid");
       if (!grid) return;
@@ -403,6 +407,11 @@
                   id="png-link-${logoIndex}" 
                   onclick="downloadFile('${defaultColor.png}')"
                 >Download PNG</button>
+                <button 
+                  class="btn" 
+                  id="eps-link-${logoIndex}" 
+                  onclick="downloadFile('${epsPath(defaultColor.svg)}')"
+                >Download EPS</button>
               </div>
             </article>
           `;
@@ -423,12 +432,16 @@
       // Update download buttons
       const svgBtn = document.getElementById(`svg-link-${logoIndex}`);
       const pngBtn = document.getElementById(`png-link-${logoIndex}`);
+      const epsBtn = document.getElementById(`eps-link-${logoIndex}`);
       
       if (svgBtn) {
         svgBtn.onclick = () => downloadFile(color.svg);
       }
       if (pngBtn) {
         pngBtn.onclick = () => downloadFile(color.png);
+      }
+      if (epsBtn) {
+        epsBtn.onclick = () => downloadFile(epsPath(color.svg));
       }
     }
 

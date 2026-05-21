@@ -42,6 +42,7 @@ const MIME_TYPES: Record<string, string> = {
   ".mp3": "audio/mpeg",
   ".wav": "audio/wav",
   ".pdf": "application/pdf",
+  ".eps": "application/postscript",
   ".xml": "application/xml",
   ".txt": "text/plain",
 };
