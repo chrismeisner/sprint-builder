@@ -117,7 +117,16 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       "no-reply@mail.meisner.design";
     const fromName =
       process.env.EMAIL_FROM_NAME || process.env.MAILGUN_FROM_NAME || "Meisner Design";
-    const defaultReplyTo = process.env.EMAIL_REPLY_TO || process.env.MAILGUN_REPLY_TO;
+    // Always resolve to a real, monitored inbox so the "reply to this email"
+    // line in our templates actually works. Without a Reply-To, replies fall
+    // back to the From address (no-reply@mail.meisner.design), whose subdomain
+    // routes inbound to Mailgun and isn't monitored. meisner.design is on
+    // Google Workspace, so this address genuinely receives mail. Env overrides
+    // the default for other environments.
+    const defaultReplyTo =
+      process.env.EMAIL_REPLY_TO ||
+      process.env.MAILGUN_REPLY_TO ||
+      "chris@meisner.design";
     const from = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
 
     if (!resendApiKey) {
@@ -194,17 +203,44 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       payload.tags = [{ name: "type", value: safeTag }];
     }
 
-    const resendRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    // Resend caps sends at 5 requests/second. Notifications that fan out to
+    // many recipients (e.g. an invoice with several project members + every
+    // admin) blow past that and would otherwise drop silently. Retry on 429
+    // (and transient 5xx) with backoff, honoring any Retry-After header.
+    const MAX_ATTEMPTS = 5;
+    let resendRes: Response;
+    let errText = "";
+    let attempt = 0;
+    for (;;) {
+      attempt++;
+      resendRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      if (resendRes.ok) break;
+      errText = await resendRes.text().catch(() => "");
+      const retryable = resendRes.status === 429 || resendRes.status >= 500;
+      if (!retryable || attempt >= MAX_ATTEMPTS) break;
+      const retryAfter = Number(resendRes.headers.get("retry-after"));
+      const waitMs =
+        Number.isFinite(retryAfter) && retryAfter > 0
+          ? Math.min(retryAfter * 1000, 5000)
+          : Math.min(2000, 250 * 2 ** (attempt - 1));
+      console.warn("[Email] Resend transient error — retrying", {
+        status: resendRes.status,
+        attempt,
+        waitMs,
+        to: params.to,
+        tag,
+      });
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
 
     if (!resendRes.ok) {
-      const errText = await resendRes.text().catch(() => "");
       console.error("[Email] Resend send failed", {
         status: resendRes.status,
         to: params.to,
@@ -1689,6 +1725,118 @@ Questions? Just reply to this email.
 </table>
 <p style="margin:0;">ACH/bank transfers typically clear within 1&ndash;3 business days. No further action is needed on your end &mdash; we&rsquo;ll send another note once it settles.</p>
 <p style="margin:16px 0 0;font-size:13px;color:#71717a;">Questions? Just reply to this email.</p>
+${divider()}
+${muted("Meisner Design")}
+`);
+
+  return { subject, text, html };
+}
+
+// Admin notification fired by the Stripe webhook when a cycle invoice payment
+// has cleared (invoice.paid / payment_intent.succeeded). Mirrors
+// generateInvoicePaidAdminEmail but tailored to refinement cycles.
+export function generateRefinementCyclePaymentPaidAdminEmail(params: {
+  kind: "deposit" | "final";
+  cycleTitle: string | null;
+  projectName: string | null;
+  projectEmoji: string | null;
+  amount: number;
+  clientEmail: string | null;
+  adminName?: string | null;
+  cycleUrl: string;
+}): { subject: string; text: string; html: string } {
+  const { kind, cycleTitle, projectName, projectEmoji, amount, clientEmail, adminName, cycleUrl } = params;
+  const project = projectLabel(projectName, projectEmoji);
+  const greeting = adminName ? `Hi ${adminName},` : "Hi there,";
+  const kindLabel = kind === "final" ? "final invoice" : "deposit invoice";
+  const subjectTitle = cycleTitle ? `${cycleTitle} — ` : "";
+  const subject = `Payment cleared: ${subjectTitle}refinement cycle ${kindLabel}`;
+  const clientDisplay = clientEmail ?? "the client";
+  const projectText = projectName ?? "(unnamed project)";
+  const followOn =
+    kind === "deposit"
+      ? "The cycle is now in progress."
+      : "The cycle is now fully paid and delivered.";
+
+  const text = `${greeting}
+
+Payment on the ${kindLabel} for refinement cycle "${cycleTitle ?? "(untitled)"}" (${projectText}) from ${clientDisplay} has cleared — the funds have been deposited and are available. ${followOn}
+
+Amount: ${formatUsd(amount)}
+
+View cycle: ${cycleUrl}
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">Payment on the ${kindLabel} for refinement cycle <strong>${escapeHtml(cycleTitle ?? "(untitled)")}</strong> (${project}) from <strong>${escapeHtml(clientDisplay)}</strong> has cleared&nbsp;&mdash; the funds have been deposited and are available. ${followOn}</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">Refinement cycle ${kindLabel}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formatUsd(amount)}</p>
+    </td>
+  </tr>
+</table>
+${secondaryLink(cycleUrl, "View cycle →")}
+${divider()}
+${muted("No action needed&nbsp;&mdash; this is an automatic notification.")}
+`);
+
+  return { subject, text, html };
+}
+
+// Client-facing receipt fired by the Stripe webhook when a cycle invoice
+// payment clears — confirms funds settled (sent after the earlier "processing"
+// note for ACH, or as the sole confirmation for instant card payments).
+export function generateRefinementCyclePaymentPaidClientEmail(params: {
+  kind: "deposit" | "final";
+  cycleTitle: string | null;
+  projectName: string | null;
+  projectEmoji: string | null;
+  amount: number;
+  clientName?: string | null;
+}): { subject: string; text: string; html: string } {
+  const { kind, cycleTitle, projectName, projectEmoji, amount, clientName } = params;
+  const project = projectLabel(projectName, projectEmoji);
+  const greeting = clientName ? `Hi ${clientName},` : "Hi there,";
+  const kindLabel = kind === "final" ? "final invoice" : "deposit invoice";
+  const cycleLabel = cycleTitle ?? "your refinement cycle";
+  const subject = `Payment confirmed — thank you!`;
+
+  const text = `${greeting}
+
+We've received your payment for ${cycleLabel} (${projectName ?? "your project"}) — thank you! The ${kindLabel} has cleared and your account is all up to date.
+
+Amount: ${formatUsd(amount)}
+
+Reply to this email if you have any questions.
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">We&rsquo;ve received your payment for <strong>${escapeHtml(cycleLabel)}</strong> (${project})&nbsp;&mdash; thank you! The ${kindLabel} has cleared and your account is all up to date.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">Refinement cycle ${kindLabel}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formatUsd(amount)}</p>
+    </td>
+  </tr>
+</table>
+<p style="margin:0;font-size:13px;color:#71717a;">Reply to this email if you have any questions.</p>
 ${divider()}
 ${muted("Meisner Design")}
 `);
