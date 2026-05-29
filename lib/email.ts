@@ -1,5 +1,5 @@
 /**
- * Email utility functions using Mailgun
+ * Email utility functions using Resend
  */
 
 import { createHmac, timingSafeEqual } from "crypto";
@@ -10,7 +10,7 @@ import { getPool } from "@/lib/db";
  *
  * - `transactional` — user-initiated, required communication (magic link, verification
  *   code, support reply, intake confirmation, invoice sent/receipt). Never suppressed,
- *   no List-Unsubscribe header added, tracking disabled by default.
+ *   no List-Unsubscribe header added.
  *
  * - `notification` — system-generated updates where the recipient should be able to
  *   opt out (admin alerts on member adds, daily summaries, reminder-class messages).
@@ -28,10 +28,8 @@ export interface SendEmailParams {
   cc?: string;
   /** See {@link EmailCategory}. Defaults to `"transactional"` so legacy callers are safe. */
   category?: EmailCategory;
-  /** Optional Mailgun tag (`o:tag`) for per-type analytics, e.g. "magic-link". */
+  /** Optional Resend tag for per-type analytics, e.g. "magic-link". Sent as `tags: [{name:"type", value}]`. */
   tag?: string;
-  /** Override open/click tracking. Defaults depend on category. */
-  tracking?: { clicks?: boolean; opens?: boolean };
 }
 
 export type SendEmailResult = {
@@ -109,17 +107,21 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
   const tag = params.tag;
 
   try {
-    const mailgunApiKey = process.env.MAILGUN_API_KEY;
-    const mailgunDomain = process.env.MAILGUN_DOMAIN;
-    const mailgunFromEmail = process.env.MAILGUN_FROM_EMAIL || `no-reply@${mailgunDomain || "example.com"}`;
-    const mailgunFromName = process.env.MAILGUN_FROM_NAME || "Meisner Design";
-    const mailgunReplyTo = process.env.MAILGUN_REPLY_TO;
-    const mailgunFrom = mailgunFromName
-      ? `${mailgunFromName} <${mailgunFromEmail}>`
-      : mailgunFromEmail;
+    const resendApiKey = process.env.RESEND_API_KEY;
+    // From address + reply-to are provider-neutral. We prefer the new EMAIL_* names
+    // but fall back to the legacy MAILGUN_FROM_* vars so the Mailgun→Resend cutover
+    // doesn't require re-setting these in every environment at once.
+    const fromEmail =
+      process.env.EMAIL_FROM_EMAIL ||
+      process.env.MAILGUN_FROM_EMAIL ||
+      "no-reply@mail.meisner.design";
+    const fromName =
+      process.env.EMAIL_FROM_NAME || process.env.MAILGUN_FROM_NAME || "Meisner Design";
+    const defaultReplyTo = process.env.EMAIL_REPLY_TO || process.env.MAILGUN_REPLY_TO;
+    const from = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
 
-    if (!mailgunApiKey || !mailgunDomain) {
-      console.warn("[Email] Mailgun not configured. Email not sent.", { to: params.to });
+    if (!resendApiKey) {
+      console.warn("[Email] Resend not configured. Email not sent.", { to: params.to });
       return {
         success: false,
         error: "Email service not configured",
@@ -141,46 +143,25 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       };
     }
 
-    const authHeader = `Basic ${Buffer.from(`api:${mailgunApiKey}`).toString("base64")}`;
-
-    const requestParams: Record<string, string> = {
-      from: mailgunFrom,
-      to: params.to,
+    // Resend expects a JSON payload. `to`/`cc` accept a string or array; we always
+    // send arrays for consistency. Open/click tracking is configured at the domain
+    // level in Resend (off by default), so there are no per-send tracking flags.
+    const payload: Record<string, unknown> = {
+      from,
+      to: [params.to],
       subject: params.subject,
       text: params.text,
     };
 
     if (params.html) {
-      requestParams.html = params.html;
+      payload.html = params.html;
     }
-    const replyTo = params.replyTo || mailgunReplyTo;
+    const replyTo = params.replyTo || defaultReplyTo;
     if (replyTo) {
-      requestParams["h:Reply-To"] = replyTo;
+      payload.reply_to = replyTo;
     }
     if (params.cc) {
-      requestParams.cc = params.cc;
-    }
-
-    // Per-send tracking controls.
-    //
-    // Default: transactional sends disable open + click tracking. Click-tracking
-    // rewrites URLs through the Mailgun tracking CNAME, which (a) reduces trust on
-    // the visible link and (b) occasionally trips Gmail heuristics for auth-style
-    // mail. Notifications inherit the Mailgun dashboard defaults unless overridden.
-    const clicks = params.tracking?.clicks ?? (category === "transactional" ? false : undefined);
-    const opens = params.tracking?.opens ?? (category === "transactional" ? false : undefined);
-    if (clicks === false) requestParams["o:tracking-clicks"] = "no";
-    if (clicks === true) requestParams["o:tracking-clicks"] = "htmlonly";
-    if (opens === false) requestParams["o:tracking-opens"] = "no";
-    if (opens === true) requestParams["o:tracking-opens"] = "yes";
-    if (category === "transactional") {
-      // Belt and suspenders: also disable the parent "tracking" flag so nothing is
-      // rewritten on auth/verification mail.
-      requestParams["o:tracking"] = "no";
-    }
-
-    if (tag) {
-      requestParams["o:tag"] = tag;
+      payload.cc = params.cc;
     }
 
     // One-click unsubscribe headers — required by Gmail/Yahoo 2024 bulk sender
@@ -188,23 +169,32 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     // notifications so recipients can't "unsubscribe" from security-critical mail.
     if (category === "notification") {
       const unsubUrl = buildUnsubscribeUrl(params.to, tag || category);
-      requestParams["h:List-Unsubscribe"] = `<${unsubUrl}>, <mailto:unsubscribe@${mailgunDomain}?subject=unsubscribe>`;
-      requestParams["h:List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+      const fromDomain = fromEmail.split("@")[1] || "meisner.design";
+      payload.headers = {
+        "List-Unsubscribe": `<${unsubUrl}>, <mailto:unsubscribe@${fromDomain}?subject=unsubscribe>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      };
     }
 
-    const mailgunRes = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
+    if (tag) {
+      // Resend tag values are restricted to ASCII letters, numbers, `_` and `-`.
+      const safeTag = tag.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 256);
+      payload.tags = [{ name: "type", value: safeTag }];
+    }
+
+    const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        Authorization: authHeader,
-        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
       },
-      body: new URLSearchParams(requestParams),
+      body: JSON.stringify(payload),
     });
 
-    if (!mailgunRes.ok) {
-      const errText = await mailgunRes.text().catch(() => "");
-      console.error("[Email] Mailgun send failed", {
-        status: mailgunRes.status,
+    if (!resendRes.ok) {
+      const errText = await resendRes.text().catch(() => "");
+      console.error("[Email] Resend send failed", {
+        status: resendRes.status,
         to: params.to,
         category,
         tag,
@@ -212,11 +202,11 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       });
       return {
         success: false,
-        error: `Mailgun API error: ${mailgunRes.status}`,
+        error: `Resend API error: ${resendRes.status}`,
       };
     }
 
-    const responseData = await mailgunRes.json();
+    const responseData = await resendRes.json();
     console.log("[Email] Email sent successfully", {
       to: params.to,
       subject: params.subject,

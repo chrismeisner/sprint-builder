@@ -5,10 +5,8 @@ import { useState, useEffect } from "react";
 type EmailStatus = {
   configured: boolean;
   apiKeyPresent: boolean;
-  domainPresent: boolean;
   fromEmailPresent: boolean;
   apiKey: string | null;
-  domain: string | null;
   fromEmail: string | null;
   fromName: string | null;
   fromHeader: string | null;
@@ -32,7 +30,7 @@ export default function EmailTestClient() {
   const [formData, setFormData] = useState({
     to: "",
     subject: "Test Email from Sprint Builder",
-    text: "This is a test email sent from the Email Testing page.\n\nIf you're receiving this, Mailgun is configured correctly!",
+    text: "This is a test email sent from the Email Testing page.\n\nIf you're receiving this, Resend is configured correctly!",
     html: "",
   });
 
@@ -50,10 +48,8 @@ export default function EmailTestClient() {
       setStatus({
         configured: false,
         apiKeyPresent: false,
-        domainPresent: false,
         fromEmailPresent: false,
         apiKey: null,
-        domain: null,
         fromEmail: null,
         fromName: null,
         fromHeader: null,
@@ -100,9 +96,9 @@ export default function EmailTestClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold mb-2">Email Testing (Mailgun)</h1>
+        <h1 className="text-2xl font-semibold mb-2">Email Testing (Resend)</h1>
         <p className="text-sm opacity-70">
-          Check your Mailgun configuration and send test emails.
+          Check your Resend configuration and send test emails.
         </p>
       </div>
 
@@ -132,10 +128,6 @@ export default function EmailTestClient() {
                 label={status.apiKeyPresent ? "API Key configured" : "API Key missing"}
               />
               <StatusIndicator
-                checked={status.domainPresent}
-                label={status.domainPresent ? "Domain configured" : "Domain missing"}
-              />
-              <StatusIndicator
                 checked={status.fromEmailPresent}
                 label={status.fromEmailPresent ? "From email configured" : "From email not set (will use default)"}
               />
@@ -151,12 +143,6 @@ export default function EmailTestClient() {
                 <span className="opacity-70">API Key:</span>{" "}
                 <code className="bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
                   {status.apiKey || "Not set"}
-                </code>
-              </div>
-              <div>
-                <span className="opacity-70">Domain:</span>{" "}
-                <code className="bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
-                  {status.domain || "Not set"}
                 </code>
               </div>
               <div className="pt-2 border-t border-black/10 dark:border-white/15">
@@ -180,7 +166,7 @@ export default function EmailTestClient() {
 
             {!status.configured && (
               <div className="p-3 rounded-md bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-sm">
-                <strong>Configuration incomplete.</strong> Set MAILGUN_API_KEY and MAILGUN_DOMAIN in your environment variables.
+                <strong>Configuration incomplete.</strong> Set RESEND_API_KEY in your environment variables.
               </div>
             )}
           </div>
@@ -303,26 +289,26 @@ export default function EmailTestClient() {
           <div>
             <strong className="block mb-1">Required environment variables:</strong>
             <ul className="list-disc pl-5 mt-1 opacity-80 space-y-1 font-mono text-xs">
-              <li><code>MAILGUN_API_KEY</code> - Your Mailgun API key</li>
-              <li><code>MAILGUN_DOMAIN</code> - Your Mailgun sending domain (e.g. mg.yourdomain.com)</li>
-              <li><code>MAILGUN_FROM_EMAIL</code> - From email address (optional, defaults to no-reply@MAILGUN_DOMAIN)</li>
-              <li><code>MAILGUN_REPLY_TO</code> - Reply-to address (optional, e.g. chris@meisner.design)</li>
+              <li><code>RESEND_API_KEY</code> - Your Resend API key</li>
+              <li><code>EMAIL_FROM_EMAIL</code> - From email address (optional, defaults to no-reply@mail.meisner.design)</li>
+              <li><code>EMAIL_FROM_NAME</code> - From display name (optional, defaults to &quot;Meisner Design&quot;)</li>
+              <li><code>EMAIL_REPLY_TO</code> - Reply-to address (optional, e.g. chris@meisner.design)</li>
             </ul>
           </div>
 
           <div>
-            <strong className="block mb-1">Get Mailgun credentials:</strong>
+            <strong className="block mb-1">Get Resend credentials:</strong>
             <p className="opacity-80">
               Sign up at{" "}
               <a
-                href="https://mailgun.com"
+                href="https://resend.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline"
               >
-                mailgun.com
+                resend.com
               </a>
-              {" "}and get your API key and domain from the dashboard.
+              {" "}, verify the <code>mail.meisner.design</code> domain, and create an API key in the dashboard.
             </p>
           </div>
 

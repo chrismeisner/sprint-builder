@@ -3,10 +3,8 @@ import { NextResponse } from "next/server";
 type EmailStatus = {
   configured: boolean;
   apiKeyPresent: boolean;
-  domainPresent: boolean;
   fromEmailPresent: boolean;
   apiKey: string | null;
-  domain: string | null;
   fromEmail: string | null;
   fromName: string | null;
   fromHeader: string | null;
@@ -15,28 +13,26 @@ type EmailStatus = {
 
 export async function GET() {
   try {
-    const mailgunApiKey = process.env.MAILGUN_API_KEY;
-    const mailgunDomain = process.env.MAILGUN_DOMAIN;
-    const mailgunFromEmail = process.env.MAILGUN_FROM_EMAIL;
-    const mailgunFromName = process.env.MAILGUN_FROM_NAME || "Meisner Design";
-    const mailgunReplyTo = process.env.MAILGUN_REPLY_TO || null;
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const fromEmail = process.env.EMAIL_FROM_EMAIL || process.env.MAILGUN_FROM_EMAIL;
+    const fromName =
+      process.env.EMAIL_FROM_NAME || process.env.MAILGUN_FROM_NAME || "Meisner Design";
+    const replyTo = process.env.EMAIL_REPLY_TO || process.env.MAILGUN_REPLY_TO || null;
 
-    const resolvedFromEmail = mailgunFromEmail || `no-reply@${mailgunDomain || "example.com"}`;
-    const fromHeader = mailgunFromName
-      ? `${mailgunFromName} <${resolvedFromEmail}>`
+    const resolvedFromEmail = fromEmail || "no-reply@mail.meisner.design";
+    const fromHeader = fromName
+      ? `${fromName} <${resolvedFromEmail}>`
       : resolvedFromEmail;
 
     const status: EmailStatus = {
-      configured: !!(mailgunApiKey && mailgunDomain),
-      apiKeyPresent: !!mailgunApiKey,
-      domainPresent: !!mailgunDomain,
-      fromEmailPresent: !!mailgunFromEmail,
-      apiKey: mailgunApiKey ? `${mailgunApiKey.slice(0, 8)}...` : null,
-      domain: mailgunDomain || null,
+      configured: !!resendApiKey,
+      apiKeyPresent: !!resendApiKey,
+      fromEmailPresent: !!fromEmail,
+      apiKey: resendApiKey ? `${resendApiKey.slice(0, 8)}...` : null,
       fromEmail: resolvedFromEmail,
-      fromName: mailgunFromName,
+      fromName,
       fromHeader,
-      replyTo: mailgunReplyTo,
+      replyTo,
     };
 
     return NextResponse.json(status);
@@ -74,59 +70,60 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Email text is required" }, { status: 400 });
     }
 
-    const mailgunApiKey = process.env.MAILGUN_API_KEY;
-    const mailgunDomain = process.env.MAILGUN_DOMAIN;
-    const mailgunFromEmail = process.env.MAILGUN_FROM_EMAIL || `no-reply@${mailgunDomain || "example.com"}`;
-    const mailgunFromName = process.env.MAILGUN_FROM_NAME || "Meisner Design";
-    const mailgunFrom = mailgunFromName ? `${mailgunFromName} <${mailgunFromEmail}>` : mailgunFromEmail;
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const fromEmail =
+      process.env.EMAIL_FROM_EMAIL ||
+      process.env.MAILGUN_FROM_EMAIL ||
+      "no-reply@mail.meisner.design";
+    const fromName =
+      process.env.EMAIL_FROM_NAME || process.env.MAILGUN_FROM_NAME || "Meisner Design";
+    const from = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
 
-    if (!mailgunApiKey || !mailgunDomain) {
+    if (!resendApiKey) {
       return NextResponse.json(
-        { error: "Mailgun not configured. Please set MAILGUN_API_KEY and MAILGUN_DOMAIN." },
+        { error: "Resend not configured. Please set RESEND_API_KEY." },
         { status: 500 }
       );
     }
 
-    const authHeader = `Basic ${Buffer.from(`api:${mailgunApiKey}`).toString("base64")}`;
-    
-    const params: Record<string, string> = {
-      from: mailgunFrom,
-      to: to,
-      subject: subject,
-      text: text,
+    const payload: Record<string, unknown> = {
+      from,
+      to: [to],
+      subject,
+      text,
     };
 
     // Add HTML if provided
     if (typeof html === "string" && html.trim()) {
-      params.html = html;
+      payload.html = html;
     }
 
-    const mailgunRes = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
+    const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        Authorization: authHeader,
-        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
       },
-      body: new URLSearchParams(params),
+      body: JSON.stringify(payload),
     });
 
-    if (!mailgunRes.ok) {
-      const errText = await mailgunRes.text().catch(() => "");
-      console.error("[Email Test] Mailgun send failed", {
-        status: mailgunRes.status,
+    if (!resendRes.ok) {
+      const errText = await resendRes.text().catch(() => "");
+      console.error("[Email Test] Resend send failed", {
+        status: resendRes.status,
         body: errText.slice(0, 500),
       });
       return NextResponse.json(
         {
           success: false,
-          error: `Mailgun API error: ${mailgunRes.status}`,
+          error: `Resend API error: ${resendRes.status}`,
           details: errText.slice(0, 500),
         },
-        { status: mailgunRes.status }
+        { status: resendRes.status }
       );
     }
 
-    const responseData = await mailgunRes.json();
+    const responseData = await resendRes.json();
     console.log("[Email Test] Test email sent successfully", {
       to,
       subject,

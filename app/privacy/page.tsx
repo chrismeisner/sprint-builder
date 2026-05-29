@@ -33,7 +33,7 @@ export default function PrivacyPage() {
             We use your information to communicate with you about your project, provide access to your account and deliverables, and send relevant transactional updates (e.g., login links, sprint activity). We do not sell your data or share it with third parties except as necessary to provide our services.
           </Typography>
           <Typography as="p" scale="body-md" className="text-text-secondary">
-            Service providers we rely on include: Stripe (payments), Mailgun (transactional email), and Google Cloud Storage (file hosting). Each operates under their own privacy policies and data processing agreements.
+            Service providers we rely on include: Stripe (payments), Resend (transactional email), and Google Cloud Storage (file hosting). Each operates under their own privacy policies and data processing agreements.
           </Typography>
         </div>
 

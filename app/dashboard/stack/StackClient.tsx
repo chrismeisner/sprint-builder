@@ -3,7 +3,7 @@
 type ConfigStatus = {
   database: boolean;
   storage: boolean;
-  mailgun: boolean;
+  resend: boolean;
   openai: boolean;
   analytics: boolean;
   stripe: boolean;
@@ -77,12 +77,12 @@ const stackSections: Array<{
     description: "Transactional email and passwordless login flows.",
     items: [
       {
-        name: "Mailgun",
-        summary: "All outbound email (magic links, sprint notifications) goes through Mailgun using helpers in `lib/email.ts` and `/dashboard/email-test`.",
+        name: "Resend",
+        summary: "All outbound email (magic links, sprint notifications) goes through Resend using helpers in `lib/email.ts` and `/dashboard/email-test`.",
         files: ["lib/email.ts", "app/api/admin/email-test/route.ts", "app/dashboard/email-test/*"],
-        env: ["MAILGUN_API_KEY", "MAILGUN_DOMAIN", "MAILGUN_FROM_EMAIL", "MAILGUN_REPLY_TO"],
-        statusKey: "mailgun",
-        docs: "https://www.mailgun.com/",
+        env: ["RESEND_API_KEY", "EMAIL_FROM_EMAIL", "EMAIL_FROM_NAME", "EMAIL_REPLY_TO"],
+        statusKey: "resend",
+        docs: "https://resend.com/docs",
       },
       {
         name: "Magic-Link Sessions",

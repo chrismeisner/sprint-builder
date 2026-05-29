@@ -121,7 +121,7 @@ export async function POST(request: Request) {
 
     const result = await sendMagicLink(normalizedEmail, magicLink);
     if (!result.success) {
-      // Dev fallback: log the magic link so local testing without Mailgun still works.
+      // Dev fallback: log the magic link so local testing without Resend still works.
       console.log("[Auth] Magic link send failed; fallback log:", {
         email: normalizedEmail,
         error: result.error,

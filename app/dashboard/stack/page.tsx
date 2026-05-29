@@ -12,7 +12,7 @@ export default async function StackPage() {
   const configStatus = {
     database: Boolean(process.env.DATABASE_URL || process.env.PGHOST),
     storage: Boolean(process.env.GCS_PROJECT_ID && process.env.GCS_BUCKET_NAME),
-    mailgun: Boolean(process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN),
+    resend: Boolean(process.env.RESEND_API_KEY),
     openai: Boolean(process.env.OPENAI_API_KEY),
     analytics: Boolean(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID),
     stripe: Boolean(process.env.STRIPE_SECRET_KEY),

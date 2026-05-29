@@ -46,10 +46,10 @@ async function writeChangelog(
  *
  * - "send": Calls stripe.invoices.sendInvoice() to email the client and
  *   marks the local record as "sent". Optionally CCs admin and sends
- *   studio-branded emails to project members via Mailgun.
+ *   studio-branded emails to project members via Resend.
  *
  * - "send_draft": Emails the hosted Stripe invoice URL to the logged-in admin
- *   via Mailgun so they can preview before sending to the client.
+ *   via Resend so they can preview before sending to the client.
  *
  * - "void": Voids the Stripe invoice and clears the local stripe_invoice_id
  *   so the admin can regenerate. Only allowed before the invoice is sent.
