@@ -143,12 +143,21 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       };
     }
 
-    // Resend expects a JSON payload. `to`/`cc` accept a string or array; we always
-    // send arrays for consistency. Open/click tracking is configured at the domain
-    // level in Resend (off by default), so there are no per-send tracking flags.
+    // Resend expects a JSON payload. `to`/`cc` accept a string or array, but unlike
+    // Mailgun it does NOT parse a single comma-separated string into multiple
+    // recipients — it treats "a@x.com,b@y.com" as one (invalid) address and rejects
+    // the send. Callers pass comma-joined lists (e.g. CC'd admins), so split into an
+    // array. Open/click tracking is configured at the domain level in Resend (off by
+    // default), so there are no per-send tracking flags.
+    const toAddressList = (value: string): string[] =>
+      value
+        .split(",")
+        .map((addr) => addr.trim())
+        .filter(Boolean);
+
     const payload: Record<string, unknown> = {
       from,
-      to: [params.to],
+      to: toAddressList(params.to),
       subject: params.subject,
       text: params.text,
     };
@@ -161,7 +170,10 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       payload.reply_to = replyTo;
     }
     if (params.cc) {
-      payload.cc = params.cc;
+      const ccList = toAddressList(params.cc);
+      if (ccList.length > 0) {
+        payload.cc = ccList;
+      }
     }
 
     // One-click unsubscribe headers — required by Gmail/Yahoo 2024 bulk sender
