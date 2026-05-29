@@ -194,17 +194,44 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       payload.tags = [{ name: "type", value: safeTag }];
     }
 
-    const resendRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    // Resend caps sends at 5 requests/second. Notifications that fan out to
+    // many recipients (e.g. an invoice with several project members + every
+    // admin) blow past that and would otherwise drop silently. Retry on 429
+    // (and transient 5xx) with backoff, honoring any Retry-After header.
+    const MAX_ATTEMPTS = 5;
+    let resendRes: Response;
+    let errText = "";
+    let attempt = 0;
+    for (;;) {
+      attempt++;
+      resendRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      if (resendRes.ok) break;
+      errText = await resendRes.text().catch(() => "");
+      const retryable = resendRes.status === 429 || resendRes.status >= 500;
+      if (!retryable || attempt >= MAX_ATTEMPTS) break;
+      const retryAfter = Number(resendRes.headers.get("retry-after"));
+      const waitMs =
+        Number.isFinite(retryAfter) && retryAfter > 0
+          ? Math.min(retryAfter * 1000, 5000)
+          : Math.min(2000, 250 * 2 ** (attempt - 1));
+      console.warn("[Email] Resend transient error — retrying", {
+        status: resendRes.status,
+        attempt,
+        waitMs,
+        to: params.to,
+        tag,
+      });
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
 
     if (!resendRes.ok) {
-      const errText = await resendRes.text().catch(() => "");
       console.error("[Email] Resend send failed", {
         status: resendRes.status,
         to: params.to,

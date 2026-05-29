@@ -625,7 +625,7 @@ async function sendCyclePaymentNotifications(
   try {
     const infoRes = await pool.query(
       `SELECT rc.title, rc.submitter_email, rc.cc_emails,
-              rc.total_price, rc.deposit_amount, rc.final_amount,
+              rc.total_price, rc.deposit_amount, rc.final_amount, rc.requires_deposit,
               p.name AS project_name, p.emoji AS project_emoji
        FROM refinement_cycles rc
        LEFT JOIN projects p ON p.id = rc.project_id
@@ -642,18 +642,23 @@ async function sendCyclePaymentNotifications(
       total_price: string | number | null;
       deposit_amount: string | number | null;
       final_amount: string | number | null;
+      requires_deposit: boolean | null;
       project_name: string | null;
       project_emoji: string | null;
     };
 
     const cycleUrl = `${origin}/dashboard/refinement-cycles/${cycleId}`;
-    // For new pay-on-delivery cycles the final invoice is the full
-    // total_price; legacy cycles split into deposit/final. Fall back through
-    // the columns so either path renders a sensible amount.
+    // Mirror the invoice amount chosen at creation (refinementCycleBilling):
+    // the final invoice bills the remaining final_amount under the legacy
+    // deposit flow, but the full total_price under pay-on-delivery
+    // (requires_deposit = false). Keying off final_amount alone would
+    // under-report pay-on-delivery cycles.
     const amount =
       kind === "deposit"
         ? Number(info.deposit_amount ?? 0)
-        : Number(info.final_amount ?? info.total_price ?? 0);
+        : info.requires_deposit
+          ? Number(info.final_amount ?? 0)
+          : Number(info.total_price ?? 0);
 
     // Client confirmation — submitter + cc_emails, deduped + lowercased.
     const clientRecipients = new Set<string>();
