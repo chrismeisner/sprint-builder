@@ -117,7 +117,16 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       "no-reply@mail.meisner.design";
     const fromName =
       process.env.EMAIL_FROM_NAME || process.env.MAILGUN_FROM_NAME || "Meisner Design";
-    const defaultReplyTo = process.env.EMAIL_REPLY_TO || process.env.MAILGUN_REPLY_TO;
+    // Always resolve to a real, monitored inbox so the "reply to this email"
+    // line in our templates actually works. Without a Reply-To, replies fall
+    // back to the From address (no-reply@mail.meisner.design), whose subdomain
+    // routes inbound to Mailgun and isn't monitored. meisner.design is on
+    // Google Workspace, so this address genuinely receives mail. Env overrides
+    // the default for other environments.
+    const defaultReplyTo =
+      process.env.EMAIL_REPLY_TO ||
+      process.env.MAILGUN_REPLY_TO ||
+      "chris@meisner.design";
     const from = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
 
     if (!resendApiKey) {
