@@ -1696,6 +1696,118 @@ ${muted("Meisner Design")}
   return { subject, text, html };
 }
 
+// Admin notification fired by the Stripe webhook when a cycle invoice payment
+// has cleared (invoice.paid / payment_intent.succeeded). Mirrors
+// generateInvoicePaidAdminEmail but tailored to refinement cycles.
+export function generateRefinementCyclePaymentPaidAdminEmail(params: {
+  kind: "deposit" | "final";
+  cycleTitle: string | null;
+  projectName: string | null;
+  projectEmoji: string | null;
+  amount: number;
+  clientEmail: string | null;
+  adminName?: string | null;
+  cycleUrl: string;
+}): { subject: string; text: string; html: string } {
+  const { kind, cycleTitle, projectName, projectEmoji, amount, clientEmail, adminName, cycleUrl } = params;
+  const project = projectLabel(projectName, projectEmoji);
+  const greeting = adminName ? `Hi ${adminName},` : "Hi there,";
+  const kindLabel = kind === "final" ? "final invoice" : "deposit invoice";
+  const subjectTitle = cycleTitle ? `${cycleTitle} — ` : "";
+  const subject = `Payment cleared: ${subjectTitle}refinement cycle ${kindLabel}`;
+  const clientDisplay = clientEmail ?? "the client";
+  const projectText = projectName ?? "(unnamed project)";
+  const followOn =
+    kind === "deposit"
+      ? "The cycle is now in progress."
+      : "The cycle is now fully paid and delivered.";
+
+  const text = `${greeting}
+
+Payment on the ${kindLabel} for refinement cycle "${cycleTitle ?? "(untitled)"}" (${projectText}) from ${clientDisplay} has cleared — the funds have been deposited and are available. ${followOn}
+
+Amount: ${formatUsd(amount)}
+
+View cycle: ${cycleUrl}
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">Payment on the ${kindLabel} for refinement cycle <strong>${escapeHtml(cycleTitle ?? "(untitled)")}</strong> (${project}) from <strong>${escapeHtml(clientDisplay)}</strong> has cleared&nbsp;&mdash; the funds have been deposited and are available. ${followOn}</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">Refinement cycle ${kindLabel}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formatUsd(amount)}</p>
+    </td>
+  </tr>
+</table>
+${secondaryLink(cycleUrl, "View cycle →")}
+${divider()}
+${muted("No action needed&nbsp;&mdash; this is an automatic notification.")}
+`);
+
+  return { subject, text, html };
+}
+
+// Client-facing receipt fired by the Stripe webhook when a cycle invoice
+// payment clears — confirms funds settled (sent after the earlier "processing"
+// note for ACH, or as the sole confirmation for instant card payments).
+export function generateRefinementCyclePaymentPaidClientEmail(params: {
+  kind: "deposit" | "final";
+  cycleTitle: string | null;
+  projectName: string | null;
+  projectEmoji: string | null;
+  amount: number;
+  clientName?: string | null;
+}): { subject: string; text: string; html: string } {
+  const { kind, cycleTitle, projectName, projectEmoji, amount, clientName } = params;
+  const project = projectLabel(projectName, projectEmoji);
+  const greeting = clientName ? `Hi ${clientName},` : "Hi there,";
+  const kindLabel = kind === "final" ? "final invoice" : "deposit invoice";
+  const cycleLabel = cycleTitle ?? "your refinement cycle";
+  const subject = `Payment confirmed — thank you!`;
+
+  const text = `${greeting}
+
+We've received your payment for ${cycleLabel} (${projectName ?? "your project"}) — thank you! The ${kindLabel} has cleared and your account is all up to date.
+
+Amount: ${formatUsd(amount)}
+
+Reply to this email if you have any questions.
+
+— Meisner Design
+`;
+
+  const html = emailShell(`
+<p style="margin:0 0 16px;">${greeting}</p>
+<p style="margin:0 0 16px;">We&rsquo;ve received your payment for <strong>${escapeHtml(cycleLabel)}</strong> (${project})&nbsp;&mdash; thank you! The ${kindLabel} has cleared and your account is all up to date.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:12px 16px;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Invoice</p>
+      <p style="margin:4px 0 0;font-weight:600;">Refinement cycle ${kindLabel}</p>
+    </td>
+    <td style="padding:12px 16px;text-align:right;background-color:#f4f4f5;">
+      <p style="margin:0;font-size:13px;color:#71717a;">Amount</p>
+      <p style="margin:4px 0 0;font-weight:600;font-variant-numeric:tabular-nums;">${formatUsd(amount)}</p>
+    </td>
+  </tr>
+</table>
+<p style="margin:0;font-size:13px;color:#71717a;">Reply to this email if you have any questions.</p>
+${divider()}
+${muted("Meisner Design")}
+`);
+
+  return { subject, text, html };
+}
+
 // Manual nudge sent from the admin "Send invoice reminder" button. Works for
 // both the deposit invoice (status=awaiting_deposit) and the final invoice
 // (status=awaiting_payment).

@@ -10,6 +10,8 @@ import {
   generateInvoiceProcessingClientEmail,
   generateRefinementCyclePaymentProcessingAdminEmail,
   generateRefinementCyclePaymentProcessingClientEmail,
+  generateRefinementCyclePaymentPaidAdminEmail,
+  generateRefinementCyclePaymentPaidClientEmail,
 } from "@/lib/email";
 
 /**
@@ -165,31 +167,123 @@ function paymentIntentToInvoiceStripeId(pi: import("stripe").Stripe.PaymentInten
   return pi.id;
 }
 
+function customerIdOf(
+  obj: { customer?: string | { id?: string } | null }
+): string | null {
+  const c = obj.customer;
+  if (typeof c === "string") return c;
+  if (c && typeof c === "object" && c.id) return c.id;
+  return null;
+}
+
+/**
+ * Under Stripe API 2026-01-28+, an invoice's PaymentIntent and Charge no longer
+ * expose `invoice` or inherit the invoice's metadata — the link now lives in the
+ * `invoice_payments` resource. So `payment_intent.processing` / `charge.pending`
+ * events arrive with empty metadata and we can't recover `refinement_cycle_id`
+ * from the event alone. Given a PaymentIntent id (+ its customer), walk the
+ * customer's recent invoices and find the one whose invoice_payment references
+ * this PI, so we can read its metadata and route the update correctly.
+ */
+async function findInvoiceForPaymentIntent(
+  piId: string,
+  customer: string | null
+): Promise<import("stripe").Stripe.Invoice | null> {
+  if (!customer) return null;
+  try {
+    const stripe = getStripe();
+    const invoices = await stripe.invoices.list({ customer, limit: 20 });
+    for (const inv of invoices.data) {
+      if (!inv.id) continue;
+      try {
+        const pays = await stripe.invoicePayments.list({ invoice: inv.id, limit: 20 });
+        const matched = pays.data.some((p) => {
+          const pay = p.payment as { payment_intent?: string } | undefined;
+          return pay?.payment_intent === piId;
+        });
+        if (matched) return inv;
+      } catch (err) {
+        console.error(
+          `[StripeWebhook] invoice_payments lookup failed for invoice ${inv.id}:`,
+          err
+        );
+      }
+    }
+  } catch (err) {
+    console.error(
+      `[StripeWebhook] Failed to resolve invoice for PaymentIntent ${piId}:`,
+      err
+    );
+  }
+  return null;
+}
+
+/**
+ * Resolve the Stripe target id + routing metadata for a PaymentIntent/Charge
+ * event. If the event already carries routing metadata (refinement_cycle_id or
+ * invoice_id) we use it as-is; otherwise we recover the linked invoice via
+ * `invoice_payments` and merge its metadata in. Returns the invoice id (so
+ * sprint_invoices match by stripe_invoice_id) when an invoice is found.
+ */
+async function resolvePaymentTarget(
+  fallbackStripeId: string,
+  piId: string,
+  customer: string | null,
+  metadata: Record<string, string> | undefined
+): Promise<{ stripeId: string; metadata: Record<string, string> | undefined }> {
+  if (metadata?.refinement_cycle_id || metadata?.invoice_id) {
+    return { stripeId: fallbackStripeId, metadata };
+  }
+  const inv = await findInvoiceForPaymentIntent(piId, customer);
+  if (inv?.id) {
+    return {
+      stripeId: inv.id,
+      metadata: { ...(metadata ?? {}), ...(inv.metadata ?? {}) },
+    };
+  }
+  return { stripeId: fallbackStripeId, metadata };
+}
+
 async function onPaymentIntentProcessing(
   pi: import("stripe").Stripe.PaymentIntent,
   origin: string
 ) {
-  const stripeId = paymentIntentToInvoiceStripeId(pi);
   console.log(`[StripeWebhook] PaymentIntent processing (payment submitted, pending): ${pi.id}`);
-  await updateInvoiceStatus(stripeId, "processing", origin, pi.metadata);
+  const { stripeId, metadata } = await resolvePaymentTarget(
+    paymentIntentToInvoiceStripeId(pi),
+    pi.id,
+    customerIdOf(pi),
+    pi.metadata
+  );
+  await updateInvoiceStatus(stripeId, "processing", origin, metadata);
 }
 
 async function onPaymentIntentSucceeded(
   pi: import("stripe").Stripe.PaymentIntent,
   origin: string
 ) {
-  const stripeId = paymentIntentToInvoiceStripeId(pi);
   console.log(`[StripeWebhook] PaymentIntent succeeded: ${pi.id}`);
-  await updateInvoiceStatus(stripeId, "paid", origin, pi.metadata);
+  const { stripeId, metadata } = await resolvePaymentTarget(
+    paymentIntentToInvoiceStripeId(pi),
+    pi.id,
+    customerIdOf(pi),
+    pi.metadata
+  );
+  await updateInvoiceStatus(stripeId, "paid", origin, metadata);
 }
 
 async function onPaymentIntentFailed(
   pi: import("stripe").Stripe.PaymentIntent,
   origin: string
 ) {
-  const stripeId = paymentIntentToInvoiceStripeId(pi);
   console.log(`[StripeWebhook] PaymentIntent failed: ${pi.id}`);
-  await updateInvoiceStatus(stripeId, "failed", origin, pi.metadata);
+  const { stripeId, metadata } = await resolvePaymentTarget(
+    paymentIntentToInvoiceStripeId(pi),
+    pi.id,
+    customerIdOf(pi),
+    pi.metadata
+  );
+  await updateInvoiceStatus(stripeId, "failed", origin, metadata);
 }
 
 async function onCheckoutSessionCompleted(
@@ -259,7 +353,16 @@ async function onChargePending(charge: import("stripe").Stripe.Charge, origin: s
     }
   }
 
-  await updateInvoiceStatus(stripeId, "processing", origin, metadata);
+  // Stripe API 2026-01-28+ no longer sets charge.invoice; recover the invoice
+  // (and its metadata) from the charge's PaymentIntent via invoice_payments.
+  const resolved = await resolvePaymentTarget(
+    stripeId,
+    typeof charge.payment_intent === "string" ? charge.payment_intent : charge.id,
+    customerIdOf(charge),
+    metadata
+  );
+
+  await updateInvoiceStatus(resolved.stripeId, "processing", origin, resolved.metadata);
 }
 
 async function onChargeRefunded(charge: import("stripe").Stripe.Charge, origin: string) {
@@ -272,11 +375,15 @@ async function onChargeRefunded(charge: import("stripe").Stripe.Charge, origin: 
       ? maybeWithInvoice.invoice
       : maybeWithInvoice.invoice?.id;
   const metadata = charge.metadata ?? undefined;
-  if (invoiceId) {
-    await updateInvoiceStatus(invoiceId, "refunded", origin, metadata);
-  } else {
-    await updateInvoiceStatus(charge.payment_intent as string, "refunded", origin, metadata);
-  }
+  const fallbackStripeId =
+    invoiceId ?? (typeof charge.payment_intent === "string" ? charge.payment_intent : charge.id);
+  const resolved = await resolvePaymentTarget(
+    fallbackStripeId,
+    typeof charge.payment_intent === "string" ? charge.payment_intent : charge.id,
+    customerIdOf(charge),
+    metadata
+  );
+  await updateInvoiceStatus(resolved.stripeId, "refunded", origin, resolved.metadata);
 }
 
 // ---------------------------------------------------------------------------
@@ -316,44 +423,53 @@ async function updateInvoiceStatus(
     // Strategy 1: direct match via metadata.invoice_id
     if (metadata?.invoice_id) {
       const result = await pool.query(
-        `UPDATE sprint_invoices
+        `WITH prev AS (
+           SELECT id, invoice_status AS prev_status FROM sprint_invoices WHERE id = $2
+         )
+         UPDATE sprint_invoices si
             SET invoice_status = $1, updated_at = now()
-          WHERE id = $2
-          RETURNING id, sprint_id, label, invoice_status`,
+           FROM prev
+          WHERE si.id = prev.id
+          RETURNING si.id, si.sprint_id, si.label, si.invoice_status, prev.prev_status`,
         [status, metadata.invoice_id]
       );
       if ((result.rowCount ?? 0) > 0) {
-        logUpdated(result.rows, status, `metadata.invoice_id=${metadata.invoice_id}`);
-        await writeChangelogs(pool, result.rows, status, stripeId, origin);
+        await applyMatched(pool, result.rows, status, stripeId, origin, `metadata.invoice_id=${metadata.invoice_id}`);
         return;
       }
     }
 
     // Strategy 2: match by stripe_invoice_id column
     const byCol = await pool.query(
-      `UPDATE sprint_invoices
+      `WITH prev AS (
+         SELECT id, invoice_status AS prev_status FROM sprint_invoices WHERE stripe_invoice_id = $2
+       )
+       UPDATE sprint_invoices si
           SET invoice_status = $1, updated_at = now()
-        WHERE stripe_invoice_id = $2
-        RETURNING id, sprint_id, label, invoice_status`,
+         FROM prev
+        WHERE si.id = prev.id
+        RETURNING si.id, si.sprint_id, si.label, si.invoice_status, prev.prev_status`,
       [status, stripeId]
     );
     if ((byCol.rowCount ?? 0) > 0) {
-      logUpdated(byCol.rows, status, `stripe_invoice_id=${stripeId}`);
-      await writeChangelogs(pool, byCol.rows, status, stripeId, origin);
+      await applyMatched(pool, byCol.rows, status, stripeId, origin, `stripe_invoice_id=${stripeId}`);
       return;
     }
 
     // Strategy 3: legacy URL-based fuzzy match
     const byUrl = await pool.query(
-      `UPDATE sprint_invoices
+      `WITH prev AS (
+         SELECT id, invoice_status AS prev_status FROM sprint_invoices WHERE invoice_url ILIKE $2
+       )
+       UPDATE sprint_invoices si
           SET invoice_status = $1, updated_at = now()
-        WHERE invoice_url ILIKE $2
-        RETURNING id, sprint_id, label, invoice_status`,
+         FROM prev
+        WHERE si.id = prev.id
+        RETURNING si.id, si.sprint_id, si.label, si.invoice_status, prev.prev_status`,
       [status, `%${stripeId}%`]
     );
     if ((byUrl.rowCount ?? 0) > 0) {
-      logUpdated(byUrl.rows, status, `invoice_url ILIKE %${stripeId}%`);
-      await writeChangelogs(pool, byUrl.rows, status, stripeId, origin);
+      await applyMatched(pool, byUrl.rows, status, stripeId, origin, `invoice_url ILIKE %${stripeId}%`);
       return;
     }
 
@@ -373,44 +489,61 @@ async function updateRefinementCycleStripeStatus(
   status: "processing" | "paid" | "failed" | "voided" | "refunded",
   origin: string
 ) {
+  // The same payment surfaces as multiple Stripe events (e.g.
+  // payment_intent.processing + charge.pending, or payment_intent.succeeded +
+  // invoice.paid), all of which now route here. Each UPDATE stamps its
+  // timestamp via COALESCE so it only takes the first time; we capture the
+  // prior value and only fire notifications when WE performed that first
+  // stamp — keeping emails exactly-once regardless of event fan-out.
   if (kind === "deposit") {
     if (status === "paid") {
       // Deposit cleared → cycle moves into in_progress and the studio knows
       // to start work. Only flip from awaiting_deposit so we don't trample
       // a manually-advanced state.
       const res = await pool.query(
-        `UPDATE refinement_cycles
-         SET deposit_paid_at = COALESCE(deposit_paid_at, now()),
+        `WITH prev AS (
+           SELECT deposit_paid_at AS old_ts FROM refinement_cycles WHERE id = $1
+         )
+         UPDATE refinement_cycles rc
+         SET deposit_paid_at = COALESCE(rc.deposit_paid_at, now()),
              status = CASE
-               WHEN status = 'awaiting_deposit' THEN 'in_progress'
-               ELSE status
+               WHEN rc.status = 'awaiting_deposit' THEN 'in_progress'
+               ELSE rc.status
              END,
              updated_at = now()
-         WHERE id = $1
-         RETURNING id, status`,
+         FROM prev
+         WHERE rc.id = $1
+         RETURNING rc.status, (prev.old_ts IS NULL) AS was_first`,
         [cycleId]
       );
       if ((res.rowCount ?? 0) > 0) {
         console.log(
           `[StripeWebhook] Refinement cycle ${cycleId} deposit paid → status=${res.rows[0].status}`
         );
+        if (res.rows[0].was_first) {
+          await sendCyclePaymentNotifications(pool, cycleId, "deposit", "paid", origin);
+        }
       }
       return;
     }
     if (status === "processing") {
       const res = await pool.query(
-        `UPDATE refinement_cycles
-         SET deposit_payment_initiated_at = COALESCE(deposit_payment_initiated_at, now()),
+        `WITH prev AS (
+           SELECT deposit_payment_initiated_at AS old_ts FROM refinement_cycles WHERE id = $1
+         )
+         UPDATE refinement_cycles rc
+         SET deposit_payment_initiated_at = COALESCE(rc.deposit_payment_initiated_at, now()),
              updated_at = now()
-         WHERE id = $1
-         RETURNING id`,
+         FROM prev
+         WHERE rc.id = $1
+         RETURNING (prev.old_ts IS NULL) AS was_first`,
         [cycleId]
       );
-      if ((res.rowCount ?? 0) > 0) {
+      if ((res.rowCount ?? 0) > 0 && res.rows[0].was_first) {
         console.log(
           `[StripeWebhook] Refinement cycle ${cycleId} deposit payment processing — stamped`
         );
-        await sendCyclePaymentProcessingNotifications(pool, cycleId, "deposit", origin);
+        await sendCyclePaymentNotifications(pool, cycleId, "deposit", "processing", origin);
       }
       return;
     }
@@ -425,38 +558,49 @@ async function updateRefinementCycleStripeStatus(
   // final_paid_at stamp updated.
   if (status === "paid") {
     const res = await pool.query(
-      `UPDATE refinement_cycles
-       SET final_paid_at = COALESCE(final_paid_at, now()),
+      `WITH prev AS (
+         SELECT final_paid_at AS old_ts FROM refinement_cycles WHERE id = $1
+       )
+       UPDATE refinement_cycles rc
+       SET final_paid_at = COALESCE(rc.final_paid_at, now()),
            status = CASE
-             WHEN status = 'awaiting_payment' THEN 'delivered'
-             ELSE status
+             WHEN rc.status = 'awaiting_payment' THEN 'delivered'
+             ELSE rc.status
            END,
            updated_at = now()
-       WHERE id = $1
-       RETURNING id, status`,
+       FROM prev
+       WHERE rc.id = $1
+       RETURNING rc.status, (prev.old_ts IS NULL) AS was_first`,
       [cycleId]
     );
     if ((res.rowCount ?? 0) > 0) {
       console.log(
         `[StripeWebhook] Refinement cycle ${cycleId} final paid → status=${res.rows[0].status}`
       );
+      if (res.rows[0].was_first) {
+        await sendCyclePaymentNotifications(pool, cycleId, "final", "paid", origin);
+      }
     }
     return;
   }
   if (status === "processing") {
     const res = await pool.query(
-      `UPDATE refinement_cycles
-       SET final_payment_initiated_at = COALESCE(final_payment_initiated_at, now()),
+      `WITH prev AS (
+         SELECT final_payment_initiated_at AS old_ts FROM refinement_cycles WHERE id = $1
+       )
+       UPDATE refinement_cycles rc
+       SET final_payment_initiated_at = COALESCE(rc.final_payment_initiated_at, now()),
            updated_at = now()
-       WHERE id = $1
-       RETURNING id`,
+       FROM prev
+       WHERE rc.id = $1
+       RETURNING (prev.old_ts IS NULL) AS was_first`,
       [cycleId]
     );
-    if ((res.rowCount ?? 0) > 0) {
+    if ((res.rowCount ?? 0) > 0 && res.rows[0].was_first) {
       console.log(
         `[StripeWebhook] Refinement cycle ${cycleId} final payment processing — stamped`
       );
-      await sendCyclePaymentProcessingNotifications(pool, cycleId, "final", origin);
+      await sendCyclePaymentNotifications(pool, cycleId, "final", "processing", origin);
     }
     return;
   }
@@ -465,16 +609,17 @@ async function updateRefinementCycleStripeStatus(
   );
 }
 
-// Sends two emails when a refinement cycle invoice enters processing:
-//   1. Admin notification — flags that payment is in flight, not yet cleared.
-//   2. Client confirmation — reassures the submitter (and CC list) that the
-//      studio has seen their bank transfer.
+// Sends the client + admin notification pair for a refinement cycle invoice.
+// `phase` selects the copy:
+//   "processing" — payment submitted, in flight, not yet cleared (ACH pending)
+//   "paid"       — payment cleared, funds available
 // All sends are best-effort and never throw — Stripe webhooks must not retry
 // on email failures.
-async function sendCyclePaymentProcessingNotifications(
+async function sendCyclePaymentNotifications(
   pool: ReturnType<typeof getPool>,
   cycleId: string,
   kind: "deposit" | "final",
+  phase: "processing" | "paid",
   origin: string
 ) {
   try {
@@ -518,22 +663,31 @@ async function sendCyclePaymentProcessingNotifications(
     }
     for (const email of Array.from(clientRecipients)) {
       try {
-        const content = generateRefinementCyclePaymentProcessingClientEmail({
-          kind,
-          cycleTitle: info.title,
-          projectName: info.project_name,
-          projectEmoji: info.project_emoji,
-          amount,
-        });
+        const content =
+          phase === "paid"
+            ? generateRefinementCyclePaymentPaidClientEmail({
+                kind,
+                cycleTitle: info.title,
+                projectName: info.project_name,
+                projectEmoji: info.project_emoji,
+                amount,
+              })
+            : generateRefinementCyclePaymentProcessingClientEmail({
+                kind,
+                cycleTitle: info.title,
+                projectName: info.project_name,
+                projectEmoji: info.project_emoji,
+                amount,
+              });
         await sendEmail({
           to: email,
           ...content,
           category: "transactional",
-          tag: "refinement-cycle-payment-processing-client",
+          tag: `refinement-cycle-payment-${phase}-client`,
         });
       } catch (err) {
         console.error(
-          `[StripeWebhook] Cycle processing client email failed for ${email}:`,
+          `[StripeWebhook] Cycle ${phase} client email failed for ${email}:`,
           err
         );
       }
@@ -553,35 +707,71 @@ async function sendCyclePaymentProcessingNotifications(
       try {
         const adminName =
           [admin.first_name, admin.last_name].filter(Boolean).join(" ") || null;
-        const content = generateRefinementCyclePaymentProcessingAdminEmail({
-          kind,
-          cycleTitle: info.title,
-          projectName: info.project_name,
-          projectEmoji: info.project_emoji,
-          amount,
-          clientEmail: clientEmailSummary,
-          adminName,
-          cycleUrl,
-        });
+        const content =
+          phase === "paid"
+            ? generateRefinementCyclePaymentPaidAdminEmail({
+                kind,
+                cycleTitle: info.title,
+                projectName: info.project_name,
+                projectEmoji: info.project_emoji,
+                amount,
+                clientEmail: clientEmailSummary,
+                adminName,
+                cycleUrl,
+              })
+            : generateRefinementCyclePaymentProcessingAdminEmail({
+                kind,
+                cycleTitle: info.title,
+                projectName: info.project_name,
+                projectEmoji: info.project_emoji,
+                amount,
+                clientEmail: clientEmailSummary,
+                adminName,
+                cycleUrl,
+              });
         await sendEmail({
           to: admin.email,
           ...content,
           category: "transactional",
-          tag: "refinement-cycle-payment-processing-admin",
+          tag: `refinement-cycle-payment-${phase}-admin`,
         });
       } catch (err) {
         console.error(
-          `[StripeWebhook] Cycle processing admin email failed for ${admin.email}:`,
+          `[StripeWebhook] Cycle ${phase} admin email failed for ${admin.email}:`,
           err
         );
       }
     }
   } catch (err) {
     console.error(
-      `[StripeWebhook] Cycle processing notifications failed for ${cycleId}:`,
+      `[StripeWebhook] Cycle ${phase} notifications failed for ${cycleId}:`,
       err
     );
   }
+}
+
+// Logs every matched row, then writes changelogs + fires notifications only
+// for rows that actually transitioned to a new status. Multiple Stripe events
+// fire for one payment (payment_intent.succeeded + invoice.paid, etc.) and all
+// now resolve to the same invoice — gating on the prior status keeps changelog
+// entries and emails exactly-once.
+async function applyMatched(
+  pool: ReturnType<typeof getPool>,
+  rows: Array<{ id: string; sprint_id: string; label: string; invoice_status: string; prev_status: string }>,
+  status: "processing" | "paid" | "failed" | "voided" | "refunded",
+  stripeId: string,
+  origin: string,
+  matchedBy: string
+) {
+  logUpdated(rows, status, matchedBy);
+  const changed = rows.filter((r) => r.prev_status !== status);
+  if (changed.length === 0) {
+    console.log(
+      `[StripeWebhook] ${rows.length} invoice(s) already at "${status}" — skipping changelog/notifications (duplicate event)`
+    );
+    return;
+  }
+  await writeChangelogs(pool, changed, status, stripeId, origin);
 }
 
 function logUpdated(
