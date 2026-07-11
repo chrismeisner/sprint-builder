@@ -51,7 +51,7 @@ export default function PackagesClient({ packages }: Props) {
       <HeroSection
         title="Sprint packages"
         subtitle="Curated starting points built from the deliverable library. Each package is priced transparently from its deliverables—pick one as-is or use it as a starting point."
-        primaryCta={{ label: "Talk to us", href: "/intake" }}
+        primaryCta={{ label: "Talk to us", href: "/scope" }}
         secondaryCta={{ label: "Back to home", href: "/" }}
         primaryVariant="accent"
         align="center"
@@ -65,7 +65,7 @@ export default function PackagesClient({ packages }: Props) {
             <div className="text-center py-12 space-y-3">
               <p className={typography.bodyBase}>No sprint packages are available yet.</p>
               <Link
-                href="/intake"
+                href="/scope"
                 className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
               >
                 Request a custom sprint
@@ -96,7 +96,7 @@ export default function PackagesClient({ packages }: Props) {
               Browse deliverables
             </Link>
             <Link
-              href="/intake"
+              href="/scope"
               className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 transition"
             >
               Request custom sprint

@@ -18,9 +18,9 @@ export default async function LandingPage() {
       title: "Discovery & intake form",
       body: (
         <>
-          Share your company context, blockers, and goals in the sprint intake form so we can prep before we meet.{" "}
-          <Link href="https://form.typeform.com/to/eEiCy7Xj" target="_blank" rel="noreferrer" className="underline underline-offset-4">
-            Fill the intake →
+          Share your company context, blockers, and goals so we can prep before we meet.{" "}
+          <Link href="/scope" className="underline underline-offset-4">
+            Scope your project →
           </Link>{" "}
           or{" "}
           <Link href="https://cal.com/chrismeisner/intro" target="_blank" rel="noreferrer" className="underline underline-offset-4">
@@ -91,7 +91,7 @@ export default async function LandingPage() {
       priceLabel: "From $4,000",
       priceSuffix: "per month",
       ctaLabel: "Ask about support",
-      ctaHref: "/intake",
+      ctaHref: "/scope",
       deliverables: [],
     },
   ];

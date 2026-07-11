@@ -70,7 +70,7 @@ export default function SprintsPage() {
             </span>
           </>
         }
-        primaryCta={{ label: "Plan a sprint", href: "/intake" }}
+        primaryCta={{ label: "Plan a sprint", href: "/scope" }}
         secondaryCta={{ label: "View packages", href: "/packages" }}
       />
 
@@ -162,7 +162,7 @@ export default function SprintsPage() {
         />
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
-            href="/intake"
+            href="/scope"
             className="inline-flex items-center rounded-md bg-black dark:bg-white text-white dark:text-black px-6 py-3 font-semibold hover:opacity-90 transition"
           >
             Start intake

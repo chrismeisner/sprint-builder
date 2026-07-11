@@ -75,6 +75,22 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
+    // Retired public front door: new-client intake is consolidated into /scope
+    // (→ hills). This route now only serves authenticated external webhooks
+    // (e.g. Typeform) and requires TYPEFORM_WEBHOOK_SECRET — closing what was
+    // previously an unauthenticated open write endpoint. Provide the secret as
+    // an `x-webhook-secret` header or `?secret=` query param.
+    const expectedSecret = process.env.TYPEFORM_WEBHOOK_SECRET;
+    const providedSecret =
+      request.headers.get("x-webhook-secret") ||
+      new URL(request.url).searchParams.get("secret");
+    if (!expectedSecret || providedSecret !== expectedSecret) {
+      return NextResponse.json(
+        { error: "This intake endpoint is retired. Please submit your project at /scope." },
+        { status: 410 }
+      );
+    }
+
     await ensureSchema();
     const contentType = request.headers.get("content-type") || "";
     

@@ -22,7 +22,7 @@ export default async function SprintDetailPage({ params }: PageProps) {
   
   // Fetch sprint with document info including account_id and email
   const result = await pool.query(
-    `SELECT sd.id, sd.document_id, sd.ai_response_id, sd.draft, sd.status, sd.title,
+    `SELECT sd.id, sd.document_id, sd.draft, sd.status, sd.title,
             sd.deliverable_count, sd.total_estimate_points, sd.total_fixed_hours, sd.total_fixed_price, 
             sd.created_at, sd.updated_at, sd.weeks, sd.start_date, sd.due_date,
             sd.project_id, sd.contract_url, sd.contract_status,
@@ -42,7 +42,6 @@ export default async function SprintDetailPage({ params }: PageProps) {
   const row = result.rows[0] as {
     id: string;
     document_id: string;
-    ai_response_id: string | null;
     draft: unknown;
     status: string | null;
     title: string | null;

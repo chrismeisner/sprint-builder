@@ -43,6 +43,9 @@ export default async function Header() {
           {user?.isAdmin ? <BrowserWidthIndicator /> : null}
           <ThemeToggle />
           <div className="flex items-center gap-2">
+            <Button as={Link} href="/scope" variant="primary" size="sm" className="normal-case tracking-normal">
+              Scope a project
+            </Button>
             {user ? (
               <>
                 {user.isAdmin && (

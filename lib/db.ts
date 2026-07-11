@@ -161,24 +161,16 @@ export async function ensureSchema(): Promise<void> {
     ALTER TABLE documents
     ADD COLUMN IF NOT EXISTS email text
   `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS ai_responses (
-      id text PRIMARY KEY,
-      document_id text NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-      provider text NOT NULL DEFAULT 'openai',
-      model text,
-      prompt text,
-      response_text text,
-      response_json jsonb,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE INDEX IF NOT EXISTS idx_ai_responses_document_id ON ai_responses(document_id);
-  `);
+  // NOTE: the `ai_responses` table (and sprint_drafts.ai_response_id) is RETIRED
+  // in code — nothing writes it (the intake→AI→sprint-draft pipeline was never
+  // built) and it is empty. The column is no longer created for fresh installs
+  // and no query references it. The physical DROP on existing databases is left
+  // as an explicit, reviewed migration (see scripts/drop-ai-responses.sql) so we
+  // never auto-drop a prod table on boot. Intake now flows /scope → hills.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sprint_drafts (
       id text PRIMARY KEY,
       document_id text REFERENCES documents(id) ON DELETE CASCADE,
-      ai_response_id text REFERENCES ai_responses(id) ON DELETE SET NULL,
       draft jsonb NOT NULL,
       created_at timestamptz NOT NULL DEFAULT now()
     );
@@ -1884,6 +1876,282 @@ export async function ensureSchema(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS idx_miles_proto3_widget_attachments_widget
       ON miles_proto3_widget_attachments(widget_name);
+  `);
+
+  // =====================================================================
+  // THE HILL MODEL — unified work-lifecycle primitives
+  // ---------------------------------------------------------------------
+  // One shape ("a Hill") replaces three parallel systems: personal
+  // admin_milestones/ideas/tasks, client sprint_drafts, and
+  // refinement_cycles. See docs/hill-model.md for the full spec.
+  //
+  // Rollout is ADDITIVE FIRST: these hill_* tables are created alongside
+  // the legacy tables and populated by scripts/backfill-hills.js, which
+  // REUSES legacy primary keys (a milestone id becomes its hill id, a task
+  // keeps its id, etc.) so cross-references map across with no translation.
+  // Legacy tables keep serving the app until an explicit cut-over. Billing
+  // (sprint_invoices, deferred_comp_plans, Stripe columns, the webhook)
+  // is deliberately NOT touched here — it stays a satellite keyed by the
+  // shared ids and is re-pointed at hill_id in a later, isolated step.
+  // =====================================================================
+
+  // Hills — the climb container. Unifies admin_milestones + sprint_drafts +
+  // refinement_cycles via a `type` discriminator. Each type retains its own
+  // existing status vocabulary (no global status CHECK — enforced in app).
+  // `phase` (scope|climb|descend) is a derived overlay stored for querying.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hills (
+      id text PRIMARY KEY,
+      type text NOT NULL CHECK (type IN ('personal','sprint','refinement_cycle')),
+      title text,
+      summary text,
+      status text,
+      phase text CHECK (phase IN ('scope','climb','descend')),
+      progress integer NOT NULL DEFAULT 0 CHECK (progress BETWEEN 0 AND 100),
+      project_id text REFERENCES projects(id) ON DELETE SET NULL,
+      span_granularity text CHECK (span_granularity IN ('day','week','month','quarter','year')),
+      start_date date,
+      target_date timestamptz,
+      completed boolean NOT NULL DEFAULT false,
+      completed_at timestamptz,
+      completed_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      complete_trigger text NOT NULL DEFAULT 'manual',
+      spawned_from_hill_id text REFERENCES hills(id) ON DELETE SET NULL,
+      share_token text UNIQUE,
+      sort_order integer NOT NULL DEFAULT 0,
+      type_data jsonb NOT NULL DEFAULT '{}'::jsonb,
+      created_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      legacy_source text,
+      legacy_id text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_hills_type ON hills(type);
+    CREATE INDEX IF NOT EXISTS idx_hills_status ON hills(status);
+    CREATE INDEX IF NOT EXISTS idx_hills_phase ON hills(phase);
+    CREATE INDEX IF NOT EXISTS idx_hills_project ON hills(project_id);
+    CREATE INDEX IF NOT EXISTS idx_hills_target ON hills(target_date);
+    CREATE INDEX IF NOT EXISTS idx_hills_completed ON hills(completed);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_hills_legacy ON hills(legacy_source, legacy_id)
+      WHERE legacy_source IS NOT NULL AND legacy_id IS NOT NULL;
+  `);
+
+  // Hill ideas — open-ended / exploratory containers (uphill work). From
+  // admin_ideas. hill_id is nullable: an idea can sit in the loose backlog.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hill_ideas (
+      id text PRIMARY KEY,
+      hill_id text REFERENCES hills(id) ON DELETE SET NULL,
+      title text NOT NULL,
+      summary text,
+      status text NOT NULL DEFAULT 'active',
+      project_id text REFERENCES projects(id) ON DELETE SET NULL,
+      sort_order integer NOT NULL DEFAULT 0,
+      legacy_source text,
+      legacy_id text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_hill_ideas_hill ON hill_ideas(hill_id);
+    CREATE INDEX IF NOT EXISTS idx_hill_ideas_status ON hill_ideas(status);
+    CREATE INDEX IF NOT EXISTS idx_hill_ideas_project ON hill_ideas(project_id);
+  `);
+
+  // Hill deliverables — concrete outputs to ship (downhill work). Instances,
+  // from sprint_deliverables + refinement_cycle_screens. hill_id nullable so
+  // a deliverable can be drafted before being attached to a hill.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hill_deliverables (
+      id text PRIMARY KEY,
+      hill_id text REFERENCES hills(id) ON DELETE SET NULL,
+      name text,
+      description text,
+      notes text,
+      catalog_deliverable_id text REFERENCES deliverables(id) ON DELETE SET NULL,
+      source text,
+      added_by text,
+      current_version text DEFAULT '0',
+      delivery_url text,
+      type_data jsonb NOT NULL DEFAULT '{}'::jsonb,
+      sort_order integer NOT NULL DEFAULT 0,
+      legacy_source text,
+      legacy_id text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_hill_deliverables_hill ON hill_deliverables(hill_id);
+    CREATE INDEX IF NOT EXISTS idx_hill_deliverables_catalog ON hill_deliverables(catalog_deliverable_id);
+  `);
+
+  // Hill tasks — the leaf unit of climbing. From admin_tasks. Polymorphic
+  // parent: a task belongs to an idea OR a deliverable OR neither (a free
+  // capture). Retains the focus ladder ('' -> week -> today -> now) and
+  // 0-100 progress. hill_id is a denormalized convenience for fast rollups.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hill_tasks (
+      id text PRIMARY KEY,
+      hill_id text REFERENCES hills(id) ON DELETE SET NULL,
+      idea_id text REFERENCES hill_ideas(id) ON DELETE CASCADE,
+      deliverable_id text REFERENCES hill_deliverables(id) ON DELETE CASCADE,
+      parent_task_id text REFERENCES hill_tasks(id) ON DELETE CASCADE,
+      name text NOT NULL,
+      note text,
+      completed boolean NOT NULL DEFAULT false,
+      completed_at timestamptz,
+      focus text NOT NULL DEFAULT '',
+      progress integer NOT NULL DEFAULT 0 CHECK (progress BETWEEN 0 AND 100),
+      sort_order integer NOT NULL DEFAULT 0,
+      sub_sort_order integer NOT NULL DEFAULT 0,
+      archived boolean NOT NULL DEFAULT false,
+      archived_at timestamptz,
+      attachments jsonb NOT NULL DEFAULT '[]'::jsonb,
+      legacy_source text,
+      legacy_id text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT hill_tasks_single_parent CHECK (NOT (idea_id IS NOT NULL AND deliverable_id IS NOT NULL))
+    );
+    CREATE INDEX IF NOT EXISTS idx_hill_tasks_hill ON hill_tasks(hill_id);
+    CREATE INDEX IF NOT EXISTS idx_hill_tasks_idea ON hill_tasks(idea_id);
+    CREATE INDEX IF NOT EXISTS idx_hill_tasks_deliverable ON hill_tasks(deliverable_id);
+    CREATE INDEX IF NOT EXISTS idx_hill_tasks_parent ON hill_tasks(parent_task_id);
+    CREATE INDEX IF NOT EXISTS idx_hill_tasks_focus ON hill_tasks(focus);
+    CREATE INDEX IF NOT EXISTS idx_hill_tasks_completed ON hill_tasks(completed);
+    CREATE INDEX IF NOT EXISTS idx_hill_tasks_archived ON hill_tasks(archived);
+  `);
+
+  // Hill events — one activity/notes stream replacing admin_task_events,
+  // sprint_draft_changelog, sprint_daily_updates, sprint_comments, and
+  // refinement_cycle_notes. subject_type/subject_id point at any node;
+  // `kind` distinguishes the source shape, `data` holds the payload.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hill_events (
+      id text PRIMARY KEY,
+      hill_id text REFERENCES hills(id) ON DELETE CASCADE,
+      subject_type text NOT NULL CHECK (subject_type IN ('hill','idea','deliverable','task')),
+      subject_id text,
+      kind text NOT NULL CHECK (kind IN ('event','note','update','comment','changelog')),
+      event_type text,
+      body text,
+      author_account_id text REFERENCES accounts(id) ON DELETE SET NULL,
+      author_email text,
+      data jsonb,
+      legacy_source text,
+      legacy_id text,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_hill_events_hill ON hill_events(hill_id);
+    CREATE INDEX IF NOT EXISTS idx_hill_events_subject ON hill_events(subject_type, subject_id);
+    CREATE INDEX IF NOT EXISTS idx_hill_events_kind ON hill_events(kind);
+    CREATE INDEX IF NOT EXISTS idx_hill_events_type ON hill_events(event_type);
+    CREATE INDEX IF NOT EXISTS idx_hill_events_created ON hill_events(created_at DESC);
+  `);
+
+  // Hill attachments — one polymorphic store replacing task attachments
+  // (jsonb), sprint_links, refinement_cycle_screen_attachments,
+  // refinement_cycle_note_attachments, and deliverable_screenshots.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hill_attachments (
+      id text PRIMARY KEY,
+      subject_type text NOT NULL CHECK (subject_type IN ('hill','idea','deliverable','task','event')),
+      subject_id text NOT NULL,
+      name text,
+      filename text,
+      file_url text,
+      object_path text,
+      mimetype text,
+      size_bytes bigint,
+      caption text,
+      link_type text CHECK (link_type IN ('file','url')),
+      url text,
+      sort_order integer NOT NULL DEFAULT 0,
+      uploaded_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      legacy_source text,
+      legacy_id text,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_hill_attachments_subject ON hill_attachments(subject_type, subject_id);
+  `);
+
+  // ---------------------------------------------------------------------
+  // Extensibility hooks (reserved now, wired later) — see docs/hill-model.md §Extensibility.
+  // These are additive and unused by current flows; they exist so that
+  // recurrence, suggested items, and streaks never require a migration on
+  // the hot hills/tasks tables later.
+  // ---------------------------------------------------------------------
+
+  // Hill recurrences — the "blueprint + cadence" that a scheduler stamps out
+  // into concrete hills (e.g. "every day create a personal hill", "repeat
+  // this hill weekly at 9am"). It is its OWN queryable table (not type_data)
+  // precisely so the scheduler can ask "which are due now?" with an index.
+  // A recurrence either clones a source hill or expands a template blueprint.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hill_recurrences (
+      id text PRIMARY KEY,
+      created_by text REFERENCES accounts(id) ON DELETE SET NULL,
+      label text,
+      hill_type text NOT NULL DEFAULT 'personal'
+        CHECK (hill_type IN ('personal','sprint','refinement_cycle')),
+      source_hill_id text REFERENCES hills(id) ON DELETE SET NULL,
+      template jsonb NOT NULL DEFAULT '{}'::jsonb,
+      -- cadence (RRULE-lite)
+      freq text NOT NULL DEFAULT 'weekly'
+        CHECK (freq IN ('daily','weekly','monthly','yearly')),
+      interval integer NOT NULL DEFAULT 1,
+      at_time time,
+      by_weekday integer[],
+      by_monthday integer[],
+      timezone text NOT NULL DEFAULT 'America/New_York',
+      starts_on date,
+      ends_on date,
+      active boolean NOT NULL DEFAULT true,
+      -- scheduler bookkeeping
+      next_run_at timestamptz,
+      last_run_at timestamptz,
+      -- streak cache (source of truth = completions in hill_events / spawned hills)
+      current_streak integer NOT NULL DEFAULT 0,
+      longest_streak integer NOT NULL DEFAULT 0,
+      last_completed_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_hill_recurrences_due ON hill_recurrences(active, next_run_at);
+    CREATE INDEX IF NOT EXISTS idx_hill_recurrences_owner ON hill_recurrences(created_by);
+  `);
+
+  // Provenance: which recurrence series a hill was spawned from (added via
+  // ALTER so the FK resolves after hill_recurrences exists, for both fresh
+  // and existing installs). Pairs with the existing spawned_from_hill_id.
+  await pool.query(`
+    ALTER TABLE hills ADD COLUMN IF NOT EXISTS recurrence_id text
+      REFERENCES hill_recurrences(id) ON DELETE SET NULL;
+    CREATE INDEX IF NOT EXISTS idx_hills_recurrence ON hills(recurrence_id);
+  `);
+
+  // Suggest-then-commit: origin records HOW an item came to be
+  // (manual | suggested | ai | recurring). A suggested item can float
+  // unassigned until the user accepts it (accepted_at) or dismisses it
+  // (dismissed_at) while scoping the hill.
+  await pool.query(`
+    ALTER TABLE hill_tasks ADD COLUMN IF NOT EXISTS origin text NOT NULL DEFAULT 'manual';
+    ALTER TABLE hill_tasks ADD COLUMN IF NOT EXISTS accepted_at timestamptz;
+    ALTER TABLE hill_tasks ADD COLUMN IF NOT EXISTS dismissed_at timestamptz;
+    ALTER TABLE hill_deliverables ADD COLUMN IF NOT EXISTS origin text NOT NULL DEFAULT 'manual';
+    ALTER TABLE hill_deliverables ADD COLUMN IF NOT EXISTS accepted_at timestamptz;
+    ALTER TABLE hill_deliverables ADD COLUMN IF NOT EXISTS dismissed_at timestamptz;
+    CREATE INDEX IF NOT EXISTS idx_hill_tasks_origin ON hill_tasks(origin);
+  `);
+
+  // Intake / proposal: a hill can be born from a scoping survey (potential or
+  // existing client) rather than created by hand. `origin` mirrors the item
+  // field (manual | intake | ai | recurring); a hill submitted as a proposal
+  // sits in scope phase until an admin accepts it (accepted_at). submitter_email
+  // supports pre-account submitters (mirrors the refinement-cycle pattern).
+  await pool.query(`
+    ALTER TABLE hills ADD COLUMN IF NOT EXISTS origin text NOT NULL DEFAULT 'manual';
+    ALTER TABLE hills ADD COLUMN IF NOT EXISTS accepted_at timestamptz;
+    ALTER TABLE hills ADD COLUMN IF NOT EXISTS submitter_email text;
+    CREATE INDEX IF NOT EXISTS idx_hills_origin ON hills(origin);
   `);
 
   global._schemaInitialized = true;

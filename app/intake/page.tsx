@@ -1,24 +1,10 @@
-import type { Metadata } from "next";
-import IntakeClient from "./IntakeClient";
-import { typography } from "../components/typography";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export const metadata: Metadata = {
-  title: "Get Started — Chris Meisner",
-  description:
-    "Tell me about your project and what you need help with. I'll get back to you within 24 hours.",
-};
-
+// Retired: the public new-client intake form is consolidated into the unified
+// scoping flow at /scope, which creates a scope-phase "proposal hill" (see
+// docs/hill-model.md). The old form component (./IntakeClient) and its POST to
+// /api/documents are kept in place as reversible dead code — restore this page
+// to re-enable it. No data was removed.
 export default function IntakePage() {
-  return (
-    <main className="container max-w-2xl py-16">
-      <div className="mb-4">
-        <h1 className={`${typography.headingSection} text-balance`}>
-          New Client Intake
-        </h1>
-      </div>
-      <IntakeClient />
-    </main>
-  );
+  redirect("/scope");
 }

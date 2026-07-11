@@ -148,7 +148,7 @@ export default async function DeliverablesPage() {
               View sprint packages
             </Link>
             <Link
-              href="/intake"
+              href="/scope"
               className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
             >
               Plan a sprint →
@@ -266,7 +266,7 @@ export default async function DeliverablesPage() {
               View sprint packages →
             </Link>
             <Link
-              href="/intake"
+              href="/scope"
               className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-6 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition"
             >
               Plan a sprint

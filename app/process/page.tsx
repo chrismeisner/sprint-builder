@@ -6,7 +6,7 @@ export const metadata = {
     "What ten days actually looks like. The Uphill / Downhill arc, what happens each day, what the client is responsible for, and what gets delivered on Day 10.",
 };
 
-const JAM_SESSION = "/intake";
+const JAM_SESSION = "/scope";
 
 const OVERLINE_CLASS =
   "text-xs font-medium uppercase tracking-wide leading-none text-text-muted";
