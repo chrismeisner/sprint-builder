@@ -232,9 +232,47 @@ over the series keyed by `recurrence_id`; `hill_recurrences.current_streak` /
 | Suggested / AI / recurring items | `origin`, `accepted_at`, `dismissed_at` | none |
 | Streaks | query `hill_events` by `recurrence_id` (+ cache cols) | none |
 
-## 9. Open items for the build plan
+## 9. Implementation status (as of 2026-07-12, prod release v346)
 
-- Column-level detail of `hills.type_data` per type (which fields promote to columns vs. jsonb).
-- Migration order + the webhook-reconciliation lockstep checklist.
-- Whether the owner dashboard ships first (greenfield surface over the new schema) before
-  rewiring the public sprint/refinement/package pages.
+Deployed to Heroku (`sprint-builder`) incrementally; every step additive and reversible.
+
+**Shipped & live**
+- **Schema + backfill** — 6 primitives (`hills`, `hill_ideas`, `hill_deliverables`, `hill_tasks`,
+  `hill_events`, `hill_attachments`) + `hill_recurrences` + `notes`, backfilled from legacy
+  (reused PKs). Extensibility hooks in place.
+- **Owner dashboard** `/dashboard/hills` — list by phase, detail (ideas/deliverables/tasks,
+  subtasks), create/edit/complete, **drag-reorder**, **attachments** (hill-level), **notes strip**.
+- **Today** `/dashboard/hills/today` — focus ladder (now/today/week), now-singleton, day-hill
+  card + "start the climb". **Deadlines** (milestones lens). **Activity** feed. **Notes** inbox
+  (`/dashboard/hills/notes`, full-text search, file-under-anything).
+- **Focus reset** `/api/admin/hills/reset` (personal-scoped, non-destructive).
+- **Intake** — public `/scope` → proposal hill; retired `/intake` + `/intake/updates` (redirect);
+  `/api/documents` secured (410 without secret). **Stage A bridge**: accepted proposal → real
+  `sprint_drafts` / `refinement_cycles` via `/api/admin/hills/[id]/convert`.
+- **Automations** — morning ritual (`/api/cron/morning-hill`), generic recurrence engine
+  (`/api/cron/spawn-recurrences`, `/api/admin/hills/[id]/repeat`).
+- **Legacy tasks dashboard retired** — `/dashboard/tasks*` redirect into hills (data intact).
+
+**Requires the studio owner (cannot be done from code)**
+- **Heroku Scheduler jobs** — the automations are built but DORMANT until scheduled:
+  `node scripts/hills-reset.js` (daily) + `--weekly`, `node scripts/morning-hill.js` (~6:30a ET),
+  `node scripts/spawn-recurrences.js` (~10 min). Until then, the Today focus never auto-clears,
+  no morning day-hill appears, and recurrences never fire. (Legacy `daily/weekly-reset.js` still
+  run on the frozen `admin_tasks` — harmless; retire them once the hills jobs are added.)
+- **`scripts/drop-ai-responses.sql`** — physical drop of the dead table (optional).
+
+**Deliberately deferred (high-risk / low-reward)**
+- **Client-execution rewire (Stages B/C/D)** — sprints/refinement/billing still run on legacy
+  tables. Hills mirror + bridge them; they are not rewired. Billing re-key to `hill_id` is
+  premature (hill_id == legacy id via reused PKs, so it works incidentally).
+- **Drop legacy tables** — only after a backup + explicit sign-off.
+
+**Minor gaps / polish**
+- Stage A stores a sprint's proposed deliverables in `draft.proposedDeliverables` but the legacy
+  sprint builder doesn't surface them yet.
+- Task-level attachments (only hill-level built); board-by-focus view; SMS for the morning nudge
+  (needs a provider); a central recurrence-management view.
+- **Dead code, safe to delete once confident in the cut-over**: `app/dashboard/tasks/{TasksClient,
+  today/TodayClient, milestones/MilestonesClient, activity/ActivityClient, [ideaId]/IdeaDetailClient}.tsx`
+  and `app/intake/{IntakeClient, updates/UpdatesIntakeClient}.tsx` (all unimported — pages redirect).
+  Kept for now as a reversible revert path.
