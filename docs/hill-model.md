@@ -194,6 +194,13 @@ Future features — scheduled auto-creation of hills, "repeat this hill weekly a
 suggested/AI-added tasks, and streaks — are all **additive** on this model. The hooks are
 reserved now so none of them needs a migration on the hot `hills`/`hill_tasks` tables later.
 
+> **Realized: the morning ritual ("a day is a hill").** The first payoff of these hooks.
+> A **day-hill** is a personal hill representing one calendar day (`hills.day_key`), created
+> each morning in the *scope* phase by `POST /api/cron/morning-hill` (`lib/dayHill.ts`,
+> `scripts/morning-hill.js` on the cron rail). It emails the owner a calm "let's start today's
+> hill" nudge; **"start the climb"** stamps `hills.started_at` and moves the day-hill
+> *scope → climb*. Morning = scope, the day = climb, evening = descend. (SMS channel still TODO.)
+
 **Recurrence — `hill_recurrences` table (its own queryable entity, not `type_data`).**
 Holds *what to spawn* (clone a `source_hill_id`, or expand a `template` jsonb blueprint)
 and *when* (RRULE-lite: `freq` / `interval` / `at_time` / `by_weekday` / `by_monthday` /

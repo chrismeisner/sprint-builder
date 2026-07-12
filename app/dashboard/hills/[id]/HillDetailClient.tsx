@@ -224,6 +224,84 @@ function TaskRow({
   );
 }
 
+type Attachment = { id: string; filename: string; mimetype: string; size_bytes: number | null; url: string | null };
+
+function HillAttachments({ hillId }: { hillId: string }) {
+  const [items, setItems] = useState<Attachment[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/hills/${hillId}/attachments`);
+      if (res.ok) setItems((await res.json()).attachments ?? []);
+    } catch {
+      /* ignore */
+    }
+  }, [hillId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/admin/hills/${hillId}/attachments`, { method: "POST", body: fd });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `HTTP ${res.status}`);
+      await load();
+    } catch (e2) {
+      setErr(e2 instanceof Error ? e2.message : "Upload failed");
+    } finally {
+      setBusy(false);
+      e.target.value = "";
+    }
+  }
+
+  async function remove(id: string) {
+    await fetch(`/api/admin/hills/${hillId}/attachments/${id}`, { method: "DELETE" });
+    load();
+  }
+
+  const fmtSize = (b: number | null) => (b == null ? "" : b < 1024 * 1024 ? `${Math.round(b / 1024)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
+
+  return (
+    <section className="mb-6">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Attachments</h2>
+        <label className="text-xs text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 cursor-pointer transition">
+          {busy ? "Uploading…" : "+ file"}
+          <input type="file" accept="image/*,application/pdf" onChange={upload} disabled={busy} className="hidden" />
+        </label>
+      </div>
+      {err && <p className="text-xs text-red-600 dark:text-red-400 mb-2">{err}</p>}
+      {items.length === 0 ? (
+        <p className="text-xs text-neutral-400 dark:text-neutral-600">No files yet. Images and PDFs, up to 10MB.</p>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {items.map((a) => (
+            <div key={a.id} className="group flex items-center gap-2 py-1.5 px-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+              <span className="text-sm">{a.mimetype.startsWith("image/") ? "🖼️" : "📄"}</span>
+              {a.url ? (
+                <a href={a.url} target="_blank" rel="noreferrer" className="flex-1 text-sm text-sky-600 dark:text-sky-400 hover:underline truncate">{a.filename}</a>
+              ) : (
+                <span className="flex-1 text-sm text-neutral-700 dark:text-neutral-300 truncate">{a.filename}</span>
+              )}
+              <span className="text-[11px] text-neutral-400 tabular-nums">{fmtSize(a.size_bytes)}</span>
+              <button onClick={() => remove(a.id)} className="text-xs text-neutral-300 dark:text-neutral-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition" aria-label="Delete file">×</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function HillDetailClient({ hillId }: { hillId: string }) {
   const router = useRouter();
   const [data, setData] = useState<Payload | null>(null);
@@ -460,6 +538,8 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
           </div>
         </div>
       </section>
+
+      <HillAttachments hillId={hillId} />
     </div>
   );
 }
