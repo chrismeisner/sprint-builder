@@ -224,7 +224,7 @@ function TaskRow({
   );
 }
 
-type Attachment = { id: string; filename: string; mimetype: string; size_bytes: number | null; url: string | null };
+type Attachment = { id: string; filename: string; mimetype: string | null; size_bytes: number | null; url: string | null };
 
 function HillAttachments({ hillId }: { hillId: string }) {
   const [items, setItems] = useState<Attachment[]>([]);
@@ -286,7 +286,7 @@ function HillAttachments({ hillId }: { hillId: string }) {
         <div className="flex flex-col gap-1">
           {items.map((a) => (
             <div key={a.id} className="group flex items-center gap-2 py-1.5 px-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-              <span className="text-sm">{a.mimetype.startsWith("image/") ? "🖼️" : "📄"}</span>
+              <span className="text-sm">{a.mimetype?.startsWith("image/") ? "🖼️" : a.mimetype === "application/pdf" ? "📄" : "🔗"}</span>
               {a.url ? (
                 <a href={a.url} target="_blank" rel="noreferrer" className="flex-1 text-sm text-sky-600 dark:text-sky-400 hover:underline truncate">{a.filename}</a>
               ) : (

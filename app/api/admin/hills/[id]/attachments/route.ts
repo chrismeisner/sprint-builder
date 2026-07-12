@@ -20,7 +20,8 @@ export async function GET(
     const pool = getPool();
     const rows = (
       await pool.query(
-        `SELECT id, filename, mimetype, size_bytes, object_path, created_at
+        `SELECT id, filename, name, caption, mimetype, size_bytes, object_path,
+                file_url, url, link_type, created_at
            FROM hill_attachments
           WHERE subject_type = 'hill' AND subject_id = $1
           ORDER BY created_at DESC`,
@@ -31,11 +32,17 @@ export async function GET(
     const attachments = await Promise.all(
       rows.map(async (a) => ({
         id: a.id,
-        filename: a.filename,
-        mimetype: a.mimetype,
+        // Uploaded files have filename; backfilled links/screenshots may only
+        // have a name/caption/url.
+        filename: a.filename || a.name || a.caption || "Attachment",
+        mimetype: a.mimetype ?? null,
         size_bytes: a.size_bytes,
         created_at: a.created_at,
-        url: a.object_path ? await getSignedFileUrl(a.object_path, SIGNED_URL_TTL).catch(() => null) : null,
+        // Freshly uploaded → signed URL from object_path; backfilled → stored
+        // file_url or the external url.
+        url: a.object_path
+          ? await getSignedFileUrl(a.object_path, SIGNED_URL_TTL).catch(() => null)
+          : a.file_url || a.url || null,
       }))
     );
     return NextResponse.json({ attachments });
