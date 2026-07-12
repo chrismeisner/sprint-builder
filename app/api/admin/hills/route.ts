@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type");
     const phase = searchParams.get("phase");
+    const projectId = searchParams.get("projectId");
 
     const pool = getPool();
     const result = await pool.query(
@@ -42,13 +43,14 @@ export async function GET(request: NextRequest) {
       LEFT JOIN projects p ON p.id = h.project_id
       WHERE ($1::text IS NULL OR h.type = $1)
         AND ($2::text IS NULL OR h.phase = $2)
+        AND ($3::text IS NULL OR h.project_id = $3)
       ORDER BY
         CASE h.phase WHEN 'scope' THEN 0 WHEN 'climb' THEN 1 WHEN 'descend' THEN 2 ELSE 3 END,
         h.completed,
         h.target_date ASC NULLS LAST,
         h.created_at DESC
       `,
-      [type, phase]
+      [type, phase, projectId]
     );
 
     return NextResponse.json({ hills: result.rows });
