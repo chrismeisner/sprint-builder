@@ -3,6 +3,23 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Hill = {
   id: string;
@@ -113,6 +130,7 @@ function TaskRow({
   onReview,
   onToday,
   onEdit,
+  dragHandle,
   depth = 0,
 }: {
   task: Task;
@@ -123,6 +141,7 @@ function TaskRow({
   onReview: (t: Task, decision: "accepted" | "dismissed") => void;
   onToday: (t: Task) => void;
   onEdit: (t: Task, patch: { name?: string; note?: string | null }) => void;
+  dragHandle?: React.ReactNode;
   depth?: number;
 }) {
   const children = tasks.filter((t) => t.parent_task_id === task.id && !t.dismissed_at);
@@ -172,6 +191,7 @@ function TaskRow({
         </div>
       ) : (
         <div className="group flex items-start gap-2 py-1.5 border-b border-neutral-100 dark:border-neutral-800/60 last:border-0" style={{ paddingLeft: `${depth * 1.25}rem` }}>
+          {dragHandle}
           {needsReview ? (
             <span className="text-amber-500 text-sm mt-0.5" aria-hidden>◇</span>
           ) : (
@@ -221,6 +241,81 @@ function TaskRow({
         <TaskRow key={c.id} task={c} tasks={tasks} onToggle={onToggle} onProgress={onProgress} onDelete={onDelete} onReview={onReview} onToday={onToday} onEdit={onEdit} depth={depth + 1} />
       ))}
     </>
+  );
+}
+
+type TaskHandlers = {
+  onToggle: (t: Task) => void;
+  onProgress: (t: Task, delta: number) => void;
+  onDelete: (t: Task) => void;
+  onReview: (t: Task, decision: "accepted" | "dismissed") => void;
+  onToday: (t: Task) => void;
+  onEdit: (t: Task, patch: { name?: string; note?: string | null }) => void;
+};
+
+// One draggable top-level task (its subtasks travel with it). A dedicated grip
+// carries the drag listeners so the row's buttons stay clickable.
+function SortableTaskItem({ task, tasks, handlers }: { task: Task; tasks: Task[]; handlers: TaskHandlers }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      <TaskRow
+        task={task}
+        tasks={tasks}
+        {...handlers}
+        dragHandle={
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing text-neutral-300 dark:text-neutral-600 hover:text-neutral-500 text-xs mt-0.5 opacity-0 group-hover:opacity-100 transition touch-none"
+            aria-label="Drag to reorder"
+          >
+            ⠿
+          </button>
+        }
+      />
+    </div>
+  );
+}
+
+// A container's sibling tasks, drag-reorderable. onReorder gets the new id order.
+function SortableTaskList({
+  tasks,
+  allTasks,
+  handlers,
+  onReorder,
+}: {
+  tasks: Task[];
+  allTasks: Task[];
+  handlers: TaskHandlers;
+  onReorder: (orderedIds: string[]) => void;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  function onDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = tasks.findIndex((t) => t.id === active.id);
+    const newIndex = tasks.findIndex((t) => t.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    onReorder(arrayMove(tasks, oldIndex, newIndex).map((t) => t.id));
+  }
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+        {tasks.map((t) => (
+          <SortableTaskItem key={t.id} task={t} tasks={allTasks} handlers={handlers} />
+        ))}
+      </SortableContext>
+    </DndContext>
   );
 }
 
@@ -364,6 +459,18 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
   const acceptProposal = async () => {
     await patchHill({ accepted: true });
   };
+  const reorderTasks = async (orderedIds: string[]) => {
+    await api(`/api/admin/hills/${hillId}/tasks/reorder`, "PATCH", { order: orderedIds });
+    reload();
+  };
+  const taskHandlers: TaskHandlers = {
+    onToggle: toggleTask,
+    onProgress: progressTask,
+    onDelete: deleteTask,
+    onReview: reviewTask,
+    onToday: toggleToday,
+    onEdit: editTask,
+  };
   const deleteHill = async () => {
     if (!window.confirm("Delete this hill? Its ideas, deliverables, and tasks are kept (moved to the loose backlog).")) return;
     await api(`/api/admin/hills/${hillId}`, "DELETE");
@@ -460,9 +567,7 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
                 </div>
                 {it.length > 0 && (
                   <div className="mt-1">
-                    {it.map((t) => (
-                      <TaskRow key={t.id} task={t} tasks={tasks} onToggle={toggleTask} onProgress={progressTask} onDelete={deleteTask} onReview={reviewTask} onToday={toggleToday} onEdit={editTask} />
-                    ))}
+                    <SortableTaskList tasks={it} allTasks={tasks} handlers={taskHandlers} onReorder={reorderTasks} />
                   </div>
                 )}
                 <div className="mt-2">
@@ -511,9 +616,7 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
                 )}
                 {dt.length > 0 && (
                   <div className="mt-1">
-                    {dt.map((t) => (
-                      <TaskRow key={t.id} task={t} tasks={tasks} onToggle={toggleTask} onProgress={progressTask} onDelete={deleteTask} onReview={reviewTask} onToday={toggleToday} onEdit={editTask} />
-                    ))}
+                    <SortableTaskList tasks={dt} allTasks={tasks} handlers={taskHandlers} onReorder={reorderTasks} />
                   </div>
                 )}
                 <div className="mt-2">
@@ -530,9 +633,7 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
       <section className="mb-6">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Unsorted tasks</h2>
         <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3">
-          {looseTasks.map((t) => (
-            <TaskRow key={t.id} task={t} tasks={tasks} onToggle={toggleTask} onProgress={progressTask} onDelete={deleteTask} onReview={reviewTask} onToday={toggleToday} onEdit={editTask} />
-          ))}
+          <SortableTaskList tasks={looseTasks} allTasks={tasks} handlers={taskHandlers} onReorder={reorderTasks} />
           <div className="mt-2">
             <AddInput placeholder="task" onAdd={(v) => addItem("task", v)} />
           </div>
