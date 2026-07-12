@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPool, ensureSchema } from "@/lib/db";
 import { computeNextRun, type Recurrence } from "@/lib/recurrence";
+import { recordJobRun } from "@/lib/scheduledJobs";
 import type { Pool } from "pg";
 import crypto from "crypto";
 
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
       spawned.push({ recurrenceId: rec.id, hillId });
     }
 
+    await recordJobRun("spawn-recurrences", "ok", `${due.rowCount ?? 0} due, ${spawned.filter((s) => s.hillId).length} spawned`);
     return NextResponse.json({ ok: true, due: due.rowCount ?? 0, spawned });
   } catch (error) {
     console.error("Error spawning recurrences:", error);

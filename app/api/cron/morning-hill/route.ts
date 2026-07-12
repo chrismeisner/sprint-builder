@@ -3,6 +3,7 @@ import { getPool, ensureSchema } from "@/lib/db";
 import { SUPERADMIN_EMAIL } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { ensureDayHill, todayKey, dayTitle } from "@/lib/dayHill";
+import { recordJobRun } from "@/lib/scheduledJobs";
 
 // POST /api/cron/morning-hill — the morning ritual.
 // Ensures today's day-hill exists (scope phase) and sends the studio owner a
@@ -89,6 +90,7 @@ When you're ready, start the climb.`;
       console.error("morning-hill email failed:", e);
     }
 
+    await recordJobRun("morning-hill", "ok", `day-hill ${day.created ? "created" : "existed"}, emailed=${emailed}`);
     return NextResponse.json({ ok: true, dayKey, hillId: day.id, dayHillCreated: day.created, emailed });
   } catch (error) {
     console.error("Error in morning-hill:", error);

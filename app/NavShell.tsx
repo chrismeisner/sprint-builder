@@ -16,6 +16,7 @@ export default async function NavShell({ children }: { children: ReactNode }) {
     { href: "/dashboard", label: "🏠 Admin Home" },
     { href: "/dashboard/hills", label: "⛰️ Hills" },
     { href: "/dashboard/notes", label: "🗒️ Notes" },
+    { href: "/dashboard/schedulers", label: "⏱️ Schedulers" },
     { href: "/dashboard/index", label: "🔎 Index" },
     { href: "/dashboard/style-guide", label: "🎨 Style Guide" },
     { href: "/dashboard/components", label: "🧩 Components" },

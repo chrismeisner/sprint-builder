@@ -2184,6 +2184,39 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_notes_search ON notes USING gin(to_tsvector('english', body));
   `);
 
+  // Scheduled-jobs registry — a control panel for the automation layer. Heroku
+  // Scheduler config isn't queryable from the app, so instead each cron endpoint
+  // stamps last_run_at here when it fires; "active" is inferred from a recent run.
+  // `status` is the admin's intent (active / inactive / draft-for-later).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS scheduled_jobs (
+      id text PRIMARY KEY,
+      job_key text UNIQUE NOT NULL,
+      label text NOT NULL,
+      description text,
+      command text,
+      endpoint text,
+      cadence text,
+      expected_interval_minutes integer,
+      status text NOT NULL DEFAULT 'draft' CHECK (status IN ('active','inactive','draft')),
+      last_run_at timestamptz,
+      last_run_status text,
+      last_run_note text,
+      sort_order integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+  `);
+  // Seed the jobs we've built (idempotent; won't clobber admin edits/last_run).
+  await pool.query(`
+    INSERT INTO scheduled_jobs (id, job_key, label, description, command, endpoint, cadence, expected_interval_minutes, status, sort_order) VALUES
+      ('sj_hills_reset_daily','hills-reset-daily','Daily focus reset','Clears now/today focus on personal hills (keeps week) so Today starts fresh.','node scripts/hills-reset.js','/api/admin/hills/reset?mode=daily','Daily · ~3 AM ET',1440,'draft',10),
+      ('sj_hills_reset_weekly','hills-reset-weekly','Weekly focus reset','Clears all focus tiers on personal hills for a clean slate.','node scripts/hills-reset.js --weekly','/api/admin/hills/reset?mode=weekly','Saturdays · ~3 AM ET',10080,'draft',20),
+      ('sj_morning_hill','morning-hill','Morning ritual','Creates today''s day-hill and emails the calm "let''s start today''s hill" nudge.','node scripts/morning-hill.js','/api/cron/morning-hill','Daily · ~6:30 AM ET',1440,'draft',30),
+      ('sj_spawn_recurrences','spawn-recurrences','Recurrence spawner','Instantiates any hill recurrences that are due (repeat this hill weekly, etc.).','node scripts/spawn-recurrences.js','/api/cron/spawn-recurrences','Every ~10 min',10,'draft',40)
+    ON CONFLICT (job_key) DO NOTHING;
+  `);
+
   global._schemaInitialized = true;
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPool, ensureSchema } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { recordJobRun } from "@/lib/scheduledJobs";
 import crypto from "crypto";
 
 // POST /api/admin/hills/reset?mode=daily|weekly — resets the personal focus
@@ -58,6 +59,7 @@ export async function POST(request: NextRequest) {
       )
       .catch(() => {});
 
+    await recordJobRun(mode === "weekly" ? "hills-reset-weekly" : "hills-reset-daily", "ok", `${result.rowCount ?? 0} tasks reset`);
     return NextResponse.json({ ok: true, mode, affected: result.rowCount ?? 0 });
   } catch (error) {
     console.error("Error resetting hills focus:", error);
