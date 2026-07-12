@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Always-on install (manual). Prefer double-clicking install-service.command,
+  which fills in the paths for you. To do it by hand: edit the node path and
+  WorkingDirectory below, then:
+    cp com.studio.printagent.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.studio.printagent.plist
+  KeepAlive relaunches on crash; RunAtLoad starts it on login.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.studio.printagent</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node</string>
+        <string>agent.js</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/REPLACE/WITH/PATH/TO/studio-print-agent</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/studio-printagent.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/studio-printagent.err.log</string>
+</dict>
+</plist>

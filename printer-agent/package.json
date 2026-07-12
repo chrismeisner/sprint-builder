@@ -1,0 +1,13 @@
+{
+  "name": "studio-print-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node agent.js",
+    "test-connection": "node test-connection.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

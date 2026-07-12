@@ -47,7 +47,20 @@ function NoteCard({ note, hills, onChange }: { note: Note; hills: HillLite[]; on
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(note.body);
   const [moving, setMoving] = useState(false);
+  const [printState, setPrintState] = useState<"idle" | "printing" | "sent">("idle");
   const filedHill = note.subject_type === "hill" ? hills.find((h) => h.id === note.subject_id) : null;
+
+  async function print() {
+    setPrintState("printing");
+    try {
+      await api("/api/print/quick", "POST", { text: note.body, source: "note" });
+      setPrintState("sent");
+      setTimeout(() => setPrintState("idle"), 2000);
+    } catch (e) {
+      setPrintState("idle");
+      alert(e instanceof Error ? e.message : "Failed to send to printer");
+    }
+  }
 
   async function save() {
     if (val.trim() && val.trim() !== note.body) await api(`/api/admin/notes/${note.id}`, "PATCH", { body: val.trim() });
@@ -90,6 +103,9 @@ function NoteCard({ note, hills, onChange }: { note: Note; hills: HillLite[]; on
             <div className="ml-auto flex items-center gap-2.5 opacity-0 group-hover:opacity-100 transition">
               <button onClick={() => setEditing(true)} className="hover:text-neutral-700 dark:hover:text-neutral-300">edit</button>
               <button onClick={() => setMoving((m) => !m)} className="hover:text-neutral-700 dark:hover:text-neutral-300">move</button>
+              <button onClick={print} disabled={printState !== "idle"} className="hover:text-neutral-700 dark:hover:text-neutral-300 disabled:opacity-100">
+                {printState === "printing" ? "sending…" : printState === "sent" ? "🖨 sent ✓" : "print"}
+              </button>
               <button onClick={del} className="hover:text-red-500">delete</button>
             </div>
           </div>

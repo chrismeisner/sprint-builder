@@ -20,6 +20,9 @@
 .DS_Store
 *.pem
 
+# reference-only app copy dropped in for the studio printer work (not part of the app)
+/temp
+
 # debug
 npm-debug.log*
 yarn-debug.log*
