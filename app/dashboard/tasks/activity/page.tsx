@@ -1,13 +1,6 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
-import ActivityClient from "./ActivityClient";
 
-export default async function ActivityPage() {
-  const user = await getCurrentUser();
-
-  if (!user?.isAdmin) {
-    redirect("/login");
-  }
-
-  return <ActivityClient />;
+// Retired → the hills Activity feed. Old client kept as reversible dead code.
+export default function ActivityPage() {
+  redirect("/dashboard/hills/activity");
 }

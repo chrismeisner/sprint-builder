@@ -49,8 +49,8 @@ export default async function Header() {
             {user ? (
               <>
                 {user.isAdmin && (
-                  <Button as={Link} href="/dashboard/tasks" variant="secondary" size="sm" className="normal-case tracking-normal">
-                    Tasks
+                  <Button as={Link} href="/dashboard/hills" variant="secondary" size="sm" className="normal-case tracking-normal">
+                    Hills
                   </Button>
                 )}
                 <Button as={Link} href="/projects" variant="secondary" size="sm" className="normal-case tracking-normal">
