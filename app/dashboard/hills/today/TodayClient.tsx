@@ -16,6 +16,15 @@ type Task = {
   hill_phase: string | null;
 };
 
+type DayHill = {
+  id: string;
+  title: string | null;
+  day_key: string;
+  phase: string | null;
+  started_at: string | null;
+  progress: number;
+};
+
 async function api(url: string, method: string, body?: unknown) {
   const res = await fetch(url, {
     method,
@@ -93,6 +102,7 @@ function TaskLine({
 
 export default function TodayClient() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [dayHill, setDayHill] = useState<DayHill | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,6 +110,7 @@ export default function TodayClient() {
     try {
       const d = await api("/api/admin/hills/today", "GET");
       setTasks(d.tasks ?? []);
+      setDayHill(d.dayHill ?? null);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
@@ -107,6 +118,12 @@ export default function TodayClient() {
       setLoading(false);
     }
   }, []);
+
+  const startClimb = async () => {
+    if (!dayHill) return;
+    await api(`/api/admin/hills/${dayHill.id}`, "PATCH", { started: true });
+    reload();
+  };
 
   useEffect(() => {
     reload();
@@ -134,6 +151,33 @@ export default function TodayClient() {
         </div>
         <Link href="/dashboard/hills" className="text-sm text-neutral-500 dark:text-neutral-400 hover:underline">All hills →</Link>
       </div>
+
+      {/* Morning ritual — today's day-hill */}
+      {!loading && !error && dayHill && (
+        <div className="mt-4 mb-6 rounded-2xl border border-amber-500/25 bg-gradient-to-b from-amber-500/5 to-transparent p-5">
+          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-amber-600 dark:text-amber-400 mb-1">
+            {dayHill.started_at ? "On the climb" : "The morning hill"}
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">{dayHill.title || "Today"}</h2>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
+                {dayHill.started_at
+                  ? `Climbing since ${new Date(dayHill.started_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}.`
+                  : "Coffee first. Shape the day — confirm what matters, add anything new, let the rest go."}
+              </p>
+            </div>
+            {!dayHill.started_at && (
+              <button
+                onClick={startClimb}
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition"
+              >
+                Start the climb →
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {!loading && !error && tasks.length > 0 && (
         <div className="flex items-center gap-2 mt-4 mb-6">

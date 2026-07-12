@@ -2154,6 +2154,16 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_hills_origin ON hills(origin);
   `);
 
+  // The morning ritual — "a day is a hill." A day-hill is a personal hill that
+  // represents one calendar day (day_key), auto-created each morning in the
+  // SCOPE phase. `started_at` records the deliberate "start the climb" moment
+  // that moves it into CLIMB. See docs/hill-model.md §Extensibility.
+  await pool.query(`
+    ALTER TABLE hills ADD COLUMN IF NOT EXISTS day_key date;
+    ALTER TABLE hills ADD COLUMN IF NOT EXISTS started_at timestamptz;
+    CREATE INDEX IF NOT EXISTS idx_hills_day_key ON hills(day_key) WHERE day_key IS NOT NULL;
+  `);
+
   global._schemaInitialized = true;
 }
 

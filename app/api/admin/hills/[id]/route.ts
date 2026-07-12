@@ -106,6 +106,16 @@ export async function PATCH(
       set("accepted_at", body.accepted ? new Date().toISOString() : null);
     }
 
+    // "Start the climb": stamp the deliberate start and move scope → climb.
+    if (typeof body.started === "boolean") {
+      if (body.started) {
+        set("started_at", new Date().toISOString());
+        set("phase", "climb");
+      } else {
+        set("started_at", null);
+      }
+    }
+
     if (typeof body.completed === "boolean") {
       set("completed", body.completed);
       if (body.completed) {

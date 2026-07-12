@@ -1,14 +1,25 @@
 import { NextResponse } from "next/server";
 import { getPool, ensureSchema } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { todayKey } from "@/lib/dayHill";
 
 // GET /api/admin/hills/today — every task focused for today (or now) across all
-// hills, with its hill context. The daily-driver surface for the studio owner.
+// hills, plus today's day-hill (the morning ritual container). The daily-driver
+// surface for the studio owner.
 export async function GET() {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     await ensureSchema();
     const pool = getPool();
+
+    const dayHillRes = await pool.query(
+      `SELECT id, title, day_key, phase, started_at, progress
+         FROM hills
+        WHERE day_key = $1 AND type = 'personal' AND created_by = $2
+        ORDER BY created_at LIMIT 1`,
+      [todayKey(), admin.accountId]
+    );
+
     const result = await pool.query(
       `
       SELECT t.id, t.hill_id, t.name, t.note, t.completed, t.completed_at,
@@ -25,7 +36,7 @@ export async function GET() {
         t.created_at
       `
     );
-    return NextResponse.json({ tasks: result.rows });
+    return NextResponse.json({ tasks: result.rows, dayHill: dayHillRes.rows[0] ?? null });
   } catch (error) {
     console.error("Error fetching today:", error);
     if (error instanceof Error && error.message.includes("required")) {
