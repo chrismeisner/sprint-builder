@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const subjectType = searchParams.get("subjectType");
     const subjectId = searchParams.get("subjectId");
     const inbox = searchParams.get("inbox") === "true";
+    const filed = searchParams.get("filed") === "true";
     const qRaw = (searchParams.get("q") || "").trim();
     const limit = Math.min(200, Math.max(1, parseInt(searchParams.get("limit") || "100", 10) || 100));
     const offset = Math.max(0, parseInt(searchParams.get("offset") || "0", 10) || 0);
@@ -26,8 +27,13 @@ export async function GET(request: NextRequest) {
     if (subjectType && subjectId) {
       where.push(`subject_type = $${n++} AND subject_id = $${n++}`);
       values.push(subjectType, subjectId);
+    } else if (subjectType) {
+      where.push(`subject_type = $${n++}`);
+      values.push(subjectType);
     } else if (inbox) {
       where.push(`subject_type IS NULL`);
+    } else if (filed) {
+      where.push(`subject_type IS NOT NULL`);
     }
     if (qRaw) {
       where.push(`(body ILIKE $${n} OR to_tsvector('english', body) @@ plainto_tsquery('english', $${n + 1}))`);

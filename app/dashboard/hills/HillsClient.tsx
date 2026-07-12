@@ -289,7 +289,7 @@ export default function HillsClient() {
             <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">Hills</h1>
             <Link href="/dashboard/hills/today" className="text-sm text-amber-600 dark:text-amber-400 hover:underline">☀️ Today</Link>
             <Link href="/dashboard/hills/deadlines" className="text-sm text-neutral-500 dark:text-neutral-400 hover:underline">Deadlines</Link>
-            <Link href="/dashboard/hills/notes" className="text-sm text-neutral-500 dark:text-neutral-400 hover:underline">Notes</Link>
+            <Link href="/dashboard/notes" className="text-sm text-neutral-500 dark:text-neutral-400 hover:underline">Notes</Link>
             <Link href="/dashboard/hills/activity" className="text-sm text-neutral-500 dark:text-neutral-400 hover:underline">Activity</Link>
           </div>
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
