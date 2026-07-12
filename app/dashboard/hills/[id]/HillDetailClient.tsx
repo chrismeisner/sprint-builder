@@ -320,6 +320,94 @@ function SortableTaskList({
   );
 }
 
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// "Repeat this hill" — creates/stops a recurrence that clones this hill on a cadence.
+function HillRepeat({ hillId }: { hillId: string }) {
+  const [rec, setRec] = useState<{ description: string } | null>(null);
+  const [open, setOpen] = useState(false);
+  const [freq, setFreq] = useState<"daily" | "weekly">("weekly");
+  const [time, setTime] = useState("09:00");
+  const [days, setDays] = useState<number[]>([1]); // Mon
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    const r = await fetch(`/api/admin/hills/${hillId}/repeat`).then((x) => x.json()).catch(() => ({}));
+    setRec(r.recurrence ?? null);
+  }, [hillId]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function start() {
+    setBusy(true);
+    try {
+      await fetch(`/api/admin/hills/${hillId}/repeat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ freq, at_time: time, by_weekday: freq === "weekly" ? days : undefined }),
+      });
+      setOpen(false);
+      load();
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function stop() {
+    await fetch(`/api/admin/hills/${hillId}/repeat`, { method: "DELETE" });
+    load();
+  }
+
+  if (rec) {
+    return (
+      <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-violet-500/25 bg-violet-500/5 px-4 py-2.5">
+        <span className="text-sm text-violet-700 dark:text-violet-300">🔁 Repeats · {rec.description}</span>
+        <button onClick={stop} className="text-xs text-neutral-400 hover:text-red-500 transition">Stop</button>
+      </div>
+    );
+  }
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="mb-6 text-xs text-neutral-400 dark:text-neutral-500 hover:text-violet-600 dark:hover:text-violet-400 transition">
+        🔁 Repeat this hill…
+      </button>
+    );
+  }
+  return (
+    <div className="mb-6 rounded-lg border border-violet-500/30 bg-violet-500/5 p-4 flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <select value={freq} onChange={(e) => setFreq(e.target.value as "daily" | "weekly")} className="px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 bg-transparent text-sm">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+        {freq === "weekly" && (
+          <div className="flex gap-1">
+            {WEEKDAYS.map((w, i) => (
+              <button
+                key={w}
+                onClick={() => setDays((d) => (d.includes(i) ? d.filter((x) => x !== i) : [...d, i]))}
+                className={`text-[11px] w-7 h-7 rounded ${days.includes(i) ? "bg-violet-600 text-white" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"}`}
+              >
+                {w[0]}
+              </button>
+            ))}
+          </div>
+        )}
+        <label className="text-xs text-neutral-500 flex items-center gap-1">at
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 bg-transparent text-sm" />
+        </label>
+      </div>
+      <div className="flex gap-1.5">
+        <button onClick={start} disabled={busy || (freq === "weekly" && days.length === 0)} className="text-xs px-3 py-1.5 rounded-md bg-violet-600 hover:bg-violet-700 text-white font-medium disabled:opacity-40">
+          {busy ? "…" : "Start repeating"}
+        </button>
+        <button onClick={() => setOpen(false)} className="text-xs px-3 py-1.5 rounded-md text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200">Cancel</button>
+      </div>
+      <p className="text-[11px] text-neutral-400 dark:text-neutral-500">A fresh copy of this hill (structure reset, nothing completed) will be created each time.</p>
+    </div>
+  );
+}
+
 type Attachment = { id: string; filename: string; mimetype: string | null; size_bytes: number | null; url: string | null };
 
 function HillAttachments({ hillId }: { hillId: string }) {
@@ -572,6 +660,8 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
           </button>
         </div>
       )}
+
+      <HillRepeat hillId={hillId} />
 
       {/* client-work bridge: convert a proposal into the legacy sprint/refinement pipeline */}
       {isClientHill && (
