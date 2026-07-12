@@ -36,6 +36,7 @@ type Hill = {
   origin: string;
   accepted_at: string | null;
   submitter_email: string | null;
+  type_data: Record<string, unknown> | null;
 };
 type Idea = { id: string; title: string; summary: string | null; status: string };
 type Deliverable = {
@@ -459,6 +460,22 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
   const acceptProposal = async () => {
     await patchHill({ accepted: true });
   };
+  const [converting, setConverting] = useState(false);
+  const [convertError, setConvertError] = useState<string | null>(null);
+  const convertHill = async () => {
+    setConverting(true);
+    setConvertError(null);
+    try {
+      const res = await fetch(`/api/admin/hills/${hillId}/convert`, { method: "POST" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || `HTTP ${res.status}`);
+      router.push(d.url);
+    } catch (e) {
+      setConvertError(e instanceof Error ? e.message : "Failed to convert");
+    } finally {
+      setConverting(false);
+    }
+  };
   const reorderTasks = async (orderedIds: string[]) => {
     await api(`/api/admin/hills/${hillId}/tasks/reorder`, "PATCH", { order: orderedIds });
     reload();
@@ -488,6 +505,11 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
 
   const { hill, ideas, deliverables, tasks } = data;
   const looseTasks = tasks.filter((t) => !t.idea_id && !t.deliverable_id && !t.parent_task_id && !t.dismissed_at);
+
+  const isClientHill = hill.type === "sprint" || hill.type === "refinement_cycle";
+  const linkedType = hill.type_data?.linked_type as string | undefined;
+  const linkedId = hill.type_data?.linked_id as string | undefined;
+  const linkedUrl = linkedType === "sprint" ? `/sprints/${linkedId}` : `/dashboard/refinement-cycles/${linkedId}`;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -548,6 +570,42 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
           <button onClick={acceptProposal} className="text-xs px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium transition">
             Accept proposal
           </button>
+        </div>
+      )}
+
+      {/* client-work bridge: convert a proposal into the legacy sprint/refinement pipeline */}
+      {isClientHill && (
+        <div className="mb-6 rounded-lg border border-sky-500/30 bg-sky-500/5 p-4 flex flex-wrap items-center justify-between gap-3">
+          {linkedId ? (
+            <>
+              <div>
+                <p className="text-sm font-medium text-sky-700 dark:text-sky-300">
+                  Linked to a {linkedType === "sprint" ? "sprint draft" : "refinement cycle"}
+                </p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">This proposal is running in the client pipeline.</p>
+              </div>
+              <a href={linkedUrl} className="text-xs px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-700 text-white font-medium no-underline">
+                Open {linkedType === "sprint" ? "sprint" : "refinement"} →
+              </a>
+            </>
+          ) : (
+            <>
+              <div>
+                <p className="text-sm font-medium text-sky-700 dark:text-sky-300">Ready to start the work?</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                  Create the {hill.type === "sprint" ? "sprint draft" : "refinement cycle"} to run agreement, invoicing, and delivery through the client pipeline.
+                </p>
+                {convertError && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{convertError}</p>}
+              </div>
+              <button
+                onClick={convertHill}
+                disabled={converting}
+                className="text-xs px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-700 text-white font-medium disabled:opacity-40 whitespace-nowrap"
+              >
+                {converting ? "Creating…" : `Create ${hill.type === "sprint" ? "sprint draft" : "refinement cycle"} →`}
+              </button>
+            </>
+          )}
         </div>
       )}
 
