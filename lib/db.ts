@@ -2164,6 +2164,26 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_hills_day_key ON hills(day_key) WHERE day_key IS NOT NULL;
   `);
 
+  // Notes — the text-capture sibling of tasks (work) and attachments (files).
+  // A small timestamped text note owned by whoever captured it, with an OPTIONAL
+  // polymorphic parent (null = personal inbox, or filed under a hill / idea /
+  // deliverable / task / project). Capture first, file later — same rule as the
+  // rest of the model. Full-text indexed for search. See docs/hill-model.md.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notes (
+      id text PRIMARY KEY,
+      author_account_id text REFERENCES accounts(id) ON DELETE CASCADE,
+      body text NOT NULL,
+      subject_type text CHECK (subject_type IN ('hill','idea','deliverable','task','project')),
+      subject_id text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_notes_author ON notes(author_account_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notes_subject ON notes(subject_type, subject_id);
+    CREATE INDEX IF NOT EXISTS idx_notes_search ON notes USING gin(to_tsvector('english', body));
+  `);
+
   global._schemaInitialized = true;
 }
 

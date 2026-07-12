@@ -408,6 +408,70 @@ function HillRepeat({ hillId }: { hillId: string }) {
   );
 }
 
+// Notes filed under this hill (+ quick capture). Text-capture sibling of attachments.
+function HillNotes({ hillId }: { hillId: string }) {
+  const [notes, setNotes] = useState<{ id: string; body: string; created_at: string }[]>([]);
+  const [val, setVal] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    const p = new URLSearchParams({ subjectType: "hill", subjectId: hillId });
+    const r = await fetch(`/api/admin/notes?${p}`).then((x) => x.json()).catch(() => ({ notes: [] }));
+    setNotes(r.notes ?? []);
+  }, [hillId]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function add() {
+    if (!val.trim()) return;
+    setBusy(true);
+    try {
+      await fetch("/api/admin/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: val.trim(), subjectType: "hill", subjectId: hillId }),
+      });
+      setVal("");
+      load();
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function del(id: string) {
+    await fetch(`/api/admin/notes/${id}`, { method: "DELETE" });
+    load();
+  }
+  const linkify = (t: string) =>
+    t.split(/(https?:\/\/[^\s]+)/g).map((p, i) =>
+      /^https?:\/\//.test(p) ? <a key={i} href={p} target="_blank" rel="noreferrer" className="text-sky-600 dark:text-sky-400 hover:underline break-all">{p}</a> : <span key={i}>{p}</span>
+    );
+
+  return (
+    <section className="mb-6">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Notes</h2>
+      <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3">
+        {notes.map((nt) => (
+          <div key={nt.id} className="group flex items-start gap-2 py-1.5 border-b border-neutral-100 dark:border-neutral-800/60 last:border-0">
+            <span className="flex-1 text-sm text-neutral-700 dark:text-neutral-300 whitespace-pre-wrap leading-snug">{linkify(nt.body)}</span>
+            <button onClick={() => del(nt.id)} className="text-xs text-neutral-300 dark:text-neutral-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition" aria-label="Delete note">×</button>
+          </div>
+        ))}
+        <div className="flex items-center gap-1.5 mt-2">
+          <input
+            value={val}
+            onChange={(e) => setVal(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && add()}
+            placeholder="Add a note…"
+            className="flex-1 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 bg-transparent text-sm"
+          />
+          <button onClick={add} disabled={busy || !val.trim()} className="text-xs px-2 py-1 rounded bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 disabled:opacity-40">Add</button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 type Attachment = { id: string; filename: string; mimetype: string | null; size_bytes: number | null; url: string | null };
 
 function HillAttachments({ hillId }: { hillId: string }) {
@@ -788,6 +852,7 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
         </div>
       </section>
 
+      <HillNotes hillId={hillId} />
       <HillAttachments hillId={hillId} />
     </div>
   );
