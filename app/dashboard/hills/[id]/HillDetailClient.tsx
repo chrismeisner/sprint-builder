@@ -64,7 +64,21 @@ type Task = {
   accepted_at: string | null;
   dismissed_at: string | null;
 };
-type Payload = { hill: Hill; ideas: Idea[]; deliverables: Deliverable[]; tasks: Task[] };
+type ClientStatus = {
+  kind: "sprint" | "refinement_cycle";
+  url: string;
+  status: string | null;
+  contract_status?: string | null;
+  invoice_status?: string | null;
+  start_date?: string | null;
+  due_date?: string | null;
+  total_fixed_price?: string | null;
+  delivery_date?: string | null;
+  total_price?: string | null;
+  deposit_paid_at?: string | null;
+  final_paid_at?: string | null;
+};
+type Payload = { hill: Hill; ideas: Idea[]; deliverables: Deliverable[]; tasks: Task[]; clientStatus: ClientStatus | null };
 
 const PHASE_LABEL: Record<string, string> = { scope: "Scope the climb", climb: "The climb", descend: "Observe & descend" };
 const PHASE_TEXT: Record<string, string> = {
@@ -655,13 +669,10 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
       </div>
     );
 
-  const { hill, ideas, deliverables, tasks } = data;
+  const { hill, ideas, deliverables, tasks, clientStatus } = data;
   const looseTasks = tasks.filter((t) => !t.idea_id && !t.deliverable_id && !t.parent_task_id && !t.dismissed_at);
 
   const isClientHill = hill.type === "sprint" || hill.type === "refinement_cycle";
-  const linkedType = hill.type_data?.linked_type as string | undefined;
-  const linkedId = hill.type_data?.linked_id as string | undefined;
-  const linkedUrl = linkedType === "sprint" ? `/sprints/${linkedId}` : `/dashboard/refinement-cycles/${linkedId}`;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -727,19 +738,25 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
 
       <HillRepeat hillId={hillId} />
 
-      {/* client-work bridge: convert a proposal into the legacy sprint/refinement pipeline */}
+      {/* client-work bridge: live status of the linked legacy record, or create it */}
       {isClientHill && (
         <div className="mb-6 rounded-lg border border-sky-500/30 bg-sky-500/5 p-4 flex flex-wrap items-center justify-between gap-3">
-          {linkedId ? (
+          {clientStatus ? (
             <>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-sky-700 dark:text-sky-300">
-                  Linked to a {linkedType === "sprint" ? "sprint draft" : "refinement cycle"}
+                  In the client pipeline
                 </p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">This proposal is running in the client pipeline.</p>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-neutral-500 dark:text-neutral-400 mt-1 font-mono">
+                  {clientStatus.status && <span><b className="text-neutral-600 dark:text-neutral-300">status</b> {clientStatus.status}</span>}
+                  {clientStatus.kind === "sprint" && clientStatus.contract_status && <span><b className="text-neutral-600 dark:text-neutral-300">contract</b> {clientStatus.contract_status}</span>}
+                  {clientStatus.kind === "sprint" && clientStatus.invoice_status && <span><b className="text-neutral-600 dark:text-neutral-300">invoice</b> {clientStatus.invoice_status}</span>}
+                  {clientStatus.kind === "refinement_cycle" && clientStatus.delivery_date && <span><b className="text-neutral-600 dark:text-neutral-300">deliver</b> {new Date(clientStatus.delivery_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>}
+                  {clientStatus.kind === "refinement_cycle" && <span><b className="text-neutral-600 dark:text-neutral-300">paid</b> {clientStatus.final_paid_at ? "yes" : clientStatus.deposit_paid_at ? "deposit" : "no"}</span>}
+                </div>
               </div>
-              <a href={linkedUrl} className="text-xs px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-700 text-white font-medium no-underline">
-                Open {linkedType === "sprint" ? "sprint" : "refinement"} →
+              <a href={clientStatus.url} className="text-xs px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-700 text-white font-medium no-underline whitespace-nowrap">
+                Open {clientStatus.kind === "sprint" ? "sprint" : "refinement"} →
               </a>
             </>
           ) : (

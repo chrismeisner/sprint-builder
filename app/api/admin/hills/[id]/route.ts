@@ -57,11 +57,34 @@ export async function GET(
       ),
     ]);
 
+    // Stage B (read-side): for client hills, surface the LIVE status of the
+    // linked legacy record — resolved via type_data.linked_id (bridged hills) or
+    // the hill id itself (backfilled hills reuse the legacy PK). Read-only.
+    const hill = hillRes.rows[0];
+    let clientStatus: Record<string, unknown> | null = null;
+    const legacyId = (hill.type_data?.linked_id as string) || hill.id;
+    if (hill.type === "sprint") {
+      const sd = await pool.query(
+        `SELECT id, status, contract_status, invoice_status, start_date, due_date, total_fixed_price
+           FROM sprint_drafts WHERE id = $1`,
+        [legacyId]
+      );
+      if (sd.rowCount) clientStatus = { kind: "sprint", url: `/sprints/${legacyId}`, ...sd.rows[0] };
+    } else if (hill.type === "refinement_cycle") {
+      const rc = await pool.query(
+        `SELECT id, status, delivery_date, total_price, deposit_paid_at, final_paid_at
+           FROM refinement_cycles WHERE id = $1`,
+        [legacyId]
+      );
+      if (rc.rowCount) clientStatus = { kind: "refinement_cycle", url: `/dashboard/refinement-cycles/${legacyId}`, ...rc.rows[0] };
+    }
+
     return NextResponse.json({
-      hill: hillRes.rows[0],
+      hill,
       ideas: ideas.rows,
       deliverables: deliverables.rows,
       tasks: tasks.rows,
+      clientStatus,
     });
   } catch (error) {
     console.error("Error fetching hill:", error);
