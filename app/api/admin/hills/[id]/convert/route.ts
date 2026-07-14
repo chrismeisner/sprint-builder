@@ -85,8 +85,8 @@ export async function POST(
            id, project_id, title, submitter_email,
            whats_working, whats_not_working, success_looks_like,
            rate, total_price, deposit_amount, final_amount,
-           status, submitted_at, created_by
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'full', $8, $9, $10, 'submitted', now(), $11)`,
+           status, submitted_at, created_by, hill_id
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'full', $8, $9, $10, 'submitted', now(), $11, $12)`,
         [
           linkedId,
           hill.project_id,
@@ -99,6 +99,7 @@ export async function POST(
           REFINEMENT_CYCLE_DEPOSIT_AMOUNT,
           REFINEMENT_CYCLE_FINAL_AMOUNT,
           admin.accountId,
+          params.id, // billing → hills: the cycle is born linked to its hill
         ]
       );
       // Free-text screens (unlike sprint deliverables) can be copied directly.

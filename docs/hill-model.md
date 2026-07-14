@@ -120,6 +120,14 @@ There are **no live clients** currently, so temporary breakage during the migrat
 acceptable — *except* the silent-reconciliation trap above, which is why billing stays a
 loosely-coupled satellite rather than getting absorbed.
 
+> **Implemented (v352).** The satellite is now `hill_id`-keyed without being absorbed: a
+> nullable `hill_id` on `sprint_invoices` / `deferred_comp_plans` / `refinement_cycles`, Stripe
+> invoices stamped with `metadata.hill_id`, and the webhook mirroring each real payment onto the
+> hill's timeline as a `billing_*` `hill_event`. Crucially the webhook's existing invoice-match
+> strategies and legacy status updates are **unchanged** — the hill writes are best-effort and
+> can never throw, so the silent-reconciliation trap is avoided. See `lib/hillBilling.ts` and the
+> worklog for the phase breakdown.
+
 ---
 
 ## 5. Table-collapse mapping (keep / rename / merge / new)
@@ -262,9 +270,12 @@ Deployed to Heroku (`sprint-builder`) incrementally; every step additive and rev
 - **`scripts/drop-ai-responses.sql`** — physical drop of the dead table (optional).
 
 **Deliberately deferred (high-risk / low-reward)**
-- **Client-execution rewire (Stages B/C/D)** — sprints/refinement/billing still run on legacy
-  tables. Hills mirror + bridge them; they are not rewired. Billing re-key to `hill_id` is
-  premature (hill_id == legacy id via reused PKs, so it works incidentally).
+- **Client-execution rewire (Stages B/C)** — sprints/refinement execution still run on legacy
+  tables. Hills mirror + bridge them; they are not rewired.
+  - **Billing re-key (was Stage C): DONE additively in v352.** `hill_id` now flows through the
+    billing satellite and the Stripe webhook records payments on the hill timeline (see §4).
+    Legacy tables are retained as a frozen archive — dropping them (the only destructive step)
+    stays deferred.
 - **Drop legacy tables** — only after a backup + explicit sign-off.
 
 **Minor gaps / polish**

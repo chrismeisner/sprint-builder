@@ -2295,6 +2295,30 @@ export async function ensureSchema(): Promise<void> {
     ON CONFLICT (job_key) DO NOTHING;
   `);
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Billing → Hills re-key (Phase 0, additive). The billing satellite keeps its
+  // own shape, but gains a nullable hill_id so payments can be resolved to a hill
+  // directly instead of relying on the legacy-PK-reuse coincidence. Added here,
+  // after the hills table exists, so the FK target is present. Backfilled by
+  // scripts/backfill-billing-hill-id.js. Nothing reads these yet — see
+  // docs/hill-model.md §4 (billing stays a satellite; webhook updated in lockstep).
+  // ─────────────────────────────────────────────────────────────────────────────
+  await pool.query(`
+    ALTER TABLE sprint_invoices
+      ADD COLUMN IF NOT EXISTS hill_id text REFERENCES hills(id) ON DELETE SET NULL;
+    CREATE INDEX IF NOT EXISTS idx_sprint_invoices_hill ON sprint_invoices(hill_id);
+  `);
+  await pool.query(`
+    ALTER TABLE deferred_comp_plans
+      ADD COLUMN IF NOT EXISTS hill_id text REFERENCES hills(id) ON DELETE SET NULL;
+    CREATE INDEX IF NOT EXISTS idx_deferred_comp_plans_hill ON deferred_comp_plans(hill_id);
+  `);
+  await pool.query(`
+    ALTER TABLE refinement_cycles
+      ADD COLUMN IF NOT EXISTS hill_id text REFERENCES hills(id) ON DELETE SET NULL;
+    CREATE INDEX IF NOT EXISTS idx_refinement_cycles_hill ON refinement_cycles(hill_id);
+  `);
+
   global._schemaInitialized = true;
 }
 

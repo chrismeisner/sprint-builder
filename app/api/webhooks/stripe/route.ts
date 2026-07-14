@@ -3,6 +3,11 @@ import { getPool } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
 import { randomUUID } from "crypto";
 import {
+  resolveHillIdForSprint,
+  resolveHillIdForCycle,
+  recordHillBillingEvent,
+} from "@/lib/hillBilling";
+import {
   sendEmail,
   generateInvoicePaidClientEmail,
   generateInvoicePaidAdminEmail,
@@ -622,6 +627,17 @@ async function sendCyclePaymentNotifications(
   phase: "processing" | "paid",
   origin: string
 ) {
+  // Billing → hills: this function is called exactly once per real transition,
+  // so it's the right place to mirror the payment onto the hill's timeline.
+  // Best-effort and never throws.
+  const hillId = await resolveHillIdForCycle(pool, cycleId);
+  await recordHillBillingEvent(pool, hillId, `billing_${phase}`, {
+    source: "refinement_cycle",
+    cycleId,
+    kind,
+    status: phase,
+  });
+
   try {
     const infoRes = await pool.query(
       `SELECT rc.title, rc.submitter_email, rc.cc_emails,
@@ -777,6 +793,20 @@ async function applyMatched(
     return;
   }
   await writeChangelogs(pool, changed, status, stripeId, origin);
+
+  // Billing → hills: mirror each real status change onto the owning hill's
+  // timeline. Best-effort and never throws (see recordHillBillingEvent), so the
+  // legacy sprint_invoices path above stays authoritative.
+  for (const row of changed) {
+    const hillId = await resolveHillIdForSprint(pool, row.sprint_id);
+    await recordHillBillingEvent(pool, hillId, `billing_${status}`, {
+      source: "sprint_invoice",
+      invoiceId: row.id,
+      label: row.label,
+      stripeId,
+      status,
+    });
+  }
 }
 
 function logUpdated(

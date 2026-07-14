@@ -4,7 +4,7 @@ A record of the effort that unified this studio OS around one **Hill** model.
 Companion to [`hill-model.md`](./hill-model.md) (the design spec) — this doc is the
 "what actually got built, in what order, and what's left" reference.
 
-**Status:** live in production (Heroku app `sprint-builder`, release **v351**,
+**Status:** live in production (Heroku app `sprint-builder`, release **v352**,
 https://sprint-builder-e9c813c659ea.herokuapp.com). Additive and reversible
 throughout; **no data was destroyed.**
 
@@ -120,6 +120,7 @@ hills at every scale). `/our-approach` → `/hills`.
 | v349 | Schedulers control panel |
 | v350 | ProjectTasks rewired to live hills |
 | v351 | `/hills` philosophy page |
+| v352 | Billing → hills re-key, Phases 0–2 (additive `hill_id` on the billing satellite + Stripe-metadata stamping + webhook mirrors payments onto the hill timeline) |
 
 ---
 
@@ -133,10 +134,25 @@ hills at every scale). `/our-approach` → `/hills`.
   `daily-reset.js`/`weekly-reset.js` entries (they run on the frozen `admin_tasks`).
 - Optionally run `scripts/drop-ai-responses.sql`.
 
-**Deliberately deferred (high-risk / low-reward — recommend leaving):**
-- **Client-billing collapse (Stages C/D):** re-key billing to `hill_id` + drop the
-  legacy sprint/refinement/invoice tables. Destroys revenue + historical data for no
-  functional gain while the bridged pipeline works. Only as a dedicated, backed-up,
+**Billing → hills re-key (v352) — shipped additively, Phases 0–2:**
+- **Phase 0 — schema + backfill:** nullable `hill_id` (FK → `hills`) on `sprint_invoices`,
+  `deferred_comp_plans`, `refinement_cycles` (`lib/db.ts`); `scripts/backfill-billing-hill-id.js`
+  keys historical rows via the same linkage the read-side uses (reused PK, or `type_data.linked_id`).
+- **Phase 1 — writers stamp `hill_id`:** converted cycles are born hill-linked (`convert` route);
+  every Stripe invoice carries `metadata.hill_id` (`lib/refinementCycleBilling.ts`,
+  sprint-invoice `stripe` route); the sprint-invoice row is stamped too.
+- **Phase 2 — reader mirrors payments:** on every real status change the Stripe webhook records a
+  `billing_*` event on the owning hill's timeline (`lib/hillBilling.ts`, `webhooks/stripe`).
+  The webhook's existing match strategies + legacy status updates are **unchanged and still
+  authoritative** — the hill writes are best-effort and can never throw, so there's no
+  silent-failure trap. Verify in Stripe **test mode** (metadata carries `hill_id`; a test payment
+  flips the legacy status *and* lands a `hill_event`).
+
+**Still deferred (high-risk / low-reward — recommend leaving):**
+- **Phase 3 — client surfaces off legacy reads** (`/my-sprints`, `/sprints/[id]`, `/shared`,
+  `/budget`, `/dashboard/refinement-cycles`). Optional; the bridge + timeline already reflect status.
+- **Drop the legacy sprint/refinement/invoice tables.** This is the only step that destroys
+  historical revenue data — kept as a frozen archive. Only as a dedicated, backed-up,
   Stripe-tested project with a concrete driver.
 
 **Optional polish:** surface `draft.proposedDeliverables` in the legacy sprint builder;
@@ -177,10 +193,10 @@ call on whether hills is an *umbrella philosophy* (light touch) or a *reposition
 
 - Schema: `lib/db.ts` (`ensureSchema`)
 - Libs: `lib/hillIntake.ts`, `lib/dayHill.ts`, `lib/recurrence.ts`,
-  `lib/scheduledJobs.ts`
+  `lib/scheduledJobs.ts`, `lib/hillBilling.ts` (billing → hills bridge)
 - Scripts: `scripts/backfill-hills.js`, `scripts/hills-reset.js`,
   `scripts/morning-hill.js`, `scripts/spawn-recurrences.js`,
-  `scripts/drop-ai-responses.sql`
+  `scripts/backfill-billing-hill-id.js`, `scripts/drop-ai-responses.sql`
 - UI: `app/dashboard/hills/**`, `app/dashboard/notes/**`,
   `app/dashboard/schedulers/**`, `app/scope/**`, `app/hills/**`
 - APIs: `app/api/admin/hills/**`, `app/api/admin/notes/**`,
