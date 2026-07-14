@@ -45,15 +45,18 @@ const TARGETS = [
 // UPDATE ambiguous. Vanishingly unlikely (linked_id is unique per conversion,
 // backfilled hills reuse the PK 1:1), but we check and refuse rather than guess.
 async function findAmbiguous(t) {
+  // Count DISTINCT hills per anchor — an anchor that maps to >1 hill is the only
+  // real ambiguity. (Counting joined rows would false-positive on the normal
+  // case of many billing rows sharing one anchor, e.g. a sprint's deposit +
+  // final invoices, or several comp plans.)
   const { rows } = await pool.query(
-    `SELECT anchor, count(*) AS n FROM (
-       SELECT b.${t.anchor} AS anchor, h.id AS hill_id
+    `SELECT b.${t.anchor} AS anchor, count(DISTINCT h.id) AS n
        FROM ${t.table} b
        JOIN hills h
          ON h.type = $1
         AND (h.id = b.${t.anchor} OR h.type_data->>'linked_id' = b.${t.anchor})
-     ) m
-     GROUP BY anchor HAVING count(*) > 1`,
+      GROUP BY b.${t.anchor}
+     HAVING count(DISTINCT h.id) > 1`,
     [t.hillType]
   );
   return rows;
