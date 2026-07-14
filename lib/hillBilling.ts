@@ -13,30 +13,43 @@ import { randomUUID } from "crypto";
 // A sprint/refinement legacy record maps to the hill that either reuses its PK
 // (backfilled hills) or points at it via type_data.linked_id (converted hills).
 // This is the same linkage the read-side uses in app/api/admin/hills/[id]/route.ts.
+// Both resolvers swallow their own errors and return null. That guarantee lets
+// callers invoke them anywhere — including before existing side effects like
+// payment-notification emails — without a DB blip ever disrupting live billing.
 export async function resolveHillIdForSprint(
   pool: Pool,
   sprintId: string
 ): Promise<string | null> {
-  const res = await pool.query(
-    `SELECT id FROM hills
-      WHERE type = 'sprint' AND (id = $1 OR type_data->>'linked_id' = $1)
-      LIMIT 1`,
-    [sprintId]
-  );
-  return (res.rowCount ?? 0) > 0 ? (res.rows[0].id as string) : null;
+  try {
+    const res = await pool.query(
+      `SELECT id FROM hills
+        WHERE type = 'sprint' AND (id = $1 OR type_data->>'linked_id' = $1)
+        LIMIT 1`,
+      [sprintId]
+    );
+    return (res.rowCount ?? 0) > 0 ? (res.rows[0].id as string) : null;
+  } catch (err) {
+    console.error("[hillBilling] resolveHillIdForSprint failed:", err);
+    return null;
+  }
 }
 
 export async function resolveHillIdForCycle(
   pool: Pool,
   cycleId: string
 ): Promise<string | null> {
-  const res = await pool.query(
-    `SELECT id FROM hills
-      WHERE type = 'refinement_cycle' AND (id = $1 OR type_data->>'linked_id' = $1)
-      LIMIT 1`,
-    [cycleId]
-  );
-  return (res.rowCount ?? 0) > 0 ? (res.rows[0].id as string) : null;
+  try {
+    const res = await pool.query(
+      `SELECT id FROM hills
+        WHERE type = 'refinement_cycle' AND (id = $1 OR type_data->>'linked_id' = $1)
+        LIMIT 1`,
+      [cycleId]
+    );
+    return (res.rowCount ?? 0) > 0 ? (res.rows[0].id as string) : null;
+  } catch (err) {
+    console.error("[hillBilling] resolveHillIdForCycle failed:", err);
+    return null;
+  }
 }
 
 // Record a billing event on the hill's timeline. Best-effort: swallows all
