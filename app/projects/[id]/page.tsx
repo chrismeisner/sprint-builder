@@ -5,9 +5,6 @@ import { getCurrentUser } from "@/lib/auth";
 import dynamicImport from "next/dynamic";
 import Typography from "@/components/ui/Typography";
 
-const DeleteSprintButton = dynamicImport(() => import("../DeleteSprintButton"), { ssr: false });
-const AdminSprintStatusDropdown = dynamicImport(() => import("@/app/components/AdminSprintStatusDropdown"), { ssr: false });
-const SprintShareLink = dynamicImport(() => import("../SprintShareLink"), { ssr: false });
 const ProjectDocuments = dynamicImport(() => import("../ProjectDocuments"), { ssr: false });
 const ProjectDemos = dynamicImport(() => import("../ProjectDemos"), { ssr: false });
 const ProjectTasks = dynamicImport(() => import("../ProjectTasks"), { ssr: false });
@@ -69,102 +66,87 @@ export default async function ProjectDetailPage({
   const viewingAsClient = isAdmin && searchParams?.view === "client";
   const effectiveIsAdmin = isAdmin && !viewingAsClient;
 
-  // Archived sprints are hidden by default. Admins can opt in to see them
-  // via `?archived=show` for reference / unarchiving.
-  const showArchived = effectiveIsAdmin && searchParams?.archived === "show";
-
   if (!isOwner && !isAdmin && !isMember) {
     notFound();
   }
 
-  const sprintsResult = await pool.query(
-    `SELECT id, title, status, total_estimate_points, total_fixed_hours, total_fixed_price, deliverable_count, created_at, share_token, type, parent_sprint_id
-     FROM sprint_drafts
-     WHERE project_id = $1
-     ORDER BY created_at DESC`,
+  // Client engagements now live as HILLS (type sprint | refinement_cycle):
+  // pricing on hill_deliverables, billing on hill_invoices. (Replaces the
+  // legacy sprint_drafts + refinement_cycles reads.)
+  const clientHillsResult = await pool.query(
+    `SELECT h.id, h.title, h.type, h.status, h.phase, h.completed, h.created_at,
+            (h.type_data->>'agreement_markdown') IS NOT NULL AS has_agreement,
+            COALESCE((SELECT SUM(price * COALESCE(quantity, 1))
+                        FROM hill_deliverables
+                       WHERE hill_id = h.id AND dismissed_at IS NULL), 0) AS total,
+            (SELECT COUNT(*)::int FROM hill_deliverables
+              WHERE hill_id = h.id AND dismissed_at IS NULL) AS deliverable_count
+       FROM hills h
+      WHERE h.project_id = $1 AND h.type IN ('sprint', 'refinement_cycle')
+      ORDER BY h.created_at DESC`,
     [project.id]
   );
-
-  type SprintRow = {
+  type ClientHill = {
     id: string;
     title: string | null;
+    type: string;
     status: string | null;
-    total_estimate_points: number | null;
-    total_fixed_hours: number | null;
-    total_fixed_price: number | null;
-    deliverable_count: number | null;
+    phase: string | null;
+    completed: boolean;
     created_at: string | Date;
-    share_token: string | null;
-    type: string | null;
-    parent_sprint_id: string | null;
+    has_agreement: boolean;
+    total: string | number | null;
+    deliverable_count: number;
   };
+  const clientHills = clientHillsResult.rows as ClientHill[];
 
-  const draftSprints = sprintsResult.rows as Array<SprintRow>;
+  type ClientInvoice = {
+    id: string;
+    label: string;
+    amount: string | number | null;
+    invoice_status: string;
+    invoice_url: string | null;
+  };
+  const invoicesByHill = new Map<string, ClientInvoice[]>();
+  const clientHillIds = clientHills.map((h) => h.id);
+  if (clientHillIds.length > 0) {
+    const invRes = await pool.query(
+      `SELECT id, hill_id, label, amount, invoice_status, invoice_url
+         FROM hill_invoices
+        WHERE hill_id = ANY($1) AND invoice_status <> 'voided'
+        ORDER BY sort_order, created_at`,
+      [clientHillIds]
+    );
+    for (const row of invRes.rows) {
+      const list = invoicesByHill.get(row.hill_id as string) ?? [];
+      list.push(row as ClientInvoice);
+      invoicesByHill.set(row.hill_id as string, list);
+    }
+  }
 
+  // Smoke test sprints — a separate lightweight scoping artifact (its own table,
+  // not part of the legacy sprint/refinement pipeline). Retained as-is.
   const smokeSprintsResult = await pool.query(
-    `SELECT id, status, title, whats_next, total_price, implied_hours, created_at
+    `SELECT id, status, title, whats_next, total_price, created_at
      FROM smoke_test_sprints
      WHERE project_id = $1
      ORDER BY created_at DESC`,
     [project.id]
   );
-
-  const smokeSprints: Array<SprintRow> = smokeSprintsResult.rows.map((row) => ({
-    id: row.id as string,
-    title:
-      (row.title as string | null) ??
-      (row.whats_next as string | null) ??
-      null,
-    status: (row.status as string | null) ?? "draft",
-    total_estimate_points: null,
-    total_fixed_hours: row.implied_hours != null ? Number(row.implied_hours) : null,
-    total_fixed_price: row.total_price != null ? Number(row.total_price) : null,
-    deliverable_count: null,
-    created_at: row.created_at as string | Date,
-    share_token: null,
-    type: "smoke_test",
-    parent_sprint_id: null,
-  }));
-
-  const allSprints: Array<SprintRow> = [...draftSprints, ...smokeSprints].sort((a, b) => {
-    const aTs = a.created_at instanceof Date ? a.created_at.getTime() : new Date(a.created_at).getTime();
-    const bTs = b.created_at instanceof Date ? b.created_at.getTime() : new Date(b.created_at).getTime();
-    return bTs - aTs;
-  });
-
-  const archivedSprintCount = allSprints.filter((s) => s.status === "archived").length;
-  const sprints: Array<SprintRow> = showArchived
-    ? allSprints
-    : allSprints.filter((s) => s.status !== "archived");
-
-  const hasAnySprints = allSprints.some((s) => (s.type ?? "sprint") === "sprint");
-
-  const refinementCyclesResult = await pool.query(
-    `SELECT id, title, status, submitter_email, total_price, delivery_date,
-            submitted_at, accepted_at, declined_at, deposit_paid_at,
-            delivered_at, expired_at,
-            (SELECT COUNT(*)::int FROM refinement_cycle_screens
-             WHERE refinement_cycle_id = refinement_cycles.id) AS screen_count
-     FROM refinement_cycles
-     WHERE project_id = $1
-     ORDER BY submitted_at DESC`,
-    [project.id]
-  );
-  const refinementCycles = refinementCyclesResult.rows as Array<{
+  type SmokeRow = {
     id: string;
     title: string | null;
-    status: string;
-    submitter_email: string | null;
-    total_price: string | number | null;
-    delivery_date: string | Date | null;
-    submitted_at: string | Date;
-    accepted_at: string | Date | null;
-    declined_at: string | Date | null;
-    deposit_paid_at: string | Date | null;
-    delivered_at: string | Date | null;
-    expired_at: string | Date | null;
-    screen_count: number;
-  }>;
+    status: string | null;
+    total_price: number | null;
+    created_at: string | Date;
+  };
+  const smokeSprints: SmokeRow[] = smokeSprintsResult.rows.map((row) => ({
+    id: row.id as string,
+    title: (row.title as string | null) ?? (row.whats_next as string | null) ?? null,
+    status: (row.status as string | null) ?? "draft",
+    total_price: row.total_price != null ? Number(row.total_price) : null,
+    created_at: row.created_at as string | Date,
+  }));
 
   // Fetch app links for this project
   const appLinksResult = await pool.query(
@@ -222,9 +204,12 @@ export default async function ProjectDetailPage({
   // Calculate last activity date from all related entities
   const activityDates: Date[] = [new Date(project.updated_at)];
   
-  // Add sprint dates
-  for (const sprint of sprints) {
-    activityDates.push(new Date(sprint.created_at));
+  // Add engagement + smoke-test dates
+  for (const hill of clientHills) {
+    activityDates.push(new Date(hill.created_at));
+  }
+  for (const smoke of smokeSprints) {
+    activityDates.push(new Date(smoke.created_at));
   }
   
   // Add member dates
@@ -331,258 +316,206 @@ export default async function ProjectDetailPage({
         </div>
       </section>
 
-      {/* Refinement Cycles */}
+      {/* Engagements — client work as hills (sprints + refinement cycles) */}
       <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <Typography as="h2" scale="h3">
-              Refinement Cycles
+              Engagements
             </Typography>
             <Typography as="span" scale="body-sm" className="opacity-60">
-              {refinementCycles.length} total
+              {clientHills.length} total
             </Typography>
           </div>
-          <Link
-            href={`/dashboard/refinement-cycles/new?projectId=${project.id}`}
-            className="inline-flex items-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity duration-150 self-start md:self-auto"
-          >
-            New refinement cycle
-          </Link>
+          {effectiveIsAdmin && (
+            <Link
+              href="/dashboard/hills"
+              className="inline-flex items-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity duration-150 self-start md:self-auto"
+            >
+              Manage in Hills
+            </Link>
+          )}
         </div>
-        {refinementCycles.length === 0 ? (
+        {clientHills.length === 0 ? (
           <Typography as="div" scale="body-sm" className="opacity-70">
-            No refinement cycles yet. Submit one for fast, fixed-price design
-            refinement work — $1,200 per cycle, next-business-day delivery.
+            No engagements yet.{effectiveIsAdmin && " Scope one from the Hills dashboard."}
           </Typography>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
-                <tr>
-                  <th className="text-left px-4 py-2 font-semibold">Title</th>
-                  <th className="text-left px-4 py-2 font-semibold">Status</th>
-                  <th className="text-left px-4 py-2 font-semibold">Submitter</th>
-                  <th className="text-left px-4 py-2 font-semibold">Scope</th>
-                  <th className="text-left px-4 py-2 font-semibold w-32">Submitted</th>
-                  <th className="text-left px-4 py-2 font-semibold w-32">Delivery</th>
-                  <th className="text-left px-4 py-2 font-semibold w-24"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
-                {refinementCycles.map((rc) => {
-                  const submittedAt =
-                    rc.submitted_at instanceof Date
-                      ? rc.submitted_at
-                      : new Date(rc.submitted_at);
-                  const deliveryDate = rc.delivery_date
-                    ? rc.delivery_date instanceof Date
-                      ? rc.delivery_date.toISOString().slice(0, 10)
-                      : (rc.delivery_date as string)
-                    : null;
-                  const statusLabel: Record<string, string> = {
-                    submitted: "Submitted",
-                    accepted: "Accepted",
-                    awaiting_deposit: "Awaiting deposit",
-                    in_progress: "In progress",
-                    delivered: "Delivered",
-                    declined: "Declined",
-                    expired: "Expired",
-                  };
-                  return (
-                    <tr
-                      key={rc.id}
-                      className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150"
-                    >
-                      <td className="px-4 py-2 font-medium text-neutral-900 dark:text-neutral-100">
-                        {rc.title || "Untitled"}
-                      </td>
-                      <td className="px-4 py-2">
-                        <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
-                          {statusLabel[rc.status] ?? rc.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 opacity-80">
-                        {rc.submitter_email ?? "—"}
-                      </td>
-                      <td className="px-4 py-2 opacity-70">
-                        {rc.screen_count} screen
-                        {rc.screen_count === 1 ? "" : "s"}
-                      </td>
-                      <td className="px-4 py-2 opacity-70">
-                        {submittedAt.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </td>
-                      <td className="px-4 py-2 opacity-70">
-                        {deliveryDate
-                          ? new Date(`${deliveryDate}T12:00:00Z`).toLocaleDateString(
-                              "en-US",
-                              { month: "short", day: "numeric", timeZone: "UTC" }
-                            )
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-2">
-                        <Link
-                          href={`/dashboard/refinement-cycles/${rc.id}`}
-                          className="text-neutral-700 dark:text-neutral-300 underline hover:opacity-80"
-                        >
-                          View
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="flex flex-col gap-3">
+            {clientHills.map((h) => {
+              const invoices = invoicesByHill.get(h.id) ?? [];
+              const typeLabel = h.type === "refinement_cycle" ? "Refinement" : "Sprint";
+              const phaseLabel: Record<string, string> = {
+                scope: "Scoping",
+                climb: "In progress",
+                descend: "Wrapping up",
+              };
+              const stateLabel = h.completed
+                ? "Complete"
+                : h.phase
+                ? phaseLabel[h.phase] ?? h.phase
+                : h.status ?? "—";
+              return (
+                <div
+                  key={h.id}
+                  className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-3"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                      {h.title || "Untitled engagement"}
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                      {typeLabel}
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs text-neutral-600 dark:text-neutral-400">
+                      {stateLabel}
+                    </span>
+                    {Number(h.total) > 0 && (
+                      <span className="ml-auto tabular-nums text-sm text-neutral-700 dark:text-neutral-300">
+                        ${Number(h.total).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 text-xs opacity-70">
+                    {h.deliverable_count} deliverable{h.deliverable_count === 1 ? "" : "s"}
+                    {h.has_agreement && (
+                      <>
+                        {" · "}
+                        <span className="opacity-80">agreement ready</span>
+                      </>
+                    )}
+                  </div>
+
+                  {invoices.length > 0 && (
+                    <div className="mt-2 flex flex-col gap-1">
+                      {invoices.map((inv) => {
+                        const isPaid = inv.invoice_status === "paid";
+                        const payable =
+                          !isPaid &&
+                          Boolean(inv.invoice_url) &&
+                          ["sent", "processing", "failed"].includes(inv.invoice_status);
+                        return (
+                          <div key={inv.id} className="flex items-center gap-2 text-sm">
+                            <span className="flex-1 truncate text-neutral-700 dark:text-neutral-300">
+                              {inv.label}
+                            </span>
+                            <span className="tabular-nums text-neutral-600 dark:text-neutral-400">
+                              ${Number(inv.amount ?? 0).toLocaleString()}
+                            </span>
+                            {isPaid ? (
+                              <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                Paid ✓
+                              </span>
+                            ) : payable ? (
+                              <a
+                                href={inv.invoice_url as string}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-2.5 py-1 text-xs font-medium hover:opacity-90"
+                              >
+                                {inv.invoice_status === "processing" ? "Processing…" : "Pay invoice"}
+                              </a>
+                            ) : (
+                              <span className="text-xs opacity-60">{inv.invoice_status}</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {effectiveIsAdmin && (
+                    <div className="mt-2">
+                      <Link
+                        href={`/dashboard/hills/${h.id}`}
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        Manage →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
 
-      {/* Sprints */}
-      <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
-            <Typography as="h2" scale="h3">
-              Sprints
-            </Typography>
-            <Typography as="span" scale="body-sm" className="opacity-60">
-              {sprints.length} total
-            </Typography>
-            {effectiveIsAdmin && archivedSprintCount > 0 && (
-              <Link
-                href={
-                  showArchived
-                    ? `/projects/${project.id}`
-                    : `/projects/${project.id}?archived=show`
-                }
-                scroll={false}
-                className="text-xs underline opacity-70 hover:opacity-100"
-              >
-                {showArchived
-                  ? "Hide archived"
-                  : `Show ${archivedSprintCount} archived`}
-              </Link>
-            )}
-          </div>
-          {effectiveIsAdmin && (
-            <div className="flex gap-2">
-              <Link
-                href={`/dashboard/sprint-builder?projectId=${project.id}`}
-                className="inline-flex items-center rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity duration-150"
-              >
-                New sprint
-              </Link>
-              {hasAnySprints && (
-                <Link
-                  href={`/dashboard/update-cycle-builder?projectId=${project.id}`}
-                  className="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1.5 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150"
-                >
-                  New update cycle
-                </Link>
-              )}
+      {/* Smoke test sprints — a separate lightweight scoping artifact */}
+      {(smokeSprints.length > 0 || effectiveIsAdmin) && (
+        <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <Typography as="h2" scale="h3">
+                Smoke test sprints
+              </Typography>
+              <Typography as="span" scale="body-sm" className="opacity-60">
+                {smokeSprints.length} total
+              </Typography>
+            </div>
+            {effectiveIsAdmin && (
               <Link
                 href={`/dashboard/smoke-test-sprint-builder?projectId=${project.id}`}
-                className="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1.5 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150"
+                className="inline-flex items-center rounded-md border border-neutral-200 dark:border-neutral-700 px-3 py-1.5 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150 self-start md:self-auto"
               >
                 New smoke test sprint
               </Link>
-            </div>
-          )}
-        </div>
-
-        {sprints.length === 0 ? (
-          <Typography as="div" scale="body-sm" className="opacity-70">
-            No sprints yet.{effectiveIsAdmin && " Click New sprint to create one."}
-          </Typography>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
-                <tr>
-                  <th className="text-left px-4 py-2 font-semibold">Title</th>
-                  <th className="text-left px-4 py-2 font-semibold w-28">Type</th>
-                  <th className="text-left px-4 py-2 font-semibold w-32">Status</th>
-                  <th className="text-left px-4 py-2 font-semibold w-32">Price</th>
-                  <th className="text-left px-4 py-2 font-semibold w-32">Created</th>
-                  <th className="text-left px-4 py-2 font-semibold">Actions</th>
-                  {effectiveIsAdmin && <th className="text-left px-4 py-2 font-semibold w-24">Admin</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
-                {sprints.map((s) => {
-                  const sprintType = s.type ?? "sprint";
-                  const isUpdateCycle = sprintType === "update_cycle";
-                  const isSmokeTest = sprintType === "smoke_test";
-                  const titleFallback = isUpdateCycle
-                    ? "Untitled update cycle"
-                    : isSmokeTest
-                    ? "Untitled smoke test sprint"
-                    : "Untitled sprint";
-                  return (
-                    <tr key={`${sprintType}-${s.id}`} className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150">
+            )}
+          </div>
+          {smokeSprints.length === 0 ? (
+            <Typography as="div" scale="body-sm" className="opacity-70">
+              None yet.
+            </Typography>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
+                  <tr>
+                    <th className="text-left px-4 py-2 font-semibold">Title</th>
+                    <th className="text-left px-4 py-2 font-semibold w-32">Status</th>
+                    <th className="text-left px-4 py-2 font-semibold w-32">Price</th>
+                    <th className="text-left px-4 py-2 font-semibold w-32">Created</th>
+                    <th className="text-left px-4 py-2 font-semibold w-24"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
+                  {smokeSprints.map((s) => (
+                    <tr
+                      key={s.id}
+                      className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-150"
+                    >
+                      <td className="px-4 py-2 font-medium text-neutral-900 dark:text-neutral-100">
+                        {s.title || "Untitled smoke test sprint"}
+                      </td>
                       <td className="px-4 py-2">
-                        <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                          {s.title || titleFallback}
+                        <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs">
+                          {s.status || "draft"}
                         </span>
                       </td>
-                      <td className="px-4 py-2">
-                        {isUpdateCycle ? (
-                          <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-2 py-0.5 text-xs font-medium">
-                            Update
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
-                            Sprint
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2">
-                        {effectiveIsAdmin && !isSmokeTest ? (
-                          <AdminSprintStatusDropdown
-                            sprintId={s.id}
-                            currentStatus={s.status || "draft"}
-                            compact
-                          />
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs">
-                            {s.status || "draft"}
-                          </span>
-                        )}
-                      </td>
                       <td className="px-4 py-2 tabular-nums text-neutral-600 dark:text-neutral-400">
-                        {s.total_fixed_price != null ? `$${Number(s.total_fixed_price).toLocaleString()}` : "—"}
+                        {s.total_price != null ? `$${Number(s.total_price).toLocaleString()}` : "—"}
                       </td>
                       <td className="px-4 py-2 text-neutral-600 dark:text-neutral-400">
                         {new Date(s.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-2">
-                        {isSmokeTest ? (
+                        {effectiveIsAdmin && (
                           <Link
                             href={`/dashboard/smoke-test-sprint-builder?draftId=${s.id}`}
                             className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                           >
                             Open
                           </Link>
-                        ) : (
-                          <SprintShareLink sprintId={s.id} shareToken={s.share_token} status={s.status} isAdmin={effectiveIsAdmin} />
                         )}
                       </td>
-                      {effectiveIsAdmin && (
-                        <td className="px-4 py-2">
-                          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-                            {!isSmokeTest && <DeleteSprintButton sprintId={s.id} />}
-                          </div>
-                        </td>
-                      )}
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Apps */}
       <section className="rounded-lg border border-black/10 dark:border-white/15 p-4 bg-white dark:bg-black space-y-3">
