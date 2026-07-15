@@ -34,16 +34,10 @@ export async function POST(
     }
 
     if (kind === "deliverable") {
-      const price =
-        body.price === undefined || body.price === null || body.price === ""
-          ? null
-          : Number(body.price);
-      const quantity = Math.max(1, Math.floor(Number(body.quantity) || 1));
       const r = await pool.query(
-        `INSERT INTO hill_deliverables
-           (id, hill_id, name, source, origin, price, quantity, deliverable_scope, deliverable_category)
-         VALUES ($1, $2, $3, 'manual', 'manual', $4, $5, $6, $7) RETURNING *`,
-        [id, hillId, name, price, quantity, body.deliverable_scope ?? null, body.deliverable_category ?? null]
+        `INSERT INTO hill_deliverables (id, hill_id, name, source, origin)
+         VALUES ($1, $2, $3, 'manual', 'manual') RETURNING *`,
+        [id, hillId, name]
       );
       return NextResponse.json({ deliverable: r.rows[0] }, { status: 201 });
     }

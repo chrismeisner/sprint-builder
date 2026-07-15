@@ -49,22 +49,7 @@ type Deliverable = {
   origin: string;
   accepted_at: string | null;
   dismissed_at: string | null;
-  price: string | number | null;
-  quantity: number | null;
-  deliverable_category: string | null;
-  deliverable_scope: string | null;
 };
-type Invoice = {
-  id: string;
-  kind: string;
-  label: string;
-  amount: string | number | null;
-  invoice_status: string;
-  invoice_url: string | null;
-  stripe_invoice_id: string | null;
-  paid_at: string | null;
-};
-type Billing = { scopeTotal: number; amountInvoiced: number; amountPaid: number };
 type Task = {
   id: string;
   idea_id: string | null;
@@ -79,27 +64,21 @@ type Task = {
   accepted_at: string | null;
   dismissed_at: string | null;
 };
-type Payload = {
-  hill: Hill;
-  ideas: Idea[];
-  deliverables: Deliverable[];
-  invoices: Invoice[];
-  tasks: Task[];
-  billing: Billing;
+type ClientStatus = {
+  kind: "sprint" | "refinement_cycle";
+  url: string;
+  status: string | null;
+  contract_status?: string | null;
+  invoice_status?: string | null;
+  start_date?: string | null;
+  due_date?: string | null;
+  total_fixed_price?: string | null;
+  delivery_date?: string | null;
+  total_price?: string | null;
+  deposit_paid_at?: string | null;
+  final_paid_at?: string | null;
 };
-
-const money = (n: number | string | null | undefined) =>
-  (Number(n) || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
-
-const INVOICE_STATUS_STYLE: Record<string, string> = {
-  not_sent: "text-neutral-400",
-  sent: "text-sky-600 dark:text-sky-400",
-  processing: "text-amber-600 dark:text-amber-400",
-  paid: "text-emerald-600 dark:text-emerald-400",
-  failed: "text-red-600 dark:text-red-400",
-  voided: "text-neutral-400 line-through",
-  refunded: "text-red-500",
-};
+type Payload = { hill: Hill; ideas: Idea[]; deliverables: Deliverable[]; tasks: Task[]; clientStatus: ClientStatus | null };
 
 const PHASE_LABEL: Record<string, string> = { scope: "Scope the climb", climb: "The climb", descend: "Observe & descend" };
 const PHASE_TEXT: Record<string, string> = {
@@ -585,113 +564,6 @@ function HillAttachments({ hillId }: { hillId: string }) {
   );
 }
 
-// Client billing panel (Path A): scope total, invoices (create / send to Stripe /
-// void / delete), and the generated agreement. Replaces the legacy sprint/
-// refinement pipeline bridge — the hill itself is the engagement.
-function HillBilling({
-  hillId,
-  invoices,
-  billing,
-  onChange,
-}: {
-  hillId: string;
-  invoices: Invoice[];
-  billing: Billing;
-  onChange: () => void | Promise<void>;
-}) {
-  const [label, setLabel] = useState("");
-  const [amount, setAmount] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [agreement, setAgreement] = useState<{ markdown: string | null; pdfUrl: string | null; generatedAt: string | null }>({ markdown: null, pdfUrl: null, generatedAt: null });
-
-  const loadAgreement = useCallback(async () => {
-    const r = await fetch(`/api/admin/hills/${hillId}/agreement`).then((x) => x.json()).catch(() => ({}));
-    setAgreement({ markdown: r.agreement ?? null, pdfUrl: r.pdfUrl ?? null, generatedAt: r.generatedAt ?? null });
-  }, [hillId]);
-  useEffect(() => { loadAgreement(); }, [loadAgreement]);
-
-  const act = async (fn: () => Promise<void>) => {
-    setBusy(true);
-    setErr(null);
-    try { await fn(); } catch (e) { setErr(e instanceof Error ? e.message : "Failed"); } finally { setBusy(false); }
-  };
-
-  const addInvoice = () =>
-    act(async () => {
-      if (!label.trim()) throw new Error("Label required");
-      await api(`/api/admin/hills/${hillId}/invoices`, "POST", { label: label.trim(), amount: amount === "" ? null : Number(amount) });
-      setLabel(""); setAmount("");
-      await onChange();
-    });
-  const sendInvoice = (id: string) =>
-    act(async () => { await api(`/api/admin/hills/${hillId}/invoices/${id}/stripe`, "POST", { action: "send" }); await onChange(); });
-  const voidInvoice = (id: string) =>
-    act(async () => { await api(`/api/admin/hills/${hillId}/invoices/${id}/stripe`, "POST", { action: "void" }); await onChange(); });
-  const deleteInvoice = (id: string) =>
-    act(async () => { await api(`/api/admin/hills/${hillId}/invoices/${id}`, "DELETE"); await onChange(); });
-  const generateAgreement = () =>
-    act(async () => { await api(`/api/admin/hills/${hillId}/agreement`, "POST"); await loadAgreement(); });
-
-  return (
-    <section className="mb-6 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Billing</h2>
-        <div className="flex gap-3 text-[11px] font-mono text-neutral-500 dark:text-neutral-400">
-          <span title="Scope total">scope {money(billing.scopeTotal)}</span>
-          <span title="Invoiced">inv {money(billing.amountInvoiced)}</span>
-          <span className="text-emerald-600 dark:text-emerald-400" title="Paid">paid {money(billing.amountPaid)}</span>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        {invoices.map((inv) => (
-          <div key={inv.id} className="flex items-center gap-2 text-sm py-1 border-b border-neutral-100 dark:border-neutral-800 last:border-0">
-            <span className="flex-1 truncate text-neutral-800 dark:text-neutral-200">{inv.label}</span>
-            <span className="tabular-nums text-neutral-600 dark:text-neutral-300">{money(inv.amount)}</span>
-            <span className={`text-[11px] font-mono w-20 text-right ${INVOICE_STATUS_STYLE[inv.invoice_status] ?? "text-neutral-400"}`}>{inv.invoice_status}</span>
-            {inv.invoice_url && (
-              <a href={inv.invoice_url} target="_blank" rel="noreferrer" className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline">link ↗</a>
-            )}
-            {inv.invoice_status === "not_sent" && (
-              <button onClick={() => sendInvoice(inv.id)} disabled={busy} className="text-[11px] px-1.5 py-0.5 rounded bg-sky-600 hover:bg-sky-700 text-white disabled:opacity-40">Send</button>
-            )}
-            {inv.stripe_invoice_id && inv.invoice_status !== "voided" && inv.invoice_status !== "paid" && (
-              <button onClick={() => voidInvoice(inv.id)} disabled={busy} className="text-[11px] px-1.5 py-0.5 rounded text-neutral-400 hover:text-red-500">Void</button>
-            )}
-            {!inv.stripe_invoice_id && (
-              <button onClick={() => deleteInvoice(inv.id)} disabled={busy} className="text-[11px] text-neutral-300 hover:text-red-500">✕</button>
-            )}
-          </div>
-        ))}
-        {invoices.length === 0 && <p className="text-xs text-neutral-400">No invoices yet.</p>}
-      </div>
-
-      <div className="flex items-center gap-2 mt-3">
-        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Invoice label (e.g. Deposit)" className="flex-1 text-sm px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 bg-transparent" />
-        <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="$" inputMode="decimal" className="w-24 text-sm px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 bg-transparent" />
-        <button onClick={addInvoice} disabled={busy} className="text-xs px-2.5 py-1 rounded-md border border-neutral-300 dark:border-neutral-700 hover:border-emerald-500/50 disabled:opacity-40">Add</button>
-      </div>
-      {err && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{err}</p>}
-
-      {/* agreement */}
-      <div className="mt-4 pt-3 border-t border-neutral-100 dark:border-neutral-800">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Agreement</span>
-          <div className="flex items-center gap-2">
-            {agreement.markdown && (
-              <a href={`/api/admin/hills/${hillId}/agreement`} className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline" onClick={(e) => { e.preventDefault(); const w = window.open("", "_blank"); if (w) { w.document.write(`<pre style="white-space:pre-wrap;font-family:ui-monospace,monospace;padding:2rem;max-width:52rem;margin:auto">${(agreement.markdown ?? "").replace(/</g, "&lt;")}</pre>`); w.document.title = "Agreement"; } }}>View</a>
-            )}
-            {agreement.pdfUrl && <a href={agreement.pdfUrl} target="_blank" rel="noreferrer" className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline">PDF ↗</a>}
-            <button onClick={generateAgreement} disabled={busy} className="text-[11px] px-2 py-0.5 rounded border border-neutral-300 dark:border-neutral-700 hover:border-emerald-500/50 disabled:opacity-40">{agreement.markdown ? "Regenerate" : "Generate"}</button>
-          </div>
-        </div>
-        {agreement.generatedAt && <p className="text-[11px] text-neutral-400 mt-1">Generated {new Date(agreement.generatedAt).toLocaleString()}</p>}
-      </div>
-    </section>
-  );
-}
-
 export default function HillDetailClient({ hillId }: { hillId: string }) {
   const router = useRouter();
   const [data, setData] = useState<Payload | null>(null);
@@ -751,24 +623,23 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
     await api(`/api/admin/hills/${hillId}/deliverables/${d.id}`, "PATCH", { [decision === "accepted" ? "accepted" : "dismissed"]: true });
     reload();
   };
-  const editDeliverable = async (d: Deliverable, patch: Record<string, unknown>) => {
-    await api(`/api/admin/hills/${hillId}/deliverables/${d.id}`, "PATCH", patch);
-    reload();
-  };
-  // "Accept proposal" / "Activate" — the hill IS the engagement (Path A). Moves
-  // it out of the proposal stage into active work; no legacy record is created.
-  const [activating, setActivating] = useState(false);
-  const [activateError, setActivateError] = useState<string | null>(null);
   const acceptProposal = async () => {
-    setActivating(true);
-    setActivateError(null);
+    await patchHill({ accepted: true });
+  };
+  const [converting, setConverting] = useState(false);
+  const [convertError, setConvertError] = useState<string | null>(null);
+  const convertHill = async () => {
+    setConverting(true);
+    setConvertError(null);
     try {
-      await api(`/api/admin/hills/${hillId}/convert`, "POST");
-      await reload();
+      const res = await fetch(`/api/admin/hills/${hillId}/convert`, { method: "POST" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || `HTTP ${res.status}`);
+      router.push(d.url);
     } catch (e) {
-      setActivateError(e instanceof Error ? e.message : "Failed to activate");
+      setConvertError(e instanceof Error ? e.message : "Failed to convert");
     } finally {
-      setActivating(false);
+      setConverting(false);
     }
   };
   const reorderTasks = async (orderedIds: string[]) => {
@@ -798,7 +669,7 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
       </div>
     );
 
-  const { hill, ideas, deliverables, invoices, tasks, billing } = data;
+  const { hill, ideas, deliverables, tasks, clientStatus } = data;
   const looseTasks = tasks.filter((t) => !t.idea_id && !t.deliverable_id && !t.parent_task_id && !t.dismissed_at);
 
   const isClientHill = hill.type === "sprint" || hill.type === "refinement_cycle";
@@ -859,20 +730,54 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
               Scoped via the intake survey{hill.submitter_email ? ` by ${hill.submitter_email}` : ""}. Accept or dismiss the suggested items below, then accept the proposal.
             </p>
           </div>
-          <div className="text-right">
-            <button onClick={acceptProposal} disabled={activating} className="text-xs px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium transition disabled:opacity-40">
-              {activating ? "Activating…" : "Accept & activate"}
-            </button>
-            {activateError && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{activateError}</p>}
-          </div>
+          <button onClick={acceptProposal} className="text-xs px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium transition">
+            Accept proposal
+          </button>
         </div>
       )}
 
       <HillRepeat hillId={hillId} />
 
-      {/* client-work billing: the hill itself is the engagement (Path A) */}
+      {/* client-work bridge: live status of the linked legacy record, or create it */}
       {isClientHill && (
-        <HillBilling hillId={hillId} invoices={invoices} billing={billing} onChange={reload} />
+        <div className="mb-6 rounded-lg border border-sky-500/30 bg-sky-500/5 p-4 flex flex-wrap items-center justify-between gap-3">
+          {clientStatus ? (
+            <>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-sky-700 dark:text-sky-300">
+                  In the client pipeline
+                </p>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-neutral-500 dark:text-neutral-400 mt-1 font-mono">
+                  {clientStatus.status && <span><b className="text-neutral-600 dark:text-neutral-300">status</b> {clientStatus.status}</span>}
+                  {clientStatus.kind === "sprint" && clientStatus.contract_status && <span><b className="text-neutral-600 dark:text-neutral-300">contract</b> {clientStatus.contract_status}</span>}
+                  {clientStatus.kind === "sprint" && clientStatus.invoice_status && <span><b className="text-neutral-600 dark:text-neutral-300">invoice</b> {clientStatus.invoice_status}</span>}
+                  {clientStatus.kind === "refinement_cycle" && clientStatus.delivery_date && <span><b className="text-neutral-600 dark:text-neutral-300">deliver</b> {new Date(clientStatus.delivery_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>}
+                  {clientStatus.kind === "refinement_cycle" && <span><b className="text-neutral-600 dark:text-neutral-300">paid</b> {clientStatus.final_paid_at ? "yes" : clientStatus.deposit_paid_at ? "deposit" : "no"}</span>}
+                </div>
+              </div>
+              <a href={clientStatus.url} className="text-xs px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-700 text-white font-medium no-underline whitespace-nowrap">
+                Open {clientStatus.kind === "sprint" ? "sprint" : "refinement"} →
+              </a>
+            </>
+          ) : (
+            <>
+              <div>
+                <p className="text-sm font-medium text-sky-700 dark:text-sky-300">Ready to start the work?</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                  Create the {hill.type === "sprint" ? "sprint draft" : "refinement cycle"} to run agreement, invoicing, and delivery through the client pipeline.
+                </p>
+                {convertError && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{convertError}</p>}
+              </div>
+              <button
+                onClick={convertHill}
+                disabled={converting}
+                className="text-xs px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-700 text-white font-medium disabled:opacity-40 whitespace-nowrap"
+              >
+                {converting ? "Creating…" : `Create ${hill.type === "sprint" ? "sprint draft" : "refinement cycle"} →`}
+              </button>
+            </>
+          )}
+        </div>
       )}
 
       {/* ideas */}
@@ -933,26 +838,6 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
                   )}
                 </div>
                 {d.notes && <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-snug">{d.notes}</p>}
-                {isClientHill && (
-                  <div className="flex items-center gap-1.5 mt-1.5 text-xs text-neutral-500">
-                    <span className="text-neutral-400">$</span>
-                    <input
-                      defaultValue={d.price ?? ""}
-                      onBlur={(e) => { if (e.target.value !== String(d.price ?? "")) editDeliverable(d, { price: e.target.value }); }}
-                      placeholder="price"
-                      inputMode="decimal"
-                      className="w-24 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-neutral-700 bg-transparent tabular-nums"
-                    />
-                    <span className="text-neutral-400">×</span>
-                    <input
-                      defaultValue={d.quantity ?? 1}
-                      onBlur={(e) => { if (e.target.value !== String(d.quantity ?? 1)) editDeliverable(d, { quantity: e.target.value }); }}
-                      inputMode="numeric"
-                      className="w-12 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-neutral-700 bg-transparent tabular-nums"
-                    />
-                    <span className="text-neutral-600 dark:text-neutral-300 tabular-nums">= {money((Number(d.price) || 0) * (Number(d.quantity) || 1))}</span>
-                  </div>
-                )}
                 {d.delivery_url && (
                   <a href={d.delivery_url} target="_blank" rel="noreferrer" className="text-xs text-sky-600 dark:text-sky-400 hover:underline mt-1 inline-block">
                     Delivered ↗

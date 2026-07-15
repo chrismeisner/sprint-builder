@@ -24,13 +24,12 @@ function createPool(): Pool {
   }
 
   // Enable SSL for all environments since most cloud databases require it
-  // (rejectUnauthorized:false allows self-signed certs). Local Postgres does
-  // not speak SSL, so disable it for localhost connections — this lets the app
-  // and scripts run against a local dev/test database.
-  const isLocal = /@(localhost|127\.0\.0\.1)[:/]/.test(connectionString);
+  // Set rejectUnauthorized to false to allow self-signed certificates
   return new Pool({
     connectionString,
-    ssl: isLocal ? false : { rejectUnauthorized: false },
+    ssl: {
+      rejectUnauthorized: false,
+    },
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
@@ -1984,19 +1983,6 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_hill_deliverables_catalog ON hill_deliverables(catalog_deliverable_id);
   `);
 
-  // Pricing / scope columns on hill_deliverables — the hill-native client flow's
-  // per-line-item fields: a flat price + quantity (→ hill total), plus scope/
-  // category/body text used by the retained agreement generator and client view.
-  // Additive; unused by personal hills.
-  await pool.query(`
-    ALTER TABLE hill_deliverables
-      ADD COLUMN IF NOT EXISTS price numeric(12,2),
-      ADD COLUMN IF NOT EXISTS quantity integer NOT NULL DEFAULT 1,
-      ADD COLUMN IF NOT EXISTS deliverable_category text,
-      ADD COLUMN IF NOT EXISTS deliverable_scope text,
-      ADD COLUMN IF NOT EXISTS content text
-  `);
-
   // Hill tasks — the leaf unit of climbing. From admin_tasks. Polymorphic
   // parent: a task belongs to an idea OR a deliverable OR neither (a free
   // capture). Retains the focus ladder ('' -> week -> today -> now) and
@@ -2331,41 +2317,6 @@ export async function ensureSchema(): Promise<void> {
     ALTER TABLE refinement_cycles
       ADD COLUMN IF NOT EXISTS hill_id text REFERENCES hills(id) ON DELETE SET NULL;
     CREATE INDEX IF NOT EXISTS idx_refinement_cycles_hill ON refinement_cycles(hill_id);
-  `);
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // hill_invoices — the billing satellite, hills-authoritative. One unified shape
-  // replacing sprint_invoices (N rows per sprint) AND the refinement_cycles Stripe
-  // columns (which collapse into 2 rows: kind='deposit' + kind='final'). Keyed on
-  // hill_id so the Stripe webhook can resolve payments via metadata.hill_id. Kept a
-  // satellite (NOT folded into hills) per docs/hill-model.md §4.
-  //   kind: 'sprint' | 'custom' | 'deposit' | 'final'
-  //   invoice_status: not_sent | sent | processing | paid | failed | voided | refunded
-  // ─────────────────────────────────────────────────────────────────────────────
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS hill_invoices (
-      id text PRIMARY KEY,
-      hill_id text NOT NULL REFERENCES hills(id) ON DELETE CASCADE,
-      kind text NOT NULL DEFAULT 'custom',
-      label text NOT NULL,
-      amount numeric(12,2),
-      invoice_status text NOT NULL DEFAULT 'not_sent',
-      invoice_url text,
-      invoice_pdf_url text,
-      stripe_invoice_id text,
-      paid_at timestamptz,
-      payment_initiated_at timestamptz,
-      sort_order integer NOT NULL DEFAULT 0,
-      legacy_source text,
-      legacy_id text,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE INDEX IF NOT EXISTS idx_hill_invoices_hill ON hill_invoices(hill_id);
-    CREATE INDEX IF NOT EXISTS idx_hill_invoices_stripe_id ON hill_invoices(stripe_invoice_id)
-      WHERE stripe_invoice_id IS NOT NULL;
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_hill_invoices_legacy ON hill_invoices(legacy_source, legacy_id)
-      WHERE legacy_source IS NOT NULL AND legacy_id IS NOT NULL;
   `);
 
   global._schemaInitialized = true;

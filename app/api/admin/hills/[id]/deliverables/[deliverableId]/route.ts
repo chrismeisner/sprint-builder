@@ -25,13 +25,6 @@ export async function PATCH(
     if (typeof body.name === "string") set("name", body.name.trim());
     if ("notes" in body) set("notes", body.notes ?? null);
     if ("delivery_url" in body) set("delivery_url", body.delivery_url ?? null);
-    if ("description" in body) set("description", body.description ?? null);
-    // Path-A client pricing / scope fields
-    if ("price" in body) set("price", body.price === null || body.price === "" ? null : Number(body.price));
-    if ("quantity" in body) set("quantity", Math.max(1, Math.floor(Number(body.quantity) || 1)));
-    if ("deliverable_category" in body) set("deliverable_category", body.deliverable_category ?? null);
-    if ("deliverable_scope" in body) set("deliverable_scope", body.deliverable_scope ?? null);
-    if ("content" in body) set("content", body.content ?? null);
     if (typeof body.accepted === "boolean") {
       set("accepted_at", body.accepted ? new Date().toISOString() : null);
       if (body.accepted) set("dismissed_at", null);
