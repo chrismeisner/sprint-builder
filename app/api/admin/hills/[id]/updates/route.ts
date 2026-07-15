@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import crypto from "crypto";
 
 type UpdateLink = { url: string; label: string };
+type UpdateAttachment = { url: string; fileName: string; mimetype: string; fileSizeBytes?: number };
 
 function sanitizeLinks(links: unknown): UpdateLink[] {
   if (!Array.isArray(links)) return [];
@@ -16,6 +17,24 @@ function sanitizeLinks(links: unknown): UpdateLink[] {
     )
     .map((l) => ({ url: l.url.trim(), label: l.label.trim() }))
     .filter((l) => l.url);
+}
+
+function sanitizeAttachments(items: unknown): UpdateAttachment[] {
+  if (!Array.isArray(items)) return [];
+  return items
+    .filter(
+      (a): a is UpdateAttachment =>
+        typeof a === "object" && a !== null &&
+        typeof (a as UpdateAttachment).url === "string" &&
+        typeof (a as UpdateAttachment).fileName === "string"
+    )
+    .map((a) => ({
+      url: a.url,
+      fileName: a.fileName,
+      mimetype: typeof a.mimetype === "string" ? a.mimetype : "application/octet-stream",
+      ...(typeof a.fileSizeBytes === "number" ? { fileSizeBytes: a.fileSizeBytes } : {}),
+    }))
+    .filter((a) => a.url);
 }
 
 // GET /api/admin/hills/[id]/updates — progress updates posted on a hill.
@@ -63,6 +82,7 @@ export async function POST(
     if (!text) return NextResponse.json({ error: "Update text is required" }, { status: 400 });
     const frame = typeof body.frame === "string" && body.frame.trim() ? body.frame.trim() : null;
     const links = sanitizeLinks(body.links);
+    const attachments = sanitizeAttachments(body.attachments);
 
     const hill = await pool.query(`SELECT id FROM hills WHERE id = $1`, [params.id]);
     if (hill.rowCount === 0) return NextResponse.json({ error: "Hill not found" }, { status: 404 });
@@ -73,7 +93,7 @@ export async function POST(
          (id, hill_id, subject_type, subject_id, kind, event_type, body, author_account_id, author_email, data)
        VALUES ($1, $2, 'hill', $2, 'update', 'daily_update', $3, $4, $5, $6::jsonb)
        RETURNING id, body, event_type, data, author_email, created_at`,
-      [id, params.id, text, admin.accountId, admin.email, JSON.stringify({ frame, links })]
+      [id, params.id, text, admin.accountId, admin.email, JSON.stringify({ frame, links, attachments })]
     );
     return NextResponse.json(
       { update: { ...r.rows[0], author_name: admin.name } },

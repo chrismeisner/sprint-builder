@@ -487,14 +487,17 @@ function HillNotes({ hillId }: { hillId: string }) {
 }
 
 type UpdateLink = { url: string; label: string };
+type UpdateAttachment = { url: string; fileName: string; mimetype: string; fileSizeBytes?: number };
 type HillUpdate = {
   id: string;
   body: string;
-  data: { frame?: string | null; links?: UpdateLink[] } | null;
+  data: { frame?: string | null; links?: UpdateLink[]; attachments?: UpdateAttachment[] } | null;
   author_email: string | null;
   author_name: string | null;
   created_at: string;
 };
+
+const isImage = (m: string | undefined | null) => !!m && m.startsWith("image/");
 
 function timeAgo(iso: string): string {
   const d = new Date(iso);
@@ -528,6 +531,9 @@ function HillUpdates({ hillId }: { hillId: string }) {
   const [links, setLinks] = useState<UpdateLink[]>([]);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkLabel, setLinkLabel] = useState("");
+  const [attachments, setAttachments] = useState<UpdateAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState("");
@@ -545,12 +551,34 @@ function HillUpdates({ hillId }: { hillId: string }) {
     setLinkLabel("");
   }
 
+  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0) return;
+    setUploading(true);
+    setUploadErr(null);
+    try {
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch(`/api/admin/hills/${hillId}/updates/upload`, { method: "POST", body: fd });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || `Upload failed (${res.status})`);
+        setAttachments((a) => [...a, { url: d.url, fileName: d.fileName, mimetype: d.mimetype, fileSizeBytes: d.fileSizeBytes }]);
+      }
+    } catch (err) {
+      setUploadErr(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function post() {
     if (!body.trim()) return;
     setBusy(true);
     try {
-      await api(`/api/admin/hills/${hillId}/updates`, "POST", { body: body.trim(), frame: frame.trim() || null, links });
-      setBody(""); setFrame(""); setLinks([]);
+      await api(`/api/admin/hills/${hillId}/updates`, "POST", { body: body.trim(), frame: frame.trim() || null, links, attachments });
+      setBody(""); setFrame(""); setLinks([]); setAttachments([]);
       load();
     } finally {
       setBusy(false);
@@ -602,8 +630,25 @@ function HillUpdates({ hillId }: { hillId: string }) {
             <input value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} placeholder="label" className="w-24 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 bg-transparent text-xs" />
             <button onClick={addLink} className="text-xs px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 hover:border-sky-500/50">+ link</button>
           </div>
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {attachments.map((a, i) => (
+                <span key={i} className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800">
+                  📎 {a.fileName}
+                  <button onClick={() => setAttachments((as) => as.filter((_, j) => j !== i))} className="text-neutral-400 hover:text-red-500" aria-label="Remove attachment">×</button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <label className="text-xs px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 hover:border-sky-500/50 cursor-pointer">
+              {uploading ? "Uploading…" : "+ attach files"}
+              <input type="file" multiple onChange={upload} disabled={uploading} className="hidden" />
+            </label>
+            {uploadErr && <span className="text-[11px] text-red-500">{uploadErr}</span>}
+          </div>
           <div className="flex justify-end">
-            <button onClick={post} disabled={busy || !body.trim()} className="text-xs px-3 py-1 rounded bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 disabled:opacity-40">
+            <button onClick={post} disabled={busy || uploading || !body.trim()} className="text-xs px-3 py-1 rounded bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 disabled:opacity-40">
               {busy ? "Posting…" : "Post update"}
             </button>
           </div>
@@ -644,6 +689,22 @@ function HillUpdates({ hillId }: { hillId: string }) {
                           {l.label} ↗
                         </a>
                       ))}
+                    </div>
+                  )}
+                  {(u.data?.attachments ?? []).length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-1.5">
+                      {(u.data?.attachments ?? []).map((a, i) =>
+                        isImage(a.mimetype) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <a key={i} href={a.url} target="_blank" rel="noreferrer">
+                            <img src={a.url} alt={a.fileName} className="h-16 w-16 object-cover rounded border border-neutral-200 dark:border-neutral-700" />
+                          </a>
+                        ) : (
+                          <a key={i} href={a.url} target="_blank" rel="noreferrer" className="text-[11px] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700">
+                            📎 {a.fileName}
+                          </a>
+                        )
+                      )}
                     </div>
                   )}
                 </div>

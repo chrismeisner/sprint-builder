@@ -3,6 +3,7 @@ import { getPool, ensureSchema } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 
 type UpdateLink = { url: string; label: string };
+type UpdateAttachment = { url: string; fileName: string; mimetype: string; fileSizeBytes?: number };
 
 function sanitizeLinks(links: unknown): UpdateLink[] {
   if (!Array.isArray(links)) return [];
@@ -15,6 +16,24 @@ function sanitizeLinks(links: unknown): UpdateLink[] {
     )
     .map((l) => ({ url: l.url.trim(), label: l.label.trim() }))
     .filter((l) => l.url);
+}
+
+function sanitizeAttachments(items: unknown): UpdateAttachment[] {
+  if (!Array.isArray(items)) return [];
+  return items
+    .filter(
+      (a): a is UpdateAttachment =>
+        typeof a === "object" && a !== null &&
+        typeof (a as UpdateAttachment).url === "string" &&
+        typeof (a as UpdateAttachment).fileName === "string"
+    )
+    .map((a) => ({
+      url: a.url,
+      fileName: a.fileName,
+      mimetype: typeof a.mimetype === "string" ? a.mimetype : "application/octet-stream",
+      ...(typeof a.fileSizeBytes === "number" ? { fileSizeBytes: a.fileSizeBytes } : {}),
+    }))
+    .filter((a) => a.url);
 }
 
 // PATCH /api/admin/hills/[id]/updates/[updateId] — edit body / frame / links.
@@ -43,14 +62,19 @@ export async function PATCH(
       sets.push(`body = $${n++}`);
       values.push(body.body.trim());
     }
-    if ("frame" in body || "links" in body) {
-      const prev = (existing.rows[0].data ?? {}) as { frame?: string | null; links?: UpdateLink[] };
+    if ("frame" in body || "links" in body || "attachments" in body) {
+      const prev = (existing.rows[0].data ?? {}) as {
+        frame?: string | null;
+        links?: UpdateLink[];
+        attachments?: UpdateAttachment[];
+      };
       const frame = "frame" in body
         ? (typeof body.frame === "string" && body.frame.trim() ? body.frame.trim() : null)
         : prev.frame ?? null;
       const links = "links" in body ? sanitizeLinks(body.links) : prev.links ?? [];
+      const attachments = "attachments" in body ? sanitizeAttachments(body.attachments) : prev.attachments ?? [];
       sets.push(`data = $${n++}::jsonb`);
-      values.push(JSON.stringify({ frame, links }));
+      values.push(JSON.stringify({ frame, links, attachments }));
     }
 
     if (sets.length === 0) return NextResponse.json({ error: "No fields to update" }, { status: 400 });
