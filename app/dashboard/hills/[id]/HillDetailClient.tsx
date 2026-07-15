@@ -486,6 +486,176 @@ function HillNotes({ hillId }: { hillId: string }) {
   );
 }
 
+type UpdateLink = { url: string; label: string };
+type HillUpdate = {
+  id: string;
+  body: string;
+  data: { frame?: string | null; links?: UpdateLink[] } | null;
+  author_email: string | null;
+  author_name: string | null;
+  created_at: string;
+};
+
+function timeAgo(iso: string): string {
+  const d = new Date(iso);
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const days = Math.floor(h / 24);
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function linkifyBody(t: string) {
+  return t.split(/(https?:\/\/[^\s]+)/g).map((p, i) =>
+    /^https?:\/\//.test(p) ? (
+      <a key={i} href={p} target="_blank" rel="noreferrer" className="text-sky-600 dark:text-sky-400 hover:underline break-all">{p}</a>
+    ) : (
+      <span key={i}>{p}</span>
+    )
+  );
+}
+
+// Daily-updates for a hill — progress posts, mirroring sprint daily updates.
+// Stored in hill_events (kind='update'); additive, beside the sprint feature.
+function HillUpdates({ hillId }: { hillId: string }) {
+  const [updates, setUpdates] = useState<HillUpdate[]>([]);
+  const [body, setBody] = useState("");
+  const [frame, setFrame] = useState("");
+  const [links, setLinks] = useState<UpdateLink[]>([]);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkLabel, setLinkLabel] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState("");
+
+  const load = useCallback(async () => {
+    const r = await fetch(`/api/admin/hills/${hillId}/updates`).then((x) => x.json()).catch(() => ({ updates: [] }));
+    setUpdates(r.updates ?? []);
+  }, [hillId]);
+  useEffect(() => { load(); }, [load]);
+
+  function addLink() {
+    if (!linkUrl.trim()) return;
+    setLinks((l) => [...l, { url: linkUrl.trim(), label: linkLabel.trim() || linkUrl.trim() }]);
+    setLinkUrl("");
+    setLinkLabel("");
+  }
+
+  async function post() {
+    if (!body.trim()) return;
+    setBusy(true);
+    try {
+      await api(`/api/admin/hills/${hillId}/updates`, "POST", { body: body.trim(), frame: frame.trim() || null, links });
+      setBody(""); setFrame(""); setLinks([]);
+      load();
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function saveEdit(id: string) {
+    if (!editBody.trim()) return;
+    await api(`/api/admin/hills/${hillId}/updates/${id}`, "PATCH", { body: editBody.trim() });
+    setEditingId(null);
+    load();
+  }
+  async function del(id: string) {
+    if (!window.confirm("Delete this update?")) return;
+    await api(`/api/admin/hills/${hillId}/updates/${id}`, "DELETE");
+    load();
+  }
+
+  return (
+    <section className="mb-6">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Updates</h2>
+      <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3">
+        {/* composer */}
+        <div className="flex flex-col gap-1.5 mb-3">
+          <input
+            value={frame}
+            onChange={(e) => setFrame(e.target.value)}
+            placeholder="Heading (optional) — e.g. Day 3, Kickoff…"
+            className="px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 bg-transparent text-sm"
+          />
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="Post a progress update…"
+            rows={3}
+            className="px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 bg-transparent text-sm resize-y"
+          />
+          {links.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {links.map((l, i) => (
+                <span key={i} className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800">
+                  {l.label}
+                  <button onClick={() => setLinks((ls) => ls.filter((_, j) => j !== i))} className="text-neutral-400 hover:text-red-500" aria-label="Remove link">×</button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-1.5">
+            <input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="Link URL" className="flex-1 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 bg-transparent text-xs" />
+            <input value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} placeholder="label" className="w-24 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 bg-transparent text-xs" />
+            <button onClick={addLink} className="text-xs px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 hover:border-sky-500/50">+ link</button>
+          </div>
+          <div className="flex justify-end">
+            <button onClick={post} disabled={busy || !body.trim()} className="text-xs px-3 py-1 rounded bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 disabled:opacity-40">
+              {busy ? "Posting…" : "Post update"}
+            </button>
+          </div>
+        </div>
+
+        {/* timeline */}
+        {updates.length === 0 ? (
+          <p className="text-xs text-neutral-400">No updates yet.</p>
+        ) : (
+          <div className="flex flex-col">
+            {updates.map((u) => {
+              const uLinks = u.data?.links ?? [];
+              return (
+                <div key={u.id} className="group py-2.5 border-b border-neutral-100 dark:border-neutral-800/60 last:border-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    {u.data?.frame && <span className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">{u.data.frame}</span>}
+                    <span className="text-[11px] text-neutral-400">{u.author_name || u.author_email || "—"} · {timeAgo(u.created_at)}</span>
+                    <span className="ml-auto flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition">
+                      <button onClick={() => { setEditingId(u.id); setEditBody(u.body); }} className="text-[11px] text-neutral-400 hover:text-sky-600" aria-label="Edit update">edit</button>
+                      <button onClick={() => del(u.id)} className="text-[11px] text-neutral-400 hover:text-red-500" aria-label="Delete update">×</button>
+                    </span>
+                  </div>
+                  {editingId === u.id ? (
+                    <div className="flex flex-col gap-1.5">
+                      <textarea value={editBody} onChange={(e) => setEditBody(e.target.value)} rows={3} className="px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 bg-transparent text-sm resize-y" />
+                      <div className="flex justify-end gap-1.5">
+                        <button onClick={() => setEditingId(null)} className="text-xs px-2 py-0.5 rounded text-neutral-500">Cancel</button>
+                        <button onClick={() => saveEdit(u.id)} className="text-xs px-2 py-0.5 rounded bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900">Save</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-neutral-700 dark:text-neutral-300 whitespace-pre-wrap leading-snug">{linkifyBody(u.body)}</p>
+                  )}
+                  {uLinks.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {uLinks.map((l, i) => (
+                        <a key={i} href={l.url} target="_blank" rel="noreferrer" className="text-[11px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-700 dark:text-sky-300 hover:bg-sky-500/20">
+                          {l.label} ↗
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 type Attachment = { id: string; filename: string; mimetype: string | null; size_bytes: number | null; url: string | null };
 
 function HillAttachments({ hillId }: { hillId: string }) {
@@ -869,6 +1039,7 @@ export default function HillDetailClient({ hillId }: { hillId: string }) {
         </div>
       </section>
 
+      <HillUpdates hillId={hillId} />
       <HillNotes hillId={hillId} />
       <HillAttachments hillId={hillId} />
     </div>
