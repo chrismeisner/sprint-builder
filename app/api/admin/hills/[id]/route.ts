@@ -32,7 +32,7 @@ export async function GET(
       return NextResponse.json({ error: "Hill not found" }, { status: 404 });
     }
 
-    const [ideas, deliverables, tasks] = await Promise.all([
+    const [ideas, deliverables, invoices, tasks] = await Promise.all([
       pool.query(
         `SELECT id, title, summary, status, project_id, sort_order
          FROM hill_ideas WHERE hill_id = $1 ORDER BY sort_order, created_at`,
@@ -40,8 +40,15 @@ export async function GET(
       ),
       pool.query(
         `SELECT id, name, description, notes, source, added_by, current_version,
-                delivery_url, sort_order, origin, accepted_at, dismissed_at
+                delivery_url, sort_order, origin, accepted_at, dismissed_at,
+                price, quantity, deliverable_category, deliverable_scope
          FROM hill_deliverables WHERE hill_id = $1 ORDER BY sort_order, created_at`,
+        [id]
+      ),
+      pool.query(
+        `SELECT id, kind, label, amount, invoice_status, invoice_url, invoice_pdf_url,
+                stripe_invoice_id, paid_at, payment_initiated_at, sort_order, created_at
+         FROM hill_invoices WHERE hill_id = $1 ORDER BY sort_order, created_at`,
         [id]
       ),
       pool.query(
@@ -57,34 +64,28 @@ export async function GET(
       ),
     ]);
 
-    // Stage B (read-side): for client hills, surface the LIVE status of the
-    // linked legacy record — resolved via type_data.linked_id (bridged hills) or
-    // the hill id itself (backfilled hills reuse the legacy PK). Read-only.
     const hill = hillRes.rows[0];
-    let clientStatus: Record<string, unknown> | null = null;
-    const legacyId = (hill.type_data?.linked_id as string) || hill.id;
-    if (hill.type === "sprint") {
-      const sd = await pool.query(
-        `SELECT id, status, contract_status, invoice_status, start_date, due_date, total_fixed_price
-           FROM sprint_drafts WHERE id = $1`,
-        [legacyId]
-      );
-      if (sd.rowCount) clientStatus = { kind: "sprint", url: `/sprints/${legacyId}`, ...sd.rows[0] };
-    } else if (hill.type === "refinement_cycle") {
-      const rc = await pool.query(
-        `SELECT id, status, delivery_date, total_price, deposit_paid_at, final_paid_at
-           FROM refinement_cycles WHERE id = $1`,
-        [legacyId]
-      );
-      if (rc.rowCount) clientStatus = { kind: "refinement_cycle", url: `/dashboard/refinement-cycles/${legacyId}`, ...rc.rows[0] };
-    }
+
+    // Client-work money rollup (Path A). Scope total = Σ price×quantity over
+    // deliverables; invoiced/paid derived from the hill_invoices satellite.
+    const num = (v: unknown) => (v == null ? 0 : Number(v));
+    const scopeTotal = deliverables.rows.reduce(
+      (sum, d) => sum + num(d.price) * (Number(d.quantity) || 1),
+      0
+    );
+    const activeInvoices = invoices.rows.filter((i) => i.invoice_status !== "voided");
+    const amountInvoiced = activeInvoices.reduce((s, i) => s + num(i.amount), 0);
+    const amountPaid = invoices.rows
+      .filter((i) => i.invoice_status === "paid")
+      .reduce((s, i) => s + num(i.amount), 0);
 
     return NextResponse.json({
       hill,
       ideas: ideas.rows,
       deliverables: deliverables.rows,
+      invoices: invoices.rows,
       tasks: tasks.rows,
-      clientStatus,
+      billing: { scopeTotal, amountInvoiced, amountPaid },
     });
   } catch (error) {
     console.error("Error fetching hill:", error);
