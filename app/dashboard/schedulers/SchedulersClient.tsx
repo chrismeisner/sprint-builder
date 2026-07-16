@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 
 type Job = {
   id: string;
@@ -193,7 +192,6 @@ export default function SchedulersClient() {
           <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">Schedulers</h1>
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">The automation jobs — which are firing, which need wiring, and what&apos;s planned.</p>
         </div>
-        <Link href="/dashboard/hills" className="text-sm text-neutral-500 dark:text-neutral-400 hover:underline">Hills →</Link>
       </div>
 
       <div className="mt-4 mb-6 rounded-lg border border-amber-500/25 bg-amber-500/5 p-3.5 text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">

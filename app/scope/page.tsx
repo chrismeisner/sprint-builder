@@ -24,7 +24,7 @@ export default function ScopePage() {
     setState("saving");
     setError(null);
     try {
-      const res = await fetch("/api/hills/intake", {
+      const res = await fetch("/api/scope", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -50,8 +50,8 @@ export default function ScopePage() {
   if (state === "done") {
     return (
       <div className="max-w-xl mx-auto px-4 py-16 text-center">
-        <div className="text-4xl mb-4">⛰️</div>
-        <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">Your climb is scoped</h1>
+        <div className="text-4xl mb-4">✅</div>
+        <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">Your scope is in</h1>
         <p className="text-neutral-500 dark:text-neutral-400 mt-2">
           Thanks — we&apos;ve captured your scope
           {result ? ` with ${result.deliverables} outcome${result.deliverables === 1 ? "" : "s"} and ${result.tasks} thing${result.tasks === 1 ? "" : "s"} to resolve` : ""}.
@@ -68,10 +68,10 @@ export default function ScopePage() {
   return (
     <div className="max-w-xl mx-auto px-4 py-12">
       <header className="mb-8">
-        <p className="text-xs font-mono uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Scope a climb</p>
+        <p className="text-xs font-mono uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Scope your work</p>
         <h1 className="text-3xl font-semibold text-neutral-900 dark:text-neutral-100 mt-1">Tell us what you&apos;re trying to reach</h1>
         <p className="text-neutral-500 dark:text-neutral-400 mt-2">
-          A few questions to size the hill. We&apos;ll turn your answers into a draft scope and follow up.
+          A few questions to size the work. We&apos;ll turn your answers into a draft scope and follow up.
         </p>
       </header>
 

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { ensureSchema, getPool } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, getOrCreateStripeCustomer } from "@/lib/stripe";
-import { resolveHillIdForSprint } from "@/lib/hillBilling";
 import {
   sendEmail,
   generateInvoiceDraftEmail,
@@ -108,18 +107,6 @@ export async function POST(request: Request, { params }: Params) {
       stripe_recipient_email: string | null;
     };
 
-    // Billing → hills: resolve the owning hill once and stamp it on the invoice
-    // row now, so both the generated Stripe metadata and the webhook can route
-    // this payment to the hills timeline. Best-effort — legacy routing
-    // (metadata.invoice_id / stripe_invoice_id) still works if this is null.
-    const hillId = await resolveHillIdForSprint(pool, params.id);
-    if (hillId) {
-      await pool.query(
-        `UPDATE sprint_invoices SET hill_id = $1 WHERE id = $2 AND hill_id IS DISTINCT FROM $1`,
-        [hillId, params.invoiceId]
-      );
-    }
-
     // -------------------------------------------------------------------------
     // ACTION: generate
     // -------------------------------------------------------------------------
@@ -217,7 +204,6 @@ export async function POST(request: Request, { params }: Params) {
         metadata: {
           sprint_id: params.id,
           invoice_id: params.invoiceId,
-          ...(hillId ? { hill_id: hillId } : {}),
         },
       });
 
@@ -376,7 +362,6 @@ export async function POST(request: Request, { params }: Params) {
             metadata: {
               sprint_id: params.id,
               invoice_id: params.invoiceId,
-              ...(hillId ? { hill_id: hillId } : {}),
             },
           });
 
