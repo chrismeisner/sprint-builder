@@ -446,6 +446,140 @@ async function renderSprint(sprint: Row, level: number): Promise<string[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Refinement cycle section
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders one refinement cycle. `level` is the heading depth of the cycle
+ * title (1 standalone, 3 when nested under a project's "Refinement cycles").
+ */
+async function renderCycle(cycle: Row, level: number): Promise<string[]> {
+  const pool = getPool();
+  const cycleId = String(cycle.id);
+  const out: string[] = [];
+  const h = (depth: number, text: string) => out.push(`${"#".repeat(Math.min(6, depth))} ${text}`);
+  const blank = () => out.push("");
+
+  const [notes, screens, shots] = await Promise.all([
+    pool.query(
+      `SELECT n.body, n.author_email, n.created_at,
+              COALESCE(json_agg(json_build_object('url', at.file_url, 'fileName', at.filename, 'mimetype', at.mimetype))
+                       FILTER (WHERE at.id IS NOT NULL), '[]') AS attachments
+       FROM refinement_cycle_notes n
+       LEFT JOIN refinement_cycle_note_attachments at ON at.note_id = n.id
+       WHERE n.refinement_cycle_id = $1
+       GROUP BY n.id, n.body, n.author_email, n.created_at
+       ORDER BY n.created_at`,
+      [cycleId]
+    ).catch(() => ({ rows: [] as Row[] })),
+    pool.query(
+      `SELECT name, notes, admin_note, added_by, created_at FROM refinement_cycle_screens
+       WHERE refinement_cycle_id = $1 ORDER BY sort_order, created_at`,
+      [cycleId]
+    ).catch(() => ({ rows: [] as Row[] })),
+    pool.query(
+      `SELECT file_url, filename, caption, mimetype FROM refinement_cycle_deliverable_screenshots
+       WHERE refinement_cycle_id = $1 ORDER BY sort_order, created_at`,
+      [cycleId]
+    ).catch(() => ({ rows: [] as Row[] })),
+  ]);
+
+  h(level, s(cycle.title) ?? "Untitled cycle");
+  blank();
+  out.push("| | |", "|---|---|");
+  out.push(`| Status | ${s(cycle.status) ?? "—"} |`);
+  out.push(`| Submitted | ${fmtDateTime(cycle.submitted_at)} by ${s(cycle.submitter_email) ?? "—"} |`);
+  out.push(`| Accepted | ${fmtDateTime(cycle.accepted_at)} |`);
+  if (s(cycle.declined_at)) out.push(`| Declined | ${fmtDateTime(cycle.declined_at)} |`);
+  out.push(`| Delivered | ${fmtDateTime(cycle.delivered_at)} |`);
+  if (s(cycle.preferred_delivery_date)) out.push(`| Preferred delivery | ${fmtDate(cycle.preferred_delivery_date)} |`);
+  if (s(cycle.delivery_date)) out.push(`| Delivery date | ${fmtDate(cycle.delivery_date)} |`);
+  out.push(`| Price | ${fmtMoney(cycle.total_price)} (deposit ${fmtMoney(cycle.deposit_amount)}, final ${fmtMoney(cycle.final_amount)}) |`);
+  out.push(`| Deposit required | ${cycle.requires_deposit ? "yes" : "no"} |`);
+  out.push(`| Deposit paid | ${fmtDateTime(cycle.deposit_paid_at)} |`);
+  out.push(`| Final paid | ${fmtDateTime(cycle.final_paid_at)} |`);
+  out.push(`| Rate | ${s(cycle.rate) ?? "—"} |`);
+  if (s(cycle.checkin_scheduled_at)) {
+    out.push(`| Check-in | ${fmtDateTime(cycle.checkin_scheduled_at)}${cycle.checkin_attended ? " (attended)" : ""} |`);
+  }
+  if (s(cycle.cc_emails)) out.push(`| CC | ${Array.isArray(cycle.cc_emails) ? (cycle.cc_emails as string[]).join(", ") : String(cycle.cc_emails)} |`);
+  if (s(cycle.last_edited_at)) {
+    out.push(`| Last edited | ${fmtDateTime(cycle.last_edited_at)}${s(cycle.last_edited_by_email) ? ` by ${String(cycle.last_edited_by_email)}` : ""} |`);
+  }
+  out.push(`| ID | \`${cycleId}\` |`);
+  blank();
+
+  for (const [label, key] of [
+    ["What's not working", "whats_not_working"],
+    ["What's working", "whats_working"],
+    ["Success looks like", "success_looks_like"],
+    ["Studio review note", "studio_review_note"],
+    ["Engineering notes", "engineering_notes"],
+    ["Check-in notes", "checkin_notes"],
+  ] as const) {
+    if (!s(cycle[key])) continue;
+    h(level + 1, label);
+    blank();
+    out.push(String(cycle[key]), "");
+  }
+
+  const urls = [
+    ["Screen recording", cycle.screen_recording_url],
+    ["Loom walkthrough", cycle.loom_walkthrough_url],
+    ["Figma", cycle.figma_file_url],
+    ["Prototype", cycle.prototype_link],
+    ["Studio review attachment", cycle.studio_review_attachment_url],
+    ["Booking", cycle.cal_booking_url],
+    ["Deposit invoice", cycle.stripe_deposit_invoice_url],
+    ["Final invoice", cycle.stripe_final_invoice_url],
+  ].filter(([, v]) => s(v)) as Array<[string, string]>;
+  if (urls.length) {
+    h(level + 1, "Links");
+    blank();
+    for (const [label, url] of urls) out.push(`- ${label}: ${url}`);
+    blank();
+  }
+
+  if (screens.rows.length) {
+    h(level + 1, `Screens (${screens.rows.length})`);
+    blank();
+    for (const sc of screens.rows as Row[]) {
+      out.push(`- **${s(sc.name) ?? "Untitled"}**${s(sc.added_by) ? ` _(added by ${String(sc.added_by)})_` : ""}`);
+      if (s(sc.notes)) out.push(`  ${String(sc.notes).replace(/\n/g, "\n  ")}`);
+      if (s(sc.admin_note)) out.push(`  _Studio note:_ ${String(sc.admin_note).replace(/\n/g, "\n  ")}`);
+    }
+    blank();
+  }
+
+  if (shots.rows.length) {
+    h(level + 1, `Delivered screenshots (${shots.rows.length})`);
+    blank();
+    for (const sh of shots.rows as Row[]) {
+      out.push(`- ![${s(sh.caption) ?? s(sh.filename) ?? "screenshot"}](${String(sh.file_url)})`);
+    }
+    blank();
+  }
+
+  if (notes.rows.length) {
+    h(level + 1, `Notes (${notes.rows.length})`);
+    blank();
+    for (const n of notes.rows as Row[]) {
+      out.push(`> **${s(n.author_email) ?? "Unknown"}** — ${fmtDateTime(n.created_at)}`, ">");
+      out.push(...quote(String(n.body ?? "")));
+      const atts: string[] = [];
+      renderAttachments(n.attachments, atts);
+      if (atts.length) {
+        out.push(">");
+        out.push(...atts.map((a) => `> ${a}`));
+      }
+      blank();
+    }
+  }
+
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // Public entry points
 // ---------------------------------------------------------------------------
 
@@ -473,6 +607,37 @@ export async function renderSprintMarkdown(sprintId: string): Promise<ExportResu
 
   return {
     filename: `${slugify(title)}-${fmtDate(new Date())}.md`,
+    markdown: lines.join("\n").replace(/\n{4,}/g, "\n\n\n"),
+  };
+}
+
+export async function renderRefinementCycleMarkdown(cycleId: string): Promise<ExportResult | null> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT rc.*, p.name AS project_name, p.emoji AS project_emoji,
+            last_editor.email AS last_edited_by_email
+     FROM refinement_cycles rc
+     LEFT JOIN projects p ON p.id = rc.project_id
+     LEFT JOIN accounts last_editor ON last_editor.id = rc.last_edited_by
+     WHERE rc.id = $1`,
+    [cycleId]
+  );
+  if (res.rowCount === 0) return null;
+  const cycle = res.rows[0] as Row;
+
+  const title = s(cycle.title) ?? "Refinement cycle";
+  const lines: string[] = [];
+  lines.push(`# ${title}`, "");
+  if (s(cycle.project_name)) {
+    lines.push(`**Project:** ${s(cycle.project_emoji) ? `${String(cycle.project_emoji)} ` : ""}${String(cycle.project_name)}`, "");
+  }
+  lines.push(`*Exported ${fmtDate(new Date())} from Chris Meisner Studio*`, "");
+  // Level 1: the title is already the document title, so drop the heading
+  // renderCycle emits and let its sections sit at "##".
+  lines.push(...(await renderCycle(cycle, 1)).slice(2));
+
+  return {
+    filename: `${slugify(title)}-refinement-cycle-${fmtDate(new Date())}.md`,
     markdown: lines.join("\n").replace(/\n{4,}/g, "\n\n\n"),
   };
 }
@@ -597,110 +762,7 @@ export async function renderProjectMarkdown(projectId: string): Promise<ExportRe
     h(2, "Refinement cycles");
     blank();
     for (const c of cycles.rows as Row[]) {
-      const cycleId = String(c.id);
-      const [notes, screens, shots] = await Promise.all([
-        pool.query(
-          `SELECT n.body, n.author_email, n.created_at,
-                  COALESCE(json_agg(json_build_object('url', at.file_url, 'fileName', at.filename, 'mimetype', at.mimetype))
-                           FILTER (WHERE at.id IS NOT NULL), '[]') AS attachments
-           FROM refinement_cycle_notes n
-           LEFT JOIN refinement_cycle_note_attachments at ON at.note_id = n.id
-           WHERE n.refinement_cycle_id = $1
-           GROUP BY n.id, n.body, n.author_email, n.created_at
-           ORDER BY n.created_at`,
-          [cycleId]
-        ).catch(() => ({ rows: [] as Row[] })),
-        pool.query(
-          `SELECT name, notes, admin_note, added_by, created_at FROM refinement_cycle_screens
-           WHERE refinement_cycle_id = $1 ORDER BY sort_order, created_at`,
-          [cycleId]
-        ).catch(() => ({ rows: [] as Row[] })),
-        pool.query(
-          `SELECT file_url, filename, caption, mimetype FROM refinement_cycle_deliverable_screenshots
-           WHERE refinement_cycle_id = $1 ORDER BY sort_order, created_at`,
-          [cycleId]
-        ).catch(() => ({ rows: [] as Row[] })),
-      ]);
-
-      h(3, s(c.title) ?? "Untitled cycle");
-      blank();
-      out.push("| | |", "|---|---|");
-      out.push(`| Status | ${s(c.status) ?? "—"} |`);
-      out.push(`| Submitted | ${fmtDateTime(c.submitted_at)} by ${s(c.submitter_email) ?? "—"} |`);
-      out.push(`| Accepted | ${fmtDateTime(c.accepted_at)} |`);
-      out.push(`| Delivered | ${fmtDateTime(c.delivered_at)} |`);
-      out.push(`| Price | ${fmtMoney(c.total_price)} (deposit ${fmtMoney(c.deposit_amount)}, final ${fmtMoney(c.final_amount)}) |`);
-      out.push(`| Deposit paid | ${fmtDateTime(c.deposit_paid_at)} |`);
-      out.push(`| Final paid | ${fmtDateTime(c.final_paid_at)} |`);
-      out.push(`| Rate | ${fmtMoney(c.rate)} |`);
-      out.push(`| ID | \`${cycleId}\` |`);
-      blank();
-
-      for (const [label, key] of [
-        ["What's not working", "whats_not_working"],
-        ["What's working", "whats_working"],
-        ["Success looks like", "success_looks_like"],
-        ["Studio review note", "studio_review_note"],
-        ["Engineering notes", "engineering_notes"],
-        ["Check-in notes", "checkin_notes"],
-      ] as const) {
-        if (!s(c[key])) continue;
-        h(4, label);
-        blank();
-        out.push(String(c[key]), "");
-      }
-
-      const urls = [
-        ["Screen recording", c.screen_recording_url],
-        ["Loom walkthrough", c.loom_walkthrough_url],
-        ["Figma", c.figma_file_url],
-        ["Prototype", c.prototype_link],
-        ["Studio review attachment", c.studio_review_attachment_url],
-        ["Deposit invoice", c.stripe_deposit_invoice_url],
-        ["Final invoice", c.stripe_final_invoice_url],
-      ].filter(([, v]) => s(v)) as Array<[string, string]>;
-      if (urls.length) {
-        h(4, "Links");
-        blank();
-        for (const [label, url] of urls) out.push(`- ${label}: ${url}`);
-        blank();
-      }
-
-      if (screens.rows.length) {
-        h(4, `Screens (${screens.rows.length})`);
-        blank();
-        for (const sc of screens.rows as Row[]) {
-          out.push(`- **${s(sc.name) ?? "Untitled"}**${s(sc.added_by) ? ` _(added by ${String(sc.added_by)})_` : ""}`);
-          if (s(sc.notes)) out.push(`  ${String(sc.notes).replace(/\n/g, "\n  ")}`);
-          if (s(sc.admin_note)) out.push(`  _Studio note:_ ${String(sc.admin_note).replace(/\n/g, "\n  ")}`);
-        }
-        blank();
-      }
-
-      if (shots.rows.length) {
-        h(4, `Delivered screenshots (${shots.rows.length})`);
-        blank();
-        for (const sh of shots.rows as Row[]) {
-          out.push(`- ![${s(sh.caption) ?? s(sh.filename) ?? "screenshot"}](${String(sh.file_url)})`);
-        }
-        blank();
-      }
-
-      if (notes.rows.length) {
-        h(4, `Notes (${notes.rows.length})`);
-        blank();
-        for (const n of notes.rows as Row[]) {
-          out.push(`> **${s(n.author_email) ?? "Unknown"}** — ${fmtDateTime(n.created_at)}`, ">");
-          out.push(...quote(String(n.body ?? "")));
-          const atts: string[] = [];
-          renderAttachments(n.attachments, atts);
-          if (atts.length) {
-            out.push(">");
-            out.push(...atts.map((a) => `> ${a}`));
-          }
-          blank();
-        }
-      }
+      out.push(...(await renderCycle(c, 3)));
     }
   }
 

@@ -941,6 +941,14 @@ export default function RefinementCycleReviewClient({
           </div>
           <div className="flex flex-col items-end gap-2">
             <StatusBadge status={cycle.status} />
+            <a
+              href={`/api/refinement-cycles/${cycle.id}/export`}
+              download
+              title="Download this refinement cycle as a Markdown document"
+              className="inline-flex items-center rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
+            >
+              Export
+            </a>
             {canRevoke && (
               <Button
                 type="button"
