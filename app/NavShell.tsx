@@ -14,8 +14,6 @@ export default async function NavShell({ children }: { children: ReactNode }) {
 
   const nav: NavItem[] = [
     { href: "/dashboard", label: "🏠 Admin Home" },
-    { href: "/dashboard/hills", label: "⛰️ Hills" },
-    { href: "/dashboard/notes", label: "🗒️ Notes" },
     { href: "/dashboard/schedulers", label: "⏱️ Schedulers" },
     { href: "/dashboard/printers", label: "🖨️ Printers" },
     { href: "/dashboard/index", label: "🔎 Index" },

@@ -8,7 +8,6 @@
 import type { Pool } from "pg";
 import { getPool } from "@/lib/db";
 import { getStripe, getOrCreateStripeCustomer } from "@/lib/stripe";
-import { resolveHillIdForCycle } from "@/lib/hillBilling";
 import {
   sendEmail,
   generateRefinementCycleAcceptedClientEmail,
@@ -207,11 +206,6 @@ async function createCycleStripeInvoice(
       : REFINEMENT_CYCLE_PAYMENT_DUE_BUFFER_DAYS;
   const dueDateUnix = Math.floor(Date.now() / 1000) + dueDays * 86400;
 
-  // Stamp the owning hill onto the Stripe invoice so the webhook can route the
-  // payment to the hills timeline. Best-effort — legacy routing (refinement_cycle_id)
-  // still works if this resolves null.
-  const hillId = await resolveHillIdForCycle(pool, ctx.cycle.id);
-
   const invoice = await stripe.invoices.create({
     customer: stripeCustomerId,
     collection_method: "send_invoice",
@@ -223,7 +217,6 @@ async function createCycleStripeInvoice(
       refinement_cycle_id: ctx.cycle.id,
       refinement_cycle_invoice_kind: kind,
       project_id: ctx.cycle.project_id,
-      ...(hillId ? { hill_id: hillId } : {}),
     },
   });
 
