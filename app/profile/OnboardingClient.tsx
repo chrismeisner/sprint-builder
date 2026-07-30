@@ -221,7 +221,7 @@ export default function OnboardingClient() {
           );
         }
         return (
-          <Link href="/scope" className={primaryCtaClasses}>
+          <Link href="/intake" className={primaryCtaClasses}>
             Open intake form
           </Link>
         );

@@ -161,17 +161,24 @@ export async function ensureSchema(): Promise<void> {
     ALTER TABLE documents
     ADD COLUMN IF NOT EXISTS email text
   `);
-  // NOTE: the `ai_responses` table (and sprint_drafts.ai_response_id) is RETIRED
-  // in code — nothing writes it (the intake→AI→sprint-draft pipeline was never
-  // built) and it is empty. The column is no longer created for fresh installs
-  // and no query references it. The physical DROP on existing databases is left
-  // as an explicit, reviewed migration (see scripts/drop-ai-responses.sql) so we
-  // never auto-drop a prod table on boot. Intake flows /scope → documents +
-  // a project-less sprint_draft (see app/api/scope/route.ts).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ai_responses (
+      id text PRIMARY KEY,
+      document_id text NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+      provider text NOT NULL DEFAULT 'openai',
+      model text,
+      prompt text,
+      response_text text,
+      response_json jsonb,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_responses_document_id ON ai_responses(document_id);
+  `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sprint_drafts (
       id text PRIMARY KEY,
       document_id text REFERENCES documents(id) ON DELETE CASCADE,
+      ai_response_id text REFERENCES ai_responses(id) ON DELETE SET NULL,
       draft jsonb NOT NULL,
       created_at timestamptz NOT NULL DEFAULT now()
     );
@@ -1877,109 +1884,6 @@ export async function ensureSchema(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS idx_miles_proto3_widget_attachments_widget
       ON miles_proto3_widget_attachments(widget_name);
-  `);
-
-
-  // Scheduled-jobs registry — a control panel for the automation layer. Heroku
-  // Scheduler config isn't queryable from the app, so instead each cron endpoint
-  // stamps last_run_at here when it fires; "active" is inferred from a recent run.
-  // `status` is the admin's intent (active / inactive / draft-for-later).
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS scheduled_jobs (
-      id text PRIMARY KEY,
-      job_key text UNIQUE NOT NULL,
-      label text NOT NULL,
-      description text,
-      command text,
-      endpoint text,
-      cadence text,
-      expected_interval_minutes integer,
-      status text NOT NULL DEFAULT 'draft' CHECK (status IN ('active','inactive','draft')),
-      last_run_at timestamptz,
-      last_run_status text,
-      last_run_note text,
-      sort_order integer NOT NULL DEFAULT 0,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Studio Printer: remote print bridge. The app is the source of truth + queue;
-  // an always-on Mac in the studio polls (outbound-only), claims jobs, prints
-  // them on a USB receipt printer via CUPS, and reports status. See
-  // docs/studio-printer-plan.md.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // An always-on machine that owns one or more printers. Authenticates by bearer key.
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS print_agents (
-      id            text PRIMARY KEY,
-      name          text NOT NULL,
-      key_hash      text NOT NULL,
-      last_seen_at  timestamptz,
-      agent_version text,
-      created_at    timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-
-  // A physical printer, bound to the agent that can reach it.
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS printers (
-      id          text PRIMARY KEY,
-      agent_id    text NOT NULL REFERENCES print_agents(id) ON DELETE CASCADE,
-      cups_name   text NOT NULL,
-      label       text NOT NULL,
-      status      text,
-      status_at   timestamptz,
-      created_at  timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE INDEX IF NOT EXISTS idx_printers_agent ON printers(agent_id);
-  `);
-
-  // The queue the agent drains. One row = one receipt. payload is a frozen copy.
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS print_jobs (
-      id                text PRIMARY KEY,
-      printer_id        text NOT NULL REFERENCES printers(id) ON DELETE CASCADE,
-      payload           jsonb NOT NULL,
-      status            text NOT NULL DEFAULT 'pending',
-      scheduled_at      timestamptz NOT NULL DEFAULT now(),
-      claimed_by        text REFERENCES print_agents(id) ON DELETE SET NULL,
-      claimed_at        timestamptz,
-      lease_expires_at  timestamptz,
-      attempts          int NOT NULL DEFAULT 0,
-      max_attempts      int NOT NULL DEFAULT 3,
-      error             text,
-      printed_at        timestamptz,
-      source            text,
-      created_by        text REFERENCES accounts(id) ON DELETE SET NULL,
-      created_at        timestamptz NOT NULL DEFAULT now(),
-      CONSTRAINT print_jobs_status_check
-        CHECK (status IN ('pending','claimed','printing','printed','failed','canceled'))
-    );
-    CREATE INDEX IF NOT EXISTS idx_print_jobs_claimable
-      ON print_jobs (printer_id, scheduled_at) WHERE status = 'pending';
-    CREATE INDEX IF NOT EXISTS idx_print_jobs_created ON print_jobs(created_at DESC);
-  `);
-
-  // Append-only audit trail.
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS print_job_events (
-      id       text PRIMARY KEY,
-      job_id   text NOT NULL REFERENCES print_jobs(id) ON DELETE CASCADE,
-      at       timestamptz NOT NULL DEFAULT now(),
-      status   text NOT NULL,
-      detail   jsonb
-    );
-    CREATE INDEX IF NOT EXISTS idx_print_job_events_job ON print_job_events(job_id);
-  `);
-
-  // Register the print-job reaper on the schedulers page (idempotent).
-  await pool.query(`
-    INSERT INTO scheduled_jobs (id, job_key, label, description, command, endpoint, cadence, expected_interval_minutes, status, sort_order) VALUES
-      ('sj_reap_print_jobs','reap-print-jobs','Print job reaper','Recovers print jobs whose studio agent died mid-print (expired claim lease) back to pending, or fails them after max attempts.','node scripts/reap-print-jobs.js','/api/cron/reap-print-jobs','Every ~1 min',1,'draft',50)
-    ON CONFLICT (job_key) DO NOTHING;
   `);
 
   global._schemaInitialized = true;

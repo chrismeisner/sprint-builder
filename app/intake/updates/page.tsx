@@ -1,9 +1,27 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import UpdatesIntakeClient from "./UpdatesIntakeClient";
 
-// Retired: the update-cycle intake is consolidated into the unified scoping
-// flow at /scope (choose "a focused refinement" — creates a refinement_cycle
-// proposal hill). The old form (./UpdatesIntakeClient) and its /api/documents
-// POST are kept as reversible dead code. No data was removed.
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Start an Update — Chris Meisner",
+  description:
+    "Tell me what you want to iterate on this week. Available to existing clients who have completed a Foundation Sprint.",
+};
+
 export default function UpdatesIntakePage() {
-  redirect("/scope");
+  return (
+    <main className="container max-w-2xl py-16">
+      <div className="mb-4">
+        <h1 className="text-4xl font-semibold leading-tight text-balance text-text-primary">
+          Start an Update
+        </h1>
+        <p className="text-sm text-text-secondary mt-2 text-pretty">
+          Tell me what you want to iterate on this week. Available to existing
+          clients who have completed at least one Foundation Sprint.
+        </p>
+      </div>
+      <UpdatesIntakeClient />
+    </main>
+  );
 }
