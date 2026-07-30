@@ -10,6 +10,7 @@ const ProjectNameForm = dynamicImport(() => import("../../ProjectNameForm"), { s
 const ProjectDescriptionForm = dynamicImport(() => import("../../ProjectDescriptionForm"), { ssr: false });
 const ProjectEmojiForm = dynamicImport(() => import("../../ProjectEmojiForm"), { ssr: false });
 const ProjectTypeForm = dynamicImport(() => import("../../ProjectTypeForm"), { ssr: false });
+const ProjectStatusForm = dynamicImport(() => import("../../ProjectStatusForm"), { ssr: false });
 
 type PageProps = { params: { id: string } };
 
@@ -25,7 +26,7 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
   }
 
   const projectResult = await pool.query(
-    `SELECT id, name, description, emoji, project_type, account_id, created_at, updated_at
+    `SELECT id, name, description, emoji, project_type, status, account_id, created_at, updated_at
      FROM projects
      WHERE id = $1`,
     [params.id]
@@ -41,6 +42,7 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
     description: string | null;
     emoji: string | null;
     project_type: string | null;
+    status: string | null;
     account_id: string | null;
     created_at: string | Date;
     updated_at: string | Date | null;
@@ -90,6 +92,15 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
         <ProjectEmojiForm projectId={project.id} initialEmoji={project.emoji ?? null} />
         {isAdmin && (
           <>
+            <hr className="border-black/10 dark:border-white/10" />
+            <ProjectStatusForm
+              projectId={project.id}
+              initialStatus={
+                (["active", "on_hold", "completed", "cancelled"].includes(project.status ?? "")
+                  ? project.status
+                  : "active") as "active" | "on_hold" | "completed" | "cancelled"
+              }
+            />
             <hr className="border-black/10 dark:border-white/10" />
             <ProjectTypeForm
               projectId={project.id}
