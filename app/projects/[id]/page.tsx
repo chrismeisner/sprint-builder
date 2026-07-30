@@ -531,6 +531,13 @@ export default async function ProjectDetailPage({
                           <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-2 py-0.5 text-xs font-medium">
                             Update
                           </span>
+                        ) : isSmokeTest ? (
+                          <span
+                            className="inline-flex items-center rounded-full bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 px-2 py-0.5 text-xs font-medium"
+                            title="A pre-sprint scoping document — not a live sprint. Never invoiced."
+                          >
+                            Scoping
+                          </span>
                         ) : (
                           <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
                             Sprint
@@ -551,7 +558,15 @@ export default async function ProjectDetailPage({
                         )}
                       </td>
                       <td className="px-4 py-2 tabular-nums text-neutral-600 dark:text-neutral-400">
-                        {s.total_fixed_price != null ? `$${Number(s.total_fixed_price).toLocaleString()}` : "—"}
+                        {s.total_fixed_price != null ? (
+                          <>
+                            {`$${Number(s.total_fixed_price).toLocaleString()}`}
+                            {/* Smoke tests carry a quoted estimate, never an invoiced amount. */}
+                            {isSmokeTest && <span className="ml-1 text-xs italic">est.</span>}
+                          </>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className="px-4 py-2 text-neutral-600 dark:text-neutral-400">
                         {new Date(s.created_at).toLocaleDateString()}
