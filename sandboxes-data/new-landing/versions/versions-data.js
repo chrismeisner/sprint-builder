@@ -4,6 +4,23 @@
 
 var VERSIONS = [
   {
+    name: "v5-update-cycle-copy-2026-08-18",
+    version: "5",
+    title: "Update Cycle Copy",
+    date: "August 18, 2026",
+    dateValue: "2026-08-18",
+    lastModified: "2026-08-18T12:00:00Z",
+    description: "Snapshot of the page as actually served at /. Reverts the v4 playbook copy experiment back to \'How I Work\' and settles the post-sprint offering on \'Sprint Update Cycle\' language. Copy only \u2014 no structural changes.",
+    features: [
+      "Services heading back to \'How I Work\'; v4 momentum intro copy removed",
+      "\'Feedback Cycles\' renamed to \'Sprint Update Cycle\' throughout",
+      "CTA relabeled \'Start an update cycle\'",
+      "Matches the live homepage byte-for-byte at snapshot time"
+    ],
+    status: "current",
+    path: "v5-update-cycle-copy-2026-08-18/index.html"
+  },
+  {
     name: "v4-playbook-direction-2026-03-12",
     version: "4",
     title: "Playbook Direction",
@@ -33,7 +50,7 @@ var VERSIONS = [
       "Availability section hidden (commented out for later)",
       "Projects section hidden (commented out for later)"
     ],
-    status: "current",
+    status: "archived",
     path: "v3-mvp-2026-03-02/index.html"
   },
   {

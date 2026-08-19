@@ -4,6 +4,21 @@ This directory contains versioned snapshots of the landing page for reference an
 
 ## Version History
 
+### v5-update-cycle-copy-2026-08-18
+**Date:** August 18, 2026  
+**Status:** Current — this is what `/` serves  
+**Description:** Snapshot of the page as actually served at `/`. Reverts the v4 playbook copy experiment and settles the post-sprint offering on "Sprint Update Cycle" language. Copy only, 17 lines changed from v4.  
+**Key Features:**
+- Services heading back to `How I Work`; v4 momentum intro copy removed
+- `Feedback Cycles` renamed to `Sprint Update Cycle` throughout
+- CTA relabeled `Start an update cycle`
+- Matches the live homepage byte-for-byte at snapshot time
+
+**Files included:**
+- `index.html` - Main landing page (no `src/` or `images/`; see note below)
+
+---
+
 ### v4-playbook-direction-2026-03-12
 **Date:** March 12, 2026  
 **Description:** Copy exploration that introduces subtle "Let's move the ball" language and reframes the services section as "My Playbook."  
@@ -11,6 +26,10 @@ This directory contains versioned snapshots of the landing page for reference an
 - Subtle `Let's move the ball` link in the top header
 - `My Playbook` framing for the services section
 - Supporting intro copy focused on momentum, alignment, and forward movement
+
+---
+
+_(v2 Samples Carousel and v3 MVP were never written up here — see `versions-data.js` and each folder's `VERSION-INFO.md` for those.)_
 
 ---
 
@@ -104,5 +123,7 @@ Examples:
 
 - Config files (tailwind.config.js, vite.config.js, package.json) are NOT versioned here since they're shared across all versions
 - Only HTML, CSS, and images are versioned
+- From v4 onward, snapshots contain `index.html` only. The page loads Tailwind from the CDN and references images by absolute `/api/sandbox-files/new-landing/images/...` paths, so copied `src/` and `images/` folders would never be read. Older snapshots (v1-v3) still carry them
+- Heads up: `create-version.sh` auto-inserts into `versions-data.js` by matching `const VERSIONS = [`, but the file declares `var VERSIONS = [`. That step silently does nothing — add the entry by hand after running the script
 - The active working version is always in the root directory
 - Keep this README updated with each new version
