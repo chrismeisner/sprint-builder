@@ -3,13 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Rewrite homepage to serve the sandbox landing page
-  if (pathname === "/") {
-    const rewriteUrl = request.nextUrl.clone();
-    rewriteUrl.pathname = "/api/sandbox-files/new-landing/index.html";
-    return NextResponse.rewrite(rewriteUrl);
-  }
-
   // Continue with the request and add security headers
   const response = NextResponse.next({
     request: {

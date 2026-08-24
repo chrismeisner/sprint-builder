@@ -175,6 +175,9 @@ export default async function RootLayout({
   const headersList = headers();
   const pathname = headersList.get("x-pathname") ?? "";
   const isSandbox = pathname.startsWith("/sandboxes/");
+  // The placeholder homepage is sized to exactly fill the viewport; the footer
+  // would force it to scroll.
+  const isHome = pathname === "/";
 
   return (
     <html
@@ -195,7 +198,7 @@ export default async function RootLayout({
             <>
               <Header />
               <NavShell>{children}</NavShell>
-              <Footer />
+              {isHome ? null : <Footer />}
             </>
           )}
           <ToastContainer />

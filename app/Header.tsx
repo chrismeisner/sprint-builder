@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import Button from "@/components/ui/Button";
-import ThemeToggle from "./components/ThemeToggle";
 import AdminMenuButton from "./components/AdminMenuButton";
 import BrowserWidthIndicator from "./components/BrowserWidthIndicator";
 
@@ -41,7 +40,6 @@ export default async function Header() {
         {/* Right side actions */}
         <div className="flex items-center gap-3">
           {user?.isAdmin ? <BrowserWidthIndicator /> : null}
-          <ThemeToggle />
           <div className="flex items-center gap-2">
             {user ? (
               <>
