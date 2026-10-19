@@ -4,9 +4,8 @@ import { useState, useEffect } from "react";
 
 type EmailStatus = {
   configured: boolean;
-  apiKeyPresent: boolean;
-  fromEmailPresent: boolean;
-  apiKey: string | null;
+  smtpHost: string;
+  smtpUser: string | null;
   fromEmail: string | null;
   fromName: string | null;
   fromHeader: string | null;
@@ -30,7 +29,7 @@ export default function EmailTestClient() {
   const [formData, setFormData] = useState({
     to: "",
     subject: "Test Email from Sprint Builder",
-    text: "This is a test email sent from the Email Testing page.\n\nIf you're receiving this, Resend is configured correctly!",
+    text: "This is a test email sent from the Email Testing page.\n\nIf you're receiving this, Google Workspace SMTP is configured correctly!",
     html: "",
   });
 
@@ -47,9 +46,8 @@ export default function EmailTestClient() {
     } catch {
       setStatus({
         configured: false,
-        apiKeyPresent: false,
-        fromEmailPresent: false,
-        apiKey: null,
+        smtpHost: "smtp.gmail.com",
+        smtpUser: null,
         fromEmail: null,
         fromName: null,
         fromHeader: null,
@@ -96,9 +94,9 @@ export default function EmailTestClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold mb-2">Email Testing (Resend)</h1>
+        <h1 className="text-2xl font-semibold mb-2">Email Testing (Google Workspace)</h1>
         <p className="text-sm opacity-70">
-          Check your Resend configuration and send test emails.
+          Check your SMTP configuration and send test emails.
         </p>
       </div>
 
@@ -124,12 +122,8 @@ export default function EmailTestClient() {
             {/* Status Indicators */}
             <div className="space-y-2">
               <StatusIndicator
-                checked={status.apiKeyPresent}
-                label={status.apiKeyPresent ? "API Key configured" : "API Key missing"}
-              />
-              <StatusIndicator
-                checked={status.fromEmailPresent}
-                label={status.fromEmailPresent ? "From email configured" : "From email not set (will use default)"}
+                checked={!!status.smtpUser}
+                label={status.smtpUser ? "SMTP credentials configured" : "SMTP credentials missing"}
               />
               <StatusIndicator
                 checked={status.configured}
@@ -140,9 +134,9 @@ export default function EmailTestClient() {
             {/* Configuration Details */}
             <div className="pt-4 border-t border-black/10 dark:border-white/15 space-y-2 text-sm">
               <div>
-                <span className="opacity-70">API Key:</span>{" "}
+                <span className="opacity-70">SMTP:</span>{" "}
                 <code className="bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
-                  {status.apiKey || "Not set"}
+                  {status.smtpUser ? `${status.smtpUser} @ ${status.smtpHost}` : "Not set"}
                 </code>
               </div>
               <div className="pt-2 border-t border-black/10 dark:border-white/15">
@@ -166,7 +160,7 @@ export default function EmailTestClient() {
 
             {!status.configured && (
               <div className="p-3 rounded-md bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-sm">
-                <strong>Configuration incomplete.</strong> Set RESEND_API_KEY in your environment variables.
+                <strong>Configuration incomplete.</strong> Set SMTP_USER and SMTP_PASS in your environment variables.
               </div>
             )}
           </div>
@@ -289,26 +283,27 @@ export default function EmailTestClient() {
           <div>
             <strong className="block mb-1">Required environment variables:</strong>
             <ul className="list-disc pl-5 mt-1 opacity-80 space-y-1 font-mono text-xs">
-              <li><code>RESEND_API_KEY</code> - Your Resend API key</li>
-              <li><code>EMAIL_FROM_EMAIL</code> - From email address (optional, defaults to no-reply@mail.meisner.design)</li>
+              <li><code>SMTP_USER</code> - Google Workspace address that sends the mail</li>
+              <li><code>SMTP_PASS</code> - App password for that address</li>
+              <li><code>EMAIL_FROM_EMAIL</code> - From address (optional, defaults to SMTP_USER; must be a &quot;Send mail as&quot; alias of it)</li>
               <li><code>EMAIL_FROM_NAME</code> - From display name (optional, defaults to &quot;Meisner Design&quot;)</li>
               <li><code>EMAIL_REPLY_TO</code> - Reply-to address (optional, e.g. chris@meisner.design)</li>
             </ul>
           </div>
 
           <div>
-            <strong className="block mb-1">Get Resend credentials:</strong>
+            <strong className="block mb-1">Get an app password:</strong>
             <p className="opacity-80">
-              Sign up at{" "}
+              Turn on 2-Step Verification for the sending account, then create one at{" "}
               <a
-                href="https://resend.com"
+                href="https://myaccount.google.com/apppasswords"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline"
               >
-                resend.com
+                myaccount.google.com/apppasswords
               </a>
-              {" "}, verify the <code>mail.meisner.design</code> domain, and create an API key in the dashboard.
+              .
             </p>
           </div>
 

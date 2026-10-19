@@ -44,6 +44,10 @@ function LoginForm() {
         setError(codeData?.error || "Too many attempts. Please try again later.");
         return;
       }
+
+      if (!codeRes.ok) {
+        throw new Error(codeData?.error || "Failed to send verification code");
+      }
       
       if (codeData.verified) {
         // Email is already verified - send magic link

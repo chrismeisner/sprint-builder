@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
+import { getEmailConfig, sendEmail } from "@/lib/email";
 
 type EmailStatus = {
   configured: boolean;
-  apiKeyPresent: boolean;
-  fromEmailPresent: boolean;
-  apiKey: string | null;
+  smtpHost: string;
+  smtpUser: string | null;
   fromEmail: string | null;
   fromName: string | null;
   fromHeader: string | null;
@@ -13,26 +13,15 @@ type EmailStatus = {
 
 export async function GET() {
   try {
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const fromEmail = process.env.EMAIL_FROM_EMAIL || process.env.MAILGUN_FROM_EMAIL;
-    const fromName =
-      process.env.EMAIL_FROM_NAME || process.env.MAILGUN_FROM_NAME || "Meisner Design";
-    const replyTo = process.env.EMAIL_REPLY_TO || process.env.MAILGUN_REPLY_TO || null;
-
-    const resolvedFromEmail = fromEmail || "no-reply@mail.meisner.design";
-    const fromHeader = fromName
-      ? `${fromName} <${resolvedFromEmail}>`
-      : resolvedFromEmail;
-
+    const config = getEmailConfig();
     const status: EmailStatus = {
-      configured: !!resendApiKey,
-      apiKeyPresent: !!resendApiKey,
-      fromEmailPresent: !!fromEmail,
-      apiKey: resendApiKey ? `${resendApiKey.slice(0, 8)}...` : null,
-      fromEmail: resolvedFromEmail,
-      fromName,
-      fromHeader,
-      replyTo,
+      configured: config.configured,
+      smtpHost: config.smtpHost,
+      smtpUser: config.smtpUser,
+      fromEmail: config.fromEmail || null,
+      fromName: config.fromName,
+      fromHeader: config.from || null,
+      replyTo: config.replyTo,
     };
 
     return NextResponse.json(status);
@@ -70,70 +59,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Email text is required" }, { status: 400 });
     }
 
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const fromEmail =
-      process.env.EMAIL_FROM_EMAIL ||
-      process.env.MAILGUN_FROM_EMAIL ||
-      "no-reply@mail.meisner.design";
-    const fromName =
-      process.env.EMAIL_FROM_NAME || process.env.MAILGUN_FROM_NAME || "Meisner Design";
-    const from = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
-
-    if (!resendApiKey) {
-      return NextResponse.json(
-        { error: "Resend not configured. Please set RESEND_API_KEY." },
-        { status: 500 }
-      );
-    }
-
-    const payload: Record<string, unknown> = {
-      from,
-      to: [to],
+    const result = await sendEmail({
+      to,
       subject,
       text,
-    };
-
-    // Add HTML if provided
-    if (typeof html === "string" && html.trim()) {
-      payload.html = html;
-    }
-
-    const resendRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
+      html: typeof html === "string" && html.trim() ? html : undefined,
+      category: "transactional",
+      tag: "email-test",
     });
 
-    if (!resendRes.ok) {
-      const errText = await resendRes.text().catch(() => "");
-      console.error("[Email Test] Resend send failed", {
-        status: resendRes.status,
-        body: errText.slice(0, 500),
-      });
+    if (!result.success) {
       return NextResponse.json(
-        {
-          success: false,
-          error: `Resend API error: ${resendRes.status}`,
-          details: errText.slice(0, 500),
-        },
-        { status: resendRes.status }
+        { success: false, error: result.error ?? "Send failed" },
+        { status: 502 }
       );
     }
 
-    const responseData = await resendRes.json();
     console.log("[Email Test] Test email sent successfully", {
       to,
       subject,
-      messageId: responseData.id,
+      messageId: result.messageId,
     });
 
     return NextResponse.json({
       success: true,
       message: "Email sent successfully!",
-      messageId: responseData.id,
+      messageId: result.messageId,
     });
   } catch (error: unknown) {
     console.error("[Email Test] Error:", error);
@@ -146,4 +97,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

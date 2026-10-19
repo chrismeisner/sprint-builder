@@ -10,10 +10,9 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/form_intake
 OPENAI_API_KEY=YOUR_OPENAI_API_KEY
 SESSION_SECRET=your-random-secret-string-at-least-32-chars
 TYPEFORM_WEBHOOK_SECRET=changeme
-MAILGUN_API_KEY=your-mailgun-api-key
-MAILGUN_DOMAIN=mg.yourdomain.com
-MAILGUN_FROM_EMAIL=no-reply@mg.yourdomain.com
-MAILGUN_REPLY_TO=chris@meisner.design
+SMTP_USER=hello@meisner.design        # Google Workspace sender
+SMTP_PASS=your-app-password           # myaccount.google.com/apppasswords
+EMAIL_REPLY_TO=chris@meisner.design
 
 # Google Cloud Storage (for image uploads)
 GCS_PROJECT_ID=your-gcs-project-id
@@ -37,11 +36,12 @@ Optional variables:
 - `TYPEFORM_WEBHOOK_SECRET` — verify Typeform webhook signatures
 - `OPENAI_PROJECT_ID` — sets `OpenAI-Project` header if using Projects
 - `OPENAI_ORG_ID` — sets `OpenAI-Organization` header for legacy org scoping
-- `MAILGUN_API_KEY` — Mailgun API key for sending emails (sprint notifications, magic links)
-- `MAILGUN_DOMAIN` — Mailgun sending domain (e.g. mg.yourdomain.com)
-- `MAILGUN_FROM_EMAIL` — From address for emails (defaults to no-reply@MAILGUN_DOMAIN)
-- `MAILGUN_FROM_NAME` — Display name for the From header (defaults to "Meisner Design")
-- `MAILGUN_REPLY_TO` — Reply-To address for outbound email (e.g. your admin inbox)
+- `SMTP_USER` — Google Workspace address that sends all email (sprint notifications, magic links)
+- `SMTP_PASS` — App password for `SMTP_USER` (myaccount.google.com/apppasswords)
+- `SMTP_HOST` / `SMTP_PORT` — Optional overrides (default `smtp.gmail.com:465`)
+- `EMAIL_FROM_EMAIL` — From address (defaults to `SMTP_USER`; must be a "Send mail as" alias of it)
+- `EMAIL_FROM_NAME` — Display name for the From header (defaults to "Meisner Design")
+- `EMAIL_REPLY_TO` — Reply-To address for outbound email (defaults to chris@meisner.design)
 - `BASE_URL` — Base URL for email links and unsubscribe URLs (auto-detected if not set, e.g. https://yourdomain.com). Required in production for one-click unsubscribe to resolve correctly.
 - `GCS_PROJECT_ID` — Google Cloud project ID (for image uploads)
 - `GCS_BUCKET_NAME` — Google Cloud Storage bucket name

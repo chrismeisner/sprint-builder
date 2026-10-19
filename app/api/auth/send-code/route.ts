@@ -95,8 +95,10 @@ export async function POST(request: Request) {
 
     if (!emailResult.success) {
       console.error("[Auth] Failed to send verification email:", emailResult.error);
-      // Still return success to not leak whether email sending worked
-      // In production you might want to handle this differently
+      return NextResponse.json(
+        { error: "We couldn't send the verification email. Please try again in a few minutes." },
+        { status: 502 }
+      );
     }
 
     console.log("[Auth] Verification code sent", { email: normalizedEmail });

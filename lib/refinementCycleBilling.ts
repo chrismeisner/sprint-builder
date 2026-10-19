@@ -1,6 +1,6 @@
 // Stripe + email orchestration for refinement cycles.
 //
-// Each function is best-effort: if Stripe or Resend isn't configured, the
+// Each function is best-effort: if Stripe or email isn't configured, the
 // function logs a warning and returns without throwing, so the lifecycle
 // transition (accept/decline/deliver) still completes. The cycle row records
 // whatever URLs were captured.
@@ -368,7 +368,7 @@ export async function onCycleSubmitted(cycleId: string): Promise<void> {
           ...content,
           // Operational queue notification — required for the studio to know
           // there's work to review. Sent as transactional so it can't be
-          // unsubscribed from (Resend leaves the review link unrewritten).
+          // unsubscribed from (no link tracking, so the review link stays unrewritten).
           category: "transactional",
           tag: "refinement-cycle-submitted",
         });

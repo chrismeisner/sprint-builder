@@ -3,7 +3,7 @@
 type ConfigStatus = {
   database: boolean;
   storage: boolean;
-  resend: boolean;
+  email: boolean;
   openai: boolean;
   analytics: boolean;
   stripe: boolean;
@@ -77,12 +77,12 @@ const stackSections: Array<{
     description: "Transactional email and passwordless login flows.",
     items: [
       {
-        name: "Resend",
-        summary: "All outbound email (magic links, sprint notifications) goes through Resend using helpers in `lib/email.ts` and `/dashboard/email-test`.",
+        name: "Google Workspace (SMTP)",
+        summary: "All outbound email (magic links, sprint notifications) goes through Gmail SMTP via nodemailer using helpers in `lib/email.ts` and `/dashboard/email-test`.",
         files: ["lib/email.ts", "app/api/admin/email-test/route.ts", "app/dashboard/email-test/*"],
-        env: ["RESEND_API_KEY", "EMAIL_FROM_EMAIL", "EMAIL_FROM_NAME", "EMAIL_REPLY_TO"],
-        statusKey: "resend",
-        docs: "https://resend.com/docs",
+        env: ["SMTP_USER", "SMTP_PASS", "EMAIL_FROM_EMAIL", "EMAIL_FROM_NAME", "EMAIL_REPLY_TO"],
+        statusKey: "email",
+        docs: "https://support.google.com/a/answer/176600",
       },
       {
         name: "Magic-Link Sessions",

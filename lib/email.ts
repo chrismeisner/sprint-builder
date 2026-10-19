@@ -1,8 +1,9 @@
 /**
- * Email utility functions using Resend
+ * Email utility functions — sent over SMTP (Google Workspace / Gmail)
  */
 
 import { createHmac, timingSafeEqual } from "crypto";
+import nodemailer, { type SendMailOptions, type Transporter } from "nodemailer";
 import { getPool } from "@/lib/db";
 
 /**
@@ -28,7 +29,7 @@ export interface SendEmailParams {
   cc?: string;
   /** See {@link EmailCategory}. Defaults to `"transactional"` so legacy callers are safe. */
   category?: EmailCategory;
-  /** Optional Resend tag for per-type analytics, e.g. "magic-link". Sent as `tags: [{name:"type", value}]`. */
+  /** Optional message type, e.g. "magic-link". Used for unsubscribe scoping and sent as an `X-Email-Type` header. */
   tag?: string;
 }
 
@@ -102,35 +103,70 @@ export async function isUnsubscribed(email: string, category: string): Promise<b
 // sendEmail
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// SMTP transport
+// ---------------------------------------------------------------------------
+
+let cachedTransport: Transporter | null = null;
+
+/**
+ * Lazily builds a pooled SMTP transport from env. Defaults target Gmail
+ * (Google Workspace): SMTP_USER is the Workspace address and SMTP_PASS an
+ * app password for it. Returns null when credentials are missing.
+ */
+function getTransport(): Transporter | null {
+  if (cachedTransport) return cachedTransport;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!user || !pass) return null;
+  const port = Number(process.env.SMTP_PORT) || 465;
+  cachedTransport = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    pool: true,
+    maxConnections: 3,
+  });
+  return cachedTransport;
+}
+
+/**
+ * Resolved sender settings. Gmail only sends as the authenticated user or one
+ * of its verified "Send mail as" aliases — any other From is silently
+ * rewritten — so the From address defaults to SMTP_USER; set EMAIL_FROM_EMAIL
+ * only to an alias configured on that Workspace account.
+ */
+export function getEmailConfig() {
+  const smtpUser = process.env.SMTP_USER || null;
+  const fromEmail = process.env.EMAIL_FROM_EMAIL || smtpUser || "";
+  const fromName = process.env.EMAIL_FROM_NAME || "Meisner Design";
+  // Always resolve to a real, monitored inbox so the "reply to this email"
+  // line in our templates actually works. meisner.design is on Google
+  // Workspace, so this address genuinely receives mail. Env overrides the
+  // default for other environments.
+  const replyTo = process.env.EMAIL_REPLY_TO || "chris@meisner.design";
+  return {
+    configured: Boolean(smtpUser && process.env.SMTP_PASS && fromEmail),
+    smtpHost: process.env.SMTP_HOST || "smtp.gmail.com",
+    smtpUser,
+    fromEmail,
+    fromName,
+    from: fromName && fromEmail ? `${fromName} <${fromEmail}>` : fromEmail,
+    replyTo,
+  };
+}
+
 export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
   const category: EmailCategory = params.category ?? "transactional";
   const tag = params.tag;
 
   try {
-    const resendApiKey = process.env.RESEND_API_KEY;
-    // From address + reply-to are provider-neutral. We prefer the new EMAIL_* names
-    // but fall back to the legacy MAILGUN_FROM_* vars so the Mailgun→Resend cutover
-    // doesn't require re-setting these in every environment at once.
-    const fromEmail =
-      process.env.EMAIL_FROM_EMAIL ||
-      process.env.MAILGUN_FROM_EMAIL ||
-      "no-reply@mail.meisner.design";
-    const fromName =
-      process.env.EMAIL_FROM_NAME || process.env.MAILGUN_FROM_NAME || "Meisner Design";
-    // Always resolve to a real, monitored inbox so the "reply to this email"
-    // line in our templates actually works. Without a Reply-To, replies fall
-    // back to the From address (no-reply@mail.meisner.design), whose subdomain
-    // routes inbound to Mailgun and isn't monitored. meisner.design is on
-    // Google Workspace, so this address genuinely receives mail. Env overrides
-    // the default for other environments.
-    const defaultReplyTo =
-      process.env.EMAIL_REPLY_TO ||
-      process.env.MAILGUN_REPLY_TO ||
-      "chris@meisner.design";
-    const from = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
+    const transport = getTransport();
+    const { fromEmail, from, replyTo: defaultReplyTo } = getEmailConfig();
 
-    if (!resendApiKey) {
-      console.warn("[Email] Resend not configured. Email not sent.", { to: params.to });
+    if (!transport || !fromEmail) {
+      console.warn("[Email] SMTP not configured. Email not sent.", { to: params.to });
       return {
         success: false,
         error: "Email service not configured",
@@ -152,120 +188,97 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       };
     }
 
-    // Resend expects a JSON payload. `to`/`cc` accept a string or array, but unlike
-    // Mailgun it does NOT parse a single comma-separated string into multiple
-    // recipients — it treats "a@x.com,b@y.com" as one (invalid) address and rejects
-    // the send. Callers pass comma-joined lists (e.g. CC'd admins), so split into an
-    // array. Open/click tracking is configured at the domain level in Resend (off by
-    // default), so there are no per-send tracking flags.
+    // Callers pass comma-joined lists (e.g. CC'd admins); split so each
+    // address is its own recipient.
     const toAddressList = (value: string): string[] =>
       value
         .split(",")
         .map((addr) => addr.trim())
         .filter(Boolean);
 
-    const payload: Record<string, unknown> = {
+    const message: SendMailOptions = {
       from,
       to: toAddressList(params.to),
       subject: params.subject,
       text: params.text,
+      replyTo: params.replyTo || defaultReplyTo,
     };
 
     if (params.html) {
-      payload.html = params.html;
-    }
-    const replyTo = params.replyTo || defaultReplyTo;
-    if (replyTo) {
-      payload.reply_to = replyTo;
+      message.html = params.html;
     }
     if (params.cc) {
       const ccList = toAddressList(params.cc);
       if (ccList.length > 0) {
-        payload.cc = ccList;
+        message.cc = ccList;
       }
     }
 
+    const headers: Record<string, string> = {};
     // One-click unsubscribe headers — required by Gmail/Yahoo 2024 bulk sender
     // rules for any mail that isn't purely transactional. We only add these for
     // notifications so recipients can't "unsubscribe" from security-critical mail.
     if (category === "notification") {
       const unsubUrl = buildUnsubscribeUrl(params.to, tag || category);
       const fromDomain = fromEmail.split("@")[1] || "meisner.design";
-      payload.headers = {
-        "List-Unsubscribe": `<${unsubUrl}>, <mailto:unsubscribe@${fromDomain}?subject=unsubscribe>`,
-        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-      };
+      headers["List-Unsubscribe"] = `<${unsubUrl}>, <mailto:unsubscribe@${fromDomain}?subject=unsubscribe>`;
+      headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
     }
-
     if (tag) {
-      // Resend tag values are restricted to ASCII letters, numbers, `_` and `-`.
-      const safeTag = tag.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 256);
-      payload.tags = [{ name: "type", value: safeTag }];
+      headers["X-Email-Type"] = tag.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 256);
     }
+    message.headers = headers;
 
-    // Resend caps sends at 5 requests/second. Notifications that fan out to
-    // many recipients (e.g. an invoice with several project members + every
-    // admin) blow past that and would otherwise drop silently. Retry on 429
-    // (and transient 5xx) with backoff, honoring any Retry-After header.
-    const MAX_ATTEMPTS = 5;
-    let resendRes: Response;
-    let errText = "";
+    // Notifications that fan out to many recipients can trip Gmail's
+    // short-term throttling (4xx replies). Retry transient failures with
+    // backoff; permanent (5xx) rejections fail immediately.
+    const MAX_ATTEMPTS = 4;
     let attempt = 0;
+    let info: { messageId?: string } | undefined;
     for (;;) {
       attempt++;
-      resendRes = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      if (resendRes.ok) break;
-      errText = await resendRes.text().catch(() => "");
-      const retryable = resendRes.status === 429 || resendRes.status >= 500;
-      if (!retryable || attempt >= MAX_ATTEMPTS) break;
-      const retryAfter = Number(resendRes.headers.get("retry-after"));
-      const waitMs =
-        Number.isFinite(retryAfter) && retryAfter > 0
-          ? Math.min(retryAfter * 1000, 5000)
-          : Math.min(2000, 250 * 2 ** (attempt - 1));
-      console.warn("[Email] Resend transient error — retrying", {
-        status: resendRes.status,
-        attempt,
-        waitMs,
-        to: params.to,
-        tag,
-      });
-      await new Promise((r) => setTimeout(r, waitMs));
+      try {
+        info = await transport.sendMail(message);
+        break;
+      } catch (err) {
+        const code = (err as { responseCode?: number }).responseCode;
+        const retryable = code === undefined || (code >= 400 && code < 500);
+        if (!retryable || attempt >= MAX_ATTEMPTS) {
+          console.error("[Email] SMTP send failed", {
+            responseCode: code,
+            to: params.to,
+            category,
+            tag,
+            error: (err as Error).message?.slice(0, 500),
+          });
+          return {
+            success: false,
+            error: `SMTP error${code ? `: ${code}` : ""}`,
+          };
+        }
+        const waitMs = Math.min(4000, 500 * 2 ** (attempt - 1));
+        console.warn("[Email] SMTP transient error — retrying", {
+          responseCode: code,
+          attempt,
+          waitMs,
+          to: params.to,
+          tag,
+        });
+        await new Promise((r) => setTimeout(r, waitMs));
+      }
     }
 
-    if (!resendRes.ok) {
-      console.error("[Email] Resend send failed", {
-        status: resendRes.status,
-        to: params.to,
-        category,
-        tag,
-        body: errText.slice(0, 500),
-      });
-      return {
-        success: false,
-        error: `Resend API error: ${resendRes.status}`,
-      };
-    }
-
-    const responseData = await resendRes.json();
     console.log("[Email] Email sent successfully", {
       to: params.to,
       subject: params.subject,
       category,
       tag,
-      messageId: responseData.id,
+      messageId: info?.messageId,
     });
 
     return {
       success: true,
-      messageId: responseData.id,
+      messageId: info?.messageId,
     };
   } catch (error: unknown) {
     console.error("[Email] Error sending email:", error);

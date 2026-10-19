@@ -13,6 +13,23 @@ function resolveOrigin(request: Request): string {
   return `${url.protocol}//${url.host}`;
 }
 
+/**
+ * The link is a live login credential, so it's only logged outside production
+ * (local testing without SMTP). In production the client gets an error instead
+ * of a false "check your email".
+ */
+function magicLinkSendFailed(email: string, magicLink: string, error?: string) {
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[Auth] Magic link send failed; dev fallback:", { email, error, magicLink });
+  } else {
+    console.error("[Auth] Magic link send failed", { email, error });
+  }
+  return NextResponse.json(
+    { error: "We couldn't send the sign-in email. Please try again in a few minutes." },
+    { status: 502 }
+  );
+}
+
 async function sendMagicLink(email: string, magicLink: string) {
   const content = generateMagicLinkEmail({
     magicLink,
@@ -66,9 +83,7 @@ export async function POST(request: Request) {
       const magicLink = `${origin}/api/auth/callback?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(redirect)}`;
 
       const result = await sendMagicLink(normalizedEmail, magicLink);
-      if (!result.success) {
-        console.log("[Auth] Superadmin magic link fallback:", { email: normalizedEmail, magicLink });
-      }
+      if (!result.success) return magicLinkSendFailed(normalizedEmail, magicLink, result.error);
       return NextResponse.json({ ok: true });
     }
 
@@ -120,14 +135,7 @@ export async function POST(request: Request) {
     const magicLink = `${origin}/api/auth/callback?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(redirect)}`;
 
     const result = await sendMagicLink(normalizedEmail, magicLink);
-    if (!result.success) {
-      // Dev fallback: log the magic link so local testing without Resend still works.
-      console.log("[Auth] Magic link send failed; fallback log:", {
-        email: normalizedEmail,
-        error: result.error,
-        magicLink,
-      });
-    }
+    if (!result.success) return magicLinkSendFailed(normalizedEmail, magicLink, result.error);
 
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {
