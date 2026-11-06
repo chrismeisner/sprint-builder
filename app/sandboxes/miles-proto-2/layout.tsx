@@ -6,7 +6,6 @@ import { KeyboardShortcuts } from "@/app/sandboxes/miles-proto-2/_components/key
 import { BottomNav } from "@/app/sandboxes/miles-proto-2/_components/bottom-nav";
 import { PageTransition } from "@/app/sandboxes/miles-proto-2/_components/page-transition";
 import { ForceLightMode } from "@/app/sandboxes/miles-proto-2/_components/force-light-mode";
-import { InspectorController } from "@/app/sandboxes/miles-proto-2/_components/inspector-controller";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -68,7 +67,6 @@ export default function MilesLayout({
     >
       <ForceLightMode />
       <KeyboardShortcuts />
-      <InspectorController />
       <DeviceSwitcher>
         <div className="flex min-h-dvh flex-col">
           <PageTransition>{children}</PageTransition>
